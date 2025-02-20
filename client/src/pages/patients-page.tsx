@@ -20,11 +20,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { AddPatientForm } from "@/components/patients/add-patient-form";
+import { PatientDetails } from "@/components/patients/patient-details";
 import { useState } from "react";
 
 export default function PatientsPage() {
   const { t } = useTranslation();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
   const { data: patients, isLoading } = useQuery<Patient[]>({
     queryKey: ["/api/patients"],
@@ -84,8 +86,12 @@ export default function PatientsPage() {
                       {patient.allergies}
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm">
-                        View Details
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setSelectedPatient(patient)}
+                      >
+                        {t("patient.viewDetails")}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -101,6 +107,14 @@ export default function PatientsPage() {
             </Table>
           )}
         </div>
+
+        {selectedPatient && (
+          <PatientDetails
+            patient={selectedPatient}
+            isOpen={!!selectedPatient}
+            onClose={() => setSelectedPatient(null)}
+          />
+        )}
       </main>
     </div>
   );
