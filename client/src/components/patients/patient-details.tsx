@@ -26,11 +26,11 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="sticky top-0 bg-background z-10 pb-4 mb-4 border-b">
           <DialogTitle className="text-2xl">{patient.name}</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        <div className="space-y-6 pb-6">
           <Card>
             <CardHeader>
               <CardTitle>{t("patient.personalInfo")}</CardTitle>
