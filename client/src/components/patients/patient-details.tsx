@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { SymptomPredictor } from "@/components/ai/symptom-predictor";
 
 interface PatientDetailsProps {
   patient: Patient;
@@ -25,7 +26,7 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle className="text-2xl">{patient.name}</DialogTitle>
         </DialogHeader>
@@ -53,13 +54,31 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-sm font-medium text-gray-500">{t("patient.medicalHistory")}</p>
-                <p className="mt-1 whitespace-pre-wrap">{patient.medicalHistory || t("common.none")}</p>
+                <p className="text-sm font-medium text-gray-500">
+                  {t("patient.medicalHistory")}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap">
+                  {patient.medicalHistory || t("common.none")}
+                </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">{t("patient.allergies")}</p>
-                <p className="mt-1 whitespace-pre-wrap">{patient.allergies || t("common.none")}</p>
+                <p className="text-sm font-medium text-gray-500">
+                  {t("patient.allergies")}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap">
+                  {patient.allergies || t("common.none")}
+                </p>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("ai.symptoms")}</CardTitle>
+              <CardDescription>{t("ai.enterSymptoms")}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SymptomPredictor patientHistory={patient.medicalHistory || undefined} />
             </CardContent>
           </Card>
         </div>
