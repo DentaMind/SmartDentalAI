@@ -16,6 +16,9 @@ const resources = {
       "patient.name": "Patient Name",
       "patient.dob": "Date of Birth",
       "patient.contact": "Contact",
+      "patient.total": "Total Patients",
+      "patient.totalActive": "Active Patients",
+      "patient.noPatients": "No patients found",
       "appointment.schedule": "Schedule Appointment",
       "appointment.date": "Date",
       "appointment.time": "Time",
@@ -39,6 +42,8 @@ const resources = {
       "ai.error": "Failed to analyze symptoms",
       "common.loading": "Loading...",
       "common.none": "None",
+      "common.actions": "Actions",
+      "common.view": "View"
     },
   },
   es: {
@@ -55,6 +60,9 @@ const resources = {
       "patient.name": "Nombre del Paciente",
       "patient.dob": "Fecha de Nacimiento",
       "patient.contact": "Contacto",
+      "patient.total": "Total de Pacientes",
+      "patient.totalActive": "Pacientes Activos",
+      "patient.noPatients": "No se encontraron pacientes",
       "appointment.schedule": "Programar Cita",
       "appointment.date": "Fecha",
       "appointment.time": "Hora",
@@ -78,6 +86,8 @@ const resources = {
       "ai.error": "Error al analizar síntomas",
       "common.loading": "Cargando...",
       "common.none": "Ninguno",
+      "common.actions": "Acciones",
+      "common.view": "Ver"
     },
   },
 };
