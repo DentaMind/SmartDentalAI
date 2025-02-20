@@ -28,8 +28,8 @@ export default function AuthPage() {
     defaultValues: {
       username: "",
       password: "",
-      role: "doctor",
-      language: "en",
+      role: "doctor", // Add default role
+      language: "en", // Add default language
     },
   });
 
@@ -130,6 +130,8 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
+                    <input type="hidden" {...registerForm.register("role")} />
+                    <input type="hidden" {...registerForm.register("language")} />
                     <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
                       {registerMutation.isPending ? "Loading..." : t("auth.register")}
                     </Button>
