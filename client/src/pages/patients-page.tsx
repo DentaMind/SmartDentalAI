@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Eye } from "lucide-react"; // Added Eye import
 import {
   Dialog,
   DialogContent,
@@ -86,12 +86,14 @@ export default function PatientsPage() {
                       {patient.allergies}
                     </TableCell>
                     <TableCell>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="secondary"
                         size="sm"
                         onClick={() => setSelectedPatient(patient)}
+                        className="w-full"
                       >
-                        {t("patient.viewDetails")}
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
                       </Button>
                     </TableCell>
                   </TableRow>
