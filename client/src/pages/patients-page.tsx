@@ -11,10 +11,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { AddPatientForm } from "@/components/patients/add-patient-form";
+import { useState } from "react";
 
 export default function PatientsPage() {
   const { t } = useTranslation();
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
   const { data: patients, isLoading } = useQuery<Patient[]>({
     queryKey: ["/api/patients"],
   });
@@ -27,37 +38,68 @@ export default function PatientsPage() {
           <h1 className="text-3xl font-bold text-gray-900">
             {t("nav.patients")}
           </h1>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            {t("patient.add")}
-          </Button>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                {t("patient.add")}
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{t("patient.add")}</DialogTitle>
+              </DialogHeader>
+              <AddPatientForm onSuccess={() => setIsAddDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="bg-white rounded-lg shadow">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("patient.name")}</TableHead>
-                <TableHead>{t("patient.dob")}</TableHead>
-                <TableHead>{t("patient.contact")}</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {patients?.map((patient) => (
-                <TableRow key={patient.id}>
-                  <TableCell>{patient.name}</TableCell>
-                  <TableCell>{patient.dateOfBirth}</TableCell>
-                  <TableCell>{patient.contact}</TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="sm">
-                      View Details
-                    </Button>
-                  </TableCell>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-32">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("patient.name")}</TableHead>
+                  <TableHead>{t("patient.dob")}</TableHead>
+                  <TableHead>{t("patient.contact")}</TableHead>
+                  <TableHead>{t("patient.medicalHistory")}</TableHead>
+                  <TableHead>{t("patient.allergies")}</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {patients?.map((patient) => (
+                  <TableRow key={patient.id}>
+                    <TableCell>{patient.name}</TableCell>
+                    <TableCell>{patient.dateOfBirth}</TableCell>
+                    <TableCell>{patient.contact}</TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      {patient.medicalHistory}
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      {patient.allergies}
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="sm">
+                        View Details
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {!patients?.length && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      {t("patient.noPatients")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </div>
       </main>
     </div>
