@@ -25,17 +25,21 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
   const form = useForm<InsertPatient>({
     resolver: zodResolver(insertPatientSchema),
     defaultValues: {
-      name: "",
-      dateOfBirth: "",
-      contact: "",
+      userId: 0, // This will be set by the backend
       medicalHistory: null,
       allergies: null,
+      bloodType: null,
+      emergencyContact: null,
     },
   });
 
   const addPatientMutation = useMutation({
     mutationFn: async (data: InsertPatient) => {
       const res = await apiRequest("POST", "/api/patients", data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to add patient");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -48,6 +52,7 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
       onSuccess?.();
     },
     onError: (error: Error) => {
+      console.error("Error adding patient:", error);
       toast({
         title: t("patient.addError"),
         description: error.message,
@@ -59,51 +64,12 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit((data) => addPatientMutation.mutate(data))}
+        onSubmit={form.handleSubmit((data) => {
+          console.log("Submitting patient data:", data);
+          addPatientMutation.mutate(data);
+        })}
         className="space-y-4"
       >
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t("patient.name")}</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="dateOfBirth"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t("patient.dob")}</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="contact"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t("patient.contact")}</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
         <FormField
           control={form.control}
           name="medicalHistory"
@@ -126,6 +92,34 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
               <FormLabel>{t("patient.allergies")}</FormLabel>
               <FormControl>
                 <Textarea {...field} value={field.value || ""} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="bloodType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("patient.bloodType")}</FormLabel>
+              <FormControl>
+                <Input {...field} value={field.value || ""} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="emergencyContact"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("patient.emergencyContact")}</FormLabel>
+              <FormControl>
+                <Input {...field} value={field.value || ""} />
               </FormControl>
               <FormMessage />
             </FormItem>

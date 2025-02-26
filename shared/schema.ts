@@ -12,11 +12,9 @@ export const users = pgTable("users", {
   lastName: text("last_name").notNull(),
   email: text("email").notNull(),
   phoneNumber: text("phone_number"),
-  // Patient specific fields
   dateOfBirth: text("date_of_birth"),
   insuranceProvider: text("insurance_provider"),
   insuranceNumber: text("insurance_number"),
-  // Doctor specific fields
   specialization: text("specialization"),
   licenseNumber: text("license_number"),
 });
@@ -86,16 +84,18 @@ export const payments = pgTable("payments", {
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).extend({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
   role: z.enum(["doctor", "staff", "patient"]),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address"),
-  phoneNumber: z.string().optional(),
-  dateOfBirth: z.string().optional(),
-  insuranceProvider: z.string().optional(),
-  insuranceNumber: z.string().optional(),
-  specialization: z.string().optional(),
-  licenseNumber: z.string().optional(),
+  phoneNumber: z.string().nullable().optional(),
+  dateOfBirth: z.string().nullable().optional(),
+  insuranceProvider: z.string().nullable().optional(),
+  insuranceNumber: z.string().nullable().optional(),
+  specialization: z.string().nullable().optional(),
+  licenseNumber: z.string().nullable().optional(),
 });
 
 export const insertPatientSchema = createInsertSchema(patients);
