@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Patient } from "@shared/schema";
+import { Patient, User } from "@shared/schema";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
@@ -26,13 +26,18 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 
+// Extended type to include user information
+type PatientWithUser = Patient & {
+  user: User;
+};
+
 export default function PatientsPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<PatientWithUser | null>(null);
 
-  const { data: patients, isLoading } = useQuery<Patient[]>({
+  const { data: patients, isLoading } = useQuery<PatientWithUser[]>({
     queryKey: ["/api/patients"],
   });
 
@@ -48,7 +53,7 @@ export default function PatientsPage() {
           {/* Welcome Section */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary-600 bg-clip-text text-transparent">
-              Welcome back, {user?.name || "Doctor"}
+              Welcome back, {user?.firstName || "Doctor"}
             </h1>
             <p className="text-muted-foreground mt-2">
               Here's your practice overview for today
@@ -148,9 +153,11 @@ export default function PatientsPage() {
                 <TableBody>
                   {patients?.map((patient) => (
                     <TableRow key={patient.id} className="cursor-pointer hover:bg-muted/50">
-                      <TableCell className="font-medium">{patient.name}</TableCell>
-                      <TableCell>{patient.dateOfBirth}</TableCell>
-                      <TableCell>{patient.contact}</TableCell>
+                      <TableCell className="font-medium">
+                        {`${patient.user.firstName} ${patient.user.lastName}`}
+                      </TableCell>
+                      <TableCell>{patient.user.dateOfBirth}</TableCell>
+                      <TableCell>{patient.user.phoneNumber || patient.user.email}</TableCell>
                       <TableCell className="max-w-xs truncate">
                         {patient.medicalHistory}
                       </TableCell>

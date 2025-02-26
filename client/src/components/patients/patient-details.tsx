@@ -1,4 +1,4 @@
-import { Patient } from "@shared/schema";
+import { Patient, User } from "@shared/schema";
 import { useTranslation } from "react-i18next";
 import {
   Dialog,
@@ -16,7 +16,7 @@ import {
 import { SymptomPredictor } from "@/components/ai/symptom-predictor";
 
 interface PatientDetailsProps {
-  patient: Patient;
+  patient: Patient & { user: User };
   isOpen: boolean;
   onClose: () => void;
 }
@@ -28,7 +28,9 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="sticky top-0 bg-background z-10 pb-4 mb-4 border-b">
-          <DialogTitle className="text-2xl">{patient.name}</DialogTitle>
+          <DialogTitle className="text-2xl">
+            {`${patient.user.firstName} ${patient.user.lastName}`}
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-6 pb-6">
           <Card>
@@ -38,11 +40,19 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
             <CardContent className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-gray-500">{t("patient.dob")}</p>
-                <p className="mt-1">{patient.dateOfBirth}</p>
+                <p className="mt-1">{patient.user.dateOfBirth}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">{t("patient.contact")}</p>
-                <p className="mt-1">{patient.contact}</p>
+                <p className="mt-1">{patient.user.phoneNumber || patient.user.email}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Insurance Provider</p>
+                <p className="mt-1">{patient.user.insuranceProvider || 'Not provided'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Insurance Number</p>
+                <p className="mt-1">{patient.user.insuranceNumber || 'Not provided'}</p>
               </div>
             </CardContent>
           </Card>
@@ -67,6 +77,14 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
                 </p>
                 <p className="mt-1 whitespace-pre-wrap">
                   {patient.allergies || t("common.none")}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">
+                  Emergency Contact
+                </p>
+                <p className="mt-1 whitespace-pre-wrap">
+                  {patient.emergencyContact || t("common.none")}
                 </p>
               </div>
             </CardContent>
