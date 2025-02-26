@@ -20,8 +20,8 @@ server.use((req, res, next) => {
   next();
 });
 
-// Mount the API routes
-server.use(app);
+// Mount API routes first
+server.use("/api", app);
 
 // Error handling middleware
 server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -34,7 +34,7 @@ server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 // Initialize server
 (async () => {
   try {
-    // In development, let Vite handle everything
+    // After API routes, let Vite handle everything else
     log("Setting up Vite development server...");
     await setupVite(server);
 
