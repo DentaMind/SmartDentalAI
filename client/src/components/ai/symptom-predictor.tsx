@@ -1,42 +1,38 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Alert,
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, Clock, ThermometerSun } from "lucide-react";
+import { predictDentalCondition, type SymptomPrediction, type PredictionContext } from "@/lib/ai-predictor";
 
-interface SymptomPrediction {
-  possibleConditions: Array<{
-    condition: string;
-    confidence: number;
-    description: string;
-    recommendations: string[];
-    urgencyLevel: "low" | "medium" | "high" | "emergency";
-  }>;
-  followUpQuestions: string[];
-  generalAdvice: string;
+interface Props {
+  patientHistory?: string;
+  vitalSigns?: PredictionContext["vitalSigns"];
+  relevantTests?: PredictionContext["relevantTests"];
 }
 
-export function SymptomPredictor({ patientHistory }: { patientHistory?: string }) {
+export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests }: Props) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [symptoms, setSymptoms] = useState("");
 
   const predictMutation = useMutation({
     mutationFn: async (symptoms: string) => {
-      const res = await apiRequest("POST", "/api/ai/predict", {
+      return await predictDentalCondition({
         symptoms,
         patientHistory,
+        vitalSigns,
+        relevantTests
       });
-      return res.json() as Promise<SymptomPrediction>;
     },
     onError: (error: Error) => {
       toast({
@@ -64,17 +60,24 @@ export function SymptomPredictor({ patientHistory }: { patientHistory?: string }
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("ai.symptoms")}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <ThermometerSun className="h-5 w-5 text-primary" />
+            {t("ai.symptoms")}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Textarea
             placeholder={t("ai.enterSymptoms")}
             value={symptoms}
             onChange={(e) => setSymptoms(e.target.value)}
-            className="min-h-[100px]"
+            className="min-h-[100px] mb-4"
           />
+          <div className="flex gap-2 items-center text-sm text-muted-foreground mb-4">
+            <Clock className="h-4 w-4" />
+            <span>AI analysis usually takes 2-3 seconds</span>
+          </div>
           <Button
-            className="mt-4 w-full"
+            className="w-full"
             onClick={() => predictMutation.mutate(symptoms)}
             disabled={!symptoms || predictMutation.isPending}
           >
@@ -103,18 +106,26 @@ export function SymptomPredictor({ patientHistory }: { patientHistory?: string }
                   <div key={index} className="border rounded-lg p-4">
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="font-medium">{condition.condition}</h4>
-                      <span className={getUrgencyColor(condition.urgencyLevel)}>
+                      <Badge 
+                        variant={condition.urgencyLevel === "emergency" ? "destructive" : "secondary"}
+                        className={getUrgencyColor(condition.urgencyLevel)}
+                      >
                         {condition.urgencyLevel.toUpperCase()}
-                      </span>
+                      </Badge>
                     </div>
                     <p className="text-sm text-gray-600 mb-2">
                       {condition.description}
                     </p>
                     <div className="mb-2">
-                      <span className="text-sm font-medium">
-                        {t("ai.confidence")}:{" "}
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-primary rounded-full h-2 transition-all"
+                          style={{ width: `${Math.round(condition.confidence * 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium mt-1 block">
+                        {t("ai.confidence")}: {Math.round(condition.confidence * 100)}%
                       </span>
-                      <span>{Math.round(condition.confidence * 100)}%</span>
                     </div>
                     <div>
                       <h5 className="text-sm font-medium mb-1">
