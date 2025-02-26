@@ -19,7 +19,11 @@ server.use((req, res, next) => {
 });
 
 // Mount API routes before Vite middleware
-server.use("/api", app);
+server.use("/api", (req, res, next) => {
+  // Set proper headers for API routes
+  res.setHeader('Content-Type', 'application/json');
+  next();
+}, app);
 
 // Error handling middleware
 server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
