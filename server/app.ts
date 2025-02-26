@@ -24,6 +24,12 @@ app.use((req, res, next) => {
   }
 });
 
+// Force JSON content type for API routes
+app.use('/api', (req, res, next) => {
+  res.setHeader('Content-Type', 'application/json');
+  next();
+});
+
 // Setup authentication
 setupAuth(app);
 
