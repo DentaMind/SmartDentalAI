@@ -3,35 +3,75 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { predictFromSymptoms } from "./services/ai-prediction";
 import { requireAuth, requireRole, requireOwnership } from "./middleware/auth";
+import { insertUserSchema } from "@shared/schema";
+import { scrypt, randomBytes } from "crypto";
+import { promisify } from "util";
 
 const app = express();
+const scryptAsync = promisify(scrypt);
 
 // Basic middleware setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Setup CORS headers - must be before auth middleware
+// Force JSON responses for all API routes
 app.use((req, res, next) => {
-  // Allow specific origins in production
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-  } else {
-    next();
-  }
-});
-
-// API middleware - Must be before all API routes
-app.use('/api', (req, res, next) => {
   res.setHeader('Content-Type', 'application/json');
   next();
 });
 
 // Setup authentication
 setupAuth(app);
+
+// Patient registration endpoint
+app.post("/patients", async (req, res) => {
+  try {
+    const validation = insertUserSchema.omit({
+      role: true,
+      language: true,
+      specialization: true,
+      licenseNumber: true,
+      username: true,
+      password: true
+    }).safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({ 
+        message: "Invalid input data", 
+        errors: validation.error.errors 
+      });
+    }
+
+    const username = `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`;
+    const password = Math.random().toString(36).slice(-8);
+
+    const salt = randomBytes(16).toString("hex");
+    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+    const hashedPassword = `${buf.toString("hex")}.${salt}`;
+
+    const user = await storage.createUser({
+      ...validation.data,
+      role: "patient",
+      language: "en",
+      specialization: null,
+      licenseNumber: null,
+      username,
+      password: hashedPassword,
+    });
+
+    return res.status(201).json({ 
+      success: true,
+      user,
+      credentials: {
+        username,
+        password
+      }
+    });
+  } catch (error) {
+    console.error("Registration error:", error);
+    return res.status(500).json({ message: "Server error during registration" });
+  }
+});
 
 // API Routes
 app.get("/api/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res, next) => {
@@ -122,7 +162,7 @@ app.post("/api/ai/predict", requireAuth, requireRole(["doctor"]), async (req, re
   }
 });
 
-// Error handling middleware - Must be last before Vite
+// Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error('Error:', err);
 
@@ -130,15 +170,6 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     return next(err);
   }
 
-  // Handle validation errors
-  if (err.name === 'ValidationError') {
-    return res.status(400).json({
-      message: 'Validation Error',
-      errors: err.message
-    });
-  }
-
-  // Generic error response
   res.status(500).json({ 
     message: err.message || "Internal server error"
   });
