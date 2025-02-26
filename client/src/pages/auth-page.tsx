@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Redirect } from "wouter";
 import { Stethoscope } from "lucide-react";
+// Import the image
+import dentalSmile from "../../../attached_assets/iStock-526222203.jpg";
 
 export default function AuthPage() {
   const { t } = useTranslation();
@@ -59,7 +61,7 @@ export default function AuthPage() {
           </p>
           <div className="mt-8">
             <img 
-              src="../../../attached_assets/iStock-526222203.jpg" 
+              src={dentalSmile}
               alt="Professional dental smile" 
               className="rounded-2xl shadow-xl w-full h-[300px] object-cover"
             />
