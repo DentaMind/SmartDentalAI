@@ -20,8 +20,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
 
 type AddPatientFormData = {
-  username: string;
-  password: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -45,12 +43,12 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
         role: true,
         language: true,
         specialization: true,
-        licenseNumber: true
+        licenseNumber: true,
+        username: true,
+        password: true
       })
     ),
     defaultValues: {
-      username: "",
-      password: "",
       firstName: "",
       lastName: "",
       email: "",
@@ -70,7 +68,10 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
       const res = await apiRequest("POST", "/api/patients", {
         ...data,
         role: "patient",
-        language: "en"
+        language: "en",
+        // Generate a username and password for the patient
+        username: `${data.firstName.toLowerCase()}${data.lastName.toLowerCase()}`,
+        password: Math.random().toString(36).slice(-8) // Generate a random 8-character password
       });
       if (!res.ok) {
         const error = await res.json();
@@ -133,34 +134,6 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
               )}
             />
           </div>
-
-          <FormField
-            control={form.control}
-            name="username"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Username</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Password</FormLabel>
-                <FormControl>
-                  <Input type="password" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
           <FormField
             control={form.control}
