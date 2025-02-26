@@ -28,7 +28,7 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
-export function setupAuth(router: Express.Router) {
+export function setupAuth(app: Express) {
   if (!process.env.SESSION_SECRET) {
     throw new Error("SESSION_SECRET environment variable is required");
   }
@@ -45,9 +45,9 @@ export function setupAuth(router: Express.Router) {
     }
   };
 
-  router.use(session(sessionSettings));
-  router.use(passport.initialize());
-  router.use(passport.session());
+  app.use(session(sessionSettings));
+  app.use(passport.initialize());
+  app.use(passport.session());
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
@@ -82,19 +82,17 @@ export function setupAuth(router: Express.Router) {
     }
   });
 
-  router.post("/api/patients", async (req, res) => {
+  app.post("/api/patients", async (req, res) => {
     try {
       // Validate the request body against our schema
-      const validation = insertUserSchema.safeParse({
-        ...req.body,
-        role: "patient",
-        language: "en",
-        specialization: null,
-        licenseNumber: null,
-        // Generate username and password if not provided
-        username: req.body.username || `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`,
-        password: req.body.password || Math.random().toString(36).slice(-8),
-      });
+      const validation = insertUserSchema.omit({
+        role: true,
+        language: true,
+        specialization: true,
+        licenseNumber: true,
+        username: true,
+        password: true
+      }).safeParse(req.body);
 
       if (!validation.success) {
         return res.status(400).json({ 
@@ -103,10 +101,19 @@ export function setupAuth(router: Express.Router) {
         });
       }
 
+      // Generate username and password
+      const username = `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`;
+      const password = Math.random().toString(36).slice(-8);
+      const hashedPassword = await hashPassword(password);
+
       // Create the user
-      const hashedPassword = await hashPassword(validation.data.password);
       const user = await storage.createUser({
         ...validation.data,
+        role: "patient",
+        language: "en",
+        specialization: null,
+        licenseNumber: null,
+        username,
         password: hashedPassword,
       });
 
@@ -124,18 +131,18 @@ export function setupAuth(router: Express.Router) {
     }
   });
 
-  router.post("/api/login", passport.authenticate("local"), (req, res) => {
+  app.post("/api/login", passport.authenticate("local"), (req, res) => {
     res.status(200).json(req.user);
   });
 
-  router.post("/api/logout", (req, res, next) => {
+  app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);
       res.sendStatus(200);
     });
   });
 
-  router.get("/api/user", (req, res) => {
+  app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     res.json(req.user);
   });
