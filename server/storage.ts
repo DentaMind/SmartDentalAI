@@ -8,6 +8,8 @@ import {
   InsertAppointment,
   TreatmentPlan,
   InsertTreatmentPlan,
+  Payment,
+  InsertPayment,
 } from "@shared/schema";
 import createMemoryStore from "memorystore";
 import session from "express-session";
@@ -19,6 +21,7 @@ export class MemStorage implements IStorage {
   private patients: Map<number, Patient>;
   private appointments: Map<number, Appointment>;
   private treatmentPlans: Map<number, TreatmentPlan>;
+  private payments: Map<number, Payment>; // Added payments map
   sessionStore: session.Store;
   currentId: number;
 
@@ -27,6 +30,7 @@ export class MemStorage implements IStorage {
     this.patients = new Map();
     this.appointments = new Map();
     this.treatmentPlans = new Map();
+    this.payments = new Map(); // Initialize payments map
     this.currentId = 1;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
@@ -94,6 +98,19 @@ export class MemStorage implements IStorage {
   async getPatientTreatmentPlans(patientId: number): Promise<TreatmentPlan[]> {
     return Array.from(this.treatmentPlans.values()).filter(
       (plan) => plan.patientId === patientId,
+    );
+  }
+
+  async createPayment(insertPayment: InsertPayment): Promise<Payment> {
+    const id = this.currentId++;
+    const payment = { ...insertPayment, id };
+    this.payments.set(id, payment);
+    return payment;
+  }
+
+  async getPatientPayments(patientId: number): Promise<Payment[]> {
+    return Array.from(this.payments.values()).filter(
+      (payment) => payment.patientId === patientId,
     );
   }
 }

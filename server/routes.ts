@@ -76,6 +76,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Payment routes
+  app.post("/api/payments", requireAuth, async (req, res) => {
+    try {
+      const data = insertPaymentSchema.parse(req.body);
+      const payment = await createPayment(data);
+      res.status(201).json(payment);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Invalid request" });
+    }
+  });
+
+  app.get("/api/payments/patient/:patientId", requireAuth, async (req, res) => {
+    try {
+      const payments = await storage.getPatientPayments(Number(req.params.patientId));
+      res.json(payments);
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Server error" });
+    }
+  });
+
   // AI Prediction route
   app.post("/api/ai/predict", requireAuth, async (req, res) => {
     try {
