@@ -12,14 +12,15 @@ import {
   AlertTitle,
 } from "@/components/ui/alert";
 import { Loader2, AlertTriangle, Clock, ThermometerSun, Shield, Stethoscope } from "lucide-react";
-import { 
-  predictDentalCondition, 
-  type SymptomPrediction, 
+import {
+  predictDentalCondition,
+  type SymptomPrediction,
   type PredictionContext,
   needsSpecialistReferral,
   getImmediateActions
 } from "@/lib/ai-predictor";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { analyzePerioStatus } from "@/lib/ai-predictor";
 
 interface Props {
   patientHistory?: string;
@@ -86,7 +87,7 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests, de
         <AccordionContent>
           <div className="space-y-4 p-4">
             <div>
-              <h4 className="font-medium mb-2">Findings:</h4>
+              <h4 className="font-medium mb-2">Clinical Findings:</h4>
               <ul className="list-disc list-inside space-y-1">
                 {findings.findings.map((finding, idx) => (
                   <li key={idx} className="text-sm text-gray-600">{finding}</li>
@@ -95,7 +96,7 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests, de
             </div>
             {findings.recommendations?.length > 0 && (
               <div>
-                <h4 className="font-medium mb-2">Recommendations:</h4>
+                <h4 className="font-medium mb-2">Treatment Recommendations:</h4>
                 <ul className="list-disc list-inside space-y-1">
                   {findings.recommendations.map((rec, idx) => (
                     <li key={idx} className="text-sm text-gray-600">{rec}</li>
@@ -115,7 +116,7 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests, de
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Stethoscope className="h-5 w-5 text-primary" />
-            {t("ai.symptoms")}
+            Dental Symptom Analysis
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -123,15 +124,16 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests, de
             <p className="text-sm text-muted-foreground">
               Describe the symptoms in detail, including:
               <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>Type and duration of pain (sharp, dull, lingering)</li>
-                <li>X-ray findings (radiolucency, bone loss)</li>
-                <li>Clinical observations (swelling, mobility)</li>
-                <li>Relevant tooth numbers</li>
+                <li>Type and location of pain (sharp, dull, lingering)</li>
+                <li>Duration and triggers of symptoms</li>
+                <li>Any visible changes or swelling</li>
+                <li>Recent dental work or injuries</li>
+                <li>Affected tooth numbers if known</li>
               </ul>
             </p>
           </div>
           <Textarea
-            placeholder="Example: Lingering pain and radiolucency on tooth #30, sensitive to cold, pain lasting 30 seconds after stimulus"
+            placeholder="Example: Sharp pain on upper right molar (#3) when biting, started 2 days ago. Cold sensitivity lasting 30 seconds. No visible swelling."
             value={symptoms}
             onChange={(e) => setSymptoms(e.target.value)}
             className="min-h-[100px] mb-4"
@@ -139,11 +141,11 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests, de
           <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
             <div className="flex gap-2 items-center">
               <Clock className="h-4 w-4" />
-              <span>AI analysis usually takes 2-3 seconds</span>
+              <span>Analysis takes 2-3 seconds</span>
             </div>
             <div className="flex gap-2 items-center">
               <Shield className="h-4 w-4 text-primary" />
-              <span>AI-Powered Analysis</span>
+              <span>AI-Powered Dental Analysis</span>
             </div>
           </div>
           <Button
@@ -154,10 +156,10 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests, de
             {isAnalyzing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t("ai.loading")}
+                Analyzing Symptoms...
               </>
             ) : (
-              t("ai.analyze")
+              "Analyze Symptoms"
             )}
           </Button>
         </CardContent>
@@ -166,11 +168,26 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests, de
       {predictMutation.data && (
         <Card>
           <CardHeader>
-            <CardTitle>{t("ai.results")}</CardTitle>
+            <CardTitle>Diagnostic Analysis</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {getImmediateActions(predictMutation.data).length > 0 && (
+              <Alert variant="destructive">
+                <AlertTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Urgent Care Needed
+                </AlertTitle>
+                <AlertDescription>
+                  <ul className="list-disc list-inside mt-2">
+                    {getImmediateActions(predictMutation.data).map((action, idx) => (
+                      <li key={idx}>{action}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
             <div>
-              <h3 className="font-semibold mb-2">{t("ai.possibleConditions")}</h3>
+              <h3 className="font-semibold mb-2">Possible Conditions</h3>
               <div className="space-y-4">
                 {predictMutation.data.possibleConditions.map((condition, index) => (
                   <div key={index} className="border rounded-lg p-4">
@@ -194,7 +211,7 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests, de
                         />
                       </div>
                       <span className="text-sm font-medium mt-1 block">
-                        {t("ai.confidence")}: {Math.round(condition.confidence * 100)}%
+                        Confidence: {Math.round(condition.confidence * 100)}%
                       </span>
                     </div>
                     {condition.specialistReferral && (
@@ -209,7 +226,7 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests, de
                     )}
                     <div>
                       <h5 className="text-sm font-medium mb-1">
-                        {t("ai.recommendations")}:
+                        Recommendations:
                       </h5>
                       <ul className="list-disc list-inside text-sm text-gray-600">
                         {condition.recommendations.map((rec, idx) => (
@@ -222,20 +239,17 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests, de
               </div>
             </div>
 
-            {/* AI Domain Analysis */}
             <div>
               <h3 className="font-semibold mb-4">Specialized Analysis</h3>
               <Accordion type="single" collapsible className="border rounded-lg">
-                {Object.entries(predictMutation.data.aiDomains).map(([domain, findings]) => 
+                {Object.entries(predictMutation.data.aiDomains).map(([domain, findings]) =>
                   renderAIDomainFindings(domain, findings)
                 )}
               </Accordion>
             </div>
 
             <div>
-              <h3 className="font-semibold mb-2">
-                {t("ai.followUpQuestions")}
-              </h3>
+              <h3 className="font-semibold mb-2">Additional Information Needed</h3>
               <ul className="list-disc list-inside text-gray-600">
                 {predictMutation.data.followUpQuestions.map((question, index) => (
                   <li key={index}>{question}</li>
@@ -244,7 +258,7 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests, de
             </div>
 
             <div>
-              <h3 className="font-semibold mb-2">{t("ai.generalAdvice")}</h3>
+              <h3 className="font-semibold mb-2">General Recommendations</h3>
               <p className="text-gray-600">{predictMutation.data.generalAdvice}</p>
             </div>
           </CardContent>
@@ -254,7 +268,7 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests, de
       {predictMutation.isError && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>{t("ai.error")}</AlertTitle>
+          <AlertTitle>Analysis Error</AlertTitle>
           <AlertDescription>
             {predictMutation.error.message}
           </AlertDescription>

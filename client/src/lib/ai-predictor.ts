@@ -52,32 +52,58 @@ export interface PredictionContext {
     xrayDate?: string;
     previousTreatments?: string[];
     knownConditions?: string[];
+    perioChart?: {
+      pocketDepths: number[];
+      bleedingPoints: boolean[];
+      date: string;
+    };
+    imaging?: {
+      type: "xray" | "cbct";
+      findings: string[];
+      date: string;
+    }[];
   };
 }
 
+// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 export async function predictDentalCondition(context: PredictionContext): Promise<SymptomPrediction> {
   try {
-    // Format the prediction request with structured data
+    // Format the prediction request with structured dental knowledge
     const promptData = {
       type: "dental_diagnosis",
       context: {
         ...context,
         format_version: "1.0",
-        // Add dental-specific context
+        // Add dental-specific context based on the guide
         symptomCategories: {
           pain: ["lingering", "sharp", "dull", "throbbing"],
           xrayFindings: ["radiolucency", "radiopacity", "bone_loss"],
           clinicalSigns: ["swelling", "mobility", "sensitivity"],
           periodontal: ["bleeding", "recession", "pocket_depth"],
           endodontic: ["pulp_vitality", "percussion", "thermal_response"],
-          restorative: ["fracture", "decay", "wear"]
+          restorative: ["fracture", "decay", "wear"],
+          prosthodontic: ["occlusion", "wear_patterns", "adaptation"],
+          oralSurgery: ["impaction", "pathology", "bone_quality"]
         },
         // Add medical guidelines reference
         guidelines: [
           "ADA Clinical Practice Guidelines",
+          "AAP Periodontal Disease Classification",
           "AAE Endodontic Case Difficulty Assessment",
           "Evidence-based Dentistry Principles"
-        ]
+        ],
+        // Add diagnostic criteria based on symptoms
+        diagnosticCriteria: {
+          pulpitis: {
+            reversible: ["short-duration pain", "pain with stimulus only"],
+            irreversible: ["spontaneous pain", "lingering pain", "nocturnal pain"]
+          },
+          periodontitis: {
+            early: ["bleeding on probing", "pocket depths 4-5mm"],
+            moderate: ["pocket depths 5-7mm", "bone loss 15-33%"],
+            severe: ["pocket depths >7mm", "bone loss >33%"]
+          }
+        }
       }
     };
 
@@ -110,4 +136,19 @@ export function getImmediateActions(prediction: SymptomPrediction): string[] {
   );
 
   return urgentConditions.flatMap(condition => condition.recommendations);
+}
+
+// Helper function to analyze periodontal status
+export function analyzePerioStatus(prediction: SymptomPrediction): {
+  severity: "healthy" | "gingivitis" | "early" | "moderate" | "severe";
+  recommendations: string[];
+} {
+  const perioFindings = prediction.aiDomains.periodontics?.findings || [];
+
+  // Determine severity based on findings
+  if (perioFindings.some(f => f.includes("severe bone loss") || f.includes("pocket depth >7mm"))) {
+    return { severity: "severe", recommendations: prediction.aiDomains.periodontics?.recommendations || [] };
+  }
+  // Add more severity checks here
+  return { severity: "healthy", recommendations: [] };
 }
