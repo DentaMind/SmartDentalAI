@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { z } from "zod";
 
 // Initialize OpenAI client
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.API_DENTAL_DIAGNOSIS });
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const MODEL = "gpt-4o";
@@ -89,13 +89,13 @@ export async function predictFromSymptoms(
   patientHistory?: string
 ): Promise<SymptomPrediction> {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error("OpenAI API key is not configured");
+    if (!process.env.API_DENTAL_DIAGNOSIS) {
+      throw new Error("Dental diagnosis AI service is not configured");
     }
 
     console.log("Starting AI prediction with symptoms:", symptoms);
 
-    const prompt = patientHistory 
+    const prompt = patientHistory
       ? `Patient symptoms: ${symptoms}\nMedical history: ${patientHistory}`
       : `Patient symptoms: ${symptoms}`;
 
@@ -127,10 +127,10 @@ export async function predictFromSymptoms(
     console.error("AI Prediction failed:", error);
     if (error instanceof Error) {
       if (error.message.includes("API key")) {
-        throw new Error("AI service configuration error. Please try again later.");
+        throw new Error("Dental diagnosis service configuration error. Please try again later.");
       }
       if (error.message.includes("OpenAI")) {
-        throw new Error("Our AI service is temporarily unavailable. Please try again in a moment.");
+        throw new Error("Our dental diagnosis service is temporarily unavailable. Please try again in a moment.");
       }
       throw new Error(error.message);
     }

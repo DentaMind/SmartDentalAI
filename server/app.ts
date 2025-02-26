@@ -4,10 +4,11 @@ import { storage } from "./storage";
 import { predictFromSymptoms } from "./services/ai-prediction";
 
 const app = express();
+const router = express.Router();
 app.use(express.json());
 
 // Setup authentication
-setupAuth(app);
+setupAuth(router);
 
 // Protected route middleware
 const requireAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -18,7 +19,7 @@ const requireAuth = (req: express.Request, res: express.Response, next: express.
 };
 
 // Patient routes
-app.post("/api/patients", requireAuth, async (req, res) => {
+router.post("/patients", requireAuth, async (req, res) => {
   try {
     const patient = await storage.createPatient(req.body);
     res.status(201).json(patient);
@@ -27,7 +28,7 @@ app.post("/api/patients", requireAuth, async (req, res) => {
   }
 });
 
-app.get("/api/patients", requireAuth, async (req, res) => {
+router.get("/patients", requireAuth, async (req, res) => {
   try {
     const patients = await storage.getAllPatients();
     res.json(patients);
@@ -37,7 +38,7 @@ app.get("/api/patients", requireAuth, async (req, res) => {
 });
 
 // Appointment routes
-app.post("/api/appointments", requireAuth, async (req, res) => {
+router.post("/appointments", requireAuth, async (req, res) => {
   try {
     const appointment = await storage.createAppointment(req.body);
     res.status(201).json(appointment);
@@ -46,7 +47,7 @@ app.post("/api/appointments", requireAuth, async (req, res) => {
   }
 });
 
-app.get("/api/appointments/doctor/:doctorId", requireAuth, async (req, res) => {
+router.get("/appointments/doctor/:doctorId", requireAuth, async (req, res) => {
   try {
     const appointments = await storage.getDoctorAppointments(Number(req.params.doctorId));
     res.json(appointments);
@@ -56,7 +57,7 @@ app.get("/api/appointments/doctor/:doctorId", requireAuth, async (req, res) => {
 });
 
 // Treatment Plan routes
-app.post("/api/treatment-plans", requireAuth, async (req, res) => {
+router.post("/treatment-plans", requireAuth, async (req, res) => {
   try {
     const plan = await storage.createTreatmentPlan(req.body);
     res.status(201).json(plan);
@@ -65,7 +66,7 @@ app.post("/api/treatment-plans", requireAuth, async (req, res) => {
   }
 });
 
-app.get("/api/treatment-plans/patient/:patientId", requireAuth, async (req, res) => {
+router.get("/treatment-plans/patient/:patientId", requireAuth, async (req, res) => {
   try {
     const plans = await storage.getPatientTreatmentPlans(Number(req.params.patientId));
     res.json(plans);
@@ -75,7 +76,7 @@ app.get("/api/treatment-plans/patient/:patientId", requireAuth, async (req, res)
 });
 
 // AI Prediction route
-app.post("/api/ai/predict", requireAuth, async (req, res) => {
+router.post("/ai/predict", requireAuth, async (req, res) => {
   try {
     const { symptoms, patientHistory } = req.body;
 
@@ -87,11 +88,14 @@ app.post("/api/ai/predict", requireAuth, async (req, res) => {
     res.json(prediction);
   } catch (error) {
     console.error("AI Prediction error:", error);
-    res.status(500).json({ 
-      message: error instanceof Error ? error.message : "Failed to generate prediction" 
+    res.status(500).json({
+      message: error instanceof Error ? error.message : "Failed to generate prediction"
     });
   }
 });
+
+app.use("/api", router); //Use the router for all API routes
+
 
 const port = process.env.PORT || 3000;
 app.listen(port, "0.0.0.0", () => {

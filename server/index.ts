@@ -37,33 +37,35 @@ server.use((req, res, next) => {
   next();
 });
 
-// Mount our app routes
-server.use(app);
+// Mount our API routes first
+server.use("/api", app);
 
 // Error handling middleware
 server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Internal Server Error";
-
+  console.error(err);
   res.status(status).json({ message });
-  throw err;
 });
 
 // Setup Vite for development
 (async () => {
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (server.get("env") === "development") {
+  if (process.env.NODE_ENV === "development") {
     await setupVite(server);
   } else {
     serveStatic(server);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client
+  // Catch-all route for SPA
+  server.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api")) {
+      return next();
+    }
+    res.sendFile("index.html", { root: "./dist" });
+  });
+
   const PORT = 5000;
   server.listen(PORT, "0.0.0.0", () => {
-    log(`serving on port ${PORT}`);
+    log(`Server running on port ${PORT}`);
   });
 })();

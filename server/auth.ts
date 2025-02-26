@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Router } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -28,7 +28,7 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
-export function setupAuth(app: Express) {
+export function setupAuth(router: Express.Router) {
   if (!process.env.SESSION_SECRET) {
     throw new Error("SESSION_SECRET environment variable is required");
   }
@@ -45,10 +45,9 @@ export function setupAuth(app: Express) {
     }
   };
 
-  app.set("trust proxy", 1);
-  app.use(session(sessionSettings));
-  app.use(passport.initialize());
-  app.use(passport.session());
+  router.use(session(sessionSettings));
+  router.use(passport.initialize());
+  router.use(passport.session());
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
@@ -95,7 +94,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/register", async (req, res, next) => {
+  router.post("/register", async (req, res, next) => {
     try {
       console.log("Registration attempt:", { username: req.body.username });
 
@@ -131,7 +130,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", (req, res, next) => {
+  router.post("/login", (req, res, next) => {
     try {
       console.log("Login attempt:", { username: req.body.username });
 
@@ -165,7 +164,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/logout", (req, res, next) => {
+  router.post("/logout", (req, res, next) => {
     const username = req.user?.username;
     console.log(`Logout attempt for user: ${username}`);
 
@@ -179,9 +178,9 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.get("/api/user", (req, res) => {
+  router.get("/user", (req, res) => {
     if (!req.isAuthenticated()) {
-      console.log("Unauthenticated user tried to access /api/user");
+      console.log("Unauthenticated user tried to access /user");
       return res.sendStatus(401);
     }
     res.json(req.user);
