@@ -28,8 +28,8 @@ export default function AuthPage() {
     defaultValues: {
       username: "",
       password: "",
-      role: "doctor", // Add default role
-      language: "en", // Add default language
+      role: "doctor",
+      language: "en",
     },
   });
 
@@ -41,26 +41,35 @@ export default function AuthPage() {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">
       <div className="w-full max-w-5xl grid md:grid-cols-2 gap-8">
         <div className="flex flex-col justify-center space-y-6">
-          <div className="flex items-center space-x-2">
-            <Stethoscope className="h-12 w-12 text-primary" />
-            <h1 className="text-4xl font-bold text-gray-900">SmartDental AI</h1>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-primary text-white shadow-lg rotate-12 hover:rotate-0 transition-transform duration-300">
+              <Stethoscope className="h-8 w-8" />
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary-600 bg-clip-text text-transparent">
+                SmartDental
+              </h1>
+              <span className="text-sm text-gray-500 font-medium">
+                AI-Powered Care
+              </span>
+            </div>
           </div>
           <p className="text-xl text-gray-600">
-            Advanced dental practice management with AI assistance and telehealth capabilities.
+            Experience next-generation dental care with AI assistance and advanced patient management.
           </p>
-          <div className="grid grid-cols-2 gap-4 mt-8">
-            <img src="https://images.unsplash.com/photo-1468493858157-0da44aaf1d13" alt="Dental procedure" className="rounded-lg shadow-md" />
-            <img src="https://images.unsplash.com/photo-1522849696084-818b29dfe210" alt="Dental care" className="rounded-lg shadow-md" />
+          <div className="mt-8">
+            <img 
+              src="https://images.unsplash.com/photo-1581594693702-fbdc51b2763b" 
+              alt="Confident smile" 
+              className="rounded-2xl shadow-xl w-full object-cover aspect-[4/3]"
+            />
           </div>
         </div>
 
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle>Welcome to SmartDental AI</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Card className="w-full self-center">
+          <CardContent className="pt-6">
             <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="login">{t("auth.login")}</TabsTrigger>
                 <TabsTrigger value="register">{t("auth.register")}</TabsTrigger>
               </TabsList>
@@ -94,7 +103,11 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
-                    <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-primary-600 hover:bg-primary-700" 
+                      disabled={loginMutation.isPending}
+                    >
                       {loginMutation.isPending ? "Loading..." : t("auth.login")}
                     </Button>
                   </form>
@@ -132,7 +145,11 @@ export default function AuthPage() {
                     />
                     <input type="hidden" {...registerForm.register("role")} />
                     <input type="hidden" {...registerForm.register("language")} />
-                    <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-blue-600 hover:bg-blue-700" 
+                      disabled={registerMutation.isPending}
+                    >
                       {registerMutation.isPending ? "Loading..." : t("auth.register")}
                     </Button>
                   </form>
