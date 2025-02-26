@@ -7,9 +7,31 @@ export interface SymptomPrediction {
     description: string;
     recommendations: string[];
     urgencyLevel: "low" | "medium" | "high" | "emergency";
+    specialistReferral?: {
+      type: "periodontics" | "endodontics" | "oral_surgery" | "prosthodontics" | "orthodontics";
+      reason: string;
+    };
   }>;
   followUpQuestions: string[];
   generalAdvice: string;
+  aiDomains: {
+    periodontics?: {
+      findings: string[];
+      recommendations: string[];
+    };
+    restorative?: {
+      findings: string[];
+      recommendations: string[];
+    };
+    endodontics?: {
+      findings: string[];
+      recommendations: string[];
+    };
+    prosthodontics?: {
+      findings: string[];
+      recommendations: string[];
+    };
+  };
 }
 
 export interface PredictionContext {
@@ -25,6 +47,12 @@ export interface PredictionContext {
     value: string;
     date: string;
   }[];
+  dentalRecords?: {
+    lastVisit?: string;
+    xrayDate?: string;
+    previousTreatments?: string[];
+    knownConditions?: string[];
+  };
 }
 
 export async function predictDentalCondition(context: PredictionContext): Promise<SymptomPrediction> {
@@ -38,8 +66,11 @@ export async function predictDentalCondition(context: PredictionContext): Promis
         // Add dental-specific context
         symptomCategories: {
           pain: ["lingering", "sharp", "dull", "throbbing"],
-          xrayFindings: ["radiolucency", "radiopacity", "bone loss"],
-          clinicalSigns: ["swelling", "mobility", "sensitivity"]
+          xrayFindings: ["radiolucency", "radiopacity", "bone_loss"],
+          clinicalSigns: ["swelling", "mobility", "sensitivity"],
+          periodontal: ["bleeding", "recession", "pocket_depth"],
+          endodontic: ["pulp_vitality", "percussion", "thermal_response"],
+          restorative: ["fracture", "decay", "wear"]
         },
         // Add medical guidelines reference
         guidelines: [
@@ -63,4 +94,20 @@ export async function predictDentalCondition(context: PredictionContext): Promis
     }
     throw new Error(error instanceof Error ? error.message : "Failed to analyze symptoms. Please try again.");
   }
+}
+
+// Helper function to determine if specialist referral is needed
+export function needsSpecialistReferral(prediction: SymptomPrediction): boolean {
+  return prediction.possibleConditions.some(condition => 
+    condition.specialistReferral && condition.urgencyLevel !== "low"
+  );
+}
+
+// Helper function to get immediate action recommendations
+export function getImmediateActions(prediction: SymptomPrediction): string[] {
+  const urgentConditions = prediction.possibleConditions.filter(
+    condition => condition.urgencyLevel === "high" || condition.urgencyLevel === "emergency"
+  );
+
+  return urgentConditions.flatMap(condition => condition.recommendations);
 }

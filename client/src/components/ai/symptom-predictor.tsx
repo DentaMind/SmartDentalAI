@@ -11,16 +11,24 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
-import { Loader2, AlertTriangle, Clock, ThermometerSun, Shield } from "lucide-react";
-import { predictDentalCondition, type SymptomPrediction, type PredictionContext } from "@/lib/ai-predictor";
+import { Loader2, AlertTriangle, Clock, ThermometerSun, Shield, Stethoscope } from "lucide-react";
+import { 
+  predictDentalCondition, 
+  type SymptomPrediction, 
+  type PredictionContext,
+  needsSpecialistReferral,
+  getImmediateActions
+} from "@/lib/ai-predictor";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 interface Props {
   patientHistory?: string;
   vitalSigns?: PredictionContext["vitalSigns"];
   relevantTests?: PredictionContext["relevantTests"];
+  dentalRecords?: PredictionContext["dentalRecords"];
 }
 
-export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests }: Props) {
+export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests, dentalRecords }: Props) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [symptoms, setSymptoms] = useState("");
@@ -34,7 +42,8 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests }: 
           symptoms,
           patientHistory,
           vitalSigns,
-          relevantTests
+          relevantTests,
+          dentalRecords
         });
         return result;
       } catch (error) {
@@ -66,12 +75,46 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests }: 
     }
   };
 
+  const renderAIDomainFindings = (domain: string, findings: { findings: string[], recommendations: string[] }) => {
+    if (!findings?.findings?.length) return null;
+
+    return (
+      <AccordionItem value={domain}>
+        <AccordionTrigger className="text-primary font-medium">
+          {domain.charAt(0).toUpperCase() + domain.slice(1)} Analysis
+        </AccordionTrigger>
+        <AccordionContent>
+          <div className="space-y-4 p-4">
+            <div>
+              <h4 className="font-medium mb-2">Findings:</h4>
+              <ul className="list-disc list-inside space-y-1">
+                {findings.findings.map((finding, idx) => (
+                  <li key={idx} className="text-sm text-gray-600">{finding}</li>
+                ))}
+              </ul>
+            </div>
+            {findings.recommendations?.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Recommendations:</h4>
+                <ul className="list-disc list-inside space-y-1">
+                  {findings.recommendations.map((rec, idx) => (
+                    <li key={idx} className="text-sm text-gray-600">{rec}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <ThermometerSun className="h-5 w-5 text-primary" />
+            <Stethoscope className="h-5 w-5 text-primary" />
             {t("ai.symptoms")}
           </CardTitle>
         </CardHeader>
@@ -100,7 +143,7 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests }: 
             </div>
             <div className="flex gap-2 items-center">
               <Shield className="h-4 w-4 text-primary" />
-              <span>Powered by GPT-4o</span>
+              <span>AI-Powered Analysis</span>
             </div>
           </div>
           <Button
@@ -154,6 +197,16 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests }: 
                         {t("ai.confidence")}: {Math.round(condition.confidence * 100)}%
                       </span>
                     </div>
+                    {condition.specialistReferral && (
+                      <div className="mb-2 p-2 bg-orange-50 rounded-md">
+                        <p className="text-sm font-medium text-orange-700">
+                          Specialist Referral Recommended: {condition.specialistReferral.type}
+                        </p>
+                        <p className="text-sm text-orange-600">
+                          Reason: {condition.specialistReferral.reason}
+                        </p>
+                      </div>
+                    )}
                     <div>
                       <h5 className="text-sm font-medium mb-1">
                         {t("ai.recommendations")}:
@@ -167,6 +220,16 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests }: 
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* AI Domain Analysis */}
+            <div>
+              <h3 className="font-semibold mb-4">Specialized Analysis</h3>
+              <Accordion type="single" collapsible className="border rounded-lg">
+                {Object.entries(predictMutation.data.aiDomains).map(([domain, findings]) => 
+                  renderAIDomainFindings(domain, findings)
+                )}
+              </Accordion>
             </div>
 
             <div>
