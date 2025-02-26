@@ -26,13 +26,7 @@ server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error("Server error:", err);
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Internal Server Error";
-
-  // Only send JSON responses for API routes
-  if (_req.path.startsWith('/api')) {
-    res.status(status).json({ message });
-  } else {
-    _next(err);
-  }
+  res.status(status).json({ message });
 });
 
 // Initialize server
