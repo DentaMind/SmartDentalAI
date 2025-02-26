@@ -101,12 +101,12 @@ export function setupAuth(app: Express) {
         });
       }
 
-      // Generate username and password automatically
-      const username = `${validation.data.firstName.toLowerCase()}${validation.data.lastName.toLowerCase()}`;
+      // Generate username and password
+      const username = `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`;
       const password = Math.random().toString(36).slice(-8);
       const hashedPassword = await hashPassword(password);
 
-      // Create the user with patient role
+      // Create the user
       const user = await storage.createUser({
         ...validation.data,
         role: "patient",
@@ -117,9 +117,14 @@ export function setupAuth(app: Express) {
         password: hashedPassword,
       });
 
-      // Return the created user without sensitive information
-      const { password: _, ...safeUser } = user;
-      res.status(201).json(safeUser);
+      // Login the user after successful registration
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Login error after registration:", err);
+          return res.status(500).json({ message: "Error logging in after registration" });
+        }
+        res.status(201).json(user);
+      });
     } catch (error) {
       console.error("Registration error:", error);
       res.status(500).json({ message: "Server error during registration" });
