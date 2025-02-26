@@ -80,7 +80,9 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
       return res.json();
     },
     onSuccess: () => {
+      // Invalidate both the patients list and any related queries
       queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/patients/list"] });
       toast({
         title: t("patient.addSuccess"),
         description: t("patient.addSuccessDescription"),

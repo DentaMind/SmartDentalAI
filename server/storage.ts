@@ -57,24 +57,50 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentId++;
-    const user = { id, ...insertUser };
+    const user: User = { id, ...insertUser };
     this.users.set(id, user);
+
+    // If the user is a patient, also create a patient record
+    if (insertUser.role === "patient") {
+      await this.createPatient({
+        userId: id,
+        medicalHistory: null,
+        allergies: null,
+        bloodType: null,
+        emergencyContact: null
+      });
+    }
+
     return user;
   }
 
-  async getPatient(id: number): Promise<Patient | undefined> {
-    return this.patients.get(id);
+  async getPatient(id: number): Promise<(Patient & { user: User }) | undefined> {
+    const patient = this.patients.get(id);
+    if (!patient) return undefined;
+
+    const user = await this.getUser(patient.userId);
+    if (!user) return undefined;
+
+    return { ...patient, user };
   }
 
   async createPatient(insertPatient: InsertPatient): Promise<Patient> {
     const id = this.currentId++;
-    const patient = { ...insertPatient, id };
+    const patient: Patient = { ...insertPatient, id };
     this.patients.set(id, patient);
     return patient;
   }
 
-  async getAllPatients(): Promise<Patient[]> {
-    return Array.from(this.patients.values());
+  async getAllPatients(): Promise<(Patient & { user: User })[]> {
+    const patients = Array.from(this.patients.values());
+    const patientsWithUsers = await Promise.all(
+      patients.map(async (patient) => {
+        const user = await this.getUser(patient.userId);
+        if (!user) throw new Error(`User not found for patient ${patient.id}`);
+        return { ...patient, user };
+      })
+    );
+    return patientsWithUsers;
   }
 
   async createAppointment(insertAppointment: InsertAppointment): Promise<Appointment> {
