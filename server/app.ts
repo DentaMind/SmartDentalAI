@@ -10,7 +10,7 @@ import { promisify } from "util";
 const app = express();
 const scryptAsync = promisify(scrypt);
 
-// Setup basic middleware
+// Basic middleware setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -28,11 +28,8 @@ app.use((req, res, next) => {
   }
 });
 
-// Force JSON content type for API routes - MUST be before any route handlers
+// API middleware - Must be before all API routes
 app.use('/api', (req, res, next) => {
-  if (!req.path.startsWith('/api')) {
-    return next();
-  }
   res.setHeader('Content-Type', 'application/json');
   next();
 });
@@ -43,7 +40,7 @@ setupAuth(app);
 // Patient registration endpoint
 app.post("/api/patients", async (req, res, next) => {
   try {
-    // Validate the request body against our schema
+    // Validate request body
     const validation = insertUserSchema.omit({
       role: true,
       language: true,
@@ -60,7 +57,7 @@ app.post("/api/patients", async (req, res, next) => {
       });
     }
 
-    // Generate username and password
+    // Generate credentials
     const username = `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`;
     const password = Math.random().toString(36).slice(-8);
 
@@ -68,7 +65,7 @@ app.post("/api/patients", async (req, res, next) => {
     const buf = (await scryptAsync(password, salt, 64)) as Buffer;
     const hashedPassword = `${buf.toString("hex")}.${salt}`;
 
-    // Create the user and associated patient record
+    // Create user
     const user = await storage.createUser({
       ...validation.data,
       role: "patient",
@@ -79,7 +76,7 @@ app.post("/api/patients", async (req, res, next) => {
       password: hashedPassword,
     });
 
-    res.status(201).json({ 
+    return res.status(201).json({ 
       success: true,
       user,
       credentials: {
@@ -92,7 +89,7 @@ app.post("/api/patients", async (req, res, next) => {
   }
 });
 
-// API Routes
+// All other API routes go here
 app.get("/api/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res, next) => {
   try {
     const patients = await storage.getAllPatients();
@@ -180,7 +177,7 @@ app.post("/api/ai/predict", requireAuth, requireRole(["doctor"]), async (req, re
   }
 });
 
-// Error handling middleware - MUST be last before Vite
+// Error handling middleware - Must be last before Vite
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error('Error:', err);
 
@@ -188,7 +185,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     return next(err);
   }
 
-  // Handle different types of errors
+  // Handle validation errors
   if (err.name === 'ValidationError') {
     return res.status(400).json({
       message: 'Validation Error',
@@ -198,8 +195,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 
   // Generic error response
   res.status(500).json({ 
-    message: err.message || "Internal server error",
-    error: process.env.NODE_ENV === 'development' ? err : {}
+    message: err.message || "Internal server error"
   });
 });
 
