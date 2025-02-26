@@ -70,10 +70,16 @@ export default function AuthPage() {
           <CardContent className="pt-6">
             <Tabs defaultValue="login">
               <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="login" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                <TabsTrigger 
+                  value="login" 
+                  className="data-[state=active]:bg-primary data-[state=active]:text-white text-gray-600"
+                >
                   {t("auth.login")}
                 </TabsTrigger>
-                <TabsTrigger value="register" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+                <TabsTrigger 
+                  value="register" 
+                  className="data-[state=active]:bg-blue-500 data-[state=active]:text-white text-gray-600"
+                >
                   {t("auth.register")}
                 </TabsTrigger>
               </TabsList>
