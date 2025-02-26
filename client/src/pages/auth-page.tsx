@@ -46,10 +46,39 @@ export default function AuthPage() {
     },
   });
 
+  const providerForm = useForm({
+    resolver: zodResolver(
+      insertUserSchema.omit({ 
+        role: true,
+        language: true,
+        insuranceProvider: true,
+        insuranceNumber: true
+      })
+    ),
+    defaultValues: {
+      username: "",
+      password: "",
+      firstName: "",
+      lastName: "",
+      email: "",
+      phoneNumber: "",
+      specialization: "",
+      licenseNumber: "",
+    },
+  });
+
   const onRegister = (data) => {
     registerMutation.mutate({
       ...data,
       role: "patient",
+      language: "en"
+    });
+  };
+
+  const onProviderRegister = (data) => {
+    registerMutation.mutate({
+      ...data,
+      role: "doctor",
       language: "en"
     });
   };
@@ -91,12 +120,15 @@ export default function AuthPage() {
         <Card className="w-full self-center bg-white shadow-lg">
           <CardContent className="pt-6">
             <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="login" className="data-[state=active]:bg-primary data-[state=active]:text-white">
                   {t("auth.login")}
                 </TabsTrigger>
                 <TabsTrigger value="register" className="data-[state=active]:bg-primary data-[state=active]:text-white">
                   {t("auth.register")}
+                </TabsTrigger>
+                <TabsTrigger value="provider" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                  Provider Setup
                 </TabsTrigger>
               </TabsList>
 
@@ -266,6 +298,129 @@ export default function AuthPage() {
                       disabled={registerMutation.isPending}
                     >
                       {registerMutation.isPending ? t("common.loading") : t("auth.register")}
+                    </Button>
+                  </form>
+                </Form>
+              </TabsContent>
+
+              <TabsContent value="provider">
+                <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-700">
+                    This section is for dental providers only. You will need to provide your professional credentials.
+                  </p>
+                </div>
+                <Form {...providerForm}>
+                  <form onSubmit={providerForm.handleSubmit(onProviderRegister)} className="space-y-4">
+                    <FormField
+                      control={providerForm.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("auth.username")}</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={providerForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("auth.password")}</FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={providerForm.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={providerForm.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={providerForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={providerForm.control}
+                      name="phoneNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={providerForm.control}
+                      name="specialization"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Specialization</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., General Dentistry, Orthodontics" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={providerForm.control}
+                      name="licenseNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>License Number</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={registerMutation.isPending}
+                    >
+                      {registerMutation.isPending ? t("common.loading") : "Register as Provider"}
                     </Button>
                   </form>
                 </Form>
