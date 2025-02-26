@@ -1,11 +1,11 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express, Router } from "express";
+import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { User as SelectUser, insertUserSchema } from "@shared/schema";
 
 declare global {
   namespace Express {
@@ -84,25 +84,33 @@ export function setupAuth(router: Express.Router) {
 
   router.post("/api/patients", async (req, res) => {
     try {
-      // Create a new user with the patient role
-      const hashedPassword = await hashPassword(req.body.password);
-      const user = await storage.createUser({
-        username: req.body.username,
-        password: hashedPassword,
+      // Validate the request body against our schema
+      const validation = insertUserSchema.safeParse({
+        ...req.body,
         role: "patient",
-        language: req.body.language || "en",
-        firstName: req.body.firstName,
-        lastName: req.body.lastName,
-        email: req.body.email,
-        phoneNumber: req.body.phoneNumber || null,
-        dateOfBirth: req.body.dateOfBirth || null,
-        insuranceProvider: req.body.insuranceProvider || null,
-        insuranceNumber: req.body.insuranceNumber || null,
+        language: "en",
         specialization: null,
         licenseNumber: null,
+        // Generate username and password if not provided
+        username: req.body.username || `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`,
+        password: req.body.password || Math.random().toString(36).slice(-8),
       });
 
-      // Let's log the user in after registration
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid input data", 
+          errors: validation.error.errors 
+        });
+      }
+
+      // Create the user
+      const hashedPassword = await hashPassword(validation.data.password);
+      const user = await storage.createUser({
+        ...validation.data,
+        password: hashedPassword,
+      });
+
+      // Login the user after successful registration
       req.login(user, (err) => {
         if (err) {
           console.error("Login error after registration:", err);
