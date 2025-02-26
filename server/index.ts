@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
-import app from "./app";
 import { setupVite, serveStatic, log } from "./vite";
+import app from "./app";
 
 const server = express();
 server.use(express.json());
