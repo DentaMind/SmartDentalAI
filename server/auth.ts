@@ -123,7 +123,14 @@ export function setupAuth(app: Express) {
           console.error("Login error after registration:", err);
           return res.status(500).json({ message: "Error logging in after registration" });
         }
-        res.status(201).json(user);
+        res.status(201).json({ 
+          success: true,
+          user,
+          credentials: {
+            username,
+            password // Send back the generated password so it can be shown to the user
+          }
+        });
       });
     } catch (error) {
       console.error("Registration error:", error);

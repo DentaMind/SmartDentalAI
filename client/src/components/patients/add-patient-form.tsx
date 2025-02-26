@@ -16,8 +16,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState } from "react";
 
 type AddPatientFormData = {
   firstName: string;
@@ -36,6 +36,8 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showCredentials, setShowCredentials] = useState(false);
+  const [credentials, setCredentials] = useState<{ username: string; password: string } | null>(null);
 
   const form = useForm<AddPatientFormData>({
     resolver: zodResolver(
@@ -72,7 +74,12 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
           throw new Error(errorData.message || "Failed to add patient");
         }
 
-        return res.json();
+        const responseData = await res.json();
+        if (responseData.credentials) {
+          setCredentials(responseData.credentials);
+          setShowCredentials(true);
+        }
+        return responseData;
       } catch (error) {
         console.error("API Error:", error);
         throw error;
@@ -262,6 +269,29 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
           </Button>
         </form>
       </Form>
+
+      <Dialog open={showCredentials} onOpenChange={setShowCredentials}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Patient Account Created</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>The patient account has been created successfully. Here are the login credentials:</p>
+            {credentials && (
+              <div className="space-y-2">
+                <p><strong>Username:</strong> {credentials.username}</p>
+                <p><strong>Password:</strong> {credentials.password}</p>
+              </div>
+            )}
+            <p className="text-sm text-muted-foreground">
+              Please make sure to provide these credentials to the patient securely.
+            </p>
+            <Button className="w-full" onClick={() => setShowCredentials(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
