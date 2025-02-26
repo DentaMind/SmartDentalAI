@@ -23,10 +23,10 @@ type AddPatientFormData = {
   firstName: string;
   lastName: string;
   email: string;
-  phoneNumber: string;
-  dateOfBirth: string;
-  insuranceProvider?: string;
-  insuranceNumber?: string;
+  phoneNumber: string | null;
+  dateOfBirth: string | null;
+  insuranceProvider?: string | null;
+  insuranceNumber?: string | null;
   medicalHistory?: string | null;
   allergies?: string | null;
   emergencyContact?: string | null;
@@ -52,10 +52,10 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
       firstName: "",
       lastName: "",
       email: "",
-      phoneNumber: "",
-      dateOfBirth: "",
-      insuranceProvider: "",
-      insuranceNumber: "",
+      phoneNumber: null,
+      dateOfBirth: null,
+      insuranceProvider: null,
+      insuranceNumber: null,
       medicalHistory: null,
       allergies: null,
       emergencyContact: null,
@@ -64,21 +64,21 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
 
   const addPatientMutation = useMutation({
     mutationFn: async (data: AddPatientFormData) => {
-      const res = await apiRequest("POST", "/api/patients", {
-        ...data,
-        role: "patient",
-        language: "en"
-      });
+      try {
+        const res = await apiRequest("POST", "/api/patients", data);
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to add patient");
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.message || "Failed to add patient");
+        }
+
+        return res.json();
+      } catch (error) {
+        console.error("API Error:", error);
+        throw error;
       }
-
-      return res.json();
     },
     onSuccess: () => {
-      // Invalidate both the patients list and any related queries
       queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
       toast({
         title: t("patient.addSuccess"),
@@ -97,23 +97,18 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
     },
   });
 
-  const onSubmit = form.handleSubmit((data) => {
+  const onSubmit = async (data: AddPatientFormData) => {
     try {
-      addPatientMutation.mutate(data);
+      await addPatientMutation.mutateAsync(data);
     } catch (error) {
-      console.error("Form submission error:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
+      // Error is handled by mutation's onError
     }
-  });
+  };
 
   return (
     <div className="max-h-[80vh] overflow-y-auto px-1">
       <Form {...form}>
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
@@ -165,7 +160,7 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
               <FormItem>
                 <FormLabel>Phone Number</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} value={field.value || ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -179,7 +174,7 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
               <FormItem>
                 <FormLabel>Date of Birth</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <Input type="date" {...field} value={field.value || ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -215,13 +210,6 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
               )}
             />
           </div>
-
-          <Alert>
-            <InfoIcon className="h-4 w-4" />
-            <AlertDescription>
-              Blood work results can be accessed in the patient's medical records tab after registration.
-            </AlertDescription>
-          </Alert>
 
           <FormField
             control={form.control}
