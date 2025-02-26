@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserSchema, type InsertPatient } from "@shared/schema";
+import { insertUserSchema, type InsertUser } from "@shared/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -16,8 +16,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
-type AddPatientFormData = InsertPatient & {
+type AddPatientFormData = {
+  username: string;
+  password: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -25,6 +29,9 @@ type AddPatientFormData = InsertPatient & {
   dateOfBirth: string;
   insuranceProvider?: string;
   insuranceNumber?: string;
+  medicalHistory?: string | null;
+  allergies?: string | null;
+  emergencyContact?: string | null;
 };
 
 export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
@@ -33,13 +40,17 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
   const queryClient = useQueryClient();
 
   const form = useForm<AddPatientFormData>({
-    resolver: zodResolver(insertUserSchema.extend({
-      medicalHistory: insertUserSchema.shape.medicalHistory,
-      allergies: insertUserSchema.shape.allergies,
-      bloodType: insertUserSchema.shape.bloodType,
-      emergencyContact: insertUserSchema.shape.emergencyContact,
-    })),
+    resolver: zodResolver(
+      insertUserSchema.omit({ 
+        role: true, 
+        language: true,
+        specialization: true,
+        licenseNumber: true
+      })
+    ),
     defaultValues: {
+      username: "",
+      password: "",
       firstName: "",
       lastName: "",
       email: "",
@@ -49,7 +60,6 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
       insuranceNumber: "",
       medicalHistory: null,
       allergies: null,
-      bloodType: null,
       emergencyContact: null,
     },
   });
@@ -57,7 +67,11 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
   const addPatientMutation = useMutation({
     mutationFn: async (data: AddPatientFormData) => {
       console.log("Submitting patient data:", data);
-      const res = await apiRequest("POST", "/api/patients", data);
+      const res = await apiRequest("POST", "/api/patients", {
+        ...data,
+        role: "patient",
+        language: "en"
+      });
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.message || "Failed to add patient");
@@ -118,6 +132,34 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Username</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input type="password" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
@@ -191,6 +233,13 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
           />
         </div>
 
+        <Alert>
+          <InfoIcon className="h-4 w-4" />
+          <AlertDescription>
+            Blood work results can be accessed in the patient's medical records tab after registration.
+          </AlertDescription>
+        </Alert>
+
         <FormField
           control={form.control}
           name="medicalHistory"
@@ -213,20 +262,6 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
               <FormLabel>{t("patient.allergies")}</FormLabel>
               <FormControl>
                 <Textarea {...field} value={field.value || ""} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="bloodType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t("patient.bloodType")}</FormLabel>
-              <FormControl>
-                <Input {...field} value={field.value || ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
