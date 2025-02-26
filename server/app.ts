@@ -6,16 +6,16 @@ import { requireAuth, requireRole, requireOwnership } from "./middleware/auth";
 
 const app = express();
 
-// Setup middleware
+// Setup basic middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Error handling middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error('Error:', err);
-  res.status(500).json({ 
-    message: err.message || "Internal server error",
-    error: process.env.NODE_ENV === 'development' ? err : {}
-  });
+// Setup CORS headers
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  next();
 });
 
 // Setup authentication
@@ -132,6 +132,16 @@ app.post("/api/ai/predict", requireAuth, requireRole(["doctor"]), async (req, re
       message: error instanceof Error ? error.message : "Failed to generate prediction"
     });
   }
+});
+
+// Error handling middleware must be the last middleware
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error('Error:', err);
+  // Ensure we only send JSON responses
+  res.status(500).json({ 
+    message: err.message || "Internal server error",
+    error: process.env.NODE_ENV === 'development' ? err : {}
+  });
 });
 
 export default app;

@@ -64,25 +64,22 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
 
   const addPatientMutation = useMutation({
     mutationFn: async (data: AddPatientFormData) => {
-      console.log("Submitting patient data:", data);
       const res = await apiRequest("POST", "/api/patients", {
         ...data,
         role: "patient",
-        language: "en",
-        // Generate a username and password for the patient
-        username: `${data.firstName.toLowerCase()}${data.lastName.toLowerCase()}`,
-        password: Math.random().toString(36).slice(-8) // Generate a random 8-character password
+        language: "en"
       });
+
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.message || "Failed to add patient");
       }
+
       return res.json();
     },
     onSuccess: () => {
       // Invalidate both the patients list and any related queries
       queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/patients/list"] });
       toast({
         title: t("patient.addSuccess"),
         description: t("patient.addSuccessDescription"),
@@ -100,13 +97,23 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
     },
   });
 
+  const onSubmit = form.handleSubmit((data) => {
+    try {
+      addPatientMutation.mutate(data);
+    } catch (error) {
+      console.error("Form submission error:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   return (
     <div className="max-h-[80vh] overflow-y-auto px-1">
       <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit((data) => addPatientMutation.mutate(data))}
-          className="space-y-4"
-        >
+        <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
