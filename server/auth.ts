@@ -109,12 +109,6 @@ export function setupAuth(app: Express) {
       const password = Math.random().toString(36).slice(-8);
       const hashedPassword = await hashPassword(password);
 
-      console.log('Creating user with data:', {
-        ...validation.data,
-        username,
-        role: "patient"
-      });
-
       // Create the user
       const user = await storage.createUser({
         ...validation.data,
