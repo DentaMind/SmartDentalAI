@@ -52,75 +52,61 @@ export function setupAuth(router: Express.Router) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        console.log(`Attempting login for user: ${username}`);
         const user = await storage.getUserByUsername(username);
-
         if (!user) {
-          console.log(`User not found: ${username}`);
           return done(null, false, { message: "Invalid username or password" });
         }
 
         const isValidPassword = await comparePasswords(password, user.password);
-        console.log(`Password validation result for ${username}: ${isValidPassword}`);
-
         if (!isValidPassword) {
           return done(null, false, { message: "Invalid username or password" });
         }
 
         return done(null, user);
       } catch (error) {
-        console.error("Login error:", error);
         return done(error);
       }
     })
   );
 
-  passport.serializeUser((user, done) => {
-    console.log(`Serializing user: ${user.id}`);
-    done(null, user.id);
-  });
-
+  passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
     try {
-      console.log(`Deserializing user: ${id}`);
       const user = await storage.getUser(id);
       if (!user) {
         return done(null, false);
       }
       done(null, user);
     } catch (error) {
-      console.error("Deserialization error:", error);
       done(error);
     }
   });
 
-  router.post("/register", async (req, res, next) => {
+  router.post("/api/patients", async (req, res) => {
     try {
-      console.log("Registration attempt:", { username: req.body.username });
-
-      if (!req.body.username || !req.body.password) {
-        return res.status(400).json({ message: "Username and password are required" });
-      }
-
-      const existingUser = await storage.getUserByUsername(req.body.username);
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
-
+      // Create a new user with the patient role
       const hashedPassword = await hashPassword(req.body.password);
       const user = await storage.createUser({
         username: req.body.username,
         password: hashedPassword,
-        role: req.body.role || "doctor",
+        role: "patient",
         language: req.body.language || "en",
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        email: req.body.email,
+        phoneNumber: req.body.phoneNumber || null,
+        dateOfBirth: req.body.dateOfBirth || null,
+        insuranceProvider: req.body.insuranceProvider || null,
+        insuranceNumber: req.body.insuranceNumber || null,
+        specialization: null,
+        licenseNumber: null,
       });
 
-      console.log(`User registered successfully: ${user.username}`);
-
+      // Let's log the user in after registration
       req.login(user, (err) => {
         if (err) {
           console.error("Login error after registration:", err);
-          return next(err);
+          return res.status(500).json({ message: "Error logging in after registration" });
         }
         res.status(201).json(user);
       });
@@ -130,59 +116,19 @@ export function setupAuth(router: Express.Router) {
     }
   });
 
-  router.post("/login", (req, res, next) => {
-    try {
-      console.log("Login attempt:", { username: req.body.username });
-
-      if (!req.body.username || !req.body.password) {
-        return res.status(400).json({ message: "Username and password are required" });
-      }
-
-      passport.authenticate("local", (err: Error | null, user: SelectUser | false, info: { message: string } | undefined) => {
-        if (err) {
-          console.error("Login error:", err);
-          return next(err);
-        }
-
-        if (!user) {
-          console.log("Login failed:", info?.message);
-          return res.status(401).json({ message: info?.message || "Invalid username or password" });
-        }
-
-        req.login(user, (err) => {
-          if (err) {
-            console.error("Session error:", err);
-            return next(err);
-          }
-          console.log(`User logged in successfully: ${user.username}`);
-          res.status(200).json(user);
-        });
-      })(req, res, next);
-    } catch (error) {
-      console.error("Unexpected login error:", error);
-      res.status(500).json({ message: "Server error during login" });
-    }
+  router.post("/api/login", passport.authenticate("local"), (req, res) => {
+    res.status(200).json(req.user);
   });
 
-  router.post("/logout", (req, res, next) => {
-    const username = req.user?.username;
-    console.log(`Logout attempt for user: ${username}`);
-
+  router.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
-      if (err) {
-        console.error("Logout error:", err);
-        return next(err);
-      }
-      console.log(`User logged out successfully: ${username}`);
+      if (err) return next(err);
       res.sendStatus(200);
     });
   });
 
-  router.get("/user", (req, res) => {
-    if (!req.isAuthenticated()) {
-      console.log("Unauthenticated user tried to access /user");
-      return res.sendStatus(401);
-    }
+  router.get("/api/user", (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
     res.json(req.user);
   });
 }
