@@ -35,6 +35,12 @@ export async function predictDentalCondition(context: PredictionContext): Promis
       context: {
         ...context,
         format_version: "1.0",
+        // Add dental-specific context
+        symptomCategories: {
+          pain: ["lingering", "sharp", "dull", "throbbing"],
+          xrayFindings: ["radiolucency", "radiopacity", "bone loss"],
+          clinicalSigns: ["swelling", "mobility", "sensitivity"]
+        },
         // Add medical guidelines reference
         guidelines: [
           "ADA Clinical Practice Guidelines",
@@ -45,9 +51,13 @@ export async function predictDentalCondition(context: PredictionContext): Promis
     };
 
     const response = await apiRequest("POST", "/api/ai/predict", promptData);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to analyze symptoms");
+    }
     return await response.json();
   } catch (error) {
     console.error("AI Prediction failed:", error);
-    throw new Error("Failed to analyze symptoms. Please try again.");
+    throw new Error("Failed to analyze symptoms. Please ensure you've provided detailed symptoms and try again.");
   }
 }

@@ -27,6 +27,9 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests }: 
 
   const predictMutation = useMutation({
     mutationFn: async (symptoms: string) => {
+      if (!symptoms.trim()) {
+        throw new Error("Please describe the symptoms in detail");
+      }
       return await predictDentalCondition({
         symptoms,
         patientHistory,
@@ -66,8 +69,19 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests }: 
           </CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="mb-4">
+            <p className="text-sm text-muted-foreground">
+              Describe the symptoms in detail, including:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Type and duration of pain (sharp, dull, lingering)</li>
+                <li>X-ray findings (radiolucency, bone loss)</li>
+                <li>Clinical observations (swelling, mobility)</li>
+                <li>Relevant tooth numbers</li>
+              </ul>
+            </p>
+          </div>
           <Textarea
-            placeholder={t("ai.enterSymptoms")}
+            placeholder="Example: Lingering pain and radiolucency on tooth #30, sensitive to cold, pain lasting 30 seconds after stimulus"
             value={symptoms}
             onChange={(e) => setSymptoms(e.target.value)}
             className="min-h-[100px] mb-4"
@@ -79,7 +93,7 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests }: 
           <Button
             className="w-full"
             onClick={() => predictMutation.mutate(symptoms)}
-            disabled={!symptoms || predictMutation.isPending}
+            disabled={!symptoms.trim() || predictMutation.isPending}
           >
             {predictMutation.isPending ? (
               <>
@@ -106,7 +120,7 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests }: 
                   <div key={index} className="border rounded-lg p-4">
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="font-medium">{condition.condition}</h4>
-                      <Badge 
+                      <Badge
                         variant={condition.urgencyLevel === "emergency" ? "destructive" : "secondary"}
                         className={getUrgencyColor(condition.urgencyLevel)}
                       >
@@ -118,7 +132,7 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests }: 
                     </p>
                     <div className="mb-2">
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
+                        <div
                           className="bg-primary rounded-full h-2 transition-all"
                           style={{ width: `${Math.round(condition.confidence * 100)}%` }}
                         />
