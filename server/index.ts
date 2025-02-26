@@ -1,12 +1,13 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import app from "./app";
 import { setupVite, serveStatic, log } from "./vite";
 
-const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+const server = express();
+server.use(express.json());
+server.use(express.urlencoded({ extended: false }));
 
-app.use((req, res, next) => {
+// Logging middleware
+server.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -36,24 +37,27 @@ app.use((req, res, next) => {
   next();
 });
 
+// Mount our app routes
+server.use(app);
+
+// Error handling middleware
+server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+
+  res.status(status).json({ message });
+  throw err;
+});
+
+// Setup Vite for development
 (async () => {
-  const server = await registerRoutes(app);
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
-
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
+  if (server.get("env") === "development") {
+    await setupVite(server);
   } else {
-    serveStatic(app);
+    serveStatic(server);
   }
 
   // ALWAYS serve the app on port 5000

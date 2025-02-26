@@ -30,6 +30,26 @@ const SYSTEM_PROMPT = `You are an AI dental diagnostic assistant. Analyze the pa
 5. Follow-up questions to better understand the condition
 6. General advice for immediate relief
 
+Focus on dental-specific terminology and conditions, such as:
+- Pulpal and periapical conditions
+- Periodontal diseases
+- Dental caries and tooth decay
+- Endodontic conditions
+- TMJ disorders
+- Oral pathology
+
+When analyzing radiographic findings (e.g., radiolucency):
+- Consider periapical lesions
+- Evaluate bone loss patterns
+- Look for carious lesions
+- Assess root morphology
+
+For pain symptoms:
+- Differentiate between types (sharp, dull, lingering)
+- Consider pulpal status
+- Evaluate referred pain patterns
+- Assess percussion sensitivity
+
 Respond in JSON format matching this structure:
 {
   "possibleConditions": [{
@@ -62,13 +82,19 @@ export async function predictFromSymptoms(
       response_format: { type: "json_object" }
     });
 
-    const result = JSON.parse(response.choices[0].message.content);
+    const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error("No response from AI");
+    }
+
+    const result = JSON.parse(content);
     const validated = symptomPredictionSchema.parse(result);
     return validated;
   } catch (error) {
     if (error instanceof z.ZodError) {
       throw new Error("Invalid AI response format");
     }
-    throw new Error("Failed to generate prediction: " + error.message);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    throw new Error("Failed to generate prediction: " + message);
   }
 }
