@@ -47,7 +47,7 @@ export default function AuthPage() {
             </div>
             <div className="flex flex-col">
               <h1 className="text-4xl font-bold tracking-tight text-primary">
-                SmartDental
+                Smart Dental AI
               </h1>
               <span className="text-sm text-gray-500 font-medium">
                 AI-Powered Care
@@ -59,9 +59,9 @@ export default function AuthPage() {
           </p>
           <div className="mt-8">
             <img 
-              src="https://images.unsplash.com/photo-1581591524425-c7e0978865fc" 
+              src="/attached_assets/iStock-526222203.jpg" 
               alt="Professional dental smile" 
-              className="rounded-2xl shadow-xl w-full object-cover aspect-[4/3]"
+              className="rounded-2xl shadow-xl w-full object-cover"
             />
           </div>
         </div>
