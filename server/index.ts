@@ -18,15 +18,25 @@ server.use((req, res, next) => {
   next();
 });
 
-// Mount API routes first - before Vite middleware
-server.use("/api", app);
+// Mount API routes before Vite middleware
+server.use("/api", (req, res, next) => {
+  // Ensure Content-Type is set for API routes
+  res.type('json');
+  next();
+}, app);
 
 // Error handling middleware
 server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error("Server error:", err);
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Internal Server Error";
-  res.status(status).json({ message });
+
+  // Only send JSON responses for API routes
+  if (_req.path.startsWith('/api')) {
+    res.status(status).json({ message });
+  } else {
+    _next(err);
+  }
 });
 
 // Initialize server
@@ -37,7 +47,7 @@ server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       log(`Server running on port ${PORT}`);
     });
 
-    // After server is listening, setup Vite
+    // Setup Vite after API routes are mounted
     log("Setting up Vite development server...");
     await setupVite(server, httpServer);
   } catch (error) {

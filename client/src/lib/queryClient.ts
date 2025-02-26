@@ -9,10 +9,10 @@ async function throwIfResNotOk(res: Response) {
         const errorData = await res.json();
         errorMessage = errorData.message || res.statusText;
       } else {
-        errorMessage = await res.text();
+        throw new Error("Non-JSON response received");
       }
     } catch (e) {
-      errorMessage = res.statusText;
+      errorMessage = "Failed to parse error response";
     }
     throw new Error(`${res.status}: ${errorMessage}`);
   }
@@ -33,24 +33,7 @@ export async function apiRequest(
     credentials: "include",
   });
 
-  // More detailed error handling
-  if (!res.ok) {
-    let errorMessage;
-    const contentType = res.headers.get("content-type");
-    try {
-      if (contentType?.includes("application/json")) {
-        const errorData = await res.json();
-        errorMessage = errorData.message || res.statusText;
-      } else {
-        // If we get HTML or other content type, create a clear error
-        errorMessage = `Invalid response type: ${contentType}. Expected JSON.`;
-      }
-    } catch (e) {
-      errorMessage = "Failed to parse error response";
-    }
-    throw new Error(`${res.status}: ${errorMessage}`);
-  }
-
+  await throwIfResNotOk(res);
   return res;
 }
 
@@ -59,21 +42,21 @@ export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-    async ({ queryKey }) => {
-      const res = await fetch(queryKey[0] as string, {
-        headers: {
-          "Accept": "application/json",
-        },
-        credentials: "include",
-      });
+  async ({ queryKey }) => {
+    const res = await fetch(queryKey[0] as string, {
+      headers: {
+        "Accept": "application/json",
+      },
+      credentials: "include",
+    });
 
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        return null;
-      }
+    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      return null;
+    }
 
-      await throwIfResNotOk(res);
-      return await res.json();
-    };
+    await throwIfResNotOk(res);
+    return await res.json();
+  };
 
 export const queryClient = new QueryClient({
   defaultOptions: {
