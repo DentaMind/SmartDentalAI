@@ -22,35 +22,37 @@ export const symptomPredictionSchema = z.object({
 
 export type SymptomPrediction = z.infer<typeof symptomPredictionSchema>;
 
-const SYSTEM_PROMPT = `You are an AI dental diagnostic assistant. Analyze the patient's symptoms and provide:
-1. Possible dental conditions with confidence levels
-2. Brief descriptions of each condition
-3. Recommendations for each condition
-4. Urgency level for seeking treatment
-5. Follow-up questions to better understand the condition
-6. General advice for immediate relief
+const SYSTEM_PROMPT = `You are an AI dental diagnostic assistant. Analyze the patient's symptoms, regardless of detail level provided, and generate insights. With minimal information, focus on common conditions and request more details through follow-up questions.
 
-Focus on dental-specific terminology and conditions, such as:
-- Pulpal and periapical conditions
-- Periodontal diseases
-- Dental caries and tooth decay
-- Endodontic conditions
+Key responsibilities:
+1. Analyze symptoms and provide possible dental conditions
+2. If symptoms are brief, consider common dental issues and ask targeted follow-up questions
+3. Include confidence levels that reflect certainty based on available information
+4. Always provide immediate recommendations, even with limited data
+5. Assess urgency based on reported symptoms
+
+Consider these dental aspects:
+- Pulpal conditions (irreversible/reversible pulpitis)
+- Periapical pathology
+- Periodontal conditions
+- Dental caries
+- Endodontic issues
 - TMJ disorders
 - Oral pathology
 
-When analyzing radiographic findings (e.g., radiolucency):
-- Consider periapical lesions
-- Evaluate bone loss patterns
+For radiographic findings:
+- Analyze periapical areas
+- Evaluate bone patterns
+- Consider root morphology
 - Look for carious lesions
-- Assess root morphology
 
-For pain symptoms:
-- Differentiate between types (sharp, dull, lingering)
-- Consider pulpal status
-- Evaluate referred pain patterns
-- Assess percussion sensitivity
+For pain assessment:
+- Duration and type of pain
+- Pulpal status indicators
+- Referred pain patterns
+- Response to stimuli
 
-Respond in JSON format matching this structure:
+Respond in JSON format with this structure:
 {
   "possibleConditions": [{
     "condition": "string",
@@ -68,6 +70,12 @@ export async function predictFromSymptoms(
   patientHistory?: string
 ): Promise<SymptomPrediction> {
   try {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OpenAI API key is not configured");
+    }
+
+    console.log("Starting AI prediction with symptoms:", symptoms);
+
     const prompt = patientHistory 
       ? `Patient symptoms: ${symptoms}\nMedical history: ${patientHistory}`
       : `Patient symptoms: ${symptoms}`;
@@ -82,19 +90,31 @@ export async function predictFromSymptoms(
       response_format: { type: "json_object" }
     });
 
+    console.log("Received response from OpenAI");
+
     const content = response.choices[0].message.content;
     if (!content) {
       throw new Error("No response from AI");
     }
 
+    console.log("Parsing AI response:", content);
+
     const result = JSON.parse(content);
     const validated = symptomPredictionSchema.parse(result);
+
+    console.log("Successfully validated prediction schema");
     return validated;
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new Error("Invalid AI response format");
+    console.error("AI Prediction failed:", error);
+    if (error instanceof Error) {
+      if (error.message.includes("API key")) {
+        throw new Error("AI service configuration error. Please try again later.");
+      }
+      if (error.message.includes("OpenAI")) {
+        throw new Error("Our AI service is temporarily unavailable. Please try again in a moment.");
+      }
+      throw new Error(error.message);
     }
-    const message = error instanceof Error ? error.message : "Unknown error";
-    throw new Error("Failed to generate prediction: " + message);
+    throw new Error("Failed to analyze symptoms. Please try again.");
   }
 }

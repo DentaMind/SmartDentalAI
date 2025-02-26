@@ -58,6 +58,9 @@ export async function predictDentalCondition(context: PredictionContext): Promis
     return await response.json();
   } catch (error) {
     console.error("AI Prediction failed:", error);
-    throw new Error("Failed to analyze symptoms. Please ensure you've provided detailed symptoms and try again.");
+    if (error instanceof Error && error.message.includes("OpenAI")) {
+      throw new Error("Our AI service is temporarily unavailable. Please try again in a moment.");
+    }
+    throw new Error(error instanceof Error ? error.message : "Failed to analyze symptoms. Please try again.");
   }
 }

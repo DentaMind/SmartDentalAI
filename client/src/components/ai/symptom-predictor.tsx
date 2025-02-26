@@ -11,7 +11,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
-import { Loader2, AlertTriangle, Clock, ThermometerSun } from "lucide-react";
+import { Loader2, AlertTriangle, Clock, ThermometerSun, Shield } from "lucide-react";
 import { predictDentalCondition, type SymptomPrediction, type PredictionContext } from "@/lib/ai-predictor";
 
 interface Props {
@@ -24,18 +24,25 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests }: 
   const { t } = useTranslation();
   const { toast } = useToast();
   const [symptoms, setSymptoms] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const predictMutation = useMutation({
     mutationFn: async (symptoms: string) => {
-      if (!symptoms.trim()) {
-        throw new Error("Please describe the symptoms in detail");
+      setIsAnalyzing(true);
+      try {
+        const result = await predictDentalCondition({
+          symptoms,
+          patientHistory,
+          vitalSigns,
+          relevantTests
+        });
+        return result;
+      } catch (error) {
+        console.error("Prediction error:", error);
+        throw error;
+      } finally {
+        setIsAnalyzing(false);
       }
-      return await predictDentalCondition({
-        symptoms,
-        patientHistory,
-        vitalSigns,
-        relevantTests
-      });
     },
     onError: (error: Error) => {
       toast({
@@ -86,16 +93,22 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests }: 
             onChange={(e) => setSymptoms(e.target.value)}
             className="min-h-[100px] mb-4"
           />
-          <div className="flex gap-2 items-center text-sm text-muted-foreground mb-4">
-            <Clock className="h-4 w-4" />
-            <span>AI analysis usually takes 2-3 seconds</span>
+          <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+            <div className="flex gap-2 items-center">
+              <Clock className="h-4 w-4" />
+              <span>AI analysis usually takes 2-3 seconds</span>
+            </div>
+            <div className="flex gap-2 items-center">
+              <Shield className="h-4 w-4 text-primary" />
+              <span>Powered by GPT-4o</span>
+            </div>
           </div>
           <Button
             className="w-full"
             onClick={() => predictMutation.mutate(symptoms)}
-            disabled={!symptoms.trim() || predictMutation.isPending}
+            disabled={isAnalyzing}
           >
-            {predictMutation.isPending ? (
+            {isAnalyzing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 {t("ai.loading")}
