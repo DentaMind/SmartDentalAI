@@ -3,12 +3,8 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { predictFromSymptoms } from "./services/ai-prediction";
 import { requireAuth, requireRole, requireOwnership } from "./middleware/auth";
-import { insertUserSchema } from "@shared/schema";
-import { scrypt, randomBytes } from "crypto";
-import { promisify } from "util";
 
 const app = express();
-const scryptAsync = promisify(scrypt);
 
 // Basic middleware setup
 app.use(express.json());
@@ -37,59 +33,7 @@ app.use('/api', (req, res, next) => {
 // Setup authentication
 setupAuth(app);
 
-// Patient registration endpoint
-app.post("/api/patients", async (req, res, next) => {
-  try {
-    // Validate request body
-    const validation = insertUserSchema.omit({
-      role: true,
-      language: true,
-      specialization: true,
-      licenseNumber: true,
-      username: true,
-      password: true
-    }).safeParse(req.body);
-
-    if (!validation.success) {
-      return res.status(400).json({ 
-        message: "Invalid input data", 
-        errors: validation.error.errors 
-      });
-    }
-
-    // Generate credentials
-    const username = `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`;
-    const password = Math.random().toString(36).slice(-8);
-
-    const salt = randomBytes(16).toString("hex");
-    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-    const hashedPassword = `${buf.toString("hex")}.${salt}`;
-
-    // Create user
-    const user = await storage.createUser({
-      ...validation.data,
-      role: "patient",
-      language: "en",
-      specialization: null,
-      licenseNumber: null,
-      username,
-      password: hashedPassword,
-    });
-
-    return res.status(201).json({ 
-      success: true,
-      user,
-      credentials: {
-        username,
-        password
-      }
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// All other API routes go here
+// API Routes
 app.get("/api/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res, next) => {
   try {
     const patients = await storage.getAllPatients();
@@ -98,6 +42,7 @@ app.get("/api/patients", requireAuth, requireRole(["doctor", "staff"]), async (r
     next(error);
   }
 });
+
 // Get patient data - patients can only access their own data
 app.get("/api/patients/:id", requireAuth, requireOwnership("id"), async (req, res, next) => {
   try {

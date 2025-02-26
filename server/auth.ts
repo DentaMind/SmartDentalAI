@@ -5,7 +5,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { User as SelectUser, insertUserSchema } from "@shared/schema";
 
 declare global {
   namespace Express {
@@ -73,6 +73,56 @@ export function setupAuth(app: Express) {
       done(null, user);
     } catch (error) {
       done(error);
+    }
+  });
+
+  // Patient registration endpoint
+  app.post("/api/patients", async (req, res) => {
+    try {
+      const validation = insertUserSchema.omit({
+        role: true,
+        language: true,
+        specialization: true,
+        licenseNumber: true,
+        username: true,
+        password: true
+      }).safeParse(req.body);
+
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid input data", 
+          errors: validation.error.errors 
+        });
+      }
+
+      const username = `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`;
+      const password = Math.random().toString(36).slice(-8);
+
+      const salt = randomBytes(16).toString("hex");
+      const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+      const hashedPassword = `${buf.toString("hex")}.${salt}`;
+
+      const user = await storage.createUser({
+        ...validation.data,
+        role: "patient",
+        language: "en",
+        specialization: null,
+        licenseNumber: null,
+        username,
+        password: hashedPassword,
+      });
+
+      return res.status(201).json({ 
+        success: true,
+        user,
+        credentials: {
+          username,
+          password
+        }
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      return res.status(500).json({ message: "Server error during registration" });
     }
   });
 
