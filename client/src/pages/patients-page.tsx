@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Patient } from "@shared/schema";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Table,
   TableBody,
@@ -11,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, Eye, User2 } from "lucide-react";
+import { Plus, Loader2, Eye, User2, Calendar, AlertCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function PatientsPage() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
@@ -33,22 +35,84 @@ export default function PatientsPage() {
     queryKey: ["/api/patients"],
   });
 
+  // Get today's appointments count (mock data for now)
+  const todayAppointments = 5;
+  const urgentCases = 2;
+
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
       <main className="flex-1 overflow-y-auto">
         <div className="container mx-auto py-6 max-w-7xl">
-          {/* Header Section */}
+          {/* Welcome Section */}
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary-600 bg-clip-text text-transparent">
+              Welcome back, {user?.name || "Doctor"}
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Here's your practice overview for today
+            </p>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="grid gap-4 md:grid-cols-3 mb-8">
+            <Card className="bg-primary/5 border-primary/10">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Active Patients
+                </CardTitle>
+                <User2 className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{patients?.length || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Total patients in your care
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-blue-50/50 border-blue-100">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Today's Appointments
+                </CardTitle>
+                <Calendar className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{todayAppointments}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Scheduled for today
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-orange-50/50 border-orange-100">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Urgent Cases
+                </CardTitle>
+                <AlertCircle className="h-4 w-4 text-orange-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{urgentCases}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Require immediate attention
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Action Bar */}
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">{t("nav.patients")}</h1>
-              <p className="text-muted-foreground mt-1">
-                {patients?.length || 0} {t("patient.total")}
+              <h2 className="text-xl font-semibold">Patient Management</h2>
+              <p className="text-sm text-muted-foreground">
+                View and manage your patients
               </p>
             </div>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="lg" className="gap-2">
+                <Button size="lg" className="gap-2 shadow-sm">
                   <Plus className="h-5 w-5" />
                   {t("patient.add")}
                 </Button>
@@ -60,22 +124,6 @@ export default function PatientsPage() {
                 <AddPatientForm onSuccess={() => setIsAddDialogOpen(false)} />
               </DialogContent>
             </Dialog>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="grid gap-4 md:grid-cols-3 mb-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {t("patient.totalActive")}
-                </CardTitle>
-                <User2 className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{patients?.length || 0}</div>
-              </CardContent>
-            </Card>
-            {/* Add more stat cards here */}
           </div>
 
           {/* Patient Table */}
