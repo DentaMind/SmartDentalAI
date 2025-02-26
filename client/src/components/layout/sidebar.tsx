@@ -10,19 +10,52 @@ import {
   LogOut,
   Home,
   Stethoscope,
+  Image,
+  ClipboardList,
 } from "lucide-react";
 
 export function Sidebar() {
   const [location] = useLocation();
   const { t } = useTranslation();
-  const { logoutMutation } = useAuth();
+  const { logoutMutation, user } = useAuth();
 
-  const navigation = [
-    { name: t("nav.home"), href: "/", icon: Home },
-    { name: t("nav.patients"), href: "/patients", icon: Users },
-    { name: t("nav.appointments"), href: "/appointments", icon: Calendar },
-    { name: t("nav.treatmentPlans"), href: "/treatment-plans", icon: FileText },
-  ];
+  // Define navigation items based on user role
+  const getNavigationItems = () => {
+    const baseItems = [
+      { name: t("nav.home"), href: "/", icon: Home },
+    ];
+
+    const doctorItems = [
+      { name: t("nav.patients"), href: "/patients", icon: Users },
+      { name: t("nav.appointments"), href: "/appointments", icon: Calendar },
+      { name: t("nav.treatmentPlans"), href: "/treatment-plans", icon: FileText },
+    ];
+
+    const staffItems = [
+      { name: t("nav.patients"), href: "/patients", icon: Users },
+      { name: t("nav.appointments"), href: "/appointments", icon: Calendar },
+    ];
+
+    const patientItems = [
+      { name: t("nav.appointments"), href: "/appointments", icon: Calendar },
+      { name: t("nav.treatmentPlans"), href: "/treatment-plans", icon: FileText },
+      { name: t("nav.xrays"), href: "/xrays", icon: Image },
+      { name: t("nav.medicalHistory"), href: "/medical-history", icon: ClipboardList },
+    ];
+
+    switch (user?.role) {
+      case "doctor":
+        return [...baseItems, ...doctorItems];
+      case "staff":
+        return [...baseItems, ...staffItems];
+      case "patient":
+        return [...baseItems, ...patientItems];
+      default:
+        return baseItems;
+    }
+  };
+
+  const navigation = getNavigationItems();
 
   return (
     <div className="flex flex-col h-full bg-white border-r border-gray-200">

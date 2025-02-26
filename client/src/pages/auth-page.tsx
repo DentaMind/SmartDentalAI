@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Redirect } from "wouter";
 import { Stethoscope } from "lucide-react";
+import dentalClinic from "@/assets/dental-clinic.svg";
 
 export default function AuthPage() {
   const { t } = useTranslation();
@@ -46,7 +47,6 @@ export default function AuthPage() {
   });
 
   const onRegister = (data) => {
-    // Always register as a patient
     registerMutation.mutate({
       ...data,
       role: "patient",
@@ -78,6 +78,14 @@ export default function AuthPage() {
           <p className="text-xl text-gray-600">
             Experience next-generation dental care with AI assistance and advanced patient management.
           </p>
+          <div className="relative mt-8 rounded-2xl overflow-hidden shadow-xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5"></div>
+            <img 
+              src={dentalClinic}
+              alt="Modern dental clinic" 
+              className="w-full h-[300px] object-cover"
+            />
+          </div>
         </div>
 
         <Card className="w-full self-center bg-white shadow-lg">
