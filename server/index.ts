@@ -1,8 +1,10 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { setupVite, log } from "./vite";
 import app from "./app";
+import { createServer } from "http";
 
 const server = express();
+const httpServer = createServer(server);
 
 // Basic middleware
 server.use(express.json());
@@ -39,10 +41,10 @@ server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   try {
     // After API routes, let Vite handle everything else
     log("Setting up Vite development server...");
-    await setupVite(server);
+    await setupVite(server, httpServer);
 
     const PORT = process.env.PORT || 5000;
-    server.listen(Number(PORT), "0.0.0.0", () => {
+    httpServer.listen(Number(PORT), "0.0.0.0", () => {
       log(`Server running on port ${PORT}`);
     });
   } catch (error) {
