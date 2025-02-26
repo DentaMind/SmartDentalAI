@@ -10,6 +10,10 @@ import {
   InsertTreatmentPlan,
   Payment,
   InsertPayment,
+  MedicalNote,
+  InsertMedicalNote,
+  Xray,
+  InsertXray,
 } from "@shared/schema";
 import createMemoryStore from "memorystore";
 import session from "express-session";
@@ -21,7 +25,9 @@ export class MemStorage implements IStorage {
   private patients: Map<number, Patient>;
   private appointments: Map<number, Appointment>;
   private treatmentPlans: Map<number, TreatmentPlan>;
-  private payments: Map<number, Payment>; // Added payments map
+  private payments: Map<number, Payment>;
+  private medicalNotes: Map<number, MedicalNote>;
+  private xrays: Map<number, Xray>;
   sessionStore: session.Store;
   currentId: number;
 
@@ -30,7 +36,9 @@ export class MemStorage implements IStorage {
     this.patients = new Map();
     this.appointments = new Map();
     this.treatmentPlans = new Map();
-    this.payments = new Map(); // Initialize payments map
+    this.payments = new Map();
+    this.medicalNotes = new Map();
+    this.xrays = new Map();
     this.currentId = 1;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
@@ -49,13 +57,7 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentId++;
-    const user = {
-      id,
-      username: insertUser.username,
-      password: insertUser.password,
-      role: insertUser.role || "doctor",
-      language: insertUser.language || "en",
-    };
+    const user = { id, ...insertUser };
     this.users.set(id, user);
     return user;
   }
@@ -111,6 +113,32 @@ export class MemStorage implements IStorage {
   async getPatientPayments(patientId: number): Promise<Payment[]> {
     return Array.from(this.payments.values()).filter(
       (payment) => payment.patientId === patientId,
+    );
+  }
+
+  async createMedicalNote(insertNote: InsertMedicalNote): Promise<MedicalNote> {
+    const id = this.currentId++;
+    const note = { ...insertNote, id };
+    this.medicalNotes.set(id, note);
+    return note;
+  }
+
+  async getPatientMedicalNotes(patientId: number, userRole: string): Promise<MedicalNote[]> {
+    return Array.from(this.medicalNotes.values()).filter(
+      (note) => note.patientId === patientId && (userRole === "doctor" || !note.private)
+    );
+  }
+
+  async createXray(insertXray: InsertXray): Promise<Xray> {
+    const id = this.currentId++;
+    const xray = { ...insertXray, id };
+    this.xrays.set(id, xray);
+    return xray;
+  }
+
+  async getPatientXrays(patientId: number): Promise<Xray[]> {
+    return Array.from(this.xrays.values()).filter(
+      (xray) => xray.patientId === patientId
     );
   }
 }

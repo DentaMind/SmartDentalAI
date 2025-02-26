@@ -6,17 +6,37 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  role: text("role").notNull().default("doctor"),
+  role: text("role", { enum: ["doctor", "staff", "patient"] }).notNull().default("patient"),
   language: text("language").notNull().default("en"),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  email: text("email").notNull(),
+  phoneNumber: text("phone_number"),
+  // Patient specific fields
+  dateOfBirth: text("date_of_birth"),
+  insuranceProvider: text("insurance_provider"),
+  insuranceNumber: text("insurance_number"),
+  // Doctor specific fields
+  specialization: text("specialization"),
+  licenseNumber: text("license_number"),
+});
+
+export const medicalNotes = pgTable("medical_notes", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  doctorId: integer("doctor_id").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  private: boolean("private").default(true), // Only visible to doctors
 });
 
 export const patients = pgTable("patients", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  dateOfBirth: text("date_of_birth").notNull(),
-  contact: text("contact").notNull(),
+  userId: integer("user_id").notNull(),
   medicalHistory: text("medical_history"),
   allergies: text("allergies"),
+  bloodType: text("blood_type"),
+  emergencyContact: text("emergency_contact"),
 });
 
 export const appointments = pgTable("appointments", {
@@ -24,9 +44,10 @@ export const appointments = pgTable("appointments", {
   patientId: integer("patient_id").notNull(),
   doctorId: integer("doctor_id").notNull(),
   date: timestamp("date").notNull(),
-  status: text("status").notNull().default("scheduled"),
+  status: text("status", { enum: ["scheduled", "confirmed", "completed", "cancelled"] }).notNull().default("scheduled"),
   notes: text("notes"),
   isOnline: boolean("is_online").default(false),
+  insuranceVerified: boolean("insurance_verified").default(false),
 });
 
 export const treatmentPlans = pgTable("treatment_plans", {
@@ -36,21 +57,55 @@ export const treatmentPlans = pgTable("treatment_plans", {
   diagnosis: text("diagnosis").notNull(),
   procedures: jsonb("procedures").notNull(),
   cost: integer("cost").notNull(),
-  status: text("status").notNull().default("proposed"),
+  insuranceCoverage: integer("insurance_coverage"),
+  patientResponsibility: integer("patient_responsibility"),
+  status: text("status", { enum: ["proposed", "accepted", "in_progress", "completed", "cancelled"] }).notNull().default("proposed"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-  role: true,
-  language: true,
+export const xrays = pgTable("xrays", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  doctorId: integer("doctor_id").notNull(),
+  imageUrl: text("image_url").notNull(),
+  date: timestamp("date").defaultNow(),
+  notes: text("notes"),
+  type: text("type").notNull(),
+});
+
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  amount: integer("amount").notNull(),
+  insuranceAmount: integer("insurance_amount"),
+  patientAmount: integer("patient_amount"),
+  date: timestamp("date").defaultNow(),
+  status: text("status", { enum: ["pending", "processed", "failed"] }).notNull().default("pending"),
+  treatmentPlanId: integer("treatment_plan_id"),
+});
+
+// Insert schemas
+export const insertUserSchema = createInsertSchema(users).extend({
+  role: z.enum(["doctor", "staff", "patient"]),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Invalid email address"),
+  phoneNumber: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  insuranceProvider: z.string().optional(),
+  insuranceNumber: z.string().optional(),
+  specialization: z.string().optional(),
+  licenseNumber: z.string().optional(),
 });
 
 export const insertPatientSchema = createInsertSchema(patients);
 export const insertAppointmentSchema = createInsertSchema(appointments);
 export const insertTreatmentPlanSchema = createInsertSchema(treatmentPlans);
+export const insertMedicalNoteSchema = createInsertSchema(medicalNotes);
+export const insertXraySchema = createInsertSchema(xrays);
+export const insertPaymentSchema = createInsertSchema(payments);
 
+// Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Patient = typeof patients.$inferSelect;
@@ -59,3 +114,9 @@ export type Appointment = typeof appointments.$inferSelect;
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 export type TreatmentPlan = typeof treatmentPlans.$inferSelect;
 export type InsertTreatmentPlan = z.infer<typeof insertTreatmentPlanSchema>;
+export type MedicalNote = typeof medicalNotes.$inferSelect;
+export type InsertMedicalNote = z.infer<typeof insertMedicalNoteSchema>;
+export type Xray = typeof xrays.$inferSelect;
+export type InsertXray = z.infer<typeof insertXraySchema>;
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
