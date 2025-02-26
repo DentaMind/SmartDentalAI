@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react";
 import { Redirect, Route } from "wouter";
+import { LoadingAnimation } from "@/components/ui/loading-animation";
 
 export function ProtectedRoute({
   path,
@@ -14,8 +14,9 @@ export function ProtectedRoute({
   if (isLoading) {
     return (
       <Route path={path}>
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-border" />
+        <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gradient-to-b from-blue-50 to-white">
+          <LoadingAnimation />
+          <p className="text-gray-600 animate-pulse">Loading Smart Dental AI...</p>
         </div>
       </Route>
     );

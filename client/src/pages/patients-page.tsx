@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, Eye, User2, Calendar, AlertCircle } from "lucide-react";
+import { Plus, Eye, User2, Calendar, AlertCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,7 @@ import { AddPatientForm } from "@/components/patients/add-patient-form";
 import { PatientDetails } from "@/components/patients/patient-details";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LoadingAnimation } from "@/components/ui/loading-animation";
 
 export default function PatientsPage() {
   const { t } = useTranslation();
@@ -129,8 +130,9 @@ export default function PatientsPage() {
           {/* Patient Table */}
           <div className="bg-card rounded-lg border shadow-sm">
             {isLoading ? (
-              <div className="flex justify-center items-center h-32">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="flex flex-col items-center justify-center h-32 gap-4">
+                <LoadingAnimation />
+                <p className="text-gray-600">Loading patient data...</p>
               </div>
             ) : (
               <Table>
