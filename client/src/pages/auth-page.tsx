@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Redirect } from "wouter";
 import { Stethoscope } from "lucide-react";
-import dentalClinic from "@/assets/dental-clinic.svg";
+import dentalSmile from "../../../attached_assets/iStock-526222203.jpg";
 
 export default function AuthPage() {
   const { t } = useTranslation();
@@ -81,8 +81,8 @@ export default function AuthPage() {
           <div className="relative mt-8 rounded-2xl overflow-hidden shadow-xl">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5"></div>
             <img 
-              src={dentalClinic}
-              alt="Modern dental clinic" 
+              src={dentalSmile}
+              alt="Professional dental clinic" 
               className="w-full h-[300px] object-cover"
             />
           </div>
