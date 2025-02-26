@@ -13,18 +13,13 @@ server.use((req, res, next) => {
   const start = Date.now();
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (req.path.startsWith("/api")) {
-      log(`${req.method} ${req.path} ${res.statusCode} in ${duration}ms`);
-    }
+    log(`${req.method} ${req.path} ${res.statusCode} in ${duration}ms`);
   });
   next();
 });
 
 // Mount API routes first - before Vite middleware
-server.use("/api", (req, res, next) => {
-  res.setHeader('Content-Type', 'application/json');
-  next();
-}, app);
+server.use("/api", app);
 
 // Error handling middleware
 server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -37,14 +32,14 @@ server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 // Initialize server
 (async () => {
   try {
-    // After API routes, let Vite handle everything else
-    log("Setting up Vite development server...");
-    await setupVite(server);
-
     const PORT = process.env.PORT || 5000;
-    server.listen(Number(PORT), "0.0.0.0", () => {
+    const httpServer = server.listen(Number(PORT), "0.0.0.0", () => {
       log(`Server running on port ${PORT}`);
     });
+
+    // After server is listening, setup Vite
+    log("Setting up Vite development server...");
+    await setupVite(server, httpServer);
   } catch (error) {
     console.error("Server startup error:", error);
     process.exit(1);
