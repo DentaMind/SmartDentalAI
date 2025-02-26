@@ -37,7 +37,7 @@ server.use((req, res, next) => {
   next();
 });
 
-// Mount our API routes first
+// Mount API routes
 server.use("/api", app);
 
 // Error handling middleware
@@ -50,22 +50,29 @@ server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 
 // Setup Vite for development
 (async () => {
-  if (process.env.NODE_ENV === "development") {
-    await setupVite(server);
-  } else {
-    serveStatic(server);
-  }
+  try {
+    if (process.env.NODE_ENV === "development") {
+      // In development, let Vite handle everything
+      await setupVite(server);
+    } else {
+      // In production, serve static files
+      serveStatic(server);
 
-  // Catch-all route for SPA
-  server.get("*", (req, res, next) => {
-    if (req.path.startsWith("/api")) {
-      return next();
+      // Handle SPA routing in production
+      server.get("*", (req, res) => {
+        if (req.path.startsWith("/api")) {
+          return res.status(404).json({ message: "API route not found" });
+        }
+        res.sendFile("index.html", { root: "dist" });
+      });
     }
-    res.sendFile("index.html", { root: "./dist" });
-  });
 
-  const PORT = 5000;
-  server.listen(PORT, "0.0.0.0", () => {
-    log(`Server running on port ${PORT}`);
-  });
+    const PORT = process.env.PORT || 5000;
+    server.listen(PORT, "0.0.0.0", () => {
+      log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Server startup error:", error);
+    process.exit(1);
+  }
 })();
