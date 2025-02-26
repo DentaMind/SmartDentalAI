@@ -30,5 +30,5 @@ export function ProtectedRoute({
     );
   }
 
-  return <Component />
+  return <Route path={path} component={Component} />
 }

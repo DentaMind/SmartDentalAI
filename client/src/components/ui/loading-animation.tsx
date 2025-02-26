@@ -8,7 +8,8 @@ interface LoadingAnimationProps {
 
 export function LoadingAnimation({ className }: LoadingAnimationProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  
+  const [visible, setVisible] = useState(false);
+
   const tools = [
     { icon: Stethoscope, color: "text-primary" },
     { icon: Syringe, color: "text-blue-500" },
@@ -17,12 +18,20 @@ export function LoadingAnimation({ className }: LoadingAnimationProps) {
   ];
 
   useEffect(() => {
+    // Only show loading after 500ms delay
+    const timer = setTimeout(() => setVisible(true), 500);
+
     const interval = setInterval(() => {
       setActiveIndex((current) => (current + 1) % tools.length);
     }, 600);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
   }, []);
+
+  if (!visible) return null;
 
   return (
     <div className={cn("relative h-12 w-12", className)}>
