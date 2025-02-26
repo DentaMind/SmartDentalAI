@@ -5,9 +5,11 @@ import { predictFromSymptoms } from "./services/ai-prediction";
 
 const app = express();
 const router = express.Router();
+
+// Setup middleware
 app.use(express.json());
 
-// Setup authentication
+// Setup authentication on the router
 setupAuth(router);
 
 // Protected route middleware
@@ -56,7 +58,7 @@ router.post("/ai/predict", requireAuth, async (req, res) => {
   }
 });
 
-// Use the router for all API routes
-app.use(router);
+// Mount all routes under /api prefix
+app.use("/api", router);
 
 export default app;
