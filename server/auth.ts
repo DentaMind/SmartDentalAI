@@ -5,7 +5,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser, insertUserSchema } from "@shared/schema";
+import { User as SelectUser } from "@shared/schema";
 
 declare global {
   namespace Express {
@@ -14,12 +14,6 @@ declare global {
 }
 
 const scryptAsync = promisify(scrypt);
-
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
-}
 
 async function comparePasswords(supplied: string, stored: string) {
   const [hashed, salt] = stored.split(".");
@@ -79,69 +73,6 @@ export function setupAuth(app: Express) {
       done(null, user);
     } catch (error) {
       done(error);
-    }
-  });
-
-  // Force JSON responses for /api routes
-  app.use('/api', (req, res, next) => {
-    res.setHeader('Content-Type', 'application/json');
-    next();
-  });
-
-  app.post("/api/patients", async (req, res) => {
-    try {
-      // Validate the request body against our schema
-      const validation = insertUserSchema.omit({
-        role: true,
-        language: true,
-        specialization: true,
-        licenseNumber: true,
-        username: true,
-        password: true
-      }).safeParse(req.body);
-
-      if (!validation.success) {
-        console.error('Validation failed:', validation.error.errors);
-        return res.status(400).json({ 
-          message: "Invalid input data", 
-          errors: validation.error.errors 
-        });
-      }
-
-      // Generate username and password
-      const username = `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`;
-      const password = Math.random().toString(36).slice(-8);
-      const hashedPassword = await hashPassword(password);
-
-      // Create the user
-      const user = await storage.createUser({
-        ...validation.data,
-        role: "patient",
-        language: "en",
-        specialization: null,
-        licenseNumber: null,
-        username,
-        password: hashedPassword,
-      });
-
-      // Login the user after successful registration
-      req.login(user, (err) => {
-        if (err) {
-          console.error("Login error after registration:", err);
-          return res.status(500).json({ message: "Error logging in after registration" });
-        }
-        res.status(201).json({ 
-          success: true,
-          user,
-          credentials: {
-            username,
-            password // Send back the generated password so it can be shown to the user
-          }
-        });
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-      res.status(500).json({ message: "Server error during registration" });
     }
   });
 
