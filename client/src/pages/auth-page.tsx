@@ -12,6 +12,20 @@ import { Redirect } from "wouter";
 import { Stethoscope } from "lucide-react";
 import dentalSmile from "../../../attached_assets/iStock-526222203.jpg";
 
+type UserRegistrationData = {
+  username: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  dateOfBirth: string;
+  insuranceProvider?: string;
+  insuranceNumber?: string;
+  specialization?: string;
+  licenseNumber?: string;
+};
+
 export default function AuthPage() {
   const { t } = useTranslation();
   const { user, loginMutation, registerMutation } = useAuth();
@@ -24,7 +38,7 @@ export default function AuthPage() {
     },
   });
 
-  const registerForm = useForm({
+  const registerForm = useForm<UserRegistrationData>({
     resolver: zodResolver(
       insertUserSchema.omit({ 
         role: true, 
@@ -46,7 +60,7 @@ export default function AuthPage() {
     },
   });
 
-  const providerForm = useForm({
+  const providerForm = useForm<UserRegistrationData>({
     resolver: zodResolver(
       insertUserSchema.omit({ 
         role: true,
@@ -67,7 +81,8 @@ export default function AuthPage() {
     },
   });
 
-  const onRegister = (data) => {
+  const onRegister = (data: UserRegistrationData) => {
+    console.log("Registering patient with data:", data);
     registerMutation.mutate({
       ...data,
       role: "patient",
@@ -75,7 +90,8 @@ export default function AuthPage() {
     });
   };
 
-  const onProviderRegister = (data) => {
+  const onProviderRegister = (data: UserRegistrationData) => {
+    console.log("Registering provider with data:", data);
     registerMutation.mutate({
       ...data,
       role: "doctor",
