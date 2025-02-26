@@ -52,10 +52,10 @@ export default function PatientsPage() {
         <div className="container mx-auto py-6 max-w-7xl">
           {/* Welcome Section */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-white">
+            <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary/90 to-blue-600 bg-clip-text text-transparent">
               Welcome back, {user?.firstName || "Doctor"}
             </h1>
-            <p className="text-white/80 mt-2">
+            <p className="text-primary/90 mt-2">
               Here's your practice overview for today
             </p>
           </div>
@@ -111,8 +111,8 @@ export default function PatientsPage() {
           {/* Action Bar */}
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h2 className="text-xl font-semibold text-white">Patient Management</h2>
-              <p className="text-white/80 text-sm">
+              <h2 className="text-xl font-semibold text-primary">Patient Management</h2>
+              <p className="text-primary/80 text-sm">
                 View and manage your patients
               </p>
             </div>
