@@ -25,7 +25,7 @@ export function Sidebar() {
   ];
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-primary/5 via-primary/2 to-transparent border-r border-gray-200">
+    <div className="flex flex-col h-full bg-white border-r border-gray-200">
       <div className="flex items-center justify-center h-20 px-6">
         <Link href="/">
           <a className="flex items-center gap-3 hover:opacity-90 transition-opacity">
