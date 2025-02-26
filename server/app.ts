@@ -37,7 +37,6 @@ router.get("/patients", requireAuth, async (req, res) => {
   }
 });
 
-
 // AI Prediction route
 router.post("/ai/predict", requireAuth, async (req, res) => {
   try {
