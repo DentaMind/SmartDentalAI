@@ -59,8 +59,8 @@ export default function AuthPage() {
           </p>
           <div className="mt-8">
             <img 
-              src="https://images.unsplash.com/photo-1572635196237-14b3f281503f" 
-              alt="Professional smile" 
+              src="https://images.unsplash.com/photo-1581591524425-c7e0978865fc" 
+              alt="Professional dental smile" 
               className="rounded-2xl shadow-xl w-full object-cover aspect-[4/3]"
             />
           </div>
