@@ -5,7 +5,7 @@ import { insertUserSchema } from "@shared/schema";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Redirect } from "wouter";
@@ -46,7 +46,7 @@ export default function AuthPage() {
               <Stethoscope className="h-8 w-8" />
             </div>
             <div className="flex flex-col">
-              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary-600 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold tracking-tight text-primary">
                 SmartDental
               </h1>
               <span className="text-sm text-gray-500 font-medium">
@@ -59,8 +59,8 @@ export default function AuthPage() {
           </p>
           <div className="mt-8">
             <img 
-              src="https://images.unsplash.com/photo-1581594693702-fbdc51b2763b" 
-              alt="Confident smile" 
+              src="https://images.unsplash.com/photo-1572635196237-14b3f281503f" 
+              alt="Professional smile" 
               className="rounded-2xl shadow-xl w-full object-cover aspect-[4/3]"
             />
           </div>
@@ -105,7 +105,7 @@ export default function AuthPage() {
                     />
                     <Button 
                       type="submit" 
-                      className="w-full bg-primary-600 hover:bg-primary-700" 
+                      className="w-full bg-primary hover:bg-primary/90 text-white" 
                       disabled={loginMutation.isPending}
                     >
                       {loginMutation.isPending ? "Loading..." : t("auth.login")}
@@ -147,7 +147,7 @@ export default function AuthPage() {
                     <input type="hidden" {...registerForm.register("language")} />
                     <Button 
                       type="submit" 
-                      className="w-full bg-blue-600 hover:bg-blue-700" 
+                      className="w-full bg-blue-500 hover:bg-blue-600 text-white" 
                       disabled={registerMutation.isPending}
                     >
                       {registerMutation.isPending ? "Loading..." : t("auth.register")}
