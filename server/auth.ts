@@ -84,6 +84,8 @@ export function setupAuth(app: Express) {
 
   app.post("/api/patients", async (req, res) => {
     try {
+      console.log('Patient registration request body:', req.body);
+
       // Validate the request body against our schema
       const validation = insertUserSchema.omit({
         role: true,
@@ -95,6 +97,7 @@ export function setupAuth(app: Express) {
       }).safeParse(req.body);
 
       if (!validation.success) {
+        console.error('Validation failed:', validation.error.errors);
         return res.status(400).json({ 
           message: "Invalid input data", 
           errors: validation.error.errors 
@@ -105,6 +108,12 @@ export function setupAuth(app: Express) {
       const username = `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`;
       const password = Math.random().toString(36).slice(-8);
       const hashedPassword = await hashPassword(password);
+
+      console.log('Creating user with data:', {
+        ...validation.data,
+        username,
+        role: "patient"
+      });
 
       // Create the user
       const user = await storage.createUser({
