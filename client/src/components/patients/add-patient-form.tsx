@@ -67,14 +67,7 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
   const addPatientMutation = useMutation({
     mutationFn: async (data: AddPatientFormData) => {
       try {
-        console.log('Submitting patient data:', data);
         const res = await apiRequest("POST", "/api/patients", data);
-
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.message || "Failed to add patient");
-        }
-
         const responseData = await res.json();
         if (responseData.credentials) {
           setCredentials(responseData.credentials);

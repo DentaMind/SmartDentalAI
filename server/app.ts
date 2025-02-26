@@ -28,8 +28,11 @@ app.use((req, res, next) => {
   }
 });
 
-// Force JSON content type for API routes
+// Force JSON content type for API routes - MUST be before any route handlers
 app.use('/api', (req, res, next) => {
+  if (!req.path.startsWith('/api')) {
+    return next();
+  }
   res.setHeader('Content-Type', 'application/json');
   next();
 });
@@ -37,7 +40,7 @@ app.use('/api', (req, res, next) => {
 // Setup authentication
 setupAuth(app);
 
-// Patient registration endpoint - Moved from auth.ts
+// Patient registration endpoint
 app.post("/api/patients", async (req, res, next) => {
   try {
     // Validate the request body against our schema
@@ -177,11 +180,10 @@ app.post("/api/ai/predict", requireAuth, requireRole(["doctor"]), async (req, re
   }
 });
 
-// Error handling middleware must be the last middleware before Vite
+// Error handling middleware - MUST be last before Vite
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error('Error:', err);
 
-  // Check if headers have already been sent
   if (res.headersSent) {
     return next(err);
   }
