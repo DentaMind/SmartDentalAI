@@ -82,10 +82,14 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // Force JSON responses for /api routes
+  app.use('/api', (req, res, next) => {
+    res.setHeader('Content-Type', 'application/json');
+    next();
+  });
+
   app.post("/api/patients", async (req, res) => {
     try {
-      console.log('Patient registration request body:', req.body);
-
       // Validate the request body against our schema
       const validation = insertUserSchema.omit({
         role: true,
