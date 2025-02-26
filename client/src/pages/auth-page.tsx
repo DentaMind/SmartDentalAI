@@ -61,17 +61,21 @@ export default function AuthPage() {
             <img 
               src="/attached_assets/iStock-526222203.jpg" 
               alt="Professional dental smile" 
-              className="rounded-2xl shadow-xl w-full object-cover"
+              className="rounded-2xl shadow-xl w-full h-[300px] object-cover"
             />
           </div>
         </div>
 
-        <Card className="w-full self-center">
+        <Card className="w-full self-center bg-white shadow-lg">
           <CardContent className="pt-6">
             <Tabs defaultValue="login">
               <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="login">{t("auth.login")}</TabsTrigger>
-                <TabsTrigger value="register">{t("auth.register")}</TabsTrigger>
+                <TabsTrigger value="login" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                  {t("auth.login")}
+                </TabsTrigger>
+                <TabsTrigger value="register" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+                  {t("auth.register")}
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="login">
@@ -82,9 +86,9 @@ export default function AuthPage() {
                       name="username"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t("auth.username")}</FormLabel>
+                          <FormLabel className="text-gray-700">{t("auth.username")}</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} className="bg-gray-50 border-gray-200" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -95,9 +99,9 @@ export default function AuthPage() {
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t("auth.password")}</FormLabel>
+                          <FormLabel className="text-gray-700">{t("auth.password")}</FormLabel>
                           <FormControl>
-                            <Input type="password" {...field} />
+                            <Input type="password" {...field} className="bg-gray-50 border-gray-200" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -105,7 +109,7 @@ export default function AuthPage() {
                     />
                     <Button 
                       type="submit" 
-                      className="w-full bg-primary hover:bg-primary/90 text-white" 
+                      className="w-full bg-primary hover:bg-primary/90 text-white shadow-md" 
                       disabled={loginMutation.isPending}
                     >
                       {loginMutation.isPending ? "Loading..." : t("auth.login")}
@@ -122,9 +126,9 @@ export default function AuthPage() {
                       name="username"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t("auth.username")}</FormLabel>
+                          <FormLabel className="text-gray-700">{t("auth.username")}</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} className="bg-gray-50 border-gray-200" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -135,9 +139,9 @@ export default function AuthPage() {
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t("auth.password")}</FormLabel>
+                          <FormLabel className="text-gray-700">{t("auth.password")}</FormLabel>
                           <FormControl>
-                            <Input type="password" {...field} />
+                            <Input type="password" {...field} className="bg-gray-50 border-gray-200" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -147,7 +151,7 @@ export default function AuthPage() {
                     <input type="hidden" {...registerForm.register("language")} />
                     <Button 
                       type="submit" 
-                      className="w-full bg-blue-500 hover:bg-blue-600 text-white" 
+                      className="w-full bg-blue-500 hover:bg-blue-600 text-white shadow-md" 
                       disabled={registerMutation.isPending}
                     >
                       {registerMutation.isPending ? "Loading..." : t("auth.register")}
