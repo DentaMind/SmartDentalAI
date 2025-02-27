@@ -11,6 +11,19 @@ app.get("/api/patients", requireAuth, async (req, res) => {
   }
 });
 
+// Add patient route - simplified version that was working before
+app.post("/api/patients", requireAuth, async (req, res) => {
+  try {
+    const patient = await storage.createPatient(req.body);
+    res.status(201).json(patient);
+  } catch (error) {
+    console.error("Failed to create patient:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to create patient" 
+    });
+  }
+});
+
 // AI Prediction route
 app.post("/api/ai/predict", requireAuth, async (req, res) => {
   try {
@@ -70,37 +83,6 @@ app.post("/api/ai/generate-treatment-plan", requireAuth, async (req, res) => {
     console.error("Treatment Plan Generation error:", error);
     res.status(500).json({ 
       message: error instanceof Error ? error.message : "Failed to generate treatment plan" 
-    });
-  }
-});
-
-// Add patient route
-app.post("/api/patients", requireAuth, async (req, res) => {
-  try {
-    // Create the user first
-    const user = await storage.createUser({
-      ...req.body,
-      role: "patient",
-      language: "en",
-      username: `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`,
-      password: Math.random().toString(36).slice(-8)
-    });
-
-    // Create patient record explicitly
-    const patient = await storage.createPatient({
-      userId: user.id,
-      medicalHistory: req.body.medicalHistory || null,
-      allergies: req.body.allergies || null,
-      bloodType: null,
-      emergencyContact: req.body.emergencyContact || null,
-    });
-
-    // Return both user and patient data
-    res.status(201).json({ ...patient, user });
-  } catch (error) {
-    console.error("Failed to create patient:", error);
-    res.status(500).json({ 
-      message: error instanceof Error ? error.message : "Failed to create patient" 
     });
   }
 });
