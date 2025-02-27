@@ -69,18 +69,6 @@ export class MemStorage implements IStorage {
       licenseNumber: insertUser.licenseNumber || null,
     };
     this.users.set(id, user);
-
-    // If the user is a patient, also create a patient record
-    if (insertUser.role === "patient") {
-      await this.createPatient({
-        userId: id,
-        medicalHistory: null,
-        allergies: null,
-        bloodType: null,
-        emergencyContact: null,
-      });
-    }
-
     return user;
   }
 
