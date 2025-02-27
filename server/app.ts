@@ -20,21 +20,19 @@ setupAuth(app);
 // Provider registration endpoint
 app.post("/api/providers", async (req, res) => {
   try {
-    const providerSchema = insertUserSchema.omit({ 
-      role: true, 
+    const validation = insertUserSchema.omit({
+      role: true,
       language: true
-    });
-
-    const validation = providerSchema.safeParse(req.body);
+    }).safeParse(req.body);
 
     if (!validation.success) {
-      return res.status(400).json({ 
-        message: "Invalid input data", 
-        errors: validation.error.errors 
+      return res.status(400).json({
+        message: "Invalid input data",
+        errors: validation.error.errors
       });
     }
 
-    const username = `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`;
+    const username = `${validation.data.firstName.toLowerCase()}${validation.data.lastName.toLowerCase()}`;
     const password = Math.random().toString(36).slice(-8);
 
     const salt = randomBytes(16).toString("hex");
@@ -49,7 +47,7 @@ app.post("/api/providers", async (req, res) => {
       password: hashedPassword,
     });
 
-    res.status(201).json({ 
+    res.status(201).json({
       success: true,
       user,
       credentials: {
@@ -63,7 +61,7 @@ app.post("/api/providers", async (req, res) => {
   }
 });
 
-// Other API routes
+// API Routes
 app.get("/api/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   const patients = await storage.getAllPatients();
   res.json(patients);

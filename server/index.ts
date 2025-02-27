@@ -18,8 +18,11 @@ server.use((req, res, next) => {
   next();
 });
 
-// Mount API routes before Vite middleware
+// Mount the API routes first
 server.use("/api", app);
+
+// Setup Vite after API routes
+setupVite(server).catch(console.error);
 
 // Error handling middleware
 server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -30,18 +33,7 @@ server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 // Initialize server
-(async () => {
-  try {
-    const PORT = process.env.PORT || 5000;
-    const httpServer = server.listen(Number(PORT), "0.0.0.0", () => {
-      log(`Server running on port ${PORT}`);
-    });
-
-    // Setup Vite after API routes are mounted
-    log("Setting up Vite development server...");
-    await setupVite(server, httpServer);
-  } catch (error) {
-    console.error("Server startup error:", error);
-    process.exit(1);
-  }
-})();
+const PORT = process.env.PORT || 5000;
+server.listen(Number(PORT), "0.0.0.0", () => {
+  log(`Server running on port ${PORT}`);
+});
