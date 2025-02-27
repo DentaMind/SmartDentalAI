@@ -18,7 +18,12 @@ server.use((req, res, next) => {
   next();
 });
 
-// Mount the API routes first
+// Initialize server
+const httpServer = server.listen(Number(process.env.PORT || 5000), "0.0.0.0", () => {
+  log(`Server running on port ${process.env.PORT || 5000}`);
+});
+
+// Mount the API routes
 server.use("/api", app);
 
 // Error handling middleware
@@ -29,9 +34,5 @@ server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   res.status(status).json({ message });
 });
 
-// Initialize server
-const httpServer = server.listen(Number(process.env.PORT || 5000), "0.0.0.0", () => {
-  log(`Server running on port ${process.env.PORT || 5000}`);
-});
-
+// Setup Vite last
 setupVite(server, httpServer).catch(console.error);
