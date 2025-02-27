@@ -22,9 +22,11 @@ app.post("/api/providers", async (req, res) => {
   try {
     console.log("Registering provider with data:", req.body);
 
-    const validation = insertUserSchema.omit({
-      role: true,
-      language: true
+    // Validate provider-specific fields
+    const validation = insertUserSchema.omit({ 
+      role: true, 
+      language: true,
+      // Keep specialization and licenseNumber for providers
     }).safeParse(req.body);
 
     if (!validation.success) {
@@ -34,6 +36,7 @@ app.post("/api/providers", async (req, res) => {
       });
     }
 
+    // Generate credentials
     const username = `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`;
     const password = Math.random().toString(36).slice(-8);
 
@@ -41,6 +44,7 @@ app.post("/api/providers", async (req, res) => {
     const buf = (await scryptAsync(password, salt, 64)) as Buffer;
     const hashedPassword = `${buf.toString("hex")}.${salt}`;
 
+    // Create provider user
     const user = await storage.createUser({
       ...validation.data,
       role: "doctor",
