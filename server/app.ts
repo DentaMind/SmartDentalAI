@@ -20,7 +20,7 @@ setupAuth(app);
 // Patient registration endpoint
 app.post("/patients", async (req, res) => {
   try {
-    console.log("Registering provider with data:", req.body);
+    console.log("Registering patient with data:", req.body);
 
     const validation = insertUserSchema.omit({
       role: true,
@@ -73,72 +73,59 @@ app.post("/patients", async (req, res) => {
 
 // API Routes
 app.get("/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
-    const patients = await storage.getAllPatients();
-    res.json(patients);
+  const patients = await storage.getAllPatients();
+  res.json(patients);
 });
 
 // Get patient data - patients can only access their own data
 app.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res) => {
-    const patient = await storage.getPatient(Number(req.params.id));
-    if (!patient) {
-      return res.status(404).json({ message: "Patient not found" });
-    }
-    res.json(patient);
+  const patient = await storage.getPatient(Number(req.params.id));
+  if (!patient) {
+    return res.status(404).json({ message: "Patient not found" });
+  }
+  res.json(patient);
 });
 
 // Medical notes - only doctors can create/edit
 app.post("/medical-notes", requireAuth, requireRole(["doctor"]), async (req, res) => {
-    const note = await storage.createMedicalNote(req.body);
-    res.status(201).json(note);
+  const note = await storage.createMedicalNote(req.body);
+  res.status(201).json(note);
 });
 
 // X-rays - doctors and staff can upload, patients can view their own
 app.post("/xrays", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
-    const xray = await storage.createXray(req.body);
-    res.status(201).json(xray);
+  const xray = await storage.createXray(req.body);
+  res.status(201).json(xray);
 });
 
 // Get patient's x-rays
 app.get("/xrays/patient/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
-    const xrays = await storage.getPatientXrays(Number(req.params.patientId));
-    res.json(xrays);
+  const xrays = await storage.getPatientXrays(Number(req.params.patientId));
+  res.json(xrays);
 });
 
 // Payments and insurance
 app.get("/payments/patient/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
-    const payments = await storage.getPatientPayments(Number(req.params.patientId));
-    res.json(payments);
+  const payments = await storage.getPatientPayments(Number(req.params.patientId));
+  res.json(payments);
 });
 
 // Treatment plans
 app.post("/treatment-plans", requireAuth, requireRole(["doctor"]), async (req, res) => {
-    const plan = await storage.createTreatmentPlan(req.body);
-    res.status(201).json(plan);
+  const plan = await storage.createTreatmentPlan(req.body);
+  res.status(201).json(plan);
 });
 
 // AI Prediction route - only accessible by doctors
 app.post("/ai/predict", requireAuth, requireRole(["doctor"]), async (req, res) => {
-    const { symptoms, patientHistory } = req.body;
+  const { symptoms, patientHistory } = req.body;
 
-    if (!symptoms) {
-      return res.status(400).json({ message: "Symptoms are required" });
-    }
-
-    const prediction = await predictFromSymptoms(symptoms, patientHistory);
-    res.json(prediction);
-});
-
-// Error handling middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error('Error:', err);
-
-  if (res.headersSent) {
-    return next(err);
+  if (!symptoms) {
+    return res.status(400).json({ message: "Symptoms are required" });
   }
 
-  res.status(500).json({ 
-    message: err.message || "Internal server error"
-  });
+  const prediction = await predictFromSymptoms(symptoms, patientHistory);
+  res.json(prediction);
 });
 
 export default app;
