@@ -3,112 +3,116 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { predictFromSymptoms } from "./services/ai-prediction";
 import { requireAuth, requireRole, requireOwnership } from "./middleware/auth";
-import { insertUserSchema } from "@shared/schema";
-import { scrypt, randomBytes } from "crypto";
-import { promisify } from "util";
 
 const app = express();
-const scryptAsync = promisify(scrypt);
+const router = express.Router();
 
-// Basic middleware setup
+// Setup middleware
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Setup authentication
-setupAuth(app);
+// Setup authentication on the router
+setupAuth(router);
 
-// Provider registration endpoint
-app.post("/api/providers", async (req, res) => {
+// Patient routes
+router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   try {
-    const validation = insertUserSchema.omit({
-      role: true,
-      language: true
-    }).safeParse(req.body);
+    const patient = await storage.createPatient(req.body);
+    res.status(201).json(patient);
+  } catch (error) {
+    res.status(400).json({ message: error instanceof Error ? error.message : "Invalid request" });
+  }
+});
 
-    if (!validation.success) {
-      return res.status(400).json({
-        message: "Invalid input data",
-        errors: validation.error.errors
-      });
+// Get patient data - patients can only access their own data
+router.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res) => {
+  try {
+    const patient = await storage.getPatient(Number(req.params.id));
+    res.json(patient);
+  } catch (error) {
+    res.status(500).json({ message: error instanceof Error ? error.message : "Server error" });
+  }
+});
+
+// Medical notes - only doctors can create/edit
+router.post("/medical-notes", requireAuth, requireRole(["doctor"]), async (req, res) => {
+  try {
+    const note = await storage.createMedicalNote(req.body);
+    res.status(201).json(note);
+  } catch (error) {
+    res.status(400).json({ message: error instanceof Error ? error.message : "Invalid request" });
+  }
+});
+
+// X-rays - doctors and staff can upload, patients can view their own
+router.post("/xrays", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+  try {
+    const xray = await storage.createXray(req.body);
+    res.status(201).json(xray);
+  } catch (error) {
+    res.status(400).json({ message: error instanceof Error ? error.message : "Invalid request" });
+  }
+});
+
+// Get patient's x-rays
+router.get("/xrays/patient/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
+  try {
+    const xrays = await storage.getPatientXrays(Number(req.params.patientId));
+    res.json(xrays);
+  } catch (error) {
+    res.status(500).json({ message: error instanceof Error ? error.message : "Server error" });
+  }
+});
+
+// Payments and insurance
+router.get("/payments/patient/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
+  try {
+    const payments = await storage.getPatientPayments(Number(req.params.patientId));
+    res.json(payments);
+  } catch (error) {
+    res.status(500).json({ message: error instanceof Error ? error.message : "Server error" });
+  }
+});
+
+// Appointments
+router.post("/appointments", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+  try {
+    const appointment = await storage.createAppointment(req.body);
+    res.status(201).json(appointment);
+  } catch (error) {
+    res.status(400).json({ message: error instanceof Error ? error.message : "Invalid request" });
+  }
+});
+
+// Treatment plans
+router.post("/treatment-plans", requireAuth, requireRole(["doctor"]), async (req, res) => {
+  try {
+    const plan = await storage.createTreatmentPlan(req.body);
+    res.status(201).json(plan);
+  } catch (error) {
+    res.status(400).json({ message: error instanceof Error ? error.message : "Invalid request" });
+  }
+});
+
+// AI Prediction route - only accessible by doctors
+router.post("/ai/predict", requireAuth, requireRole(["doctor"]), async (req, res) => {
+  try {
+    const { symptoms, patientHistory } = req.body;
+
+    if (!symptoms) {
+      return res.status(400).json({ message: "Symptoms are required" });
     }
 
-    const username = `${validation.data.firstName.toLowerCase()}${validation.data.lastName.toLowerCase()}`;
-    const password = Math.random().toString(36).slice(-8);
-
-    const salt = randomBytes(16).toString("hex");
-    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-    const hashedPassword = `${buf.toString("hex")}.${salt}`;
-
-    const user = await storage.createUser({
-      ...validation.data,
-      role: "doctor",
-      language: "en",
-      username,
-      password: hashedPassword,
-    });
-
-    res.status(201).json({
-      success: true,
-      user,
-      credentials: {
-        username,
-        password
-      }
-    });
+    const prediction = await predictFromSymptoms(symptoms, patientHistory);
+    res.json(prediction);
   } catch (error) {
-    console.error("Provider registration error:", error);
-    res.status(500).json({ message: "Server error during registration" });
+    console.error("AI Prediction error:", error);
+    res.status(500).json({
+      message: error instanceof Error ? error.message : "Failed to generate prediction"
+    });
   }
 });
 
-// API Routes
-app.get("/api/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
-  const patients = await storage.getAllPatients();
-  res.json(patients);
-});
-
-app.get("/api/patients/:id", requireAuth, requireOwnership("id"), async (req, res) => {
-  const patient = await storage.getPatient(Number(req.params.id));
-  if (!patient) {
-    return res.status(404).json({ message: "Patient not found" });
-  }
-  res.json(patient);
-});
-
-app.post("/api/medical-notes", requireAuth, requireRole(["doctor"]), async (req, res) => {
-  const note = await storage.createMedicalNote(req.body);
-  res.status(201).json(note);
-});
-
-app.post("/api/xrays", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
-  const xray = await storage.createXray(req.body);
-  res.status(201).json(xray);
-});
-
-app.get("/api/xrays/patient/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
-  const xrays = await storage.getPatientXrays(Number(req.params.patientId));
-  res.json(xrays);
-});
-
-app.get("/api/payments/patient/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
-  const payments = await storage.getPatientPayments(Number(req.params.patientId));
-  res.json(payments);
-});
-
-app.post("/api/treatment-plans", requireAuth, requireRole(["doctor"]), async (req, res) => {
-  const plan = await storage.createTreatmentPlan(req.body);
-  res.status(201).json(plan);
-});
-
-app.post("/api/ai/predict", requireAuth, requireRole(["doctor"]), async (req, res) => {
-  const { symptoms, patientHistory } = req.body;
-
-  if (!symptoms) {
-    return res.status(400).json({ message: "Symptoms are required" });
-  }
-
-  const prediction = await predictFromSymptoms(symptoms, patientHistory);
-  res.json(prediction);
-});
+// Mount all routes under /api prefix
+app.use("/api", router);
 
 export default app;

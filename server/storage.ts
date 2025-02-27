@@ -14,53 +14,60 @@ import {
   InsertMedicalNote,
   Xray,
   InsertXray,
-  users,
-  patients,
-  appointments,
-  treatmentPlans,
-  payments,
-  medicalNotes,
-  xrays,
 } from "@shared/schema";
-import { db } from "./db";
-import { eq } from "drizzle-orm";
+import createMemoryStore from "memorystore";
 import session from "express-session";
-import connectPg from "connect-pg-simple";
-import { pool } from "./db";
 
-const PostgresSessionStore = connectPg(session);
+const MemoryStore = createMemoryStore(session);
 
-export class DatabaseStorage implements IStorage {
+export class MemStorage implements IStorage {
+  private users: Map<number, User>;
+  private patients: Map<number, Patient>;
+  private appointments: Map<number, Appointment>;
+  private treatmentPlans: Map<number, TreatmentPlan>;
+  private payments: Map<number, Payment>;
+  private medicalNotes: Map<number, MedicalNote>;
+  private xrays: Map<number, Xray>;
   sessionStore: session.Store;
+  currentId: number;
 
   constructor() {
-    this.sessionStore = new PostgresSessionStore({
-      pool,
-      createTableIfMissing: true,
+    this.users = new Map();
+    this.patients = new Map();
+    this.appointments = new Map();
+    this.treatmentPlans = new Map();
+    this.payments = new Map();
+    this.medicalNotes = new Map();
+    this.xrays = new Map();
+    this.currentId = 1;
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000,
     });
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    return this.users.get(id);
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
+    return Array.from(this.users.values()).find(
+      (user) => user.username === username,
+    );
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+    const id = this.currentId++;
+    const user: User = { id, ...insertUser };
+    this.users.set(id, user);
 
     // If the user is a patient, also create a patient record
     if (insertUser.role === "patient") {
       await this.createPatient({
-        userId: user.id,
+        userId: id,
         medicalHistory: null,
         allergies: null,
         bloodType: null,
-        emergencyContact: null,
+        emergencyContact: null
       });
     }
 
@@ -68,120 +75,98 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPatient(id: number): Promise<(Patient & { user: User }) | undefined> {
-    const [patient] = await db
-      .select()
-      .from(patients)
-      .where(eq(patients.id, id));
-
+    const patient = this.patients.get(id);
     if (!patient) return undefined;
 
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, patient.userId));
-
+    const user = await this.getUser(patient.userId);
     if (!user) return undefined;
 
     return { ...patient, user };
   }
 
   async createPatient(insertPatient: InsertPatient): Promise<Patient> {
-    const [patient] = await db
-      .insert(patients)
-      .values(insertPatient)
-      .returning();
+    const id = this.currentId++;
+    const patient: Patient = { ...insertPatient, id };
+    this.patients.set(id, patient);
     return patient;
   }
 
   async getAllPatients(): Promise<(Patient & { user: User })[]> {
-    const allPatients = await db
-      .select()
-      .from(patients)
-      .leftJoin(users, eq(patients.userId, users.id));
-
-    return allPatients.map(({ patients, users }) => ({
-      ...patients,
-      user: users,
-    }));
+    const patients = Array.from(this.patients.values());
+    const patientsWithUsers = await Promise.all(
+      patients.map(async (patient) => {
+        const user = await this.getUser(patient.userId);
+        if (!user) throw new Error(`User not found for patient ${patient.id}`);
+        return { ...patient, user };
+      })
+    );
+    return patientsWithUsers;
   }
 
   async createAppointment(insertAppointment: InsertAppointment): Promise<Appointment> {
-    const [appointment] = await db
-      .insert(appointments)
-      .values(insertAppointment)
-      .returning();
+    const id = this.currentId++;
+    const appointment = { ...insertAppointment, id };
+    this.appointments.set(id, appointment);
     return appointment;
   }
 
   async getDoctorAppointments(doctorId: number): Promise<Appointment[]> {
-    return db
-      .select()
-      .from(appointments)
-      .where(eq(appointments.doctorId, doctorId));
+    return Array.from(this.appointments.values()).filter(
+      (apt) => apt.doctorId === doctorId,
+    );
   }
 
   async createTreatmentPlan(insertPlan: InsertTreatmentPlan): Promise<TreatmentPlan> {
-    const [plan] = await db
-      .insert(treatmentPlans)
-      .values(insertPlan)
-      .returning();
+    const id = this.currentId++;
+    const plan = { ...insertPlan, id };
+    this.treatmentPlans.set(id, plan);
     return plan;
   }
 
   async getPatientTreatmentPlans(patientId: number): Promise<TreatmentPlan[]> {
-    return db
-      .select()
-      .from(treatmentPlans)
-      .where(eq(treatmentPlans.patientId, patientId));
+    return Array.from(this.treatmentPlans.values()).filter(
+      (plan) => plan.patientId === patientId,
+    );
   }
 
   async createPayment(insertPayment: InsertPayment): Promise<Payment> {
-    const [payment] = await db
-      .insert(payments)
-      .values(insertPayment)
-      .returning();
+    const id = this.currentId++;
+    const payment = { ...insertPayment, id };
+    this.payments.set(id, payment);
     return payment;
   }
 
   async getPatientPayments(patientId: number): Promise<Payment[]> {
-    return db
-      .select()
-      .from(payments)
-      .where(eq(payments.patientId, patientId));
+    return Array.from(this.payments.values()).filter(
+      (payment) => payment.patientId === patientId,
+    );
   }
 
   async createMedicalNote(insertNote: InsertMedicalNote): Promise<MedicalNote> {
-    const [note] = await db
-      .insert(medicalNotes)
-      .values(insertNote)
-      .returning();
+    const id = this.currentId++;
+    const note = { ...insertNote, id };
+    this.medicalNotes.set(id, note);
     return note;
   }
 
-  async getPatientMedicalNotes(
-    patientId: number,
-    userRole: string
-  ): Promise<MedicalNote[]> {
-    return db
-      .select()
-      .from(medicalNotes)
-      .where(eq(medicalNotes.patientId, patientId));
+  async getPatientMedicalNotes(patientId: number, userRole: string): Promise<MedicalNote[]> {
+    return Array.from(this.medicalNotes.values()).filter(
+      (note) => note.patientId === patientId && (userRole === "doctor" || !note.private)
+    );
   }
 
   async createXray(insertXray: InsertXray): Promise<Xray> {
-    const [xray] = await db
-      .insert(xrays)
-      .values(insertXray)
-      .returning();
+    const id = this.currentId++;
+    const xray = { ...insertXray, id };
+    this.xrays.set(id, xray);
     return xray;
   }
 
   async getPatientXrays(patientId: number): Promise<Xray[]> {
-    return db
-      .select()
-      .from(xrays)
-      .where(eq(xrays.patientId, patientId));
+    return Array.from(this.xrays.values()).filter(
+      (xray) => xray.patientId === patientId
+    );
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new MemStorage();
