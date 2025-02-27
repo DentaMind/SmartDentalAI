@@ -21,13 +21,6 @@ server.use((req, res, next) => {
 // Mount the API routes first
 server.use("/api", app);
 
-// Setup Vite after API routes
-const httpServer = server.listen(Number(process.env.PORT || 5000), "0.0.0.0", () => {
-  log(`Server running on port ${process.env.PORT || 5000}`);
-});
-
-setupVite(server, httpServer).catch(console.error);
-
 // Error handling middleware
 server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error("Server error:", err);
@@ -35,3 +28,10 @@ server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   const message = err.message || "Internal Server Error";
   res.status(status).json({ message });
 });
+
+// Initialize server
+const httpServer = server.listen(Number(process.env.PORT || 5000), "0.0.0.0", () => {
+  log(`Server running on port ${process.env.PORT || 5000}`);
+});
+
+setupVite(server, httpServer).catch(console.error);
