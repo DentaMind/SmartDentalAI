@@ -20,16 +20,19 @@ setupAuth(app);
 // Provider registration endpoint
 app.post("/api/providers", async (req, res) => {
   try {
-    console.log("Registering provider with data:", req.body);
+    // Log the incoming request
+    console.log("Provider registration request body:", req.body);
 
     // Validate provider-specific fields
-    const validation = insertUserSchema.omit({ 
+    const providerSchema = insertUserSchema.omit({ 
       role: true, 
-      language: true,
-      // Keep specialization and licenseNumber for providers
-    }).safeParse(req.body);
+      language: true
+    });
+
+    const validation = providerSchema.safeParse(req.body);
 
     if (!validation.success) {
+      console.log("Validation failed:", validation.error.errors);
       return res.status(400).json({ 
         message: "Invalid input data", 
         errors: validation.error.errors 
@@ -53,9 +56,9 @@ app.post("/api/providers", async (req, res) => {
       password: hashedPassword,
     });
 
-    console.log("Successfully created provider:", user);
+    console.log("Successfully created provider:", { id: user.id, username });
 
-    return res.status(201).json({ 
+    res.status(201).json({ 
       success: true,
       user,
       credentials: {
@@ -64,8 +67,11 @@ app.post("/api/providers", async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("Registration error:", error);
-    return res.status(500).json({ message: "Server error during registration" });
+    console.error("Provider registration error:", error);
+    res.status(500).json({ 
+      message: "Server error during registration",
+      error: error.message 
+    });
   }
 });
 
