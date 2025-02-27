@@ -1,3 +1,18 @@
+import express from "express";
+import { setupAuth } from "./auth";
+import { storage } from "./storage";
+import { predictFromSymptoms } from "./services/ai-prediction";
+import { requireAuth, requireRole, requireOwnership } from "./middleware/auth";
+
+const app = express();
+const router = express.Router();
+
+// Setup middleware
+app.use(express.json());
+
+// Setup authentication on the router
+setupAuth(router);
+
 // Get all patients route
 app.get("/api/patients", requireAuth, async (req, res) => {
   try {
@@ -9,12 +24,22 @@ app.get("/api/patients", requireAuth, async (req, res) => {
 });
 
 // Add patient route - back to the working version
-app.post("/api/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+app.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   try {
     const patient = await storage.createPatient(req.body);
     res.status(201).json(patient);
   } catch (error) {
     res.status(400).json({ message: error instanceof Error ? error.message : "Invalid request" });
+  }
+});
+
+// Get patient data - patients can only access their own data
+app.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res) => {
+  try {
+    const patient = await storage.getPatient(Number(req.params.id));
+    res.json(patient);
+  } catch (error) {
+    res.status(500).json({ message: error instanceof Error ? error.message : "Server error" });
   }
 });
 
