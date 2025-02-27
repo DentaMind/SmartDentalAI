@@ -82,8 +82,6 @@ app.post("/api/patients", requireAuth, async (req, res) => {
       ...req.body,
       role: "patient",
       language: "en",
-      username: `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`,
-      password: Math.random().toString(36).slice(-8)
     });
 
     // Create the patient record with the new user ID
@@ -91,8 +89,8 @@ app.post("/api/patients", requireAuth, async (req, res) => {
       userId: user.id,
       medicalHistory: req.body.medicalHistory || null,
       allergies: req.body.allergies || null,
-      emergencyContact: req.body.emergencyContact || null,
-      bloodType: null
+      bloodType: null,
+      emergencyContact: req.body.emergencyContact || null
     });
 
     // Return the combined patient and user data
