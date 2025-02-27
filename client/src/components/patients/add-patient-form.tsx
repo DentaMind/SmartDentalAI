@@ -27,9 +27,9 @@ type AddPatientFormData = {
   dateOfBirth: string;
   insuranceProvider?: string;
   insuranceNumber?: string;
-  medicalHistory?: string | null;
-  allergies?: string | null;
-  emergencyContact?: string | null;
+  medicalHistory?: string;
+  allergies?: string;
+  emergencyContact?: string;
 };
 
 export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
@@ -56,15 +56,14 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
       dateOfBirth: "",
       insuranceProvider: "",
       insuranceNumber: "",
-      medicalHistory: null,
-      allergies: null,
-      emergencyContact: null,
+      medicalHistory: "",
+      allergies: "",
+      emergencyContact: "",
     },
   });
 
   const addPatientMutation = useMutation({
     mutationFn: async (data: AddPatientFormData) => {
-      console.log("Submitting patient data:", data);
       const res = await apiRequest("POST", "/api/patients", {
         ...data,
         role: "patient",
@@ -82,7 +81,6 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
     onSuccess: () => {
       // Invalidate both the patients list and any related queries
       queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/patients/list"] });
       toast({
         title: t("patient.addSuccess"),
         description: t("patient.addSuccessDescription"),
@@ -187,7 +185,7 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
                 <FormItem>
                   <FormLabel>Insurance Provider</FormLabel>
                   <FormControl>
-                    <Input {...field} value={field.value || ""} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -201,7 +199,7 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
                 <FormItem>
                   <FormLabel>Insurance Number</FormLabel>
                   <FormControl>
-                    <Input {...field} value={field.value || ""} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -223,7 +221,7 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
               <FormItem>
                 <FormLabel>{t("patient.medicalHistory")}</FormLabel>
                 <FormControl>
-                  <Textarea {...field} value={field.value || ""} />
+                  <Textarea {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -237,7 +235,7 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
               <FormItem>
                 <FormLabel>{t("patient.allergies")}</FormLabel>
                 <FormControl>
-                  <Textarea {...field} value={field.value || ""} />
+                  <Textarea {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -251,7 +249,7 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
               <FormItem>
                 <FormLabel>{t("patient.emergencyContact")}</FormLabel>
                 <FormControl>
-                  <Input {...field} value={field.value || ""} />
+                  <Input {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
