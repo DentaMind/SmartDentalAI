@@ -84,44 +84,64 @@ Respond in JSON format with this structure:
   "generalAdvice": "string"
 }`;
 
+// Placeholder functions -  These need to be implemented based on your domain logic
+async function processThroughDomains(symptoms: string, patientHistory?: string) {
+    // Implement your domain processing logic here.  This function should analyze the symptoms
+    // and patient history using specialized dental domains and return insights.
+    // Example:
+    return {
+      periodontal: "Possible gingivitis",
+      caries: "Suspected caries on molar",
+    };
+}
+
+async function enhancePredictionWithDomains(prediction: any, domainInsights: any) {
+    // Implement your domain enhancement logic here. This function should take the AI prediction
+    // and the domain insights and combine them to produce a more accurate and comprehensive prediction.
+    // Example:
+    return {
+      ...prediction,
+      domainSpecificInsights: domainInsights,
+    };
+}
+
 export async function predictFromSymptoms(
   symptoms: string,
   patientHistory?: string
 ): Promise<SymptomPrediction> {
   try {
-    if (!process.env.API_DENTAL_DIAGNOSIS) {
-      throw new Error("Dental diagnosis AI service is not configured");
-    }
+    // Process symptoms through specialized dental domains
+    const domainInsights = await processThroughDomains(symptoms, patientHistory);
 
-    console.log("Starting AI prediction with symptoms:", symptoms);
-
-    const prompt = patientHistory
-      ? `Patient symptoms: ${symptoms}\nMedical history: ${patientHistory}`
-      : `Patient symptoms: ${symptoms}`;
+    // Format the prediction request with structured dental knowledge
+    const promptData = {
+      type: "dental_diagnosis",
+      domainInsights,
+      context: {
+        symptoms: symptoms,
+        patientHistory: patientHistory || ""
+      }
+    };
 
     const response = await openai.chat.completions.create({
       model: MODEL,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: prompt }
+        { role: "user", content: JSON.stringify(promptData) }
       ],
       temperature: 0.5,
       response_format: { type: "json_object" }
     });
 
-    console.log("Received response from OpenAI");
 
     const content = response.choices[0].message.content;
     if (!content) {
       throw new Error("No response from AI");
     }
 
-    console.log("Parsing AI response:", content);
-
     const result = JSON.parse(content);
     const validated = symptomPredictionSchema.parse(result);
 
-    console.log("Successfully validated prediction schema");
     return validated;
   } catch (error) {
     console.error("AI Prediction failed:", error);

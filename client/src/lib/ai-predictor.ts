@@ -34,6 +34,78 @@ export interface SymptomPrediction {
   };
 }
 
+export interface XrayAnalysisResult {
+  findings: string[];
+  recommendations: string[];
+  confidenceScore: number;
+  detectedIssues: {
+    type: string;
+    location: string;
+    severity: "low" | "medium" | "high";
+    description: string;
+  }[];
+}
+
+export async function analyzeXray(file: File): Promise<XrayAnalysisResult> {
+  try {
+    const formData = new FormData();
+    formData.append('xray', file);
+    
+    const response = await fetch('/api/ai/analyze-xray', {
+      method: 'POST',
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to analyze X-ray');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('X-ray analysis error:', error);
+    throw new Error('Failed to analyze X-ray');
+  }
+}
+
+export interface TreatmentPlanResult {
+  treatmentSteps: string[];
+  estimatedTimeline: string;
+  alternativeOptions: string[];
+  costEstimate: {
+    totalCost: number;
+    insuranceCoverage: number;
+    patientResponsibility: number;
+  };
+  maintenanceRecommendations: string[];
+}
+
+export async function generateTreatmentPlan(
+  diagnosis: string,
+  patientHistory?: string
+): Promise<TreatmentPlanResult> {
+  try {
+    const response = await fetch('/api/ai/generate-treatment-plan', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        diagnosis,
+        patientHistory
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to generate treatment plan');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Treatment plan generation error:', error);
+    throw new Error('Failed to generate treatment plan');
+  }
+}
+
 export interface PredictionContext {
   symptoms: string;
   patientHistory?: string;

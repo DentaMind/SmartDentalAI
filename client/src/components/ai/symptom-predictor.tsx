@@ -27,6 +27,7 @@ interface Props {
   vitalSigns?: PredictionContext["vitalSigns"];
   relevantTests?: PredictionContext["relevantTests"];
   dentalRecords?: PredictionContext["dentalRecords"];
+  onDiagnosisGenerated?: (diagnosis: string) => void;
 }
 
 export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests, dentalRecords }: Props) {
@@ -52,6 +53,15 @@ export function SymptomPredictor({ patientHistory, vitalSigns, relevantTests, de
         throw error;
       } finally {
         setIsAnalyzing(false);
+      }
+    },
+    onSuccess: (data) => {
+      // If callback provided, send the diagnosis text
+      if (onDiagnosisGenerated) {
+        const diagnosisText = data.possibleConditions
+          .map(c => `${c.condition} (${c.confidence * 100}%): ${c.description}`)
+          .join('\n\n');
+        onDiagnosisGenerated(diagnosisText);
       }
     },
     onError: (error: Error) => {
