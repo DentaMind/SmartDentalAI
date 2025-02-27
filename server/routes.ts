@@ -13,17 +13,7 @@ app.use(express.json());
 // Setup authentication on the router
 setupAuth(router);
 
-// Get all patients route
-app.get("/api/patients", requireAuth, async (req, res) => {
-  try {
-    const patients = await storage.getAllPatients();
-    res.json(patients);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to get patients" });
-  }
-});
-
-// Add patient route - back to the working version
+// Patient routes
 app.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   try {
     const patient = await storage.createPatient(req.body);
@@ -42,6 +32,17 @@ app.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res) =
     res.status(500).json({ message: error instanceof Error ? error.message : "Server error" });
   }
 });
+
+// Get all patients route
+app.get("/api/patients", requireAuth, async (req, res) => {
+  try {
+    const patients = await storage.getAllPatients();
+    res.json(patients);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to get patients" });
+  }
+});
+
 
 // AI Prediction route
 app.post("/api/ai/predict", requireAuth, async (req, res) => {
