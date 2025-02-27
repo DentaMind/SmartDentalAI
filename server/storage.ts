@@ -57,8 +57,30 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentId++;
-    const user = { id, ...insertUser };
+    const user: User = {
+      id,
+      ...insertUser,
+      language: insertUser.language || "en",
+      phoneNumber: insertUser.phoneNumber || null,
+      dateOfBirth: insertUser.dateOfBirth || null,
+      insuranceProvider: insertUser.insuranceProvider || null,
+      insuranceNumber: insertUser.insuranceNumber || null,
+      specialization: insertUser.specialization || null,
+      licenseNumber: insertUser.licenseNumber || null,
+    };
     this.users.set(id, user);
+
+    // If the user is a patient, also create a patient record
+    if (insertUser.role === "patient") {
+      await this.createPatient({
+        userId: id,
+        medicalHistory: null,
+        allergies: null,
+        bloodType: null,
+        emergencyContact: null,
+      });
+    }
+
     return user;
   }
 
@@ -74,7 +96,14 @@ export class MemStorage implements IStorage {
 
   async createPatient(insertPatient: InsertPatient): Promise<Patient> {
     const id = this.currentId++;
-    const patient = { id, ...insertPatient };
+    const patient: Patient = {
+      id,
+      userId: insertPatient.userId,
+      medicalHistory: insertPatient.medicalHistory || null,
+      allergies: insertPatient.allergies || null,
+      bloodType: insertPatient.bloodType || null,
+      emergencyContact: insertPatient.emergencyContact || null,
+    };
     this.patients.set(id, patient);
     return patient;
   }

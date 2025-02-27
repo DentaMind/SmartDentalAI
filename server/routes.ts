@@ -82,19 +82,19 @@ app.post("/api/patients", requireAuth, async (req, res) => {
       ...req.body,
       role: "patient",
       language: "en",
+      // Generate username and password
+      username: `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`,
+      password: Math.random().toString(36).slice(-8),
     });
 
-    // Create the patient record with the new user ID
-    const patient = await storage.createPatient({
-      userId: user.id,
-      medicalHistory: req.body.medicalHistory || null,
-      allergies: req.body.allergies || null,
-      bloodType: null,
-      emergencyContact: req.body.emergencyContact || null
-    });
+    // Get the created patient (storage.createUser automatically creates the patient record)
+    const patient = await storage.getPatient(user.id);
+    if (!patient) {
+      throw new Error("Failed to create patient record");
+    }
 
-    // Return the combined patient and user data
-    res.status(201).json({ ...patient, user });
+    // Return the patient data
+    res.status(201).json(patient);
   } catch (error) {
     console.error("Failed to create patient:", error);
     res.status(500).json({ 
