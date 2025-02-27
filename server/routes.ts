@@ -1,3 +1,16 @@
+// Get all patients route
+app.get("/api/patients", requireAuth, async (req, res) => {
+  try {
+    const patients = await storage.getAllPatients();
+    res.json(patients);
+  } catch (error) {
+    console.error("Failed to get patients:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to get patients" 
+    });
+  }
+});
+
 // AI Prediction route
 app.post("/api/ai/predict", requireAuth, async (req, res) => {
   try {
@@ -26,8 +39,6 @@ app.post("/api/ai/generate-treatment-plan", requireAuth, async (req, res) => {
       return res.status(400).json({ message: "Diagnosis is required" });
     }
 
-    // In a real implementation, this would use an AI model to generate a treatment plan
-    // For now, we'll return mock data
     setTimeout(() => {
       res.json({
         treatmentSteps: [
