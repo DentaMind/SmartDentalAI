@@ -1,64 +1,95 @@
 // AI Prediction route
-  app.post("/api/ai/predict", requireAuth, async (req, res) => {
-    try {
-      const { symptoms, patientHistory } = req.body;
+app.post("/api/ai/predict", requireAuth, async (req, res) => {
+  try {
+    const { symptoms, patientHistory } = req.body;
 
-      if (!symptoms) {
-        return res.status(400).json({ message: "Symptoms are required" });
-      }
-
-      const prediction = await predictFromSymptoms(symptoms, patientHistory);
-      res.json(prediction);
-    } catch (error) {
-      console.error("AI Prediction error:", error);
-      res.status(500).json({ 
-        message: error instanceof Error ? error.message : "Failed to generate prediction" 
-      });
+    if (!symptoms) {
+      return res.status(400).json({ message: "Symptoms are required" });
     }
-  });
 
-  // Treatment Plan Generation route
-  app.post("/api/ai/generate-treatment-plan", requireAuth, async (req, res) => {
-    try {
-      const { diagnosis, patientHistory } = req.body;
+    const prediction = await predictFromSymptoms(symptoms, patientHistory);
+    res.json(prediction);
+  } catch (error) {
+    console.error("AI Prediction error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to generate prediction" 
+    });
+  }
+});
 
-      if (!diagnosis) {
-        return res.status(400).json({ message: "Diagnosis is required" });
-      }
+// Treatment Plan Generation route
+app.post("/api/ai/generate-treatment-plan", requireAuth, async (req, res) => {
+  try {
+    const { diagnosis, patientHistory } = req.body;
 
-      // In a real implementation, this would use an AI model to generate a treatment plan
-      // For now, we'll return mock data
-      setTimeout(() => {
-        res.json({
-          treatmentSteps: [
-            "Initial periodontal therapy: Scaling and root planing all quadrants",
-            "Re-evaluation at 6 weeks post-therapy",
-            "Restore carious lesions on teeth #19 and #30",
-            "Endodontic therapy for tooth #30",
-            "Crown on tooth #30 following successful endodontic treatment",
-            "Maintenance therapy every 3 months"
-          ],
-          estimatedTimeline: "3-4 months for complete treatment",
-          alternativeOptions: [
-            "Extract tooth #30 and replace with implant",
-            "Extract without replacement and monitor remaining dentition"
-          ],
-          costEstimate: {
-            totalCost: 4250,
-            insuranceCoverage: 2500,
-            patientResponsibility: 1750
-          },
-          maintenanceRecommendations: [
-            "3-month periodontal maintenance",
-            "Daily interdental cleaning",
-            "Nightguard to protect restorations"
-          ]
-        });
-      }, 1500);
-    } catch (error) {
-      console.error("Treatment Plan Generation error:", error);
-      res.status(500).json({ 
-        message: error instanceof Error ? error.message : "Failed to generate treatment plan" 
-      });
+    if (!diagnosis) {
+      return res.status(400).json({ message: "Diagnosis is required" });
     }
-  });
+
+    // In a real implementation, this would use an AI model to generate a treatment plan
+    // For now, we'll return mock data
+    setTimeout(() => {
+      res.json({
+        treatmentSteps: [
+          "Initial periodontal therapy: Scaling and root planing all quadrants",
+          "Re-evaluation at 6 weeks post-therapy",
+          "Restore carious lesions on teeth #19 and #30",
+          "Endodontic therapy for tooth #30",
+          "Crown on tooth #30 following successful endodontic treatment",
+          "Maintenance therapy every 3 months"
+        ],
+        estimatedTimeline: "3-4 months for complete treatment",
+        alternativeOptions: [
+          "Extract tooth #30 and replace with implant",
+          "Extract without replacement and monitor remaining dentition"
+        ],
+        costEstimate: {
+          totalCost: 4250,
+          insuranceCoverage: 2500,
+          patientResponsibility: 1750
+        },
+        maintenanceRecommendations: [
+          "3-month periodontal maintenance",
+          "Daily interdental cleaning",
+          "Nightguard to protect restorations"
+        ]
+      });
+    }, 1500);
+  } catch (error) {
+    console.error("Treatment Plan Generation error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to generate treatment plan" 
+    });
+  }
+});
+
+// Add patient route
+app.post("/api/patients", requireAuth, async (req, res) => {
+  try {
+    // Create the user first
+    const user = await storage.createUser({
+      ...req.body,
+      role: "patient",
+      language: "en",
+      username: `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`,
+      password: Math.random().toString(36).slice(-8)
+    });
+
+    // Create the patient record with the new user ID
+    const patient = await storage.createPatient({
+      userId: user.id,
+      medicalHistory: req.body.medicalHistory || null,
+      allergies: req.body.allergies || null,
+      emergencyContact: req.body.emergencyContact || null,
+      bloodType: null
+    });
+
+    // Return the combined patient and user data
+    res.status(201).json({ ...patient, user });
+  } catch (error) {
+    console.error("Failed to create patient:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to create patient" 
+    });
+  }
+});
