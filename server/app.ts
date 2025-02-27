@@ -1,4 +1,4 @@
-import express, { NextFunction, Request, Response } from "express";
+import express from "express";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { predictFromSymptoms } from "./services/ai-prediction";
@@ -20,7 +20,6 @@ setupAuth(app);
 // Provider registration endpoint
 app.post("/providers", async (req, res) => {
   try {
-    // Validate provider-specific fields
     const providerSchema = insertUserSchema.omit({ 
       role: true, 
       language: true
@@ -35,7 +34,6 @@ app.post("/providers", async (req, res) => {
       });
     }
 
-    // Generate credentials
     const username = `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`;
     const password = Math.random().toString(36).slice(-8);
 
@@ -43,7 +41,6 @@ app.post("/providers", async (req, res) => {
     const buf = (await scryptAsync(password, salt, 64)) as Buffer;
     const hashedPassword = `${buf.toString("hex")}.${salt}`;
 
-    // Create provider user
     const user = await storage.createUser({
       ...validation.data,
       role: "doctor",
@@ -72,7 +69,6 @@ app.get("/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, 
   res.json(patients);
 });
 
-// Get patient data - patients can only access their own data
 app.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res) => {
   const patient = await storage.getPatient(Number(req.params.id));
   if (!patient) {
@@ -81,37 +77,31 @@ app.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res) =
   res.json(patient);
 });
 
-// Medical notes - only doctors can create/edit
 app.post("/medical-notes", requireAuth, requireRole(["doctor"]), async (req, res) => {
   const note = await storage.createMedicalNote(req.body);
   res.status(201).json(note);
 });
 
-// X-rays - doctors and staff can upload, patients can view their own
 app.post("/xrays", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   const xray = await storage.createXray(req.body);
   res.status(201).json(xray);
 });
 
-// Get patient's x-rays
 app.get("/xrays/patient/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
   const xrays = await storage.getPatientXrays(Number(req.params.patientId));
   res.json(xrays);
 });
 
-// Payments and insurance
 app.get("/payments/patient/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
   const payments = await storage.getPatientPayments(Number(req.params.patientId));
   res.json(payments);
 });
 
-// Treatment plans
 app.post("/treatment-plans", requireAuth, requireRole(["doctor"]), async (req, res) => {
   const plan = await storage.createTreatmentPlan(req.body);
   res.status(201).json(plan);
 });
 
-// AI Prediction route - only accessible by doctors
 app.post("/ai/predict", requireAuth, requireRole(["doctor"]), async (req, res) => {
   const { symptoms, patientHistory } = req.body;
 

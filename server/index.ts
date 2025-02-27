@@ -18,7 +18,7 @@ server.use((req, res, next) => {
   next();
 });
 
-// Mount API routes before Vite middleware
+// API routes must be mounted first, before any Vite middleware
 server.use("/api", app);
 
 // Error handling middleware
