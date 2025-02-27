@@ -4,23 +4,17 @@ app.get("/api/patients", requireAuth, async (req, res) => {
     const patients = await storage.getAllPatients();
     res.json(patients);
   } catch (error) {
-    console.error("Failed to get patients:", error);
-    res.status(500).json({ 
-      message: error instanceof Error ? error.message : "Failed to get patients" 
-    });
+    res.status(500).json({ message: "Failed to get patients" });
   }
 });
 
-// Add patient route - simplified version that was working before
-app.post("/api/patients", requireAuth, async (req, res) => {
+// Add patient route - back to the working version
+app.post("/api/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   try {
     const patient = await storage.createPatient(req.body);
     res.status(201).json(patient);
   } catch (error) {
-    console.error("Failed to create patient:", error);
-    res.status(500).json({ 
-      message: error instanceof Error ? error.message : "Failed to create patient" 
-    });
+    res.status(400).json({ message: error instanceof Error ? error.message : "Invalid request" });
   }
 });
 
@@ -37,9 +31,7 @@ app.post("/api/ai/predict", requireAuth, async (req, res) => {
     res.json(prediction);
   } catch (error) {
     console.error("AI Prediction error:", error);
-    res.status(500).json({ 
-      message: error instanceof Error ? error.message : "Failed to generate prediction" 
-    });
+    res.status(500).json({ message: error instanceof Error ? error.message : "Failed to generate prediction" });
   }
 });
 
@@ -81,8 +73,6 @@ app.post("/api/ai/generate-treatment-plan", requireAuth, async (req, res) => {
     }, 1500);
   } catch (error) {
     console.error("Treatment Plan Generation error:", error);
-    res.status(500).json({ 
-      message: error instanceof Error ? error.message : "Failed to generate treatment plan" 
-    });
+    res.status(500).json({ message: error instanceof Error ? error.message : "Failed to generate treatment plan" });
   }
 });
