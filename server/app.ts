@@ -18,7 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 setupAuth(app);
 
 // Provider registration endpoint
-app.post("/providers", async (req, res) => {
+app.post("/api/providers", async (req, res) => {
   try {
     const providerSchema = insertUserSchema.omit({ 
       role: true, 
@@ -63,13 +63,13 @@ app.post("/providers", async (req, res) => {
   }
 });
 
-// API Routes
-app.get("/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+// Other API routes
+app.get("/api/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   const patients = await storage.getAllPatients();
   res.json(patients);
 });
 
-app.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res) => {
+app.get("/api/patients/:id", requireAuth, requireOwnership("id"), async (req, res) => {
   const patient = await storage.getPatient(Number(req.params.id));
   if (!patient) {
     return res.status(404).json({ message: "Patient not found" });
@@ -77,32 +77,32 @@ app.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res) =
   res.json(patient);
 });
 
-app.post("/medical-notes", requireAuth, requireRole(["doctor"]), async (req, res) => {
+app.post("/api/medical-notes", requireAuth, requireRole(["doctor"]), async (req, res) => {
   const note = await storage.createMedicalNote(req.body);
   res.status(201).json(note);
 });
 
-app.post("/xrays", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+app.post("/api/xrays", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   const xray = await storage.createXray(req.body);
   res.status(201).json(xray);
 });
 
-app.get("/xrays/patient/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
+app.get("/api/xrays/patient/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
   const xrays = await storage.getPatientXrays(Number(req.params.patientId));
   res.json(xrays);
 });
 
-app.get("/payments/patient/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
+app.get("/api/payments/patient/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
   const payments = await storage.getPatientPayments(Number(req.params.patientId));
   res.json(payments);
 });
 
-app.post("/treatment-plans", requireAuth, requireRole(["doctor"]), async (req, res) => {
+app.post("/api/treatment-plans", requireAuth, requireRole(["doctor"]), async (req, res) => {
   const plan = await storage.createTreatmentPlan(req.body);
   res.status(201).json(plan);
 });
 
-app.post("/ai/predict", requireAuth, requireRole(["doctor"]), async (req, res) => {
+app.post("/api/ai/predict", requireAuth, requireRole(["doctor"]), async (req, res) => {
   const { symptoms, patientHistory } = req.body;
 
   if (!symptoms) {
