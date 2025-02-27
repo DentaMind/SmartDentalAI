@@ -18,11 +18,8 @@ server.use((req, res, next) => {
   next();
 });
 
-// Set JSON content type for API routes
-server.use("/api", (req, res, next) => {
-  res.setHeader('Content-Type', 'application/json');
-  next();
-}, app);
+// Mount API routes before Vite middleware
+server.use("/api", app);
 
 // Error handling middleware
 server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
