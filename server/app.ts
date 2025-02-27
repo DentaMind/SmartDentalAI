@@ -18,11 +18,8 @@ app.use(express.urlencoded({ extended: true }));
 setupAuth(app);
 
 // Provider registration endpoint
-app.post("/api/providers", async (req, res) => {
+app.post("/providers", async (req, res) => {
   try {
-    // Log the incoming request
-    console.log("Provider registration request body:", req.body);
-
     // Validate provider-specific fields
     const providerSchema = insertUserSchema.omit({ 
       role: true, 
@@ -32,7 +29,6 @@ app.post("/api/providers", async (req, res) => {
     const validation = providerSchema.safeParse(req.body);
 
     if (!validation.success) {
-      console.log("Validation failed:", validation.error.errors);
       return res.status(400).json({ 
         message: "Invalid input data", 
         errors: validation.error.errors 
@@ -56,8 +52,6 @@ app.post("/api/providers", async (req, res) => {
       password: hashedPassword,
     });
 
-    console.log("Successfully created provider:", { id: user.id, username });
-
     res.status(201).json({ 
       success: true,
       user,
@@ -68,75 +62,18 @@ app.post("/api/providers", async (req, res) => {
     });
   } catch (error) {
     console.error("Provider registration error:", error);
-    res.status(500).json({ 
-      message: "Server error during registration",
-      error: error.message 
-    });
-  }
-});
-
-// Patient registration endpoint
-app.post("/api/patients", async (req, res) => {
-  try {
-    console.log("Registering patient with data:", req.body);
-
-    const validation = insertUserSchema.omit({
-      role: true,
-      language: true,
-      specialization: true,
-      licenseNumber: true,
-      username: true,
-      password: true
-    }).safeParse(req.body);
-
-    if (!validation.success) {
-      return res.status(400).json({ 
-        message: "Invalid input data", 
-        errors: validation.error.errors 
-      });
-    }
-
-    const username = `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`;
-    const password = Math.random().toString(36).slice(-8);
-
-    const salt = randomBytes(16).toString("hex");
-    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-    const hashedPassword = `${buf.toString("hex")}.${salt}`;
-
-    const user = await storage.createUser({
-      ...validation.data,
-      role: "patient",
-      language: "en",
-      specialization: null,
-      licenseNumber: null,
-      username,
-      password: hashedPassword,
-    });
-
-    console.log("Successfully created patient:", user);
-
-    return res.status(201).json({ 
-      success: true,
-      user,
-      credentials: {
-        username,
-        password
-      }
-    });
-  } catch (error) {
-    console.error("Registration error:", error);
-    return res.status(500).json({ message: "Server error during registration" });
+    res.status(500).json({ message: "Server error during registration" });
   }
 });
 
 // API Routes
-app.get("/api/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+app.get("/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   const patients = await storage.getAllPatients();
   res.json(patients);
 });
 
 // Get patient data - patients can only access their own data
-app.get("/api/patients/:id", requireAuth, requireOwnership("id"), async (req, res) => {
+app.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res) => {
   const patient = await storage.getPatient(Number(req.params.id));
   if (!patient) {
     return res.status(404).json({ message: "Patient not found" });
@@ -145,37 +82,37 @@ app.get("/api/patients/:id", requireAuth, requireOwnership("id"), async (req, re
 });
 
 // Medical notes - only doctors can create/edit
-app.post("/api/medical-notes", requireAuth, requireRole(["doctor"]), async (req, res) => {
+app.post("/medical-notes", requireAuth, requireRole(["doctor"]), async (req, res) => {
   const note = await storage.createMedicalNote(req.body);
   res.status(201).json(note);
 });
 
 // X-rays - doctors and staff can upload, patients can view their own
-app.post("/api/xrays", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+app.post("/xrays", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   const xray = await storage.createXray(req.body);
   res.status(201).json(xray);
 });
 
 // Get patient's x-rays
-app.get("/api/xrays/patient/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
+app.get("/xrays/patient/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
   const xrays = await storage.getPatientXrays(Number(req.params.patientId));
   res.json(xrays);
 });
 
 // Payments and insurance
-app.get("/api/payments/patient/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
+app.get("/payments/patient/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
   const payments = await storage.getPatientPayments(Number(req.params.patientId));
   res.json(payments);
 });
 
 // Treatment plans
-app.post("/api/treatment-plans", requireAuth, requireRole(["doctor"]), async (req, res) => {
+app.post("/treatment-plans", requireAuth, requireRole(["doctor"]), async (req, res) => {
   const plan = await storage.createTreatmentPlan(req.body);
   res.status(201).json(plan);
 });
 
 // AI Prediction route - only accessible by doctors
-app.post("/api/ai/predict", requireAuth, requireRole(["doctor"]), async (req, res) => {
+app.post("/ai/predict", requireAuth, requireRole(["doctor"]), async (req, res) => {
   const { symptoms, patientHistory } = req.body;
 
   if (!symptoms) {
