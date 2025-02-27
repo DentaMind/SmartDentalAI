@@ -22,7 +22,11 @@ server.use((req, res, next) => {
 server.use("/api", app);
 
 // Setup Vite after API routes
-setupVite(server).catch(console.error);
+const httpServer = server.listen(Number(process.env.PORT || 5000), "0.0.0.0", () => {
+  log(`Server running on port ${process.env.PORT || 5000}`);
+});
+
+setupVite(server, httpServer).catch(console.error);
 
 // Error handling middleware
 server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -30,10 +34,4 @@ server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Internal Server Error";
   res.status(status).json({ message });
-});
-
-// Initialize server
-const PORT = process.env.PORT || 5000;
-server.listen(Number(PORT), "0.0.0.0", () => {
-  log(`Server running on port ${PORT}`);
 });
