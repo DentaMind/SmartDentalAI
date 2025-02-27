@@ -76,56 +76,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Patient registration endpoint
-  app.post("/api/patients", async (req, res) => {
-    try {
-      const validation = insertUserSchema.omit({
-        role: true,
-        language: true,
-        specialization: true,
-        licenseNumber: true,
-        username: true,
-        password: true
-      }).safeParse(req.body);
-
-      if (!validation.success) {
-        return res.status(400).json({ 
-          message: "Invalid input data", 
-          errors: validation.error.errors 
-        });
-      }
-
-      const username = `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`;
-      const password = Math.random().toString(36).slice(-8);
-
-      const salt = randomBytes(16).toString("hex");
-      const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-      const hashedPassword = `${buf.toString("hex")}.${salt}`;
-
-      const user = await storage.createUser({
-        ...validation.data,
-        role: "patient",
-        language: "en",
-        specialization: null,
-        licenseNumber: null,
-        username,
-        password: hashedPassword,
-      });
-
-      return res.status(201).json({ 
-        success: true,
-        user,
-        credentials: {
-          username,
-          password
-        }
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-      return res.status(500).json({ message: "Server error during registration" });
-    }
-  });
-
+  // Authentication routes
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
     res.status(200).json(req.user);
   });
