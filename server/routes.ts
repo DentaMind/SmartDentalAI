@@ -82,9 +82,8 @@ app.post("/api/patients", requireAuth, async (req, res) => {
       ...req.body,
       role: "patient",
       language: "en",
-      // Generate username and password
       username: `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`,
-      password: Math.random().toString(36).slice(-8),
+      password: Math.random().toString(36).slice(-8)
     });
 
     // Create patient record explicitly
