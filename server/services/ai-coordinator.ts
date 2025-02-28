@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { storage } from "../storage";
-import { Patient, TreatmentPlan } from "@shared/schema";
+import { Patient, TreatmentPlan, SymptomPrediction } from "@shared/schema";
+import { processThroughDomains, enhancePredictionWithDomains } from "./ai-domains";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -22,9 +23,15 @@ interface TreatmentSequence {
     rationale: string;
     dependencies: string[];
     estimatedTime: string;
+    specialtyDomain: string;
   }>;
   totalEstimatedTime: string;
   specialConsiderations: string[];
+  domainCoordination: {
+    perioFirst?: boolean;
+    endoBeforeRestoration?: boolean;
+    surgicalConsiderations?: string[];
+  };
 }
 
 interface CostAnalysis {
@@ -33,6 +40,12 @@ interface CostAnalysis {
     estimatedCost: number;
     insuranceCoverage: number;
     patientResponsibility: number;
+    alternativeOptions?: Array<{
+      name: string;
+      cost: number;
+      pros: string[];
+      cons: string[];
+    }>;
   }>;
   totalCost: number;
   totalInsuranceCoverage: number;
@@ -50,17 +63,25 @@ export class AICoordinator {
     patientHistory: string,
     xrayImages?: string[]
   ): Promise<DiagnosisResult> {
+    // First, process through specialized domains
+    const domainInsights = processThroughDomains(symptoms, patientHistory, xrayImages);
+
     const messages = [
       {
         role: "system",
-        content: `You are a dental AI expert. Analyze the following symptoms and patient history to provide a detailed diagnosis. Consider:
+        content: `You are a dental AI expert. Analyze the following symptoms, patient history, and domain-specific insights to provide a detailed diagnosis. Consider:
           - Potential conditions and their likelihood
           - Urgency level
-          - Additional tests needed`
+          - Additional tests needed
+          - Cross-validate findings between different dental specialties`
       },
       {
         role: "user",
-        content: `Symptoms: ${symptoms}\nPatient History: ${patientHistory}`
+        content: JSON.stringify({
+          symptoms,
+          patientHistory,
+          domainInsights
+        })
       }
     ];
 
@@ -83,7 +104,7 @@ export class AICoordinator {
       response_format: { type: "json_object" }
     });
 
-    return JSON.parse(response.choices[0].message.content);
+    return JSON.parse(response.choices[0].message.content || "{}");
   }
 
   async generateTreatmentPlan(
@@ -100,7 +121,9 @@ export class AICoordinator {
             - Diagnosis and conditions
             - Patient history and contraindications
             - Best practices and latest research
-            - Insurance coverage if available`
+            - Insurance coverage if available
+            - Coordinate between different dental specialties
+            - Consider treatment dependencies and sequencing`
         },
         {
           role: "user",
@@ -114,7 +137,7 @@ export class AICoordinator {
       response_format: { type: "json_object" }
     });
 
-    return JSON.parse(response.choices[0].message.content);
+    return JSON.parse(response.choices[0].message.content || "{}");
   }
 
   async createTreatmentSequence(
@@ -130,7 +153,9 @@ export class AICoordinator {
             - Treatment dependencies
             - Healing time requirements
             - Patient availability if provided
-            - Clinical efficiency`
+            - Clinical efficiency
+            - Coordination between different specialists
+            - Priority of procedures based on urgency`
         },
         {
           role: "user",
@@ -143,7 +168,7 @@ export class AICoordinator {
       response_format: { type: "json_object" }
     });
 
-    return JSON.parse(response.choices[0].message.content);
+    return JSON.parse(response.choices[0].message.content || "{}");
   }
 
   async analyzeCosts(
@@ -159,7 +184,9 @@ export class AICoordinator {
             - Standard procedure costs
             - Insurance coverage and limitations
             - Patient payment options
-            - Potential savings opportunities`
+            - Potential savings opportunities
+            - Alternative treatment options and their costs
+            - Payment plan feasibility`
         },
         {
           role: "user",
@@ -172,7 +199,7 @@ export class AICoordinator {
       response_format: { type: "json_object" }
     });
 
-    return JSON.parse(response.choices[0].message.content);
+    return JSON.parse(response.choices[0].message.content || "{}");
   }
 
   // Coordinate all AI analyses for a comprehensive treatment approach
@@ -184,7 +211,7 @@ export class AICoordinator {
     const patient = await storage.getPatient(patientId);
     if (!patient) throw new Error("Patient not found");
 
-    // Step 1: Initial Diagnosis
+    // Step 1: Initial Diagnosis with specialized domain insights
     const diagnosis = await this.analyzeDiagnosis(
       symptoms,
       patient.medicalHistory || "",
@@ -204,7 +231,6 @@ export class AICoordinator {
     // Step 4: Analyze Costs
     const costAnalysis = await this.analyzeCosts(treatmentPlan, {
       provider: patient.user.insuranceProvider,
-      planType: patient.user.insurancePlanType,
       coverageDetails: patient.user.insuranceCoverageDetails
     });
 
@@ -212,7 +238,8 @@ export class AICoordinator {
       diagnosis,
       treatmentPlan,
       sequence,
-      costAnalysis
+      costAnalysis,
+      domainInsights: processThroughDomains(symptoms, patient.medicalHistory || "", xrayImages)
     };
   }
 }

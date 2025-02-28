@@ -80,14 +80,14 @@ export const payments = pgTable("payments", {
   date: timestamp("date").defaultNow(),
   status: text("status", { enum: ["pending", "processed", "failed"] }).notNull().default("pending"),
   treatmentPlanId: integer("treatment_plan_id"),
-  transactionId: integer("transaction_id"), 
-  insuranceClaimId: integer("insurance_claim_id"), 
+  transactionId: integer("transaction_id"),
+  insuranceClaimId: integer("insurance_claim_id"),
   writeOffAmount: integer("write_off_amount"),
   adjustmentReason: text("adjustment_reason"),
   postedDate: timestamp("posted_date"),
   checkNumber: text("check_number"),
   paymentPlan: boolean("payment_plan").default(false),
-  paymentPlanDetails: jsonb("payment_plan_details"), 
+  paymentPlanDetails: jsonb("payment_plan_details"),
 });
 
 export const insuranceClaims = pgTable("insurance_claims", {
@@ -122,7 +122,7 @@ export const financialTransactions = pgTable("financial_transactions", {
   }).notNull().default("pending"),
   referenceNumber: text("reference_number"),
   description: text("description"),
-  categoryCode: text("category_code"), 
+  categoryCode: text("category_code"),
   fiscalYear: integer("fiscal_year").notNull(),
   fiscalQuarter: integer("fiscal_quarter").notNull(),
 });
@@ -151,6 +151,49 @@ export const insertXraySchema = createInsertSchema(xrays);
 export const insertPaymentSchema = createInsertSchema(payments);
 export const insertInsuranceClaimSchema = createInsertSchema(insuranceClaims);
 export const insertFinancialTransactionSchema = createInsertSchema(financialTransactions);
+
+// Add new AI-related schemas
+export const symptomPredictionSchema = z.object({
+  conditions: z.array(z.object({
+    name: z.string(),
+    confidence: z.number(),
+    description: z.string(),
+  })),
+  urgencyLevel: z.enum(["low", "medium", "high"]),
+  recommendedTests: z.array(z.string()),
+  aiDomains: z.object({
+    periodontics: z.object({
+      findings: z.array(z.string()),
+      recommendations: z.array(z.string())
+    }).optional(),
+    endodontics: z.object({
+      findings: z.array(z.string()),
+      recommendations: z.array(z.string())
+    }).optional(),
+    restorative: z.object({
+      findings: z.array(z.string()),
+      recommendations: z.array(z.string())
+    }).optional(),
+    prosthodontics: z.object({
+      findings: z.array(z.string()),
+      recommendations: z.array(z.string())
+    }).optional(),
+    oralSurgery: z.object({
+      findings: z.array(z.string()),
+      recommendations: z.array(z.string())
+    }).optional(),
+    imaging: z.object({
+      findings: z.array(z.string()),
+      recommendations: z.array(z.string())
+    }).optional(),
+    medicalHistory: z.object({
+      findings: z.array(z.string()),
+      recommendations: z.array(z.string())
+    }).optional(),
+  })
+});
+
+export type SymptomPrediction = z.infer<typeof symptomPredictionSchema>;
 
 // Types
 export type User = typeof users.$inferSelect;
