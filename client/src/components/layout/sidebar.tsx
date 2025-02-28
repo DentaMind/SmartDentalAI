@@ -13,6 +13,9 @@ import {
   Image,
   ClipboardList,
   DollarSign,
+  Brain,
+  ActivitySquare,
+  Bot,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -27,13 +30,26 @@ export function Sidebar() {
     ];
 
     const doctorItems = [
+      { 
+        name: t("nav.aiDiagnostics"), 
+        href: "/ai-diagnostics", 
+        icon: Brain,
+        highlight: true 
+      },
       { name: t("nav.patients"), href: "/patients", icon: Users },
       { name: t("nav.appointments"), href: "/appointments", icon: Calendar },
       { name: t("nav.treatmentPlans"), href: "/treatment-plans", icon: FileText },
+      { name: t("nav.xrays"), href: "/xrays", icon: Image },
       { name: t("nav.billing"), href: "/billing", icon: DollarSign },
     ];
 
     const staffItems = [
+      { 
+        name: t("nav.aiDiagnostics"), 
+        href: "/ai-diagnostics", 
+        icon: Brain,
+        highlight: true 
+      },
       { name: t("nav.patients"), href: "/patients", icon: Users },
       { name: t("nav.appointments"), href: "/appointments", icon: Calendar },
       { name: t("nav.billing"), href: "/billing", icon: DollarSign },
@@ -67,11 +83,11 @@ export function Sidebar() {
         <Link href="/">
           <a className="flex items-center gap-3 hover:opacity-90 transition-opacity">
             <div className="p-2.5 rounded-xl bg-primary text-white shadow-lg rotate-12 hover:rotate-0 transition-transform duration-300">
-              <Stethoscope className="h-7 w-7" />
+              <Bot className="h-7 w-7" />
             </div>
             <div className="flex flex-col">
               <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary-600 bg-clip-text text-transparent">
-                Smart Dental AI
+                DentaMind AI
               </span>
               <span className="text-xs text-gray-500 font-medium">
                 AI-Powered Care
@@ -91,6 +107,7 @@ export function Sidebar() {
                 className={`
                   flex items-center px-3 py-2.5 text-sm font-medium rounded-lg gap-3
                   transition-all duration-200 group
+                  ${item.highlight ? 'bg-gradient-to-r from-primary/10 to-primary/5' : ''}
                   ${isActive
                     ? "bg-primary text-white shadow-md"
                     : "text-gray-600 hover:bg-primary/10 hover:text-primary hover:shadow-sm"}
@@ -105,6 +122,11 @@ export function Sidebar() {
                   <Icon className={`h-5 w-5 ${isActive ? "text-white" : "text-primary"}`} />
                 </div>
                 {item.name}
+                {item.highlight && (
+                  <span className="ml-auto px-2 py-0.5 text-xs font-semibold bg-primary/20 text-primary rounded-full">
+                    New
+                  </span>
+                )}
               </a>
             </Link>
           );
