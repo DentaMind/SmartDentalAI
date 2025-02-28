@@ -1,12 +1,39 @@
 import { useTranslation } from "react-i18next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Stethoscope, FileImage, Calculator, ClipboardList } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Brain, Stethoscope, FileImage, Calculator, ClipboardList, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AIDiagnosticsPage() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("diagnosis");
+  const [symptoms, setSymptoms] = useState("");
+
+  const diagnosisMutation = useMutation({
+    mutationFn: async (symptoms: string) => {
+      const res = await apiRequest("POST", "/api/ai/diagnosis", { symptoms });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Analysis Complete",
+        description: "AI has analyzed your symptoms and provided recommendations.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Analysis Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <div className="container mx-auto p-8">
@@ -47,9 +74,81 @@ export default function AIDiagnosticsPage() {
             <CardHeader>
               <CardTitle>AI-Powered Diagnosis</CardTitle>
             </CardHeader>
-            <CardContent>
-              {/* We'll add the comprehensive diagnosis component here */}
-              <p>Diagnosis system coming soon...</p>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Describe Symptoms</label>
+                <Textarea
+                  placeholder="Please describe the dental symptoms in detail..."
+                  value={symptoms}
+                  onChange={(e) => setSymptoms(e.target.value)}
+                  rows={5}
+                />
+              </div>
+              <Button 
+                onClick={() => diagnosisMutation.mutate(symptoms)}
+                disabled={diagnosisMutation.isPending || !symptoms}
+                className="w-full"
+              >
+                {diagnosisMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  "Analyze Symptoms"
+                )}
+              </Button>
+
+              {diagnosisMutation.data && (
+                <div className="mt-6 space-y-4">
+                  <h3 className="text-lg font-semibold">Analysis Results</h3>
+                  <div className="grid gap-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-sm">Possible Conditions</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {diagnosisMutation.data.conditions.map((condition: any, index: number) => (
+                          <div key={index} className="mb-2">
+                            <p className="font-medium">{condition.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Confidence: {Math.round(condition.confidence * 100)}%
+                            </p>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+
+                    {diagnosisMutation.data.aiDomains && Object.entries(diagnosisMutation.data.aiDomains).map(([domain, data]: [string, any]) => (
+                      <Card key={domain}>
+                        <CardHeader>
+                          <CardTitle className="text-sm capitalize">{domain} Analysis</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <div>
+                              <h4 className="font-medium">Findings:</h4>
+                              <ul className="list-disc pl-4 text-sm">
+                                {data.findings.map((finding: string, index: number) => (
+                                  <li key={index}>{finding}</li>
+                                ))}
+                              </ul>
+                            </div>
+                            <div>
+                              <h4 className="font-medium">Recommendations:</h4>
+                              <ul className="list-disc pl-4 text-sm">
+                                {data.recommendations.map((rec: string, index: number) => (
+                                  <li key={index}>{rec}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -60,8 +159,9 @@ export default function AIDiagnosticsPage() {
               <CardTitle>X-Ray Analysis</CardTitle>
             </CardHeader>
             <CardContent>
-              {/* We'll add the imaging analysis component here */}
-              <p>Imaging analysis system coming soon...</p>
+              <div className="flex items-center justify-center h-40 border-2 border-dashed rounded-lg border-gray-200">
+                <p className="text-muted-foreground">Upload X-ray images for AI analysis</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -72,8 +172,9 @@ export default function AIDiagnosticsPage() {
               <CardTitle>Treatment Planning</CardTitle>
             </CardHeader>
             <CardContent>
-              {/* We'll add the treatment planning component here */}
-              <p>Treatment planning system coming soon...</p>
+              <p className="text-muted-foreground">
+                Complete the diagnosis first to receive AI-generated treatment recommendations
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -84,8 +185,9 @@ export default function AIDiagnosticsPage() {
               <CardTitle>Cost Analysis</CardTitle>
             </CardHeader>
             <CardContent>
-              {/* We'll add the cost analysis component here */}
-              <p>Cost analysis system coming soon...</p>
+              <p className="text-muted-foreground">
+                Select a treatment plan to see detailed cost breakdown and insurance coverage
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
