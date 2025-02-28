@@ -2,6 +2,7 @@ import express from "express";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { predictFromSymptoms } from "./services/ai-prediction";
+import { aiCoordinator } from "./services/ai-coordinator";
 import { requireAuth, requireRole, requireOwnership } from "./middleware/auth";
 
 const app = express();
@@ -61,44 +62,121 @@ app.post("/api/ai/predict", requireAuth, async (req, res) => {
   }
 });
 
-// Treatment Plan Generation route
-app.post("/api/ai/generate-treatment-plan", requireAuth, async (req, res) => {
+// AI Analysis Routes
+router.post("/ai/comprehensive-analysis", requireAuth, async (req, res) => {
   try {
-    const { diagnosis, patientHistory } = req.body;
+    const { patientId, symptoms, xrayImages } = req.body;
+
+    if (!patientId || !symptoms) {
+      return res.status(400).json({ message: "Patient ID and symptoms are required" });
+    }
+
+    const analysis = await aiCoordinator.generateComprehensivePlan(
+      patientId,
+      symptoms,
+      xrayImages
+    );
+
+    res.json(analysis);
+  } catch (error) {
+    console.error("AI Analysis error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to generate analysis" 
+    });
+  }
+});
+
+router.post("/ai/diagnosis", requireAuth, async (req, res) => {
+  try {
+    const { symptoms, patientHistory, xrayImages } = req.body;
+
+    if (!symptoms) {
+      return res.status(400).json({ message: "Symptoms are required" });
+    }
+
+    const diagnosis = await aiCoordinator.analyzeDiagnosis(
+      symptoms,
+      patientHistory || "",
+      xrayImages
+    );
+
+    res.json(diagnosis);
+  } catch (error) {
+    console.error("Diagnosis error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to generate diagnosis" 
+    });
+  }
+});
+
+router.post("/ai/treatment-plan", requireAuth, requireRole(["doctor"]), async (req, res) => {
+  try {
+    const { diagnosis, patientHistory, insuranceProvider } = req.body;
 
     if (!diagnosis) {
       return res.status(400).json({ message: "Diagnosis is required" });
     }
 
-    setTimeout(() => {
-      res.json({
-        treatmentSteps: [
-          "Initial periodontal therapy: Scaling and root planing all quadrants",
-          "Re-evaluation at 6 weeks post-therapy",
-          "Restore carious lesions on teeth #19 and #30",
-          "Endodontic therapy for tooth #30",
-          "Crown on tooth #30 following successful endodontic treatment",
-          "Maintenance therapy every 3 months"
-        ],
-        estimatedTimeline: "3-4 months for complete treatment",
-        alternativeOptions: [
-          "Extract tooth #30 and replace with implant",
-          "Extract without replacement and monitor remaining dentition"
-        ],
-        costEstimate: {
-          totalCost: 4250,
-          insuranceCoverage: 2500,
-          patientResponsibility: 1750
-        },
-        maintenanceRecommendations: [
-          "3-month periodontal maintenance",
-          "Daily interdental cleaning",
-          "Nightguard to protect restorations"
-        ]
-      });
-    }, 1500);
+    const treatmentPlan = await aiCoordinator.generateTreatmentPlan(
+      diagnosis,
+      patientHistory || "",
+      insuranceProvider
+    );
+
+    res.json(treatmentPlan);
   } catch (error) {
-    console.error("Treatment Plan Generation error:", error);
-    res.status(500).json({ message: error instanceof Error ? error.message : "Failed to generate treatment plan" });
+    console.error("Treatment Plan error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to generate treatment plan" 
+    });
   }
 });
+
+router.post("/ai/treatment-sequence", requireAuth, requireRole(["doctor"]), async (req, res) => {
+  try {
+    const { treatmentPlan, patientAvailability } = req.body;
+
+    if (!treatmentPlan) {
+      return res.status(400).json({ message: "Treatment plan is required" });
+    }
+
+    const sequence = await aiCoordinator.createTreatmentSequence(
+      treatmentPlan,
+      patientAvailability
+    );
+
+    res.json(sequence);
+  } catch (error) {
+    console.error("Sequence Generation error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to generate treatment sequence" 
+    });
+  }
+});
+
+router.post("/ai/cost-analysis", requireAuth, async (req, res) => {
+  try {
+    const { treatmentPlan, insuranceDetails } = req.body;
+
+    if (!treatmentPlan) {
+      return res.status(400).json({ message: "Treatment plan is required" });
+    }
+
+    const costAnalysis = await aiCoordinator.analyzeCosts(
+      treatmentPlan,
+      insuranceDetails
+    );
+
+    res.json(costAnalysis);
+  } catch (error) {
+    console.error("Cost Analysis error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to generate cost analysis" 
+    });
+  }
+});
+
+// Mount all routes under /api prefix
+app.use("/api", router);
+
+export default app;
