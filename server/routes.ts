@@ -15,7 +15,7 @@ app.use(express.json());
 setupAuth(router);
 
 // Patient routes
-app.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   try {
     const patient = await storage.createPatient(req.body);
     res.status(201).json(patient);
@@ -25,7 +25,7 @@ app.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (req,
 });
 
 // Get patient data - patients can only access their own data
-app.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res) => {
+router.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res) => {
   try {
     const patient = await storage.getPatient(Number(req.params.id));
     res.json(patient);
@@ -35,7 +35,7 @@ app.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res) =
 });
 
 // Get all patients route
-app.get("/api/patients", requireAuth, async (req, res) => {
+router.get("/patients", requireAuth, async (req, res) => {
   try {
     const patients = await storage.getAllPatients();
     res.json(patients);
@@ -43,7 +43,6 @@ app.get("/api/patients", requireAuth, async (req, res) => {
     res.status(500).json({ message: "Failed to get patients" });
   }
 });
-
 
 // AI Prediction route
 app.post("/api/ai/predict", requireAuth, async (req, res) => {
