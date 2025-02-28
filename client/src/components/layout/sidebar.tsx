@@ -12,6 +12,7 @@ import {
   Stethoscope,
   Image,
   ClipboardList,
+  DollarSign,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -29,11 +30,13 @@ export function Sidebar() {
       { name: t("nav.patients"), href: "/patients", icon: Users },
       { name: t("nav.appointments"), href: "/appointments", icon: Calendar },
       { name: t("nav.treatmentPlans"), href: "/treatment-plans", icon: FileText },
+      { name: t("nav.billing"), href: "/billing", icon: DollarSign },
     ];
 
     const staffItems = [
       { name: t("nav.patients"), href: "/patients", icon: Users },
       { name: t("nav.appointments"), href: "/appointments", icon: Calendar },
+      { name: t("nav.billing"), href: "/billing", icon: DollarSign },
     ];
 
     const patientItems = [
@@ -41,6 +44,7 @@ export function Sidebar() {
       { name: t("nav.treatmentPlans"), href: "/treatment-plans", icon: FileText },
       { name: t("nav.xrays"), href: "/xrays", icon: Image },
       { name: t("nav.medicalHistory"), href: "/medical-history", icon: ClipboardList },
+      { name: t("nav.billing"), href: "/billing", icon: DollarSign },
     ];
 
     switch (user?.role) {
