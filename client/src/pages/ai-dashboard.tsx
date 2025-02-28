@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslation } from "react-i18next";
 import { SymptomPredictor } from "@/components/ai/symptom-predictor";
 import { XrayAnalyzer } from "@/components/ai/xray-analyzer";
-import { TreatmentPlanGenerator } from "@/components/ai/treatment-plan-generator";
-import { Stethoscope, FileImage, ClipboardList, Calendar, Brain } from "lucide-react";
+import { AITreatmentPlanner } from "@/components/treatment/ai-treatment-planner";
+import { Stethoscope, FileImage, ClipboardList, Calendar, Brain, Calculator } from "lucide-react";
 
 export function AIDashboardPage() {
   const { t } = useTranslation();
@@ -27,7 +26,7 @@ export function AIDashboardPage() {
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-        <TabsList className="grid grid-cols-3 mb-6 w-full md:w-[400px]">
+        <TabsList className="grid grid-cols-4 mb-6 w-full md:w-[500px]">
           <TabsTrigger value="symptoms" className="flex items-center gap-2">
             <Stethoscope className="h-4 w-4" />
             <span>Diagnosis</span>
@@ -39,6 +38,10 @@ export function AIDashboardPage() {
           <TabsTrigger value="treatment" className="flex items-center gap-2">
             <ClipboardList className="h-4 w-4" />
             <span>Treatment</span>
+          </TabsTrigger>
+          <TabsTrigger value="cost" className="flex items-center gap-2">
+            <Calculator className="h-4 w-4" />
+            <span>Cost Analysis</span>
           </TabsTrigger>
         </TabsList>
 
@@ -58,10 +61,20 @@ export function AIDashboardPage() {
         </TabsContent>
 
         <TabsContent value="treatment" className="space-y-5">
-          <TreatmentPlanGenerator 
+          <AITreatmentPlanner 
             diagnosis={diagnosis}
             patientHistory="Patient has history of hypertension and takes metoprolol. Previous root canal on #19. Regular dental visits every 6 months."
           />
+        </TabsContent>
+
+        <TabsContent value="cost" className="space-y-5">
+          {diagnosis && (
+            <AITreatmentPlanner 
+              diagnosis={diagnosis}
+              patientHistory="Patient has history of hypertension and takes metoprolol. Previous root canal on #19. Regular dental visits every 6 months."
+              mode="cost-analysis"
+            />
+          )}
         </TabsContent>
       </Tabs>
     </div>
