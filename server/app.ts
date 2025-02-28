@@ -3,6 +3,7 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { predictFromSymptoms } from "./services/ai-prediction";
 import { requireAuth, requireRole, requireOwnership } from "./middleware/auth";
+import {financialService} from "./services/financial"; // Assuming this service exists
 
 const app = express();
 const router = express.Router();
@@ -108,6 +109,56 @@ router.post("/ai/predict", requireAuth, requireRole(["doctor"]), async (req, res
     console.error("AI Prediction error:", error);
     res.status(500).json({
       message: error instanceof Error ? error.message : "Failed to generate prediction"
+    });
+  }
+});
+
+
+// Financial routes
+router.get("/api/financial/summary", requireAuth, async (req, res) => {
+  try {
+    const startDate = new Date(req.query.startDate as string);
+    const endDate = new Date(req.query.endDate as string);
+
+    const summary = await financialService.getFinancialSummary(startDate, endDate);
+    res.json(summary);
+  } catch (error) {
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to get financial summary" 
+    });
+  }
+});
+
+router.get("/api/financial/tax-report/:year", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+  try {
+    const year = parseInt(req.params.year);
+    const report = await financialService.generateTaxReport(year);
+    res.json(report);
+  } catch (error) {
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to generate tax report" 
+    });
+  }
+});
+
+router.post("/api/insurance/claims", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+  try {
+    const claim = await financialService.submitInsuranceClaim(req.body);
+    res.status(201).json(claim);
+  } catch (error) {
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to submit insurance claim" 
+    });
+  }
+});
+
+router.post("/api/payments", requireAuth, async (req, res) => {
+  try {
+    const payment = await financialService.processPayment(req.body);
+    res.status(201).json(payment);
+  } catch (error) {
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to process payment" 
     });
   }
 });

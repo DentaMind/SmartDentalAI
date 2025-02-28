@@ -80,6 +80,51 @@ export const payments = pgTable("payments", {
   date: timestamp("date").defaultNow(),
   status: text("status", { enum: ["pending", "processed", "failed"] }).notNull().default("pending"),
   treatmentPlanId: integer("treatment_plan_id"),
+  transactionId: integer("transaction_id"), 
+  insuranceClaimId: integer("insurance_claim_id"), 
+  writeOffAmount: integer("write_off_amount"),
+  adjustmentReason: text("adjustment_reason"),
+  postedDate: timestamp("posted_date"),
+  checkNumber: text("check_number"),
+  paymentPlan: boolean("payment_plan").default(false),
+  paymentPlanDetails: jsonb("payment_plan_details"), 
+});
+
+export const insuranceClaims = pgTable("insurance_claims", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  treatmentPlanId: integer("treatment_plan_id").notNull(),
+  submissionDate: timestamp("submission_date").notNull().defaultNow(),
+  status: text("status", {
+    enum: ["submitted", "in_review", "approved", "denied", "partially_approved"]
+  }).notNull().default("submitted"),
+  claimNumber: text("claim_number"),
+  preAuthNumber: text("pre_auth_number"),
+  approvedAmount: integer("approved_amount"),
+  denialReason: text("denial_reason"),
+  insuranceNotes: text("insurance_notes"),
+  followUpDate: timestamp("follow_up_date"),
+});
+
+export const financialTransactions = pgTable("financial_transactions", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  type: text("type", {
+    enum: ["payment", "refund", "adjustment", "insurance_payment"]
+  }).notNull(),
+  amount: integer("amount").notNull(),
+  date: timestamp("date").notNull().defaultNow(),
+  method: text("method", {
+    enum: ["cash", "credit_card", "check", "insurance", "other"]
+  }).notNull(),
+  status: text("status", {
+    enum: ["pending", "completed", "failed", "voided"]
+  }).notNull().default("pending"),
+  referenceNumber: text("reference_number"),
+  description: text("description"),
+  categoryCode: text("category_code"), 
+  fiscalYear: integer("fiscal_year").notNull(),
+  fiscalQuarter: integer("fiscal_quarter").notNull(),
 });
 
 // Insert schemas
@@ -104,6 +149,8 @@ export const insertTreatmentPlanSchema = createInsertSchema(treatmentPlans);
 export const insertMedicalNoteSchema = createInsertSchema(medicalNotes);
 export const insertXraySchema = createInsertSchema(xrays);
 export const insertPaymentSchema = createInsertSchema(payments);
+export const insertInsuranceClaimSchema = createInsertSchema(insuranceClaims);
+export const insertFinancialTransactionSchema = createInsertSchema(financialTransactions);
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -120,3 +167,7 @@ export type Xray = typeof xrays.$inferSelect;
 export type InsertXray = z.infer<typeof insertXraySchema>;
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type InsuranceClaim = typeof insuranceClaims.$inferSelect;
+export type InsertInsuranceClaim = z.infer<typeof insertInsuranceClaimSchema>;
+export type FinancialTransaction = typeof financialTransactions.$inferSelect;
+export type InsertFinancialTransaction = z.infer<typeof insertFinancialTransactionSchema>;

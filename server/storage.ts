@@ -14,6 +14,10 @@ import {
   InsertMedicalNote,
   Xray,
   InsertXray,
+  FinancialTransaction,
+  InsertFinancialTransaction,
+  InsuranceClaim,
+  InsertInsuranceClaim,
 } from "@shared/schema";
 import createMemoryStore from "memorystore";
 import session from "express-session";
@@ -28,6 +32,8 @@ export class MemStorage implements IStorage {
   private payments: Map<number, Payment>;
   private medicalNotes: Map<number, MedicalNote>;
   private xrays: Map<number, Xray>;
+  private financialTransactions: Map<number, FinancialTransaction>;
+  private insuranceClaims: Map<number, InsuranceClaim>;
   sessionStore: session.Store;
   currentId: number;
 
@@ -39,6 +45,8 @@ export class MemStorage implements IStorage {
     this.payments = new Map();
     this.medicalNotes = new Map();
     this.xrays = new Map();
+    this.financialTransactions = new Map();
+    this.insuranceClaims = new Map();
     this.currentId = 1;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
@@ -170,6 +178,44 @@ export class MemStorage implements IStorage {
   async getPatientXrays(patientId: number): Promise<Xray[]> {
     return Array.from(this.xrays.values()).filter(
       (xray) => xray.patientId === patientId
+    );
+  }
+
+  async createFinancialTransaction(insertTransaction: InsertFinancialTransaction): Promise<FinancialTransaction> {
+    const id = this.currentId++;
+    const transaction = { id, ...insertTransaction };
+    this.financialTransactions.set(id, transaction);
+    return transaction;
+  }
+
+  async createInsuranceClaim(insertClaim: InsertInsuranceClaim): Promise<InsuranceClaim> {
+    const id = this.currentId++;
+    const claim = { id, ...insertClaim };
+    this.insuranceClaims.set(id, claim);
+    return claim;
+  }
+
+  async getFinancialTransactionsByDateRange(startDate: Date, endDate: Date): Promise<FinancialTransaction[]> {
+    return Array.from(this.financialTransactions.values()).filter(
+      (t) => t.date >= startDate && t.date <= endDate
+    );
+  }
+
+  async getPaymentsByDateRange(startDate: Date, endDate: Date): Promise<Payment[]> {
+    return Array.from(this.payments.values()).filter(
+      (p) => p.date >= startDate && p.date <= endDate
+    );
+  }
+
+  async getInsuranceClaimsByDateRange(startDate: Date, endDate: Date): Promise<InsuranceClaim[]> {
+    return Array.from(this.insuranceClaims.values()).filter(
+      (c) => c.submissionDate >= startDate && c.submissionDate <= endDate
+    );
+  }
+
+  async getFinancialTransactionsByYear(year: number): Promise<FinancialTransaction[]> {
+    return Array.from(this.financialTransactions.values()).filter(
+      (t) => new Date(t.date).getFullYear() === year
     );
   }
 }
