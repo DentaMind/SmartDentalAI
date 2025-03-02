@@ -21,132 +21,6 @@ import {
 } from "@shared/schema";
 import createMemoryStore from "memorystore";
 import session from "express-session";
-import { z } from "zod";
-import { db } from "./db";
-
-// Define schemas for storage operations
-const patientSchema = z.object({
-  id: z.number().optional(),
-  firstName: z.string(),
-  lastName: z.string(),
-  dateOfBirth: z.string(),
-  email: z.string().email().optional(),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  gender: z.enum(["male", "female", "other", "prefer_not_to_say"]).optional(),
-  medicalHistory: z.string().optional(),
-  emergencyContact: z.object({
-    name: z.string(),
-    relationship: z.string(),
-    phone: z.string()
-  }).optional(),
-  user: z.object({
-    insuranceProvider: z.string().optional(),
-    insuranceCoverageDetails: z.any().optional()
-  }).optional()
-});
-
-const medicalNoteSchema = z.object({
-  id: z.number().optional(),
-  patientId: z.number(),
-  providerId: z.number(),
-  content: z.string(),
-  date: z.string(),
-  private: z.boolean().default(false)
-});
-
-const xraySchema = z.object({
-  id: z.number().optional(),
-  patientId: z.number(),
-  url: z.string(),
-  date: z.string(),
-  type: z.string().optional(),
-  region: z.string().optional(),
-  notes: z.string().optional()
-});
-
-const paymentSchema = z.object({
-  id: z.number().optional(),
-  patientId: z.number(),
-  amount: z.number(),
-  date: z.string(),
-  method: z.string(),
-  description: z.string().optional(),
-  status: z.string(),
-  createdAt: z.string()
-});
-
-const appointmentSchema = z.object({
-  id: z.number().optional(),
-  patientId: z.number(),
-  providerId: z.number(),
-  date: z.string(),
-  duration: z.number(),
-  notes: z.string().optional(),
-  status: z.enum(["scheduled", "completed", "cancelled", "no-show"])
-});
-
-const treatmentPlanSchema = z.object({
-  id: z.number().optional(),
-  patientId: z.number(),
-  providerId: z.number(),
-  treatments: z.array(z.object({
-    procedure: z.string(),
-    tooth: z.string().optional(),
-    notes: z.string().optional(),
-    estimatedCost: z.number().optional(),
-    priority: z.enum(["high", "medium", "low"]).optional()
-  })),
-  createdAt: z.string(),
-  status: z.enum(["active", "completed", "cancelled"])
-});
-
-const messageSchema = z.object({
-  id: z.number().optional(),
-  patientId: z.number(),
-  providerId: z.number().optional(),
-  content: z.string(),
-  timestamp: z.string(),
-  read: z.boolean(),
-  attachments: z.array(z.string()).optional()
-});
-
-const insuranceClaimSchema = z.object({
-  id: z.number().optional(),
-  patientId: z.number(),
-  procedureCodes: z.array(z.string()),
-  diagnosisCodes: z.array(z.string()),
-  providerId: z.string(),
-  serviceDate: z.string(),
-  totalAmount: z.number(),
-  attachments: z.array(z.string()).optional(),
-  status: z.string(),
-  submissionDate: z.string(),
-  claimNumber: z.string()
-});
-
-const patientDocumentSchema = z.object({
-  id: z.number().optional(),
-  patientId: z.number(),
-  documentType: z.string(),
-  documentUrl: z.string(),
-  description: z.string().optional(),
-  shareWithProvider: z.boolean(),
-  accessToken: z.string(),
-  uploadedAt: z.string()
-});
-
-const appointmentRequestSchema = z.object({
-  id: z.number().optional(),
-  patientId: z.number(),
-  requestedDates: z.array(z.string()),
-  reason: z.string(),
-  preferredProvider: z.number().optional(),
-  notes: z.string().optional(),
-  urgency: z.enum(["low", "medium", "high"]).optional(),
-  status: z.string(),
-  createdAt: z.string()
-});
 
 const MemoryStore = createMemoryStore(session);
 
@@ -346,367 +220,201 @@ export class MemStorage implements IStorage {
   }
 
   async getPatientMedicalHistory(patientId: number) {
-    // Placeholder - in a real implementation, this would fetch from database
-    // For now returning mock data
-    return {
-      systemicConditions: ["Type 2 Diabetes", "Hypertension"],
-      medications: ["Metformin 500mg", "Lisinopril 10mg", "Aspirin 81mg"],
-      allergies: ["Penicillin", "Latex"],
-      surgicalHistory: ["Appendectomy (2015)"],
-      vitalSigns: {
-        bloodPressure: "130/85",
-        heartRate: 78
+    const patient = await this.getPatient(patientId);
+    return patient?.medicalHistory || "";
+  }
+
+  // Financial transactions
+  async createFinancialTransactionDb(transaction: InsertFinancialTransaction) {
+    //Simulate database interaction.  Replace with actual DB call in production.
+    const id = this.currentId++;
+    const newTransaction = {id, ...transaction};
+    this.financialTransactions.set(id, newTransaction);
+    return newTransaction;
+  }
+
+  async getFinancialTransactionsInDateRange(startDate: Date, endDate: Date) {
+    return Array.from(this.financialTransactions.values()).filter(transaction => 
+        transaction.date >= startDate && transaction.date <= endDate
+    );
+  }
+
+  async getFinancialTransactionsByPatient(patientId: number) {
+    return Array.from(this.financialTransactions.values()).filter(transaction => transaction.patientId === patientId);
+  }
+
+  // Insurance claims
+  async createInsuranceClaimDb(claim: InsertInsuranceClaim) {
+    //Simulate database interaction.  Replace with actual DB call in production.
+    const id = this.currentId++;
+    const newClaim = {id, ...claim};
+    this.insuranceClaims.set(id, newClaim);
+    return newClaim;
+  }
+
+  async getInsuranceClaim(claimId: number) {
+    return this.insuranceClaims.get(claimId);
+  }
+
+  async updateInsuranceClaim(claimId: number, updates: Partial<InsertInsuranceClaim>) {
+    const existingClaim = this.insuranceClaims.get(claimId);
+    if (!existingClaim) return null;
+    const updatedClaim = {...existingClaim, ...updates};
+    this.insuranceClaims.set(claimId, updatedClaim);
+    return updatedClaim;
+  }
+
+  async getInsuranceClaimsByPatient(patientId: number) {
+    return Array.from(this.insuranceClaims.values()).filter(claim => claim.patientId === patientId);
+  }
+
+  // Appointments
+  async getDoctorAppointmentsByDate(doctorId: number, date: string) {
+    const startOfDay = new Date(`${date}T00:00:00`);
+    const endOfDay = new Date(`${date}T23:59:59`);
+
+    return Array.from(this.appointments.values()).filter(appointment =>
+        appointment.doctorId === doctorId && appointment.date >= startOfDay && appointment.date <= endOfDay
+    );
+  }
+
+  async getAppointment(appointmentId: number) {
+    return this.appointments.get(appointmentId);
+  }
+
+  async updateAppointment(appointmentId: number, updates: Partial<InsertAppointment>) {
+    const existingAppointment = this.appointments.get(appointmentId);
+    if (!existingAppointment) return null;
+    const updatedAppointment = {...existingAppointment, ...updates};
+    this.appointments.set(appointmentId, updatedAppointment);
+    return updatedAppointment;
+  }
+
+  async createAvailabilitySlot(slot: any) {
+    //Simulate creating an availability slot. Replace with actual DB call in production.
+    const id = this.currentId++;
+    return {id, ...slot};
+  }
+
+  async getTreatmentPlan(planId: number) {
+    return this.treatmentPlans.get(planId);
+  }
+
+  // Backup and data management
+  async createBackup() {
+    try {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const backupName = `dentamind_backup_${timestamp}`;
+
+      // Simulate backup creation - replace with actual backup mechanism
+      const backup = {
+        users: Array.from(this.users.values()),
+        patients: Array.from(this.patients.values()),
+        appointments: Array.from(this.appointments.values()),
+        treatmentPlans: Array.from(this.treatmentPlans.values()),
+        medicalNotes: Array.from(this.medicalNotes.values()),
+        xrays: Array.from(this.xrays.values()),
+        payments: Array.from(this.payments.values()),
+        insuranceClaims: Array.from(this.insuranceClaims.values()),
+        financialTransactions: Array.from(this.financialTransactions.values()),
+        timestamp: new Date().toISOString(),
+        version: "1.0"
+      };
+
+      console.log(`Created backup: ${backupName}`);
+
+      return {
+        name: backupName,
+        timestamp: new Date().toISOString(),
+        size: JSON.stringify(backup).length,
+        tables: Object.keys(backup).filter(k => k !== 'timestamp' && k !== 'version')
+      };
+    } catch (error) {
+      console.error("Backup creation error:", error);
+      throw new Error(error instanceof Error ? error.message : "Failed to create backup");
+    }
+  }
+
+  async restoreFromBackup(backupId: string) {
+    // Simulate restore - replace with actual restore mechanism
+    console.log(`Restoring from backup: ${backupId}`);
+    return { success: true, message: "Restore simulated successfully" };
+  }
+
+  async getPracticeAnalytics(timeframe: string) {
+    try {
+      // Calculate date range based on timeframe
+      const now = new Date();
+      let startDate: Date;
+
+      switch (timeframe) {
+        case 'today':
+          startDate = new Date(now);
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'this_week':
+          startDate = new Date(now);
+          startDate.setDate(now.getDate() - now.getDay());
+          break;
+        case 'this_month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'last_90days':
+          startDate = new Date(now);
+          startDate.setDate(now.getDate() - 90);
+          break;
+        case 'this_year':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+        default:
+          startDate = new Date(now);
+          startDate.setDate(now.getDate() - 30); // Default to last 30 days
       }
-    };
+
+      // Get data
+      const appointments = Array.from(this.appointments.values()).filter(a => a.date >= startDate);
+      const treatments = Array.from(this.treatmentPlans.values()).filter(t => new Date(t.createdAt) >= startDate);
+      const payments = Array.from(this.payments.values()).filter(p => p.date >= startDate);
+
+
+      // Calculate metrics
+      const patientVisits = appointments.length;
+      const completedAppointments = appointments.filter(a => a.status === 'completed').length;
+      const cancellationRate = patientVisits ?
+        appointments.filter(a => a.status === 'cancelled').length / patientVisits : 0;
+
+      const revenue = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const averageTreatmentValue = treatments.length ?
+        treatments.reduce((sum, t) => sum + (t.cost || 0), 0) / treatments.length : 0;
+
+      return {
+        timeframe,
+        patientVisits,
+        completedAppointments,
+        cancellationRate,
+        revenue,
+        averageTreatmentValue,
+        treatmentsSold: treatments.length,
+        dataTimeRange: {
+          from: startDate.toISOString(),
+          to: now.toISOString()
+        }
+      };
+    } catch (error) {
+      console.error("Analytics error:", error);
+      throw new Error(error instanceof Error ? error.message : "Failed to generate analytics");
+    }
   }
 
   async updatePatientMedicalHistory(patientId: number, updatedHistory: any) {
-    // Placeholder - in a real implementation, this would update the database
-    console.log(`Updating medical history for patient ${patientId}`, updatedHistory);
-    return true;
+    const patient = await this.getPatient(patientId);
+    if (patient) {
+      patient.medicalHistory = updatedHistory;
+      this.patients.set(patientId, patient);
+      return true;
+    }
+    return false;
   }
 }
 
-export const storage = {
-  // Patient operations
-  async createPatient(data: unknown) {
-    const validated = patientSchema.parse(data);
-    // Implementation here - in a real app, this would interact with the database
-    // This is a placeholder that returns the validated data with a mock ID
-    return { ...validated, id: Date.now() };
-  },
-
-  async getPatient(id: number) {
-    // Implementation here - in a real app, this would fetch from the database
-    return { 
-      id, 
-      firstName: "John",
-      lastName: "Doe",
-      dateOfBirth: "1980-01-01",
-      medicalHistory: "No significant medical history",
-      user: {
-        insuranceProvider: "HealthPlus",
-        insuranceCoverageDetails: { plan: "Premium", groupId: "12345" }
-      }
-    };
-  },
-
-  async getAllPatients() {
-    // Implementation here - in a real app, this would fetch all patients from the database
-    return [
-      { id: 1, firstName: "John", lastName: "Doe" },
-      { id: 2, firstName: "Jane", lastName: "Smith" }
-    ];
-  },
-
-  async updatePatient(id: number, data: unknown) {
-    const validated = patientSchema.partial().parse(data);
-    // Implementation here
-    return { id, ...validated };
-  },
-
-  async deletePatient(id: number) {
-    // Implementation here
-    return true;
-  },
-
-  // Medical history operations
-  async getPatientMedicalHistory(patientId: number) {
-    // Implementation here
-    return {
-      conditions: ["Hypertension", "Type 2 Diabetes"],
-      allergies: ["Penicillin"],
-      medications: ["Lisinopril", "Metformin"],
-      surgeries: ["Appendectomy (2010)"],
-      familyHistory: "Father had coronary artery disease",
-      lastUpdated: new Date().toISOString()
-    };
-  },
-
-  async updatePatientMedicalHistory(patientId: number, data: any) {
-    // Implementation here
-    return { patientId, ...data };
-  },
-
-  // Medical notes operations
-  async createMedicalNote(data: unknown) {
-    const validated = medicalNoteSchema.parse(data);
-    // Implementation here
-    return { ...validated, id: Date.now() };
-  },
-
-  async getPatientMedicalNotes(patientId: number) {
-    // Implementation here
-    return [
-      {
-        id: 1,
-        patientId,
-        providerId: 101,
-        content: "Patient reports mild tooth sensitivity.",
-        date: "2023-05-15T10:30:00Z",
-        private: false
-      }
-    ];
-  },
-
-  // X-ray operations
-  async createXray(data: unknown) {
-    const validated = xraySchema.parse(data);
-    // Implementation here
-    return { ...validated, id: Date.now() };
-  },
-
-  async getPatientXrays(patientId: number) {
-    // Implementation here
-    return [
-      {
-        id: 1,
-        patientId,
-        url: "https://example.com/xrays/12345.jpg",
-        date: "2023-05-10T09:15:00Z",
-        type: "Panoramic",
-        region: "Full mouth",
-        notes: "Regular checkup"
-      }
-    ];
-  },
-
-  // Payment operations
-  async createPayment(data: unknown) {
-    const validated = paymentSchema.parse(data);
-    // Implementation here
-    return { ...validated, id: Date.now() };
-  },
-
-  async getPatientPayments(patientId: number) {
-    // Implementation here
-    return [
-      {
-        id: 1,
-        patientId,
-        amount: 150.00,
-        date: "2023-05-20T14:45:00Z",
-        method: "credit",
-        description: "Routine checkup and cleaning",
-        status: "completed",
-        createdAt: "2023-05-20T14:45:00Z"
-      }
-    ];
-  },
-
-  async getPaymentsByDateRange(startDate: Date, endDate: Date) {
-    // Implementation here
-    return [
-      {
-        id: 1,
-        patientId: 1,
-        amount: 150.00,
-        date: "2023-05-20T14:45:00Z",
-        method: "credit",
-        description: "Routine checkup and cleaning",
-        status: "completed",
-        createdAt: "2023-05-20T14:45:00Z"
-      }
-    ];
-  },
-
-  // Appointment operations
-  async createAppointment(data: unknown) {
-    const validated = appointmentSchema.parse(data);
-    // Implementation here
-    return { ...validated, id: Date.now() };
-  },
-
-  async getPatientAppointments(patientId: number) {
-    // Implementation here
-    return [
-      {
-        id: 1,
-        patientId,
-        providerId: 101,
-        date: "2023-06-01T10:00:00Z",
-        duration: 30,
-        notes: "Regular checkup",
-        status: "scheduled"
-      }
-    ];
-  },
-
-  // Treatment plan operations
-  async createTreatmentPlan(data: unknown) {
-    const validated = treatmentPlanSchema.parse(data);
-    // Implementation here
-    return { ...validated, id: Date.now() };
-  },
-
-  async getPatientTreatmentPlans(patientId: number) {
-    // Implementation here
-    return [
-      {
-        id: 1,
-        patientId,
-        providerId: 101,
-        treatments: [
-          {
-            procedure: "Filling",
-            tooth: "16",
-            notes: "Composite filling",
-            estimatedCost: 200.00,
-            priority: "medium"
-          }
-        ],
-        createdAt: "2023-05-15T11:30:00Z",
-        status: "active"
-      }
-    ];
-  },
-
-  // Provider operations
-  async getProvider(id: number) {
-    // Implementation here
-    return {
-      id,
-      firstName: "Sarah",
-      lastName: "Johnson",
-      specialization: "General Dentist",
-      licenseNumber: "DDS12345"
-    };
-  },
-
-  // Message operations
-  async createMessage(data: unknown) {
-    const validated = messageSchema.parse(data);
-    // Implementation here
-    return { ...validated, id: Date.now() };
-  },
-
-  async getPatientMessages(patientId: number) {
-    // Implementation here
-    return [
-      {
-        id: 1,
-        patientId,
-        providerId: 101,
-        content: "Your next appointment is scheduled for June 1st at 10:00 AM.",
-        timestamp: "2023-05-25T09:30:00Z",
-        read: true
-      }
-    ];
-  },
-
-  // Insurance claim operations
-  async createInsuranceClaim(data: unknown) {
-    const validated = insuranceClaimSchema.parse(data);
-    // Implementation here
-    return { ...validated, id: Date.now() };
-  },
-
-  async getInsuranceClaimsByDateRange(startDate: Date, endDate: Date) {
-    // Implementation here
-    return [
-      {
-        id: 1,
-        patientId: 1,
-        procedureCodes: ["D1110", "D0150"],
-        diagnosisCodes: ["K02.9"],
-        providerId: "101",
-        serviceDate: "2023-05-15T10:30:00Z",
-        totalAmount: 250.00,
-        status: "submitted",
-        submissionDate: "2023-05-15T15:45:00Z",
-        claimNumber: "CLAIM-123456"
-      }
-    ];
-  },
-
-  // Patient document operations
-  async createPatientDocument(data: unknown) {
-    const validated = patientDocumentSchema.parse(data);
-    // Implementation here
-    return { ...validated, id: Date.now() };
-  },
-
-  async getPatientDocuments(patientId: number) {
-    // Implementation here
-    return [
-      {
-        id: 1,
-        patientId,
-        documentType: "xray",
-        documentUrl: "https://example.com/documents/xray123.jpg",
-        description: "Panoramic X-ray",
-        shareWithProvider: true,
-        accessToken: "abcdef123456",
-        uploadedAt: "2023-05-10T09:15:00Z"
-      }
-    ];
-  },
-
-  // Appointment request operations
-  async createAppointmentRequest(data: unknown) {
-    const validated = appointmentRequestSchema.parse(data);
-    // Implementation here
-    return { ...validated, id: Date.now() };
-  },
-
-  async getPatientAppointmentRequests(patientId: number) {
-    // Implementation here
-    return [
-      {
-        id: 1,
-        patientId,
-        requestedDates: ["2023-06-05T09:00:00Z", "2023-06-06T14:00:00Z"],
-        reason: "Toothache",
-        preferredProvider: 101,
-        urgency: "medium",
-        status: "pending",
-        createdAt: "2023-05-30T08:45:00Z"
-      }
-    ];
-  },
-
-  // Patient records and treatments
-  async getPatientRecords(patientId: number) {
-    // Implementation here
-    return {
-      patientId,
-      diagnoses: [
-        { id: 1, condition: "Dental caries", date: "2023-04-15T10:30:00Z" }
-      ],
-      treatments: [
-        { id: 1, procedure: "Filling", tooth: "16", date: "2023-04-20T11:00:00Z" }
-      ]
-    };
-  },
-
-  async getPatientTreatments(patientId: number) {
-    // Implementation here
-    return [
-      {
-        id: 1,
-        patientId,
-        procedure: "Filling",
-        tooth: "16",
-        providerId: 101,
-        date: "2023-04-20T11:00:00Z",
-        notes: "Composite filling"
-      }
-    ];
-  },
-
-  // Educational resources
-  async getEducationalResources(conditions: string[]) {
-    // Implementation here
-    return [
-      {
-        id: 1,
-        title: "Understanding Dental Caries",
-        type: "video",
-        url: "https://example.com/videos/dental-caries.mp4",
-        description: "An informative guide about dental caries and prevention",
-        relatedConditions: ["Dental caries"],
-        duration: "5:30"
-      }
-    ];
-  }
-};
+export const storage = new MemStorage();

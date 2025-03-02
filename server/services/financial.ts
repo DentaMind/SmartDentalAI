@@ -107,237 +107,390 @@ export class FinancialService {
 }
 
 export const financialService = new FinancialService();
-import { z } from "zod";
 import { storage } from "../storage";
-import OpenAI from "openai";
+import { financialTransactions, insuranceClaims, payments } from "@shared/schema";
+import { z } from "zod";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
-});
+const insuranceProviders = {
+  "delta-dental": {
+    name: "Delta Dental",
+    coverageRates: {
+      preventive: 0.9,
+      basic: 0.7,
+      major: 0.5,
+      orthodontic: 0.4,
+    },
+    annualMax: 2000,
+  },
+  "cigna": {
+    name: "Cigna Dental",
+    coverageRates: {
+      preventive: 1.0,
+      basic: 0.8,
+      major: 0.6,
+      orthodontic: 0.5,
+    },
+    annualMax: 2500,
+  },
+  "aetna": {
+    name: "Aetna Dental",
+    coverageRates: {
+      preventive: 0.95,
+      basic: 0.75,
+      major: 0.55,
+      orthodontic: 0.45,
+    },
+    annualMax: 2200,
+  },
+  "metlife": {
+    name: "MetLife Dental",
+    coverageRates: {
+      preventive: 0.85,
+      basic: 0.65,
+      major: 0.45,
+      orthodontic: 0.35,
+    },
+    annualMax: 1800,
+  },
+};
 
-// Data validation schemas
+// Procedure category mappings
+const procedureCategories = {
+  "D0100-D0999": "preventive", // Diagnostic
+  "D1000-D1999": "preventive", // Preventive
+  "D2000-D2999": "basic",      // Restorative
+  "D3000-D3999": "major",      // Endodontics
+  "D4000-D4999": "major",      // Periodontics
+  "D5000-D5999": "major",      // Prosthodontics, removable
+  "D6000-D6999": "major",      // Implant Services
+  "D7000-D7999": "major",      // Oral and Maxillofacial Surgery
+  "D8000-D8999": "orthodontic", // Orthodontics
+  "D9000-D9999": "basic",      // Adjunctive General Services
+};
+
+// Payment schema
 const paymentSchema = z.object({
   patientId: z.number(),
   amount: z.number().positive(),
-  date: z.string().optional(),
-  method: z.enum(["credit", "debit", "cash", "insurance", "other"]),
+  method: z.enum(["cash", "credit_card", "check", "insurance", "online"]),
+  treatmentPlanId: z.number().optional(),
   description: z.string().optional(),
-  insuranceClaim: z.boolean().default(false)
 });
 
+// Insurance claim schema
 const insuranceClaimSchema = z.object({
   patientId: z.number(),
-  procedureCodes: z.array(z.string()),
-  diagnosisCodes: z.array(z.string()),
-  providerId: z.string(),
-  serviceDate: z.string(),
-  totalAmount: z.number().positive(),
-  attachments: z.array(z.string()).optional()
+  treatmentPlanId: z.number(),
+  insuranceProvider: z.string(),
+  procedures: z.array(z.object({
+    code: z.string(),
+    description: z.string(),
+    fee: z.number().positive(),
+    date: z.string(),
+    toothNumber: z.string().optional(),
+  })),
+  submissionDetails: z.object({
+    providerNPI: z.string(),
+    providerTIN: z.string(),
+    facilityCode: z.string().optional(),
+  }).optional(),
+});
+
+// Financial analysis schema
+const financialDateRangeSchema = z.object({
+  startDate: z.date(),
+  endDate: z.date(),
 });
 
 class FinancialService {
-  async processPayment(paymentData: unknown) {
+  async processPayment(paymentData: z.infer<typeof paymentSchema>) {
     try {
+      // Validate payment data
       const validatedData = paymentSchema.parse(paymentData);
       
-      // Check if patient exists
-      const patient = await storage.getPatient(validatedData.patientId);
-      if (!patient) {
-        throw new Error("Patient not found");
-      }
-      
-      // Set date to now if not provided
-      if (!validatedData.date) {
-        validatedData.date = new Date().toISOString();
-      }
-      
-      // Store payment in database
+      // Create a new payment record
       const payment = await storage.createPayment({
-        ...validatedData,
-        status: "completed",
-        createdAt: new Date().toISOString()
+        patientId: validatedData.patientId,
+        amount: validatedData.amount,
+        patientAmount: validatedData.amount,
+        date: new Date(),
+        status: "processed",
+        treatmentPlanId: validatedData.treatmentPlanId,
       });
       
-      // If it's an insurance claim, process it
-      if (validatedData.insuranceClaim) {
-        // This would involve creating a claim record
-        // Implementation depends on storage methods
-      }
+      // Create corresponding financial transaction record
+      const fiscalData = this.getFiscalPeriod(new Date());
+      
+      await storage.createFinancialTransaction({
+        patientId: validatedData.patientId,
+        type: "payment",
+        amount: validatedData.amount,
+        date: new Date(),
+        method: validatedData.method as any,
+        status: "completed",
+        description: validatedData.description || "Patient payment",
+        fiscalYear: fiscalData.fiscalYear,
+        fiscalQuarter: fiscalData.fiscalQuarter,
+      });
       
       return payment;
     } catch (error) {
       console.error("Payment processing error:", error);
-      throw error;
+      throw new Error(error instanceof Error ? error.message : "Failed to process payment");
     }
   }
   
-  async submitInsuranceClaim(claimData: unknown) {
+  async submitInsuranceClaim(claimData: z.infer<typeof insuranceClaimSchema>) {
     try {
+      // Validate claim data
       const validatedData = insuranceClaimSchema.parse(claimData);
       
-      // Check if patient exists
-      const patient = await storage.getPatient(validatedData.patientId);
-      if (!patient) {
-        throw new Error("Patient not found");
-      }
+      // Calculate expected reimbursement
+      const expectedReimbursement = this.calculateExpectedReimbursement(
+        validatedData.procedures,
+        validatedData.insuranceProvider
+      );
       
-      // In a real system, this would communicate with insurance APIs
-      // For now, we'll store the claim and simulate processing
+      // Generate claim number
+      const claimNumber = `DM-${Date.now()}-${validatedData.patientId}`;
       
+      // Create insurance claim record
       const claim = await storage.createInsuranceClaim({
-        ...validatedData,
+        patientId: validatedData.patientId,
+        treatmentPlanId: validatedData.treatmentPlanId,
+        submissionDate: new Date(),
         status: "submitted",
-        submissionDate: new Date().toISOString(),
-        claimNumber: `CLAIM-${Date.now()}`
+        claimNumber,
+        approvedAmount: 0, // Will be updated when claim is processed
       });
       
-      return claim;
+      // Mock electronic submission to insurance (in real system, this would call an API)
+      // This is where you would integrate with clearinghouses like Change Healthcare, DentalXChange, etc.
+      console.log(`Submitting claim ${claimNumber} to ${validatedData.insuranceProvider} electronically`);
+      
+      return {
+        ...claim,
+        expectedReimbursement,
+        estimatedProcessingTime: "14-21 days"
+      };
     } catch (error) {
-      console.error("Insurance claim submission error:", error);
-      throw error;
+      console.error("Insurance claim error:", error);
+      throw new Error(error instanceof Error ? error.message : "Failed to submit insurance claim");
     }
   }
   
   async getFinancialSummary(startDate: Date, endDate: Date) {
     try {
       // Validate date range
-      if (startDate >= endDate) {
-        throw new Error("Start date must be before end date");
-      }
+      const validatedDates = financialDateRangeSchema.parse({ startDate, endDate });
       
-      // Get all payments in date range
-      const payments = await storage.getPaymentsByDateRange(startDate, endDate);
+      // Get all financial transactions in date range
+      const transactions = await storage.getFinancialTransactionsInDateRange(
+        validatedDates.startDate,
+        validatedDates.endDate
+      );
       
-      // Get all insurance claims in date range
-      const claims = await storage.getInsuranceClaimsByDateRange(startDate, endDate);
+      // Calculate summary metrics
+      const revenue = transactions
+        .filter(t => t.type === "payment" || t.type === "insurance_payment")
+        .reduce((sum, t) => sum + t.amount, 0);
+        
+      const refunds = transactions
+        .filter(t => t.type === "refund")
+        .reduce((sum, t) => sum + t.amount, 0);
+        
+      const adjustments = transactions
+        .filter(t => t.type === "adjustment")
+        .reduce((sum, t) => sum + t.amount, 0);
+        
+      const netRevenue = revenue - refunds + adjustments;
       
-      // Calculate summaries
-      const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
-      const pendingClaims = claims.filter(claim => claim.status === "submitted").length;
-      const approvedClaims = claims.filter(claim => claim.status === "approved").length;
-      const deniedClaims = claims.filter(claim => claim.status === "denied").length;
+      // Get payment method breakdown
+      const paymentMethods = {
+        cash: 0,
+        creditCard: 0,
+        check: 0,
+        insurance: 0,
+        other: 0
+      };
       
-      // Group by payment method
-      const revenueByMethod = payments.reduce((acc, payment) => {
-        const method = payment.method;
-        acc[method] = (acc[method] || 0) + payment.amount;
-        return acc;
-      }, {} as Record<string, number>);
+      transactions
+        .filter(t => t.type === "payment")
+        .forEach(t => {
+          switch (t.method) {
+            case "cash":
+              paymentMethods.cash += t.amount;
+              break;
+            case "credit_card":
+              paymentMethods.creditCard += t.amount;
+              break;
+            case "check":
+              paymentMethods.check += t.amount;
+              break;
+            case "insurance":
+              paymentMethods.insurance += t.amount;
+              break;
+            default:
+              paymentMethods.other += t.amount;
+          }
+        });
       
       return {
-        totalRevenue,
-        claims: {
-          total: claims.length,
-          pending: pendingClaims,
-          approved: approvedClaims,
-          denied: deniedClaims,
-          submissionRate: claims.length > 0 ? (approvedClaims / claims.length) : 0
+        period: {
+          start: validatedDates.startDate,
+          end: validatedDates.endDate
         },
-        revenueByMethod,
-        dateRange: {
-          start: startDate.toISOString(),
-          end: endDate.toISOString()
-        }
+        revenue,
+        refunds,
+        adjustments,
+        netRevenue,
+        paymentMethods,
+        transactionCount: transactions.length
       };
     } catch (error) {
       console.error("Financial summary error:", error);
-      throw error;
+      throw new Error(error instanceof Error ? error.message : "Failed to generate financial summary");
     }
   }
   
   async generateTaxReport(year: number) {
     try {
-      // Validate year
-      const currentYear = new Date().getFullYear();
-      if (year > currentYear) {
-        throw new Error("Cannot generate tax report for future years");
-      }
-      
-      const startDate = new Date(`${year}-01-01T00:00:00Z`);
-      const endDate = new Date(`${year}-12-31T23:59:59Z`);
-      
       // Get all financial transactions for the year
-      const payments = await storage.getPaymentsByDateRange(startDate, endDate);
-      const claims = await storage.getInsuranceClaimsByDateRange(startDate, endDate);
+      const startDate = new Date(`${year}-01-01`);
+      const endDate = new Date(`${year}-12-31`);
       
-      // Calculate tax-relevant information
-      const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
-      const insuranceRevenue = payments
-        .filter(payment => payment.method === "insurance")
-        .reduce((sum, payment) => sum + payment.amount, 0);
+      const transactions = await storage.getFinancialTransactionsInDateRange(startDate, endDate);
       
-      // Generate financial report with AI assistance
-      const reportData = {
-        year,
-        totalRevenue,
-        insuranceRevenue,
-        nonInsuranceRevenue: totalRevenue - insuranceRevenue,
-        transactionCount: payments.length,
-        claimsProcessed: claims.length,
-        quarterlyBreakdown: this.calculateQuarterlyBreakdown(payments, year)
-      };
+      // Calculate quarterly breakdowns
+      const quarterlyRevenue = [0, 0, 0, 0];
       
-      // Use AI to generate insights
-      const insights = await this.generateFinancialInsights(reportData);
+      transactions.forEach(t => {
+        if (t.fiscalQuarter >= 1 && t.fiscalQuarter <= 4) {
+          if (t.type === "payment" || t.type === "insurance_payment") {
+            quarterlyRevenue[t.fiscalQuarter - 1] += t.amount;
+          }
+        }
+      });
+      
+      // Calculate by category using categoryCode
+      const categorizedRevenue: Record<string, number> = {};
+      
+      transactions.forEach(t => {
+        if (t.type === "payment" || t.type === "insurance_payment") {
+          if (t.categoryCode) {
+            if (!categorizedRevenue[t.categoryCode]) {
+              categorizedRevenue[t.categoryCode] = 0;
+            }
+            categorizedRevenue[t.categoryCode] += t.amount;
+          }
+        }
+      });
       
       return {
-        ...reportData,
-        insights
+        year,
+        totalRevenue: quarterlyRevenue.reduce((sum, q) => sum + q, 0),
+        quarterlyRevenue,
+        categorizedRevenue,
+        transactionCount: transactions.length
       };
     } catch (error) {
-      console.error("Tax report generation error:", error);
-      throw error;
+      console.error("Tax report error:", error);
+      throw new Error(error instanceof Error ? error.message : "Failed to generate tax report");
     }
   }
   
-  private calculateQuarterlyBreakdown(payments: any[], year: number) {
-    const quarters = [
-      { start: new Date(`${year}-01-01`), end: new Date(`${year}-03-31`), revenue: 0 },
-      { start: new Date(`${year}-04-01`), end: new Date(`${year}-06-30`), revenue: 0 },
-      { start: new Date(`${year}-07-01`), end: new Date(`${year}-09-30`), revenue: 0 },
-      { start: new Date(`${year}-10-01`), end: new Date(`${year}-12-31`), revenue: 0 }
-    ];
+  private getFiscalPeriod(date: Date) {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
     
-    payments.forEach(payment => {
-      const paymentDate = new Date(payment.date);
-      for (let i = 0; i < quarters.length; i++) {
-        if (paymentDate >= quarters[i].start && paymentDate <= quarters[i].end) {
-          quarters[i].revenue += payment.amount;
+    let fiscalQuarter = 1;
+    if (month >= 4 && month <= 6) fiscalQuarter = 2;
+    else if (month >= 7 && month <= 9) fiscalQuarter = 3;
+    else if (month >= 10) fiscalQuarter = 4;
+    
+    return {
+      fiscalYear: year,
+      fiscalQuarter
+    };
+  }
+  
+  private calculateExpectedReimbursement(
+    procedures: Array<{code: string, fee: number}>,
+    insuranceProvider: string
+  ) {
+    // Get insurance provider details or default to standard coverage
+    const provider = insuranceProviders[insuranceProvider as keyof typeof insuranceProviders] || {
+      name: "Standard",
+      coverageRates: {
+        preventive: 0.8,
+        basic: 0.6,
+        major: 0.4,
+        orthodontic: 0.3,
+      },
+      annualMax: 1500,
+    };
+    
+    let totalReimbursement = 0;
+    
+    procedures.forEach(proc => {
+      // Extract procedure category code range
+      const codePrefix = proc.code.substring(0, 5); // e.g., "D0120"
+      
+      // Determine procedure category and apply appropriate coverage rate
+      let category = "basic"; // Default
+      
+      for (const [range, cat] of Object.entries(procedureCategories)) {
+        const [start, end] = range.split("-");
+        if (codePrefix >= start && codePrefix <= end) {
+          category = cat;
           break;
         }
       }
+      
+      // Calculate reimbursement for this procedure
+      const coverageRate = provider.coverageRates[category as keyof typeof provider.coverageRates];
+      totalReimbursement += proc.fee * coverageRate;
     });
     
-    return quarters.map((q, i) => ({
-      quarter: i + 1,
-      revenue: q.revenue
-    }));
+    // Ensure reimbursement doesn't exceed annual maximum
+    return Math.min(totalReimbursement, provider.annualMax);
   }
   
-  private async generateFinancialInsights(reportData: any) {
+  async estimatePatientCost(treatmentPlanId: number, insuranceProviderId: string) {
     try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are a dental practice financial analyst. Analyze the financial data and provide actionable insights for tax planning and practice management."
-          },
-          {
-            role: "user",
-            content: JSON.stringify(reportData)
-          }
-        ],
-        response_format: { type: "json_object" }
-      });
+      const treatmentPlan = await storage.getTreatmentPlan(treatmentPlanId);
       
-      return JSON.parse(response.choices[0].message.content || "{}");
-    } catch (error) {
-      console.error("AI insights generation error:", error);
+      if (!treatmentPlan) {
+        throw new Error("Treatment plan not found");
+      }
+      
+      // Get procedures from treatment plan
+      const procedures = treatmentPlan.procedures as any[];
+      
+      if (!procedures || !Array.isArray(procedures)) {
+        throw new Error("Invalid procedure data in treatment plan");
+      }
+      
+      // Calculate expected insurance coverage
+      const expectedReimbursement = this.calculateExpectedReimbursement(
+        procedures,
+        insuranceProviderId
+      );
+      
+      // Calculate patient responsibility
+      const totalCost = treatmentPlan.cost;
+      const patientResponsibility = Math.max(0, totalCost - expectedReimbursement);
+      
       return {
-        summary: "Unable to generate AI insights at this time",
-        recommendations: ["Review quarterly revenue data", "Consult with financial advisor"]
+        treatmentPlanId,
+        totalCost,
+        expectedInsuranceCoverage: expectedReimbursement,
+        patientResponsibility,
+        insuranceProvider: insuranceProviderId,
       };
+    } catch (error) {
+      console.error("Cost estimation error:", error);
+      throw new Error(error instanceof Error ? error.message : "Failed to estimate patient cost");
     }
   }
 }

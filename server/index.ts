@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { setupVite, log } from "./vite";
 import app from "./app";
+import http from 'http';
+import { setupWebSocketServer } from './websocket';
 
 const server = express();
 
@@ -31,6 +33,13 @@ server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   res.status(status).json({ message });
 });
 
+// Create HTTP server from Express app
+const httpServer = http.createServer(server);
+
+// Setup WebSocket server
+setupWebSocketServer(httpServer);
+
+
 // Initialize server
 (async () => {
   try {
@@ -39,8 +48,9 @@ server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     await setupVite(server);
 
     const PORT = process.env.PORT || 5000;
-    server.listen(Number(PORT), "0.0.0.0", () => {
+    httpServer.listen(Number(PORT), "0.0.0.0", () => {
       log(`Server running on port ${PORT}`);
+      console.log(`WebSocket server available at ws://localhost:${PORT}`);
     });
   } catch (error) {
     console.error("Server startup error:", error);

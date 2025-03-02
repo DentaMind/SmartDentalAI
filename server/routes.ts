@@ -703,6 +703,596 @@ router.get('/api/education', (req, res) => {
   res.json(filtered);
 });
 
+// Financial Routes
+router.get("/financial/summary", requireAuth, requireRole(["doctor", "admin", "staff"]), async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    if (!startDate || !endDate) {
+      return res.status(400).json({ message: "Start date and end date are required" });
+    }
+    
+    const { financialService } = await import('./services/financial');
+    const summary = await financialService.getFinancialSummary(
+      new Date(startDate as string),
+      new Date(endDate as string)
+    );
+    
+    res.json(summary);
+  } catch (error) {
+    console.error("Financial summary error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to get financial summary" 
+    });
+  }
+});
+
+router.get("/financial/tax-report/:year", requireAuth, requireRole(["doctor", "admin"]), async (req, res) => {
+  try {
+    const year = parseInt(req.params.year);
+    
+    if (isNaN(year)) {
+      return res.status(400).json({ message: "Invalid year" });
+    }
+    
+    const { financialService } = await import('./services/financial');
+    const report = await financialService.generateTaxReport(year);
+    
+    res.json(report);
+  } catch (error) {
+    console.error("Tax report error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to generate tax report" 
+    });
+  }
+});
+
+router.post("/financial/payment", requireAuth, async (req, res) => {
+  try {
+    const { financialService } = await import('./services/financial');
+    const payment = await financialService.processPayment(req.body);
+    
+    res.status(201).json(payment);
+  } catch (error) {
+    console.error("Payment processing error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to process payment" 
+    });
+  }
+});
+
+router.post("/financial/insurance/claim", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+  try {
+    const { financialService } = await import('./services/financial');
+    const claim = await financialService.submitInsuranceClaim(req.body);
+    
+    res.status(201).json(claim);
+  } catch (error) {
+    console.error("Insurance claim error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to submit insurance claim" 
+    });
+  }
+});
+
+router.post("/financial/estimate", requireAuth, async (req, res) => {
+  try {
+    const { treatmentPlanId, insuranceProviderId } = req.body;
+    
+    if (!treatmentPlanId || !insuranceProviderId) {
+      return res.status(400).json({ message: "Treatment plan ID and insurance provider ID are required" });
+    }
+    
+    const { financialService } = await import('./services/financial');
+    const estimate = await financialService.estimatePatientCost(
+      treatmentPlanId,
+      insuranceProviderId
+    );
+    
+    res.json(estimate);
+  } catch (error) {
+    console.error("Cost estimation error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to estimate patient cost" 
+    });
+  }
+});
+
+// Scheduler Routes
+router.get("/scheduler/slots", requireAuth, async (req, res) => {
+  try {
+    const { doctorId, date, duration } = req.query;
+    
+    if (!doctorId || !date) {
+      return res.status(400).json({ message: "Doctor ID and date are required" });
+    }
+    
+    const { schedulerService } = await import('./services/scheduler');
+    const slots = await schedulerService.getAvailableSlots(
+      Number(doctorId),
+      date as string,
+      duration ? Number(duration) : 30
+    );
+    
+    res.json(slots);
+  } catch (error) {
+    console.error("Available slots error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to get available slots" 
+    });
+  }
+});
+
+router.post("/scheduler/appointment", requireAuth, async (req, res) => {
+  try {
+    const { schedulerService } = await import('./services/scheduler');
+    const appointment = await schedulerService.scheduleAppointment(req.body);
+    
+    res.status(201).json(appointment);
+  } catch (error) {
+    console.error("Appointment scheduling error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to schedule appointment" 
+    });
+  }
+});
+
+router.put("/scheduler/appointment/:id/reschedule", requireAuth, async (req, res) => {
+  try {
+    const { newStartTime, newEndTime } = req.body;
+    const appointmentId = Number(req.params.id);
+    
+    if (!appointmentId || !newStartTime || !newEndTime) {
+      return res.status(400).json({ message: "Appointment ID, new start time, and new end time are required" });
+    }
+    
+    const { schedulerService } = await import('./services/scheduler');
+    const appointment = await schedulerService.rescheduleAppointment(
+      appointmentId,
+      newStartTime,
+      newEndTime
+    );
+    
+    res.json(appointment);
+  } catch (error) {
+    console.error("Appointment rescheduling error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to reschedule appointment" 
+    });
+  }
+});
+
+router.post("/scheduler/appointment/:id/cancel", requireAuth, async (req, res) => {
+  try {
+    const appointmentId = Number(req.params.id);
+    const { reason } = req.body;
+    
+    if (!appointmentId) {
+      return res.status(400).json({ message: "Appointment ID is required" });
+    }
+    
+    const { schedulerService } = await import('./services/scheduler');
+    const result = await schedulerService.cancelAppointment(appointmentId, reason);
+    
+    res.json(result);
+  } catch (error) {
+    console.error("Appointment cancellation error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to cancel appointment" 
+    });
+  }
+});
+
+router.post("/scheduler/availability/recurring", requireAuth, requireRole(["doctor", "admin"]), async (req, res) => {
+  try {
+    const { doctorId, startDate, startTime, endTime, recurrencePattern } = req.body;
+    
+    if (!doctorId || !startDate || !startTime || !endTime || !recurrencePattern) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+    
+    const { schedulerService } = await import('./services/scheduler');
+    const slots = await schedulerService.createRecurringAvailability(
+      doctorId,
+      startDate,
+      startTime,
+      endTime,
+      recurrencePattern
+    );
+    
+    res.status(201).json(slots);
+  } catch (error) {
+    console.error("Recurring availability error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to create recurring availability" 
+    });
+  }
+});
+
+// Integration Routes
+router.post("/integration/lab/request", requireAuth, requireRole(["doctor"]), async (req, res) => {
+  try {
+    const { integrationService } = await import('./services/integration');
+    const result = await integrationService.submitLabRequest(req.body);
+    
+    res.status(201).json(result);
+  } catch (error) {
+    console.error("Lab request error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to submit lab request" 
+    });
+  }
+});
+
+router.get("/integration/lab/status/:requestId", requireAuth, async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    
+    if (!requestId) {
+      return res.status(400).json({ message: "Request ID is required" });
+    }
+    
+    const { integrationService } = await import('./services/integration');
+    const status = await integrationService.getLabRequestStatus(requestId);
+    
+    res.json(status);
+  } catch (error) {
+    console.error("Lab status check error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to check lab status" 
+    });
+  }
+});
+
+router.post("/integration/insurance/eligibility", requireAuth, async (req, res) => {
+  try {
+    const { integrationService } = await import('./services/integration');
+    const eligibility = await integrationService.checkInsuranceEligibility(req.body);
+    
+    res.json(eligibility);
+  } catch (error) {
+    console.error("Eligibility check error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to check eligibility" 
+    });
+  }
+});
+
+router.post("/integration/claim/electronic", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+  try {
+    const { integrationService } = await import('./services/integration');
+    const result = await integrationService.submitElectronicClaim(req.body);
+    
+    res.status(201).json(result);
+  } catch (error) {
+    console.error("Electronic claim error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to submit electronic claim" 
+    });
+  }
+});
+
+router.post("/integration/prescription", requireAuth, requireRole(["doctor"]), async (req, res) => {
+  try {
+    const { integrationService } = await import('./services/integration');
+    const result = await integrationService.sendElectronicPrescription(req.body);
+    
+    res.status(201).json(result);
+  } catch (error) {
+    console.error("Prescription error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to send electronic prescription" 
+    });
+  }
+});
+
+router.post("/integration/referral", requireAuth, requireRole(["doctor"]), async (req, res) => {
+  try {
+    const { integrationService } = await import('./services/integration');
+    const result = await integrationService.createReferral(req.body);
+    
+    res.status(201).json(result);
+  } catch (error) {
+    console.error("Referral error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to create referral" 
+    });
+  }
+});
+
+// Security and Audit Routes
+router.post("/security/audit/logs", requireAuth, requireRole(["admin"]), async (req, res) => {
+  try {
+    const { securityService } = await import('./services/security');
+    const logs = await securityService.getAuditLogs(req.body);
+    
+    res.json(logs);
+  } catch (error) {
+    console.error("Audit logs error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to retrieve audit logs" 
+    });
+  }
+});
+
+router.post("/security/password/validate", async (req, res) => {
+  try {
+    const { password } = req.body;
+    
+    if (!password) {
+      return res.status(400).json({ message: "Password is required" });
+    }
+    
+    const { securityService } = await import('./services/security');
+    const result = securityService.validatePasswordStrength(password);
+    
+    res.json(result);
+  } catch (error) {
+    console.error("Password validation error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to validate password" 
+    });
+  }
+});
+
+router.post("/security/access/check", requireAuth, async (req, res) => {
+  try {
+    // Add the authenticated user ID to the request
+    const userId = (req as any).user.id;
+    const role = (req as any).user.role;
+    
+    const { securityService } = await import('./services/security');
+    const result = await securityService.checkAccessPermission({
+      ...req.body,
+      userId,
+      role
+    });
+    
+    res.json(result);
+  } catch (error) {
+    console.error("Access check error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to check access permission" 
+    });
+  }
+});
+
+router.post("/security/hipaa/report", requireAuth, requireRole(["admin", "doctor"]), async (req, res) => {
+  try {
+    const { patientId, startDate, endDate } = req.body;
+    
+    if (!patientId) {
+      return res.status(400).json({ message: "Patient ID is required" });
+    }
+    
+    const { securityService } = await import('./services/security');
+    const report = await securityService.generateHIPAAAccessReport(
+      patientId,
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined
+    );
+    
+    res.json(report);
+  } catch (error) {
+    console.error("HIPAA report error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to generate HIPAA access report" 
+    });
+  }
+});
+
+// Data Import and Migration Routes
+router.post("/data/import/csv", requireAuth, requireRole(["admin"]), async (req, res) => {
+  try {
+    const userId = (req as any).user.id;
+    
+    const { dataMigrationService } = await import('./services/data-migration');
+    const result = await dataMigrationService.importFromCSV(req.body, userId);
+    
+    res.json(result);
+  } catch (error) {
+    console.error("CSV import error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to import data from CSV" 
+    });
+  }
+});
+
+router.post("/data/export/csv", requireAuth, requireRole(["admin", "doctor"]), async (req, res) => {
+  try {
+    const { type, filters } = req.body;
+    const userId = (req as any).user.id;
+    
+    if (!type) {
+      return res.status(400).json({ message: "Export type is required" });
+    }
+    
+    const { dataMigrationService } = await import('./services/data-migration');
+    const result = await dataMigrationService.exportToCSV(type, filters, userId);
+    
+    res.json(result);
+  } catch (error) {
+    console.error("CSV export error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to export data to CSV" 
+    });
+  }
+});
+
+router.post("/data/migrate/external", requireAuth, requireRole(["admin"]), async (req, res) => {
+  try {
+    const { systemType, connectionConfig } = req.body;
+    const userId = (req as any).user.id;
+    
+    if (!systemType || !connectionConfig) {
+      return res.status(400).json({ message: "System type and connection config are required" });
+    }
+    
+    const { dataMigrationService } = await import('./services/data-migration');
+    const result = await dataMigrationService.migrateFromExternalSystem(
+      systemType,
+      connectionConfig,
+      userId
+    );
+    
+    res.json(result);
+  } catch (error) {
+    console.error("System migration error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to migrate from external system" 
+    });
+  }
+});
+
+// Backup and Analytics Routes
+router.post("/system/backup", requireAuth, requireRole(["admin"]), async (req, res) => {
+  try {
+    const backup = await storage.createBackup();
+    res.json(backup);
+  } catch (error) {
+    console.error("Backup creation error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to create backup" 
+    });
+  }
+});
+
+router.post("/system/restore/:backupId", requireAuth, requireRole(["admin"]), async (req, res) => {
+  try {
+    const { backupId } = req.params;
+    
+    if (!backupId) {
+      return res.status(400).json({ message: "Backup ID is required" });
+    }
+    
+    const result = await storage.restoreFromBackup(backupId);
+    res.json(result);
+  } catch (error) {
+    console.error("Backup restoration error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to restore from backup" 
+    });
+  }
+});
+
+router.get("/analytics/practice", requireAuth, requireRole(["doctor", "admin"]), async (req, res) => {
+  try {
+    const { timeframe } = req.query;
+    
+    const analytics = await storage.getPracticeAnalytics(timeframe as string || "last_30days");
+    
+    res.json(analytics);
+  } catch (error) {
+    console.error("Practice analytics error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to get practice analytics" 
+    });
+  }
+});
+
+// Notification Routes
+router.post("/notifications/send", requireAuth, requireRole(["doctor", "admin", "staff"]), async (req, res) => {
+  try {
+    const { notificationService } = await import('./services/notifications');
+    const result = await notificationService.sendNotification(req.body);
+    
+    res.status(201).json(result);
+  } catch (error) {
+    console.error("Notification send error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to send notification" 
+    });
+  }
+});
+
+router.post("/notifications/appointment-reminders", requireAuth, requireRole(["admin", "staff"]), async (req, res) => {
+  try {
+    const { days } = req.body;
+    
+    const { notificationService } = await import('./services/notifications');
+    const result = await notificationService.createAppointmentReminders(days);
+    
+    res.json(result);
+  } catch (error) {
+    console.error("Appointment reminders error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to create appointment reminders" 
+    });
+  }
+});
+
+router.get("/notifications/user", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as any).user.id;
+    const { unreadOnly, limit } = req.query;
+    
+    const { notificationService } = await import('./services/notifications');
+    const notifications = await notificationService.getUserNotifications(userId, {
+      unreadOnly: unreadOnly === "true",
+      limit: limit ? Number(limit) : undefined
+    });
+    
+    res.json(notifications);
+  } catch (error) {
+    console.error("Get user notifications error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to get user notifications" 
+    });
+  }
+});
+
+router.post("/notifications/:id/read", requireAuth, async (req, res) => {
+  try {
+    const notificationId = req.params.id;
+    const userId = (req as any).user.id;
+    
+    const { notificationService } = await import('./services/notifications');
+    const result = await notificationService.markNotificationRead(notificationId, userId);
+    
+    res.json(result);
+  } catch (error) {
+    console.error("Mark notification read error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to mark notification as read" 
+    });
+  }
+});
+
+router.put("/notifications/preferences", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as any).user.id;
+    
+    const { notificationService } = await import('./services/notifications');
+    const result = await notificationService.updateUserPreferences({
+      ...req.body,
+      userId
+    });
+    
+    res.json(result);
+  } catch (error) {
+    console.error("Update preferences error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to update notification preferences" 
+    });
+  }
+});
+
+router.get("/notifications/preferences", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as any).user.id;
+    
+    const { notificationService } = await import('./services/notifications');
+    const preferences = await notificationService.getUserPreferences(userId);
+    
+    res.json(preferences);
+  } catch (error) {
+    console.error("Get preferences error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to get notification preferences" 
+    });
+  }
+});
+
 // Mount all routes under /api prefix
 app.use("/api", router);
 
