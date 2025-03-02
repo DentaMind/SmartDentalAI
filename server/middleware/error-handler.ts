@@ -129,3 +129,53 @@ export const asyncHandler = (fn: Function) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 };
+import { Request, Response, NextFunction } from 'express';
+import { securityService } from '../services/security';
+
+export class ApiError extends Error {
+  statusCode: number;
+  
+  constructor(message: string, statusCode: number = 500) {
+    super(message);
+    this.statusCode = statusCode;
+    this.name = 'ApiError';
+  }
+}
+
+export const errorHandler = (
+  err: Error | ApiError,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  console.error('Error caught by error handler:', err);
+  
+  // Log the error
+  securityService.createAuditLog({
+    userId: (req as any).user?.id,
+    action: 'error',
+    resource: req.path,
+    details: { 
+      errorName: err.name,
+      errorMessage: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    },
+    result: 'error'
+  }).catch(e => console.error('Error logging error:', e));
+  
+  // API error with status code
+  if (err instanceof ApiError) {
+    return res.status(err.statusCode).json({
+      message: err.message,
+      ...(process.env.NODE_ENV === 'development' ? { stack: err.stack } : {})
+    });
+  }
+  
+  // Default server error
+  res.status(500).json({
+    message: process.env.NODE_ENV === 'production' 
+      ? 'An unexpected error occurred' 
+      : err.message,
+    ...(process.env.NODE_ENV === 'development' ? { stack: err.stack } : {})
+  });
+};

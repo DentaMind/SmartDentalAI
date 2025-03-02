@@ -2,18 +2,19 @@ import express from "express";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { predictFromSymptoms } from "./services/ai-prediction";
+import { aiCoordinator } from "./services/ai-coordinator"; // Added based on context
 import { requireAuth, requireRole, requireOwnership } from "./middleware/auth";
-import { errorHandler, notFoundHandler, handleRateLimitError } from "./middleware/error-handler";
-import { financialService } from "./services/financial";
-import { patientPortal } from "./services/patient-portal";
-import { dashboardAnalytics } from "./services/dashboard-analytics";
-import { dataIntegrity } from "./services/data-integrity";
+import { setupSecurityMiddleware } from "./middleware/security"; // Added security middleware import
+import { generateDiagnosticReport } from './services/report-generator';
+import path from 'path';
+import { securityService } from "./services/security"; // Added security service import
 
 const app = express();
 const router = express.Router();
 
 // Setup middleware
 app.use(express.json());
+app.use(setupSecurityMiddleware); // Apply security middleware
 
 // Setup authentication on the router
 setupAuth(router);
