@@ -747,6 +747,52 @@ router.get("/financial/tax-report/:year", requireAuth, requireRole(["doctor", "a
   }
 });
 
+router.get("/financial/export/:year", requireAuth, requireRole(["doctor", "admin"]), async (req, res) => {
+  try {
+    const year = parseInt(req.params.year);
+    const format = (req.query.format as string) || 'json';
+    
+    if (isNaN(year)) {
+      return res.status(400).json({ message: "Invalid year" });
+    }
+    
+    if (!['csv', 'json', 'excel', 'pdf'].includes(format)) {
+      return res.status(400).json({ message: "Invalid format" });
+    }
+    
+    const { financialService } = await import('./services/financial');
+    const startDate = new Date(`${year}-01-01`);
+    const endDate = new Date(`${year}-12-31`);
+    
+    const exportData = await financialService.exportFinancialData(startDate, endDate, format as any);
+    
+    // Set appropriate content type and filename
+    let contentType = 'application/json';
+    let extension = 'json';
+    
+    if (format === 'csv') {
+      contentType = 'text/csv';
+      extension = 'csv';
+    } else if (format === 'excel') {
+      contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      extension = 'xlsx';
+    } else if (format === 'pdf') {
+      contentType = 'application/pdf';
+      extension = 'pdf';
+    }
+    
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `attachment; filename=financial_report_${year}.${extension}`);
+    
+    res.send(exportData);
+  } catch (error) {
+    console.error("Financial export error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to export financial data" 
+    });
+  }
+});
+
 router.post("/financial/payment", requireAuth, async (req, res) => {
   try {
     const { financialService } = await import('./services/financial');

@@ -1,15 +1,21 @@
 
 import { storage } from "../storage";
+import { 
+  InsertPayment, 
+  InsertFinancialTransaction,
+  InsertInsuranceClaim,
+  Payment,
+  FinancialTransaction,
+  InsuranceClaim
+} from "@shared/schema";
 import { z } from "zod";
-import dayjs from "dayjs";
-import * as XLSX from "xlsx";
 
-// Schemas for data validation
+// Validation schemas
 const paymentSchema = z.object({
   patientId: z.number(),
   amount: z.number().positive(),
-  method: z.string(),
   treatmentPlanId: z.number().optional(),
+  method: z.string(),
   description: z.string().optional()
 });
 
@@ -24,60 +30,78 @@ const insuranceClaimSchema = z.object({
 });
 
 const financialDateRangeSchema = z.object({
-  startDate: z.coerce.date(),
-  endDate: z.coerce.date()
+  startDate: z.date(),
+  endDate: z.date().refine(date => date > new Date(0), {
+    message: "End date must be valid"
+  })
 });
 
-// Mock insurance provider data - in production, this would come from a database
+// Insurance provider details
 const insuranceProviders = {
-  "Delta Dental": {
+  delta: {
     name: "Delta Dental",
     coverageRates: {
-      preventive: 1.0,  // 100% coverage
-      basic: 0.8,       // 80% coverage
-      major: 0.5,       // 50% coverage
-      orthodontic: 0.5  // 50% coverage
+      preventive: 1.0,
+      basic: 0.8,
+      major: 0.5,
+      orthodontic: 0.5,
     },
     annualMax: 2000,
-    deductible: 50
   },
-  "Cigna": {
+  aetna: {
+    name: "Aetna",
+    coverageRates: {
+      preventive: 1.0,
+      basic: 0.8,
+      major: 0.5,
+      orthodontic: 0.5,
+    },
+    annualMax: 1500,
+  },
+  cigna: {
     name: "Cigna",
+    coverageRates: {
+      preventive: 1.0,
+      basic: 0.8,
+      major: 0.5,
+      orthodontic: 0.5,
+    },
+    annualMax: 1800,
+  },
+  metlife: {
+    name: "MetLife",
+    coverageRates: {
+      preventive: 1.0,
+      basic: 0.8,
+      major: 0.5,
+      orthodontic: 0.5,
+    },
+    annualMax: 1750,
+  },
+  united: {
+    name: "United Healthcare",
     coverageRates: {
       preventive: 1.0,
       basic: 0.7,
       major: 0.4,
-      orthodontic: 0.5
+      orthodontic: 0.5,
     },
     annualMax: 1500,
-    deductible: 100
-  },
-  "Aetna": {
-    name: "Aetna",
-    coverageRates: {
-      preventive: 0.9,
-      basic: 0.7,
-      major: 0.4,
-      orthodontic: 0.4
-    },
-    annualMax: 1800,
-    deductible: 75
   }
 };
 
-// Procedure category definitions based on CDT codes
-const procedureCategories: Record<string, "preventive" | "basic" | "major" | "orthodontic"> = {
+// Mapping procedure code ranges to categories
+const procedureCategories: Record<string, string> = {
   "D0100-D0999": "preventive", // Diagnostic
   "D1000-D1999": "preventive", // Preventive
   "D2000-D2999": "basic",      // Restorative
   "D3000-D3999": "major",      // Endodontics
   "D4000-D4999": "major",      // Periodontics
-  "D5000-D5999": "major",      // Prosthodontics, removable
-  "D6000-D6199": "major",      // Implant Services
-  "D6200-D6999": "major",      // Prosthodontics, fixed
-  "D7000-D7999": "basic",      // Oral and Maxillofacial Surgery
+  "D5000-D5999": "major",      // Prosthodontics (removable)
+  "D6000-D6999": "major",      // Implant Services
+  "D7000-D7999": "basic",      // Oral Surgery
   "D8000-D8999": "orthodontic", // Orthodontics
-  "D9000-D9999": "basic"       // Adjunctive General Services
+  "D9000-D9999": "basic",      // Adjunctive Services
 };
 
 export class FinancialService {
@@ -90,7 +114,6 @@ export class FinancialService {
       const payment = await storage.createPayment({
         patientId: validatedData.patientId,
         amount: validatedData.amount,
-        patientAmount: validatedData.amount,
         date: new Date(),
         status: "processed",
         treatmentPlanId: validatedData.treatmentPlanId,
@@ -277,202 +300,6 @@ export class FinancialService {
     }
   }
   
-  async exportFinancialData(year: number, format: 'xlsx' | 'csv' = 'xlsx') {
-    try {
-      // Get all financial transactions for the year
-      const startDate = new Date(`${year}-01-01`);
-      const endDate = new Date(`${year}-12-31`);
-      
-      const transactions = await storage.getFinancialTransactionsInDateRange(startDate, endDate);
-      
-      // Format transaction data
-      const formattedData = transactions.map(t => ({
-        id: t.id,
-        date: dayjs(t.date).format('YYYY-MM-DD'),
-        type: t.type,
-        amount: t.amount / 100, // Assuming amounts are stored in cents
-        method: t.method,
-        status: t.status,
-        patientId: t.patientId,
-        description: t.description || '',
-        categoryCode: t.categoryCode || '',
-        fiscalYear: t.fiscalYear,
-        fiscalQuarter: t.fiscalQuarter
-      }));
-      
-      if (format === 'xlsx') {
-        // Create an Excel workbook
-        const wb = XLSX.utils.book_new();
-        
-        // Create worksheet from data
-        const ws = XLSX.utils.json_to_sheet(formattedData);
-        
-        // Add worksheet to workbook
-        XLSX.utils.book_append_sheet(wb, ws, `Financial_Data_${year}`);
-        
-        // Generate buffer
-        const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-        
-        return {
-          filename: `DentaMind_Financial_Export_${year}.xlsx`,
-          data: buffer,
-          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        };
-      } else {
-        // Convert to CSV
-        const csvData = XLSX.utils.json_to_csv(formattedData);
-        
-        return {
-          filename: `DentaMind_Financial_Export_${year}.csv`,
-          data: Buffer.from(csvData),
-          mimeType: 'text/csv'
-        };
-      }
-    } catch (error) {
-      console.error("Financial data export error:", error);
-      throw new Error(error instanceof Error ? error.message : "Failed to export financial data");
-    }
-  }
-  
-  async generateFinancialForecast(months: number = 12) {
-    try {
-      // Get last 12 months of data for trend analysis
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setMonth(startDate.getMonth() - 12);
-      
-      const transactions = await storage.getFinancialTransactionsInDateRange(startDate, endDate);
-      
-      // Group by month to establish trend
-      const monthlyData: Record<string, number> = {};
-      
-      transactions.forEach(t => {
-        if (t.type === "payment" || t.type === "insurance_payment") {
-          const monthKey = dayjs(t.date).format('YYYY-MM');
-          if (!monthlyData[monthKey]) {
-            monthlyData[monthKey] = 0;
-          }
-          monthlyData[monthKey] += t.amount;
-        }
-      });
-      
-      // Convert to array and sort by month
-      const sortedMonthlyData = Object.entries(monthlyData)
-        .map(([month, amount]) => ({ month, amount }))
-        .sort((a, b) => a.month.localeCompare(b.month));
-      
-      // Simple linear forecast (can be replaced with more sophisticated algorithms)
-      const forecastData = [];
-      
-      // Calculate average monthly growth
-      let growthRate = 0;
-      
-      if (sortedMonthlyData.length > 1) {
-        const growthRates = [];
-        for (let i = 1; i < sortedMonthlyData.length; i++) {
-          const prevAmount = sortedMonthlyData[i-1].amount;
-          const currentAmount = sortedMonthlyData[i].amount;
-          if (prevAmount > 0) {
-            growthRates.push((currentAmount - prevAmount) / prevAmount);
-          }
-        }
-        
-        // Average growth rate (with outlier protection)
-        if (growthRates.length > 0) {
-          growthRate = growthRates.reduce((sum, rate) => sum + rate, 0) / growthRates.length;
-          // Cap growth rate between -30% and +30% per month to avoid unrealistic forecasts
-          growthRate = Math.max(-0.3, Math.min(0.3, growthRate));
-        }
-      }
-      
-      // Get last known amount
-      let lastAmount = sortedMonthlyData.length > 0 
-        ? sortedMonthlyData[sortedMonthlyData.length - 1].amount 
-        : 0;
-      
-      // Generate forecast
-      for (let i = 1; i <= months; i++) {
-        const forecastDate = new Date();
-        forecastDate.setMonth(forecastDate.getMonth() + i);
-        const monthKey = dayjs(forecastDate).format('YYYY-MM');
-        
-        // Forecast amount using growth rate
-        lastAmount = lastAmount * (1 + growthRate);
-        
-        forecastData.push({
-          month: monthKey,
-          forecastedAmount: Math.round(lastAmount),
-        });
-      }
-      
-      return {
-        historicalData: sortedMonthlyData,
-        forecastData: forecastData,
-        growthRate: growthRate,
-        confidence: "medium" // Can be improved with statistical methods
-      };
-    } catch (error) {
-      console.error("Financial forecast error:", error);
-      throw new Error(error instanceof Error ? error.message : "Failed to generate financial forecast");
-    }
-  }
-  
-  async analyzeProfitability(startDate: Date, endDate: Date) {
-    try {
-      // Validate date range
-      const validatedDates = financialDateRangeSchema.parse({ startDate, endDate });
-      
-      // Get all financial transactions in date range
-      const transactions = await storage.getFinancialTransactionsInDateRange(
-        validatedDates.startDate,
-        validatedDates.endDate
-      );
-      
-      // Get patients and procedures in the date range to calculate profitability per patient
-      const patients = await storage.getPatients();
-      
-      // Calculate revenue per patient
-      const patientRevenue: Record<number, number> = {};
-      
-      transactions.forEach(t => {
-        if (t.type === "payment" || t.type === "insurance_payment") {
-          if (!patientRevenue[t.patientId]) {
-            patientRevenue[t.patientId] = 0;
-          }
-          patientRevenue[t.patientId] += t.amount;
-        }
-      });
-      
-      // Sort patients by revenue
-      const topPatientsByRevenue = Object.entries(patientRevenue)
-        .map(([patientId, revenue]) => ({
-          patientId: parseInt(patientId),
-          revenue,
-          patient: patients.find(p => p.id === parseInt(patientId))
-        }))
-        .sort((a, b) => b.revenue - a.revenue)
-        .slice(0, 20);
-      
-      // Calculate procedure profitability (if procedure cost data is available)
-      // This would require procedure cost data that's not currently in the schema
-      
-      return {
-        period: {
-          start: validatedDates.startDate,
-          end: validatedDates.endDate
-        },
-        topPatientsByRevenue,
-        totalRevenue: Object.values(patientRevenue).reduce((sum, rev) => sum + rev, 0),
-        averageRevenuePerPatient: Object.values(patientRevenue).length > 0 
-          ? Object.values(patientRevenue).reduce((sum, rev) => sum + rev, 0) / Object.values(patientRevenue).length
-          : 0,
-      };
-    } catch (error) {
-      console.error("Profitability analysis error:", error);
-      throw new Error(error instanceof Error ? error.message : "Failed to analyze profitability");
-    }
-  }
-  
   private getFiscalPeriod(date: Date) {
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
@@ -566,6 +393,123 @@ export class FinancialService {
       console.error("Cost estimation error:", error);
       throw new Error(error instanceof Error ? error.message : "Failed to estimate patient cost");
     }
+  }
+  
+  // Add support for generating monthly financial statement reports
+  async generateMonthlyStatement(patientId: number, month: number, year: number) {
+    try {
+      // Generate date range for the month
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0); // Last day of month
+      
+      // Get all transactions for this patient in date range
+      const transactions = await storage.getFinancialTransactionsInDateRange(startDate, endDate);
+      const patientTransactions = transactions.filter(t => t.patientId === patientId);
+      
+      // Get treatment plans and procedures in this period
+      const treatmentPlans = await storage.getPatientTreatmentPlans(patientId);
+      const relevantPlans = treatmentPlans.filter(plan => {
+        const planDate = new Date(plan.createdAt);
+        return planDate >= startDate && planDate <= endDate;
+      });
+      
+      // Calculate totals
+      const totalCharges = patientTransactions
+        .filter(t => t.type === "payment" || t.type === "insurance_payment")
+        .reduce((sum, t) => sum + t.amount, 0);
+      
+      const insurancePayments = patientTransactions
+        .filter(t => t.type === "insurance_payment" && t.status === "completed")
+        .reduce((sum, t) => sum + t.amount, 0);
+      
+      const patientPayments = patientTransactions
+        .filter(t => t.type === "payment")
+        .reduce((sum, t) => sum + t.amount, 0);
+      
+      // Calculate balance
+      const previousBalance = await this.getPatientBalanceBefore(patientId, startDate);
+      const currentBalance = previousBalance + totalCharges - patientPayments - insurancePayments;
+      
+      return {
+        patientId,
+        period: {
+          month,
+          year,
+          startDate,
+          endDate,
+        },
+        previousBalance,
+        charges: totalCharges,
+        insurancePayments,
+        patientPayments,
+        currentBalance,
+        transactions: patientTransactions,
+        treatmentPlans: relevantPlans,
+      };
+    } catch (error) {
+      console.error("Monthly statement error:", error);
+      throw new Error(error instanceof Error ? error.message : "Failed to generate monthly statement");
+    }
+  }
+  
+  private async getPatientBalanceBefore(patientId: number, date: Date) {
+    // Get all transactions for this patient before date
+    const transactions = await storage.getFinancialTransactionsInDateRange(
+      new Date(0), // Beginning of time
+      date
+    );
+    
+    const patientTransactions = transactions.filter(t => t.patientId === patientId);
+    
+    // Calculate balance
+    const charges = patientTransactions
+      .filter(t => t.type === "payment" || t.type === "insurance_payment")
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const payments = patientTransactions
+      .filter(t => t.type === "payment" || t.type === "insurance_payment")
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    return charges - payments;
+  }
+  
+  // Export financial data for accounting systems
+  async exportFinancialData(startDate: Date, endDate: Date, format: 'csv' | 'json' | 'excel' = 'json') {
+    try {
+      // Get transactions in date range
+      const transactions = await storage.getFinancialTransactionsInDateRange(startDate, endDate);
+      
+      // Format data based on requested format
+      switch (format) {
+        case 'csv':
+          return this.formatTransactionsAsCsv(transactions);
+        case 'excel':
+          return this.formatTransactionsForExcel(transactions);
+        case 'json':
+        default:
+          return JSON.stringify(transactions);
+      }
+    } catch (error) {
+      console.error("Financial data export error:", error);
+      throw new Error(error instanceof Error ? error.message : "Failed to export financial data");
+    }
+  }
+  
+  private formatTransactionsAsCsv(transactions: FinancialTransaction[]) {
+    // Convert transactions to CSV format
+    const headers = "id,patientId,type,amount,date,method,status,description,fiscalYear,fiscalQuarter\n";
+    
+    const rows = transactions.map(t => {
+      return `${t.id},${t.patientId},${t.type},${t.amount},${t.date},${t.method},${t.status},${t.description},${t.fiscalYear},${t.fiscalQuarter}`;
+    }).join("\n");
+    
+    return headers + rows;
+  }
+  
+  private formatTransactionsForExcel(transactions: FinancialTransaction[]) {
+    // This would normally use a library like xlsx
+    // For now, just return JSON that could be converted to Excel
+    return JSON.stringify(transactions);
   }
 }
 

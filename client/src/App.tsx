@@ -12,9 +12,10 @@ import TreatmentPlansPage from "@/pages/treatment-plans-page";
 import AIDiagnosticsPage from "@/pages/ai-diagnostics";
 import BillingPage from "@/pages/billing";
 import { ProtectedRoute } from "./lib/protected-route";
-import FinancialDashboardPage from './pages/financial-dashboard'; // Added import
+import FinancialDashboardPage from "./pages/financial-dashboard"; // Added import
 // Placeholder components -  These need to be implemented
 const AIDashboardPage = () => <div>AI Dashboard (Under Construction)</div>;
+const LoginPage = () => <div>Login Page (Placeholder)</div>; // Added placeholder
 
 
 function Router() {
@@ -31,7 +32,7 @@ function Router() {
       <Route path="/ai-hub" component={() => import('./pages/ai-hub').then(m => <m.default />)} />
       <Route path="/orthodontic-dashboard" component={() => import('./pages/orthodontic-dashboard').then(m => <m.default />)} />
       <Route path="/dental-ai-hub" component={() => import('./pages/dental-ai-hub').then(m => <m.default />)} />
-      <Route path="/financial-dashboard" component={FinancialDashboardPage} /> {/* Added route */}
+      <Route path="/financial" component={FinancialDashboardPage} /> {/* Added financial dashboard route */}
       <Route component={NotFound} />
     </Switch>
   );

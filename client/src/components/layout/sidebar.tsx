@@ -68,15 +68,19 @@ export function Sidebar() {
       { name: t("nav.billing"), href: "/billing", icon: DollarSign },
     ];
 
+    const financialItems = [
+      { name: t("nav.financial"), href: "/financial", icon: DollarSign },
+    ];
+
     switch (user?.role) {
       case "doctor":
-        return [...baseItems, ...doctorItems];
+        return [...baseItems, ...doctorItems, ...financialItems];
       case "staff":
-        return [...baseItems, ...staffItems];
+        return [...baseItems, ...staffItems, ...financialItems];
       case "patient":
-        return [...baseItems, ...patientItems];
+        return [...baseItems, ...patientItems, ...financialItems];
       default:
-        return baseItems;
+        return [...baseItems, ...financialItems];
     }
   };
 
