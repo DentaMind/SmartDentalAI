@@ -195,7 +195,7 @@ export class MemStorage implements IStorage {
     return claim;
   }
 
-  async getFinancialTransactionsByDateRange(startDate: Date, endDate: Date): Promise<FinancialTransaction[]> {
+  async getFinancialTransactionsInDateRange(startDate: Date, endDate: Date): Promise<FinancialTransaction[]> {
     return Array.from(this.financialTransactions.values()).filter(
       (t) => t.date >= startDate && t.date <= endDate
     );

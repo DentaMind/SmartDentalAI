@@ -761,6 +761,99 @@ router.post("/financial/payment", requireAuth, async (req, res) => {
   }
 });
 
+router.get("/financial/summary", requireAuth, requireRole(["doctor", "staff", "admin"]), async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    if (!startDate || !endDate) {
+      return res.status(400).json({ message: "Start date and end date are required" });
+    }
+    
+    const { financialService } = await import('./services/financial');
+    const summary = await financialService.getFinancialSummary(
+      new Date(startDate as string),
+      new Date(endDate as string)
+    );
+    
+    res.json(summary);
+  } catch (error) {
+    console.error("Financial summary error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to generate financial summary" 
+    });
+  }
+});
+
+router.get("/financial/export/:year", requireAuth, requireRole(["doctor", "admin"]), async (req, res) => {
+  try {
+    const year = parseInt(req.params.year);
+    const format = (req.query.format as string) || 'xlsx';
+    
+    if (isNaN(year)) {
+      return res.status(400).json({ message: "Invalid year" });
+    }
+    
+    if (format !== 'xlsx' && format !== 'csv') {
+      return res.status(400).json({ message: "Invalid format. Use 'xlsx' or 'csv'" });
+    }
+    
+    const { financialService } = await import('./services/financial');
+    const exportData = await financialService.exportFinancialData(year, format as 'xlsx' | 'csv');
+    
+    res.setHeader('Content-Type', exportData.mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename=${exportData.filename}`);
+    res.send(exportData.data);
+  } catch (error) {
+    console.error("Export error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to export financial data" 
+    });
+  }
+});
+
+router.get("/financial/forecast", requireAuth, requireRole(["doctor", "admin"]), async (req, res) => {
+  try {
+    const months = parseInt(req.query.months as string) || 12;
+    
+    if (isNaN(months) || months < 1 || months > 60) {
+      return res.status(400).json({ message: "Invalid number of months. Must be between 1 and 60." });
+    }
+    
+    const { financialService } = await import('./services/financial');
+    const forecast = await financialService.generateFinancialForecast(months);
+    
+    res.json(forecast);
+  } catch (error) {
+    console.error("Forecast error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to generate financial forecast" 
+    });
+  }
+});
+
+router.get("/financial/profitability", requireAuth, requireRole(["doctor", "admin"]), async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    if (!startDate || !endDate) {
+      return res.status(400).json({ message: "Start date and end date are required" });
+    }
+    
+    const { financialService } = await import('./services/financial');
+    const profitabilityAnalysis = await financialService.analyzeProfitability(
+      new Date(startDate as string),
+      new Date(endDate as string)
+    );
+    
+    res.json(profitabilityAnalysis);
+  } catch (error) {
+    console.error("Profitability analysis error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to analyze profitability" 
+    });
+  }
+});
+
 router.post("/financial/insurance/claim", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   try {
     const { financialService } = await import('./services/financial');
