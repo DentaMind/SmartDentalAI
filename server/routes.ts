@@ -1436,3 +1436,73 @@ router.get("/notifications/preferences", requireAuth, async (req, res) => {
 app.use("/api", router);
 
 export default app;
+router.get("/financial/summary", requireAuth, async (req, res) => {
+  try {
+    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+    
+    if (!startDate || !endDate) {
+      return res.status(400).json({ message: "Start date and end date are required" });
+    }
+    
+    const { financialService } = await import('./services/financial');
+    const summary = await financialService.getFinancialSummary(startDate, endDate);
+    
+    res.json(summary);
+  } catch (error) {
+    console.error("Financial summary error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to generate financial summary" 
+    });
+  }
+});
+
+router.get("/financial/forecast", requireAuth, requireRole(["doctor", "admin"]), async (req, res) => {
+  try {
+    const months = req.query.months ? parseInt(req.query.months as string) : 12;
+    
+    const { financialService } = await import('./services/financial');
+    const forecast = await financialService.generateFinancialForecast(months);
+    
+    res.json(forecast);
+  } catch (error) {
+    console.error("Financial forecast error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to generate financial forecast" 
+    });
+  }
+});
+
+router.get("/financial/aging-report", requireAuth, requireRole(["doctor", "admin", "staff"]), async (req, res) => {
+  try {
+    const { financialService } = await import('./services/financial');
+    const report = await financialService.generateAgingReport();
+    
+    res.json(report);
+  } catch (error) {
+    console.error("Aging report error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to generate aging report" 
+    });
+  }
+});
+
+router.get("/financial/profitability/:year", requireAuth, requireRole(["doctor", "admin"]), async (req, res) => {
+  try {
+    const year = parseInt(req.params.year);
+    
+    if (isNaN(year)) {
+      return res.status(400).json({ message: "Invalid year" });
+    }
+    
+    const { financialService } = await import('./services/financial');
+    const report = await financialService.generateProfitabilityReport(year);
+    
+    res.json(report);
+  } catch (error) {
+    console.error("Profitability report error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to generate profitability report" 
+    });
+  }
+});

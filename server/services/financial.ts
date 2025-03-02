@@ -1,107 +1,62 @@
 
 import { storage } from "../storage";
 import { 
-  InsertPayment, 
-  InsertFinancialTransaction,
-  InsertInsuranceClaim,
-  Payment,
-  FinancialTransaction,
-  InsuranceClaim
+  insuranceClaimSchema, 
+  paymentSchema, 
+  financialDateRangeSchema 
 } from "@shared/schema";
 import { z } from "zod";
 
-// Validation schemas
-const paymentSchema = z.object({
-  patientId: z.number(),
-  amount: z.number().positive(),
-  treatmentPlanId: z.number().optional(),
-  method: z.string(),
-  description: z.string().optional()
-});
-
-const insuranceClaimSchema = z.object({
-  patientId: z.number(),
-  treatmentPlanId: z.number(),
-  insuranceProvider: z.string(),
-  procedures: z.array(z.object({
-    code: z.string(),
-    fee: z.number().positive()
-  }))
-});
-
-const financialDateRangeSchema = z.object({
-  startDate: z.date(),
-  endDate: z.date().refine(date => date > new Date(0), {
-    message: "End date must be valid"
-  })
-});
-
-// Insurance provider details
+// Insurance provider database
 const insuranceProviders = {
-  delta: {
+  "Delta Dental": {
     name: "Delta Dental",
     coverageRates: {
-      preventive: 1.0,
-      basic: 0.8,
+      preventive: 0.9,
+      basic: 0.7,
       major: 0.5,
-      orthodontic: 0.5,
+      orthodontic: 0.4,
     },
     annualMax: 2000,
+    orthodonticLifetime: 2500,
   },
-  aetna: {
-    name: "Aetna",
+  "Cigna Dental": {
+    name: "Cigna Dental",
     coverageRates: {
-      preventive: 1.0,
-      basic: 0.8,
-      major: 0.5,
-      orthodontic: 0.5,
-    },
-    annualMax: 1500,
-  },
-  cigna: {
-    name: "Cigna",
-    coverageRates: {
-      preventive: 1.0,
-      basic: 0.8,
-      major: 0.5,
-      orthodontic: 0.5,
+      preventive: 0.85,
+      basic: 0.65,
+      major: 0.45,
+      orthodontic: 0.35,
     },
     annualMax: 1800,
+    orthodonticLifetime: 2200,
   },
-  metlife: {
-    name: "MetLife",
+  "Aetna Dental": {
+    name: "Aetna Dental",
     coverageRates: {
-      preventive: 1.0,
-      basic: 0.8,
-      major: 0.5,
-      orthodontic: 0.5,
+      preventive: 0.95,
+      basic: 0.75,
+      major: 0.55,
+      orthodontic: 0.45,
     },
-    annualMax: 1750,
-  },
-  united: {
-    name: "United Healthcare",
-    coverageRates: {
-      preventive: 1.0,
-      basic: 0.7,
-      major: 0.4,
-      orthodontic: 0.5,
-    },
-    annualMax: 1500,
+    annualMax: 2200,
+    orthodonticLifetime: 2800,
   }
 };
 
-// Mapping procedure code ranges to categories
-const procedureCategories: Record<string, string> = {
+// Procedure category mapping by ADA code ranges
+const procedureCategories: Record<string, "preventive" | "basic" | "major" | "orthodontic"> = {
   "D0100-D0999": "preventive", // Diagnostic
   "D1000-D1999": "preventive", // Preventive
   "D2000-D2999": "basic",      // Restorative
   "D3000-D3999": "major",      // Endodontics
-  "D4000-D4999": "major",      // Periodontics
-  "D5000-D5999": "major",      // Prosthodontics (removable)
-  "D6000-D6999": "major",      // Implant Services
-  "D7000-D7999": "basic",      // Oral Surgery
-  "D8000-D8999": "orthodontic", // Orthodontics
-  "D9000-D9999": "basic",      // Adjunctive Services
+  "D4000-D4999": "major",      // Periodontics 
+  "D5000-D5999": "major",      // Prosthodontics, removable
+  "D6000-D6199": "major",      // Implant Services
+  "D6200-D6999": "major",      // Prosthodontics, fixed
+  "D7000-D7999": "basic",      // Oral and Maxillofacial Surgery
+  "D8000-D8999": "orthodontic",// Orthodontics
+  "D9000-D9999": "basic",      // Adjunctive General Services
 };
 
 export class FinancialService {
@@ -114,6 +69,7 @@ export class FinancialService {
       const payment = await storage.createPayment({
         patientId: validatedData.patientId,
         amount: validatedData.amount,
+        patientAmount: validatedData.amount,
         date: new Date(),
         status: "processed",
         treatmentPlanId: validatedData.treatmentPlanId,
@@ -300,6 +256,181 @@ export class FinancialService {
     }
   }
   
+  // Generate financial forecasts for the practice
+  async generateFinancialForecast(months: number = 12) {
+    try {
+      // Get historical data (past 12 months) for forecasting base
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setMonth(today.getMonth() - 12); // Past 12 months
+      
+      const historicalData = await storage.getFinancialTransactionsInDateRange(startDate, today);
+      
+      // Calculate monthly averages by transaction type
+      const monthlyData: Record<string, number[]> = {};
+      
+      for (let i = 0; i < 12; i++) {
+        const month = new Date(startDate);
+        month.setMonth(startDate.getMonth() + i);
+        const monthKey = `${month.getFullYear()}-${month.getMonth() + 1}`;
+        
+        const monthTransactions = historicalData.filter(t => {
+          const tDate = new Date(t.date);
+          return tDate.getFullYear() === month.getFullYear() && 
+                 tDate.getMonth() === month.getMonth();
+        });
+        
+        // Calculate revenue for this month
+        const monthRevenue = monthTransactions
+          .filter(t => t.type === "payment" || t.type === "insurance_payment")
+          .reduce((sum, t) => sum + t.amount, 0);
+          
+        if (!monthlyData['revenue']) monthlyData['revenue'] = [];
+        monthlyData['revenue'].push(monthRevenue);
+      }
+      
+      // Simple forecast using moving average with slight growth factor
+      const forecastData: Array<{month: string, revenue: number}> = [];
+      
+      for (let i = 0; i < months; i++) {
+        const forecastMonth = new Date(today);
+        forecastMonth.setMonth(today.getMonth() + i + 1);
+        
+        // Calculate forecast using last 3 months average with 1.5% monthly growth
+        const revenueHistory = monthlyData['revenue'].slice(-3);
+        const avgRevenue = revenueHistory.reduce((sum, val) => sum + val, 0) / revenueHistory.length;
+        const growthFactor = 1 + (0.015 * (i + 1));
+        const forecastRevenue = Math.round(avgRevenue * growthFactor);
+        
+        forecastData.push({
+          month: `${forecastMonth.getFullYear()}-${forecastMonth.getMonth() + 1}`,
+          revenue: forecastRevenue
+        });
+      }
+      
+      return {
+        historicalData: monthlyData,
+        forecastData,
+        forecastParameters: {
+          baselinePeriod: "Last 3 months",
+          growthRate: "1.5% monthly",
+          forecastHorizon: `${months} months`
+        }
+      };
+    } catch (error) {
+      console.error("Financial forecast error:", error);
+      throw new Error(error instanceof Error ? error.message : "Failed to generate financial forecast");
+    }
+  }
+  
+  async generateProfitabilityReport(year: number) {
+    try {
+      // Get all revenue transactions for the year
+      const startDate = new Date(`${year}-01-01`);
+      const endDate = new Date(`${year}-12-31`);
+      
+      const revenueTransactions = await storage.getFinancialTransactionsInDateRange(startDate, endDate);
+      
+      // Revenue calculation
+      const revenue = revenueTransactions
+        .filter(t => t.type === "payment" || t.type === "insurance_payment")
+        .reduce((sum, t) => sum + t.amount, 0);
+      
+      // Mock expense data structure (in a real system, this would come from an expenses table)
+      // Sample expense categories for a dental practice
+      const expenses = {
+        staffCosts: revenue * 0.25, // 25% of revenue
+        supplies: revenue * 0.12,   // 12% of revenue
+        labFees: revenue * 0.08,    // 8% of revenue
+        rent: revenue * 0.07,       // 7% of revenue
+        equipment: revenue * 0.05,  // 5% of revenue
+        marketing: revenue * 0.03,  // 3% of revenue
+        software: revenue * 0.02,   // 2% of revenue
+        utilities: revenue * 0.02,  // 2% of revenue
+        insurance: revenue * 0.02,  // 2% of revenue
+        other: revenue * 0.04       // 4% of revenue
+      };
+      
+      // Calculate total expenses
+      const totalExpenses = Object.values(expenses).reduce((sum, val) => sum + val, 0);
+      
+      // Calculate profit and margin
+      const profit = revenue - totalExpenses;
+      const profitMargin = (profit / revenue) * 100;
+      
+      return {
+        year,
+        revenue,
+        expenses,
+        totalExpenses,
+        profit,
+        profitMargin,
+        revenueTransactionCount: revenueTransactions.length,
+        averageTransactionValue: revenue / revenueTransactions.length
+      };
+    } catch (error) {
+      console.error("Profitability report error:", error);
+      throw new Error(error instanceof Error ? error.message : "Failed to generate profitability report");
+    }
+  }
+  
+  // Generate aging report (accounts receivable)
+  async generateAgingReport() {
+    try {
+      // Get all open claims and unpaid invoices
+      const openClaims = await storage.getInsuranceClaimsByStatus("submitted");
+      const today = new Date();
+      
+      // Categorize by age
+      const agingBuckets = {
+        current: { count: 0, value: 0 },       // 0-30 days
+        thirtyDays: { count: 0, value: 0 },    // 31-60 days
+        sixtyDays: { count: 0, value: 0 },     // 61-90 days
+        ninetyDays: { count: 0, value: 0 },    // 91-120 days
+        overNinetyDays: { count: 0, value: 0 } // 120+ days
+      };
+      
+      // Process each claim
+      for (const claim of openClaims) {
+        const submissionDate = new Date(claim.submissionDate);
+        const ageInDays = Math.floor((today.getTime() - submissionDate.getTime()) / (1000 * 60 * 60 * 24));
+        const expectedAmount = claim.expectedAmount || 0;
+        
+        if (ageInDays <= 30) {
+          agingBuckets.current.count++;
+          agingBuckets.current.value += expectedAmount;
+        } else if (ageInDays <= 60) {
+          agingBuckets.thirtyDays.count++;
+          agingBuckets.thirtyDays.value += expectedAmount;
+        } else if (ageInDays <= 90) {
+          agingBuckets.sixtyDays.count++;
+          agingBuckets.sixtyDays.value += expectedAmount;
+        } else if (ageInDays <= 120) {
+          agingBuckets.ninetyDays.count++;
+          agingBuckets.ninetyDays.value += expectedAmount;
+        } else {
+          agingBuckets.overNinetyDays.count++;
+          agingBuckets.overNinetyDays.value += expectedAmount;
+        }
+      }
+      
+      // Calculate totals
+      const totalCount = Object.values(agingBuckets).reduce((sum, bucket) => sum + bucket.count, 0);
+      const totalValue = Object.values(agingBuckets).reduce((sum, bucket) => sum + bucket.value, 0);
+      
+      return {
+        generatedDate: today,
+        agingBuckets,
+        totalCount,
+        totalValue,
+        riskAssessment: agingBuckets.overNinetyDays.value > totalValue * 0.15 ? "high" : "low"
+      };
+    } catch (error) {
+      console.error("Aging report error:", error);
+      throw new Error(error instanceof Error ? error.message : "Failed to generate aging report");
+    }
+  }
+  
   private getFiscalPeriod(date: Date) {
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
@@ -393,123 +524,6 @@ export class FinancialService {
       console.error("Cost estimation error:", error);
       throw new Error(error instanceof Error ? error.message : "Failed to estimate patient cost");
     }
-  }
-  
-  // Add support for generating monthly financial statement reports
-  async generateMonthlyStatement(patientId: number, month: number, year: number) {
-    try {
-      // Generate date range for the month
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 0); // Last day of month
-      
-      // Get all transactions for this patient in date range
-      const transactions = await storage.getFinancialTransactionsInDateRange(startDate, endDate);
-      const patientTransactions = transactions.filter(t => t.patientId === patientId);
-      
-      // Get treatment plans and procedures in this period
-      const treatmentPlans = await storage.getPatientTreatmentPlans(patientId);
-      const relevantPlans = treatmentPlans.filter(plan => {
-        const planDate = new Date(plan.createdAt);
-        return planDate >= startDate && planDate <= endDate;
-      });
-      
-      // Calculate totals
-      const totalCharges = patientTransactions
-        .filter(t => t.type === "payment" || t.type === "insurance_payment")
-        .reduce((sum, t) => sum + t.amount, 0);
-      
-      const insurancePayments = patientTransactions
-        .filter(t => t.type === "insurance_payment" && t.status === "completed")
-        .reduce((sum, t) => sum + t.amount, 0);
-      
-      const patientPayments = patientTransactions
-        .filter(t => t.type === "payment")
-        .reduce((sum, t) => sum + t.amount, 0);
-      
-      // Calculate balance
-      const previousBalance = await this.getPatientBalanceBefore(patientId, startDate);
-      const currentBalance = previousBalance + totalCharges - patientPayments - insurancePayments;
-      
-      return {
-        patientId,
-        period: {
-          month,
-          year,
-          startDate,
-          endDate,
-        },
-        previousBalance,
-        charges: totalCharges,
-        insurancePayments,
-        patientPayments,
-        currentBalance,
-        transactions: patientTransactions,
-        treatmentPlans: relevantPlans,
-      };
-    } catch (error) {
-      console.error("Monthly statement error:", error);
-      throw new Error(error instanceof Error ? error.message : "Failed to generate monthly statement");
-    }
-  }
-  
-  private async getPatientBalanceBefore(patientId: number, date: Date) {
-    // Get all transactions for this patient before date
-    const transactions = await storage.getFinancialTransactionsInDateRange(
-      new Date(0), // Beginning of time
-      date
-    );
-    
-    const patientTransactions = transactions.filter(t => t.patientId === patientId);
-    
-    // Calculate balance
-    const charges = patientTransactions
-      .filter(t => t.type === "payment" || t.type === "insurance_payment")
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    const payments = patientTransactions
-      .filter(t => t.type === "payment" || t.type === "insurance_payment")
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    return charges - payments;
-  }
-  
-  // Export financial data for accounting systems
-  async exportFinancialData(startDate: Date, endDate: Date, format: 'csv' | 'json' | 'excel' = 'json') {
-    try {
-      // Get transactions in date range
-      const transactions = await storage.getFinancialTransactionsInDateRange(startDate, endDate);
-      
-      // Format data based on requested format
-      switch (format) {
-        case 'csv':
-          return this.formatTransactionsAsCsv(transactions);
-        case 'excel':
-          return this.formatTransactionsForExcel(transactions);
-        case 'json':
-        default:
-          return JSON.stringify(transactions);
-      }
-    } catch (error) {
-      console.error("Financial data export error:", error);
-      throw new Error(error instanceof Error ? error.message : "Failed to export financial data");
-    }
-  }
-  
-  private formatTransactionsAsCsv(transactions: FinancialTransaction[]) {
-    // Convert transactions to CSV format
-    const headers = "id,patientId,type,amount,date,method,status,description,fiscalYear,fiscalQuarter\n";
-    
-    const rows = transactions.map(t => {
-      return `${t.id},${t.patientId},${t.type},${t.amount},${t.date},${t.method},${t.status},${t.description},${t.fiscalYear},${t.fiscalQuarter}`;
-    }).join("\n");
-    
-    return headers + rows;
-  }
-  
-  private formatTransactionsForExcel(transactions: FinancialTransaction[]) {
-    // This would normally use a library like xlsx
-    // For now, just return JSON that could be converted to Excel
-    return JSON.stringify(transactions);
   }
 }
 

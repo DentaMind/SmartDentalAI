@@ -50,3 +50,4 @@ function App() {
 }
 
 export default App;
+<Route path="/financial-dashboard" element={<ProtectedRoute><FinancialDashboardPage /></ProtectedRoute>} />
