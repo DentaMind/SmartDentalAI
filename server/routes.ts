@@ -177,6 +177,202 @@ router.post("/ai/cost-analysis", requireAuth, async (req, res) => {
   }
 });
 
+// Orthodontic AI Routes
+router.post("/ai/orthodontic/analyze", requireAuth, requireRole(["doctor"]), async (req, res) => {
+  try {
+    const { patientId, images, measurements } = req.body;
+
+    if (!patientId || !images || !images.length) {
+      return res.status(400).json({ message: "Patient ID and images are required" });
+    }
+
+    const { analyzeOrthodonticCase } = await import('./services/orthodontic-ai');
+    const analysis = await analyzeOrthodonticCase(patientId, images, measurements);
+
+    res.json(analysis);
+  } catch (error) {
+    console.error("Orthodontic analysis error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to analyze orthodontic case" 
+    });
+  }
+});
+
+router.post("/ai/orthodontic/treatment-plan", requireAuth, requireRole(["doctor"]), async (req, res) => {
+  try {
+    const { analysis, insuranceProvider } = req.body;
+
+    if (!analysis) {
+      return res.status(400).json({ message: "Orthodontic analysis is required" });
+    }
+
+    const { generateTreatmentPlan } = await import('./services/orthodontic-ai');
+    const treatmentPlan = await generateTreatmentPlan(analysis, insuranceProvider);
+
+    res.json(treatmentPlan);
+  } catch (error) {
+    console.error("Orthodontic treatment plan error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to generate orthodontic treatment plan" 
+    });
+  }
+});
+
+router.post("/ai/orthodontic/simulate", requireAuth, requireRole(["doctor"]), async (req, res) => {
+  try {
+    const { patientId, treatmentOption, images } = req.body;
+
+    if (!patientId || !treatmentOption || !images || !images.length) {
+      return res.status(400).json({ message: "Patient ID, treatment option, and images are required" });
+    }
+
+    const { simulate3DTreatmentOutcome } = await import('./services/orthodontic-ai');
+    const simulation = await simulate3DTreatmentOutcome(patientId, treatmentOption, images);
+
+    res.json(simulation);
+  } catch (error) {
+    console.error("Orthodontic simulation error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to simulate orthodontic treatment" 
+    });
+  }
+});
+
+// Imaging AI Routes
+router.post("/ai/imaging/analyze", requireAuth, async (req, res) => {
+  try {
+    const { imageUrls, patientId, analysisType, previousAnalysisId } = req.body;
+
+    if (!imageUrls || !imageUrls.length || !patientId) {
+      return res.status(400).json({ message: "Images and patient ID are required" });
+    }
+
+    const { analyzeDentalImages } = await import('./services/imaging-analyzer');
+    const analysis = await analyzeDentalImages(
+      imageUrls, 
+      patientId, 
+      analysisType || "standard", 
+      previousAnalysisId
+    );
+
+    res.json(analysis);
+  } catch (error) {
+    console.error("Imaging analysis error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to analyze images" 
+    });
+  }
+});
+
+router.post("/ai/imaging/cbct", requireAuth, requireRole(["doctor"]), async (req, res) => {
+  try {
+    const { cbctImages, patientId } = req.body;
+
+    if (!cbctImages || !cbctImages.length || !patientId) {
+      return res.status(400).json({ message: "CBCT images and patient ID are required" });
+    }
+
+    const { analyzeCBCT } = await import('./services/imaging-analyzer');
+    const analysis = await analyzeCBCT(cbctImages, patientId);
+
+    res.json(analysis);
+  } catch (error) {
+    console.error("CBCT analysis error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to analyze CBCT" 
+    });
+  }
+});
+
+// Treatment Analytics Routes
+router.post("/ai/analytics/comparative-cases", requireAuth, requireRole(["doctor"]), async (req, res) => {
+  try {
+    const { diagnosis, treatmentPlan, patientDemographics } = req.body;
+
+    if (!diagnosis || !treatmentPlan || !patientDemographics) {
+      return res.status(400).json({ message: "Diagnosis, treatment plan, and patient demographics are required" });
+    }
+
+    const { analyzeComparativeCases } = await import('./services/treatment-analytics');
+    const analytics = await analyzeComparativeCases(diagnosis, treatmentPlan, patientDemographics);
+
+    res.json(analytics);
+  } catch (error) {
+    console.error("Comparative case analysis error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to analyze comparative cases" 
+    });
+  }
+});
+
+router.post("/ai/analytics/insurance-optimization", requireAuth, async (req, res) => {
+  try {
+    const { treatmentPlan, insuranceDetails } = req.body;
+
+    if (!treatmentPlan || !insuranceDetails) {
+      return res.status(400).json({ message: "Treatment plan and insurance details are required" });
+    }
+
+    const { optimizeForInsurance } = await import('./services/treatment-analytics');
+    const optimization = await optimizeForInsurance(treatmentPlan, insuranceDetails);
+
+    res.json(optimization);
+  } catch (error) {
+    console.error("Insurance optimization error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to optimize for insurance" 
+    });
+  }
+});
+
+router.post("/ai/analytics/long-term-outcomes", requireAuth, requireRole(["doctor"]), async (req, res) => {
+  try {
+    const { diagnosis, treatmentPlan, patientCompliance, lifestyleFactors } = req.body;
+
+    if (!diagnosis || !treatmentPlan) {
+      return res.status(400).json({ message: "Diagnosis and treatment plan are required" });
+    }
+
+    const { predictLongTermOutcomes } = await import('./services/treatment-analytics');
+    const outcomes = await predictLongTermOutcomes(
+      diagnosis, 
+      treatmentPlan, 
+      patientCompliance, 
+      lifestyleFactors
+    );
+
+    res.json(outcomes);
+  } catch (error) {
+    console.error("Long-term outcome prediction error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to predict long-term outcomes" 
+    });
+  }
+});
+
+router.get("/ai/analytics/practice-performance", requireAuth, requireRole(["doctor", "admin"]), async (req, res) => {
+  try {
+    const { procedureType, timeframe } = req.query;
+
+    if (!procedureType) {
+      return res.status(400).json({ message: "Procedure type is required" });
+    }
+
+    const { analyzePracticePerformance } = await import('./services/treatment-analytics');
+    const performance = await analyzePracticePerformance(
+      procedureType as string, 
+      (timeframe as any) || "last90days"
+    );
+
+    res.json(performance);
+  } catch (error) {
+    console.error("Practice performance analysis error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to analyze practice performance" 
+    });
+  }
+});
+
 // Medical History Analysis
 router.get("/patients/:id/medical-history", requireAuth, requireOwnership("id"), async (req, res) => {
   try {

@@ -16,6 +16,7 @@ import {
   Brain,
   ActivitySquare,
   Bot,
+  Ruler, // Added for Orthodontic AI icon
 } from "lucide-react";
 
 export function Sidebar() {
@@ -41,6 +42,8 @@ export function Sidebar() {
       { name: t("nav.treatmentPlans"), href: "/treatment-plans", icon: FileText },
       { name: t("nav.xrays"), href: "/xrays", icon: Image },
       { name: t("nav.billing"), href: "/billing", icon: DollarSign },
+      { name: t("nav.orthodonticAI"), href: "/orthodontic-dashboard", icon: Ruler, highlight: true}, // Added Orthodontic AI
+      { name: t("nav.dentalAISuite"), href: "/dental-ai-hub", icon: Bot, highlight: true} //Added Dental AI Suite
     ];
 
     const staffItems = [
@@ -53,6 +56,8 @@ export function Sidebar() {
       { name: t("nav.patients"), href: "/patients", icon: Users },
       { name: t("nav.appointments"), href: "/appointments", icon: Calendar },
       { name: t("nav.billing"), href: "/billing", icon: DollarSign },
+      { name: t("nav.orthodonticAI"), href: "/orthodontic-dashboard", icon: Ruler, highlight: true}, // Added Orthodontic AI
+      { name: t("nav.dentalAISuite"), href: "/dental-ai-hub", icon: Bot, highlight: true} //Added Dental AI Suite
     ];
 
     const patientItems = [

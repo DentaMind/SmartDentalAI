@@ -12,6 +12,9 @@ import TreatmentPlansPage from "@/pages/treatment-plans-page";
 import AIDiagnosticsPage from "@/pages/ai-diagnostics";
 import BillingPage from "@/pages/billing";
 import { ProtectedRoute } from "./lib/protected-route";
+// Placeholder components -  These need to be implemented
+const AIDashboardPage = () => <div>AI Dashboard (Under Construction)</div>;
+
 
 function Router() {
   return (
@@ -23,6 +26,10 @@ function Router() {
       <ProtectedRoute path="/treatment-plans" component={TreatmentPlansPage} />
       <ProtectedRoute path="/ai-diagnostics" component={AIDiagnosticsPage} />
       <ProtectedRoute path="/billing" component={BillingPage} />
+      <Route path="/ai-dashboard" component={AIDashboardPage} />
+      <Route path="/ai-hub" component={() => import('./pages/ai-hub').then(m => <m.default />)} />
+      <Route path="/orthodontic-dashboard" component={() => import('./pages/orthodontic-dashboard').then(m => <m.default />)} />
+      <Route path="/dental-ai-hub" component={() => import('./pages/dental-ai-hub').then(m => <m.default />)} />
       <Route component={NotFound} />
     </Switch>
   );
