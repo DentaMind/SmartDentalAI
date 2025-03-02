@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { storage } from "../storage";
 import { Patient, TreatmentPlan, SymptomPrediction } from "@shared/schema";
 import { processThroughDomains, enhancePredictionWithDomains } from "./ai-domains";
+import { analyzeMedicalHistory } from "./medical-history-ai"; // Added import statement
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -63,13 +64,16 @@ export class AICoordinator {
     patientHistory: string,
     xrayImages?: string[]
   ): Promise<DiagnosisResult> {
+    // Analyze medical history first
+    const medicalHistoryAnalysis = await analyzeMedicalHistory(patientHistory);
+
     // First, process through specialized domains
     const domainInsights = processThroughDomains(symptoms, patientHistory, xrayImages);
 
     const messages = [
       {
         role: "system",
-        content: `You are a dental AI expert. Analyze the following symptoms, patient history, and domain-specific insights to provide a detailed diagnosis. Consider:
+        content: `You are a dental AI expert. Analyze the following symptoms, patient history, medical history analysis, and domain-specific insights to provide a detailed diagnosis. Consider:
           - Potential conditions and their likelihood
           - Urgency level
           - Additional tests needed
@@ -80,7 +84,8 @@ export class AICoordinator {
         content: JSON.stringify({
           symptoms,
           patientHistory,
-          domainInsights
+          domainInsights,
+          medicalHistoryAnalysis // Include medical history analysis in the prompt
         })
       }
     ];

@@ -218,6 +218,27 @@ export class MemStorage implements IStorage {
       (t) => new Date(t.date).getFullYear() === year
     );
   }
+
+  async getPatientMedicalHistory(patientId: number) {
+    // Placeholder - in a real implementation, this would fetch from database
+    // For now returning mock data
+    return {
+      systemicConditions: ["Type 2 Diabetes", "Hypertension"],
+      medications: ["Metformin 500mg", "Lisinopril 10mg", "Aspirin 81mg"],
+      allergies: ["Penicillin", "Latex"],
+      surgicalHistory: ["Appendectomy (2015)"],
+      vitalSigns: {
+        bloodPressure: "130/85",
+        heartRate: 78
+      }
+    };
+  }
+
+  async updatePatientMedicalHistory(patientId: number, updatedHistory: any) {
+    // Placeholder - in a real implementation, this would update the database
+    console.log(`Updating medical history for patient ${patientId}`, updatedHistory);
+    return true;
+  }
 }
 
 export const storage = new MemStorage();

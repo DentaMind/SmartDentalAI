@@ -177,6 +177,40 @@ router.post("/ai/cost-analysis", requireAuth, async (req, res) => {
   }
 });
 
+// Medical History Analysis
+router.get("/patients/:id/medical-history", requireAuth, requireOwnership("id"), async (req, res) => {
+  try {
+    const patientId = Number(req.params.id);
+    const medicalHistory = await storage.getPatientMedicalHistory(patientId);
+    res.json(medicalHistory);
+  } catch (error) {
+    console.error("Medical history fetch error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to fetch medical history" 
+    });
+  }
+});
+
+router.post("/ai/medical-analysis", requireAuth, async (req, res) => {
+  try {
+    const { patientId } = req.body;
+
+    if (!patientId) {
+      return res.status(400).json({ message: "Patient ID is required" });
+    }
+
+    const medicalHistory = await storage.getPatientMedicalHistory(patientId);
+    const analysis = await analyzeMedicalHistory(medicalHistory);
+
+    res.json(analysis);
+  } catch (error) {
+    console.error("Medical analysis error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to analyze medical history" 
+    });
+  }
+});
+
 
 // Report generation route
 router.post('/api/reports/generate', async (req, res) => {
