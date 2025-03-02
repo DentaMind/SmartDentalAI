@@ -16,6 +16,7 @@ import FinancialDashboardPage from "./pages/financial-dashboard"; // Added impor
 // Placeholder components -  These need to be implemented
 const AIDashboardPage = () => <div>AI Dashboard (Under Construction)</div>;
 const LoginPage = () => <div>Login Page (Placeholder)</div>; // Added placeholder
+import { WebSocketProvider } from "./hooks/use-websocket"; // Added import
 
 
 function Router() {
@@ -42,12 +43,13 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router />
-        <Toaster />
+        <WebSocketProvider>
+          <Router />
+          <Toaster />
+        </WebSocketProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
 }
 
 export default App;
-<Route path="/financial-dashboard" element={<ProtectedRoute><FinancialDashboardPage /></ProtectedRoute>} />

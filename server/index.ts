@@ -33,7 +33,18 @@ server.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   res.status(status).json({ message });
 });
 
+// Start the HTTP server (which hosts both Express and WebSocket)
+const PORT = process.env.PORT || 3000;
+httpServer.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
+  console.log(`http://localhost:${PORT}`);
+});
+
 // Create HTTP server from Express app
+const httpServer = http.createServer(server);
+
+// Setup WebSocket server
+const wsServer = setupWebSocketServer(httpServer);
 const httpServer = http.createServer(server);
 
 // Setup WebSocket server

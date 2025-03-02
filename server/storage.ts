@@ -21,8 +21,48 @@ import {
 } from "@shared/schema";
 import createMemoryStore from "memorystore";
 import session from "express-session";
+import crypto from 'crypto';
 
 const MemoryStore = createMemoryStore(session);
+
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  passwordHash: string;
+  mfaSecret: string;
+  mfaEnabled: boolean;
+  specialization?: string;
+  licenseNumber?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface Notification {
+  id: string;
+  userId: number;
+  title: string;
+  message: string;
+  type: 'info' | 'warning' | 'error' | 'success';
+  source: string;
+  sourceId?: string;
+  read: boolean;
+  createdAt: Date;
+  expiresAt?: Date;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  actions?: Array<{
+    label: string;
+    url?: string;
+    action?: string;
+  }>;
+}
+
+// Mock data - in production this would use real database
+const users: User[] = [];
+const notifications: Notification[] = [];
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
@@ -75,6 +115,8 @@ export class MemStorage implements IStorage {
       insuranceNumber: insertUser.insuranceNumber || null,
       specialization: insertUser.specialization || null,
       licenseNumber: insertUser.licenseNumber || null,
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
     this.users.set(id, user);
     return user;
@@ -415,6 +457,180 @@ export class MemStorage implements IStorage {
     }
     return false;
   }
-}
+
+  // User methods
+  async findUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.username === username);
+  },
+
+  async findUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.email === email);
+  },
+
+  async getUserById(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  },
+
+  async createUserDb(userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {
+    const newUser: User = {
+      ...userData,
+      id: this.currentId++,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    this.users.set(newUser.id, newUser);
+    return newUser;
+  },
+
+  async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+
+    const updatedUser = {
+      ...user,
+      ...updates,
+      updatedAt: new Date()
+    };
+
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  },
+
+  // Notification methods
+  async createNotification(notificationData: Omit<Notification, 'id' | 'createdAt'>): Promise<Notification> {
+    const newNotification: Notification = {
+      ...notificationData,
+      id: crypto.randomUUID(),
+      createdAt: new Date()
+    };
+
+    notifications.push(newNotification); // This should be replaced with a proper storage mechanism
+    return newNotification;
+  },
+
+  async getNotifications(userId: number, options: { 
+    includeRead?: boolean, 
+    limit?: number,
+    before?: Date
+  } = {}): Promise<Notification[]> {
+    const { includeRead = false, limit = 20, before } = options;
+
+    let result = notifications
+      .filter(n => n.userId === userId)
+      .filter(n => includeRead || !n.read);
+
+    if (before) {
+      result = result.filter(n => n.createdAt < before);
+    }
+
+    // Sort by createdAt descending (newest first)
+    result.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    // Apply limit
+    if (limit) {
+      result = result.slice(0, limit);
+    }
+
+    return result;
+  },
+
+  async getNotificationById(id: string): Promise<Notification | undefined> {
+    return notifications.find(n => n.id === id);
+  },
+
+  async updateNotification(id: string, updates: Partial<Notification>): Promise<Notification | undefined> {
+    const notificationIndex = notifications.findIndex(n => n.id === id);
+    if (notificationIndex === -1) return undefined;
+
+    notifications[notificationIndex] = {
+      ...notifications[notificationIndex],
+      ...updates
+    };
+
+    return notifications[notificationIndex];
+  },
+
+  async deleteNotification(id: string): Promise<boolean> {
+    const notificationIndex = notifications.findIndex(n => n.id === id);
+    if (notificationIndex === -1) return false;
+
+    notifications.splice(notificationIndex, 1);
+    return true;
+  },
+
+  async getUnreadNotificationCount(userId: number): Promise<number> {
+    return notifications.filter(n => n.userId === userId && !n.read).length;
+  },
+
+  async markAllNotificationsAsRead(userId: number): Promise<number> {
+    let count = 0;
+
+    for (let i = 0; i < notifications.length; i++) {
+      if (notifications[i].userId === userId && !notifications[i].read) {
+        notifications[i].read = true;
+        count++;
+      }
+    }
+
+    return count;
+  },
+
+  // Backup and restore operations
+  async createBackup(): Promise<string> {
+    const backupId = `backup-${new Date().toISOString()}`;
+    const backupData = {
+      users: Array.from(this.users.values()),
+      notifications,
+      timestamp: new Date()
+    };
+
+    // In a real system, this would save to a secure storage
+    console.log(`Created backup ${backupId}`);
+
+    return backupId;
+  },
+
+  async restoreFromBackup(backupId: string): Promise<{ success: boolean, message: string }> {
+    // In a real system, this would restore from the backup
+    console.log(`Restoring from backup ${backupId}`);
+
+    return { 
+      success: true, 
+      message: `Restored from backup ${backupId}` 
+    };
+  },
+
+  // Analytics
+  async getPracticeAnalytics(timeframe: string): Promise<any> {
+    // This would be implemented with real analytics in production
+    return {
+      timeframe,
+      patientCount: 250,
+      appointmentsScheduled: 150,
+      appointmentsCompleted: 130,
+      revenue: 25000,
+      mostCommonProcedures: [
+        { name: 'Cleaning', count: 75 },
+        { name: 'Filling', count: 42 },
+        { name: 'Crown', count: 18 }
+      ],
+      patientDemographics: {
+        ageGroups: [
+          { group: '0-18', count: 45 },
+          { group: '19-35', count: 68 },
+          { group: '36-50', count: 72 },
+          { group: '51-65', count: 40 },
+          { group: '65+', count: 25 }
+        ],
+        genderDistribution: {
+          male: 115,
+          female: 130,
+          other: 5
+        }
+      }
+    };
+  }
+};
 
 export const storage = new MemStorage();

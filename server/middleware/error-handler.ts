@@ -1,106 +1,131 @@
 
-import { Request, Response, NextFunction } from "express";
-import { ZodError } from "zod";
+import { Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
+import { fromZodError } from 'zod-validation-error';
+import { securityService } from '../services/security';
 
 // Custom error class for API errors
-export class APIError extends Error {
+export class ApiError extends Error {
   statusCode: number;
+  isOperational: boolean;
   
-  constructor(message: string, statusCode: number = 400) {
+  constructor(statusCode: number, message: string, isOperational = true) {
     super(message);
     this.statusCode = statusCode;
-    this.name = "APIError";
+    this.isOperational = isOperational;
+    Object.setPrototypeOf(this, ApiError.prototype);
   }
 }
 
-// Error handler middleware
+// Centralized error handler
 export const errorHandler = (
   err: Error,
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  console.error("Error occurred:", {
-    error: err.message,
-    stack: err.stack,
-    path: req.path,
-    method: req.method,
-    body: req.body
-  });
+  // Log error
+  console.error(`Error: ${err.message}`);
+  console.error(err.stack);
   
   // Handle Zod validation errors
   if (err instanceof ZodError) {
+    const validationError = fromZodError(err);
+    
+    // Log validation error
+    securityService.createAuditLog({
+      userId: (req as any).user?.userId,
+      action: 'validation_error',
+      resource: req.path,
+      result: 'error',
+      details: { 
+        error: validationError.message,
+        path: req.path,
+        method: req.method 
+      }
+    });
+    
     return res.status(400).json({
-      status: "error",
-      message: "Validation error",
-      errors: err.errors.map(e => ({
-        path: e.path.join("."),
-        message: e.message
-      }))
+      status: 'error',
+      message: 'Validation error',
+      details: validationError.details
     });
   }
   
-  // Handle API errors
-  if (err instanceof APIError) {
+  // Handle known API errors
+  if (err instanceof ApiError) {
+    // Log API error if it's significant
+    if (err.statusCode >= 500 || err.statusCode === 401 || err.statusCode === 403) {
+      securityService.createAuditLog({
+        userId: (req as any).user?.userId,
+        action: 'api_error',
+        resource: req.path,
+        result: 'error',
+        details: { 
+          statusCode: err.statusCode,
+          message: err.message,
+          path: req.path,
+          method: req.method 
+        }
+      });
+    }
+    
     return res.status(err.statusCode).json({
-      status: "error",
+      status: 'error',
       message: err.message
     });
   }
   
-  // Handle JWT errors
-  if (err.name === "JsonWebTokenError") {
+  // Handle JSON parse errors
+  if (err instanceof SyntaxError && 'body' in err) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Invalid JSON'
+    });
+  }
+  
+  // Handle JWT errors from express-jwt if used
+  if (err.name === 'UnauthorizedError') {
     return res.status(401).json({
-      status: "error",
-      message: "Invalid token"
+      status: 'error',
+      message: 'Invalid token'
     });
   }
   
-  if (err.name === "TokenExpiredError") {
-    return res.status(401).json({
-      status: "error",
-      message: "Token expired"
-    });
-  }
+  // Log unknown errors
+  securityService.createAuditLog({
+    userId: (req as any).user?.userId,
+    action: 'server_error',
+    resource: req.path,
+    result: 'error',
+    details: { 
+      message: err.message,
+      stack: err.stack,
+      path: req.path,
+      method: req.method 
+    }
+  });
   
-  // Handle database errors
-  if (err.message.includes("duplicate key")) {
-    return res.status(409).json({
-      status: "error",
-      message: "Resource already exists"
-    });
-  }
-  
-  // Handle unknown errors
-  const statusCode = err instanceof APIError ? err.statusCode : 500;
-  const message = statusCode === 500 
-    ? "Internal server error"
-    : err.message;
-  
-  res.status(statusCode).json({
-    status: "error",
-    message
+  // Default to 500 server error for unhandled errors
+  return res.status(500).json({
+    status: 'error',
+    message: process.env.NODE_ENV === 'production' 
+      ? 'Internal server error' 
+      : err.message
   });
 };
 
-// Rate limiting error handler
-export const handleRateLimitError = (
-  req: Request,
-  res: Response
-) => {
-  res.status(429).json({
-    status: "error",
-    message: "Too many requests, please try again later"
-  });
-};
-
-// Not found handler
-export const notFoundHandler = (
-  req: Request,
-  res: Response
-) => {
+// 404 handler
+export const notFoundHandler = (req: Request, res: Response) => {
   res.status(404).json({
-    status: "error",
+    status: 'error',
     message: `Route not found: ${req.method} ${req.path}`
   });
+};
+
+// Function to wrap async route handlers to catch errors
+export const asyncHandler = (fn: Function) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
 };

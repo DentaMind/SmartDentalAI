@@ -1174,13 +1174,129 @@ router.post("/security/password/validate", async (req, res) => {
   }
 });
 
+// Import middleware
+import { requireAuth, requireRole } from './middleware/auth-middleware';
+import { securityService } from './services/security';
+import { authService } from './services/auth-service';
+
+// Auth routes
+router.post("/auth/login", async (req, res) => {
+  try {
+    const result = await authService.login(req.body);
+    res.json(result);
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Login failed" 
+    });
+  }
+});
+
+router.post("/auth/register", async (req, res) => {
+  try {
+    const result = await authService.register(req.body);
+    res.json(result);
+  } catch (error) {
+    console.error("Registration error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Registration failed" 
+    });
+  }
+});
+
+router.post("/auth/refresh", async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ message: "Refresh token is required" });
+    }
+    
+    const result = await authService.refreshToken(refreshToken);
+    res.json(result);
+  } catch (error) {
+    console.error("Token refresh error:", error);
+    res.status(401).json({ 
+      message: error instanceof Error ? error.message : "Token refresh failed" 
+    });
+  }
+});
+
+router.post("/auth/mfa/setup", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as any).user.userId;
+    const result = await authService.setupMFA(userId);
+    res.json(result);
+  } catch (error) {
+    console.error("MFA setup error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "MFA setup failed" 
+    });
+  }
+});
+
+router.post("/auth/mfa/enable", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as any).user.userId;
+    const { verificationCode } = req.body;
+    
+    if (!verificationCode) {
+      return res.status(400).json({ message: "Verification code is required" });
+    }
+    
+    const result = await authService.enableMFA(userId, verificationCode);
+    res.json(result);
+  } catch (error) {
+    console.error("MFA enable error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "MFA enable failed" 
+    });
+  }
+});
+
+router.post("/auth/mfa/disable", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as any).user.userId;
+    const { password } = req.body;
+    
+    if (!password) {
+      return res.status(400).json({ message: "Password is required" });
+    }
+    
+    const result = await authService.disableMFA(userId, password);
+    res.json(result);
+  } catch (error) {
+    console.error("MFA disable error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "MFA disable failed" 
+    });
+  }
+});
+
+router.post("/auth/password/change", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as any).user.userId;
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Current and new passwords are required" });
+    }
+    
+    const result = await authService.changePassword(userId, currentPassword, newPassword);
+    res.json(result);
+  } catch (error) {
+    console.error("Password change error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Password change failed" 
+    });
+  }
+});
+
 router.post("/security/access/check", requireAuth, async (req, res) => {
   try {
     // Add the authenticated user ID to the request
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const role = (req as any).user.role;
     
-    const { securityService } = await import('./services/security');
     const result = await securityService.checkAccessPermission({
       ...req.body,
       userId,
@@ -1216,6 +1332,72 @@ router.post("/security/hipaa/report", requireAuth, requireRole(["admin", "doctor
     console.error("HIPAA report error:", error);
     res.status(500).json({ 
       message: error instanceof Error ? error.message : "Failed to generate HIPAA access report" 
+    });
+  }
+});
+
+// Notification routes
+router.get("/notifications", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as any).user.userId;
+    const { includeRead, limit, before } = req.query;
+    
+    const result = await notificationService.getNotifications(userId, {
+      includeRead: includeRead === 'true',
+      limit: limit ? parseInt(limit as string) : undefined,
+      before: before ? new Date(before as string) : undefined
+    });
+    
+    res.json(result);
+  } catch (error) {
+    console.error("Get notifications error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to get notifications" 
+    });
+  }
+});
+
+router.get("/notifications/unread-count", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as any).user.userId;
+    const count = await notificationService.getUnreadCount(userId);
+    
+    res.json({ count });
+  } catch (error) {
+    console.error("Get unread count error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to get unread notification count" 
+    });
+  }
+});
+
+router.post("/notifications/:id/read", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as any).user.userId;
+    const notificationId = req.params.id;
+    
+    const result = await notificationService.markAsRead(notificationId, userId);
+    
+    res.json(result);
+  } catch (error) {
+    console.error("Mark notification read error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to mark notification as read" 
+    });
+  }
+});
+
+router.post("/notifications/read-all", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as any).user.userId;
+    
+    const result = await notificationService.markAllAsRead(userId);
+    
+    res.json(result);
+  } catch (error) {
+    console.error("Mark all notifications read error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to mark all notifications as read" 
     });
   }
 });

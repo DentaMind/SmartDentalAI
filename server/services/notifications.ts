@@ -423,3 +423,205 @@ class NotificationService {
 }
 
 export const notificationService = new NotificationService();
+import { z } from 'zod';
+import { storage } from '../storage';
+import { securityService } from './security';
+
+// Schema for a notification
+const notificationSchema = z.object({
+  id: z.string().optional(),
+  userId: z.number(),
+  title: z.string(),
+  message: z.string(),
+  type: z.enum(['info', 'warning', 'error', 'success']),
+  source: z.string(),
+  sourceId: z.string().optional(),
+  read: z.boolean().default(false),
+  createdAt: z.date().optional(),
+  expiresAt: z.date().optional(),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
+  actions: z.array(
+    z.object({
+      label: z.string(),
+      url: z.string().optional(),
+      action: z.string().optional()
+    })
+  ).optional()
+});
+
+class NotificationService {
+  // Create a new notification
+  async createNotification(notificationData: z.infer<typeof notificationSchema>) {
+    try {
+      // Validate the input
+      const validData = notificationSchema.parse({
+        ...notificationData,
+        id: notificationData.id || crypto.randomUUID(),
+        createdAt: notificationData.createdAt || new Date()
+      });
+      
+      // Store the notification
+      const notification = await storage.createNotification(validData);
+      
+      // Log notification creation
+      await securityService.createAuditLog({
+        userId: validData.userId,
+        action: 'create_notification',
+        resource: 'notifications',
+        resourceId: parseInt(notification.id),
+        result: 'success'
+      });
+      
+      return notification;
+    } catch (error) {
+      console.error('Notification creation error:', error);
+      throw error;
+    }
+  }
+  
+  // Get all notifications for a user
+  async getNotifications(userId: number, options: { 
+    includeRead?: boolean, 
+    limit?: number,
+    before?: Date
+  } = {}) {
+    try {
+      const { includeRead = false, limit = 20, before } = options;
+      
+      // Get notifications from storage
+      const notifications = await storage.getNotifications(userId, {
+        includeRead,
+        limit,
+        before
+      });
+      
+      return notifications;
+    } catch (error) {
+      console.error('Get notifications error:', error);
+      throw error;
+    }
+  }
+  
+  // Get unread notification count for a user
+  async getUnreadCount(userId: number) {
+    try {
+      return await storage.getUnreadNotificationCount(userId);
+    } catch (error) {
+      console.error('Get unread count error:', error);
+      throw error;
+    }
+  }
+  
+  // Mark a notification as read
+  async markAsRead(notificationId: string, userId: number) {
+    try {
+      // Make sure the notification belongs to the user
+      const notification = await storage.getNotificationById(notificationId);
+      
+      if (!notification) {
+        throw new Error('Notification not found');
+      }
+      
+      if (notification.userId !== userId) {
+        // Log security concern
+        await securityService.createAuditLog({
+          userId,
+          action: 'mark_notification_read',
+          resource: 'notifications',
+          resourceId: parseInt(notificationId),
+          result: 'error',
+          details: { reason: 'Not owner of notification' }
+        });
+        throw new Error('Not authorized to update this notification');
+      }
+      
+      // Update the notification
+      await storage.updateNotification(notificationId, { read: true });
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Mark notification read error:', error);
+      throw error;
+    }
+  }
+  
+  // Mark all notifications as read for a user
+  async markAllAsRead(userId: number) {
+    try {
+      await storage.markAllNotificationsAsRead(userId);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Mark all notifications read error:', error);
+      throw error;
+    }
+  }
+  
+  // Delete a notification
+  async deleteNotification(notificationId: string, userId: number) {
+    try {
+      // Make sure the notification belongs to the user
+      const notification = await storage.getNotificationById(notificationId);
+      
+      if (!notification) {
+        throw new Error('Notification not found');
+      }
+      
+      if (notification.userId !== userId) {
+        // Log security concern
+        await securityService.createAuditLog({
+          userId,
+          action: 'delete_notification',
+          resource: 'notifications',
+          resourceId: parseInt(notificationId),
+          result: 'error',
+          details: { reason: 'Not owner of notification' }
+        });
+        throw new Error('Not authorized to delete this notification');
+      }
+      
+      // Delete the notification
+      await storage.deleteNotification(notificationId);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Delete notification error:', error);
+      throw error;
+    }
+  }
+  
+  // Get pending (unread) notifications for a user
+  async getPendingNotifications(userId: number) {
+    try {
+      return await this.getNotifications(userId, { includeRead: false });
+    } catch (error) {
+      console.error('Get pending notifications error:', error);
+      throw error;
+    }
+  }
+  
+  // Create notification for multiple users
+  async createBulkNotifications(
+    userIds: number[], 
+    notificationTemplate: Omit<z.infer<typeof notificationSchema>, 'userId' | 'id'>
+  ) {
+    try {
+      const notifications = [];
+      
+      for (const userId of userIds) {
+        const notification = await this.createNotification({
+          ...notificationTemplate,
+          userId
+        });
+        notifications.push(notification);
+      }
+      
+      return { count: notifications.length, notifications };
+    } catch (error) {
+      console.error('Create bulk notifications error:', error);
+      throw error;
+    }
+  }
+}
+
+export const notificationService = new NotificationService();

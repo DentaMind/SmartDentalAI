@@ -154,44 +154,21 @@ export function Sidebar() {
           </div>
           Logout
         </Button>
+        <div className="space-y-1">
+          <h4 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            System
+          </h4>
+          <nav className="space-y-1">
+            <Link href="/security">
+              <a className="flex items-center px-4 py-2 text-gray-700 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors">
+                {/* Assuming LuShieldCheck is available; replace with appropriate icon if needed */}
+                <span className="mr-3 text-lg">&#128272;</span> {/* Placeholder icon */}
+                Security
+              </a>
+            </Link>
+          </nav>
+        </div>
       </div>
     </div>
   );
 }
-<div className="space-y-1">
-  <h4 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-    Financial
-  </h4>
-  <nav className="space-y-1">
-    <Link
-      to="/financial-dashboard"
-      className={clsx(
-        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:text-primary",
-        pathname === "/financial-dashboard" ? "bg-muted font-medium text-primary" : "text-muted-foreground"
-      )}
-    >
-      <DollarSign className="h-4 w-4" />
-      <span>Financial Dashboard</span>
-    </Link>
-    <Link
-      to="/insurance-claims"
-      className={clsx(
-        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:text-primary",
-        pathname === "/insurance-claims" ? "bg-muted font-medium text-primary" : "text-muted-foreground"
-      )}
-    >
-      <FileText className="h-4 w-4" />
-      <span>Insurance Claims</span>
-    </Link>
-    <Link
-      to="/payments"
-      className={clsx(
-        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:text-primary",
-        pathname === "/payments" ? "bg-muted font-medium text-primary" : "text-muted-foreground"
-      )}
-    >
-      <CreditCard className="h-4 w-4" />
-      <span>Payments</span>
-    </Link>
-  </nav>
-</div>
