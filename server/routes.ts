@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { predictFromSymptoms } from "./services/ai-prediction";
 import { aiCoordinator } from "./services/ai-coordinator";
 import { requireAuth, requireRole, requireOwnership } from "./middleware/auth";
+import { generateDiagnosticReport } from './services/report-generator'; // Added import
+import path from 'path'; // Added import
 
 const app = express();
 const router = express.Router();
@@ -173,6 +175,129 @@ router.post("/ai/cost-analysis", requireAuth, async (req, res) => {
       message: error instanceof Error ? error.message : "Failed to generate cost analysis" 
     });
   }
+});
+
+
+// Report generation route
+router.post('/api/reports/generate', async (req, res) => {
+  try {
+    const { prediction, options } = req.body;
+
+    if (!prediction) {
+      return res.status(400).json({ error: 'Prediction data is required' });
+    }
+
+    const reportPath = await generateDiagnosticReport(prediction, options);
+
+    // Send file as download
+    res.download(reportPath, `DentaMind-Report-${Date.now()}.pdf`, (err) => {
+      if (err) {
+        console.error('Error sending report:', err);
+      }
+
+      // Cleanup the temporary file after sending
+      // fs.unlinkSync(reportPath);
+    });
+  } catch (error) {
+    console.error('Error generating report:', error);
+    res.status(500).json({ error: 'Failed to generate report' });
+  }
+});
+
+// X-ray analysis route
+router.post('/api/xray/analyze', async (req, res) => {
+  try {
+    const { imageData, analysisType } = req.body;
+
+    if (!imageData) {
+      return res.status(400).json({ error: 'Image data is required' });
+    }
+
+    // Mock response for now, in production this would call an actual ML model
+    const mockFindings = [
+      {
+        region: "Tooth #36",
+        description: "Periapical radiolucency suggesting infection",
+        confidence: 0.92,
+        boundingBox: { x: 220, y: 150, width: 40, height: 30 }
+      },
+      {
+        region: "Tooth #25",
+        description: "Deep carious lesion with possible pulpal involvement",
+        confidence: 0.87,
+        boundingBox: { x: 320, y: 130, width: 35, height: 25 }
+      }
+    ];
+
+    // Add some randomized findings based on analysis type
+    if (analysisType === 'comprehensive') {
+      mockFindings.push({
+        region: "Maxillary Sinus",
+        description: "Slight mucosal thickening, possible sinusitis",
+        confidence: 0.78,
+        boundingBox: { x: 380, y: 80, width: 60, height: 40 }
+      });
+    }
+
+    // Simulate processing time
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    res.json({
+      findings: mockFindings,
+      recommendations: [
+        "Endodontic evaluation for tooth #36",
+        "Consider root canal treatment for tooth #25",
+        analysisType === 'comprehensive' ? "Monitor maxillary sinus, correlate with clinical symptoms" : null
+      ].filter(Boolean),
+      overallAssessment: "Multiple dental pathologies detected. Patient would benefit from comprehensive endodontic and restorative evaluation."
+    });
+  } catch (error) {
+    console.error('Error analyzing X-ray:', error);
+    res.status(500).json({ error: 'Failed to analyze X-ray' });
+  }
+});
+
+// Educational content API
+router.get('/api/education', (req, res) => {
+  const { category, search } = req.query;
+
+  // Mock educational content
+  const educationContent = [
+    {
+      id: '1',
+      title: 'Understanding Periodontal Disease',
+      category: 'Periodontal Disease',
+      description: 'Learn about the causes, symptoms, and treatments for gum disease.',
+      contentType: 'video',
+      content: 'https://example.com/videos/periodontal-disease.mp4',
+      thumbnailUrl: 'https://example.com/thumbnails/perio.jpg'
+    },
+    {
+      id: '2',
+      title: 'Root Canal Therapy Explained',
+      category: 'Endodontics',
+      description: 'A detailed explanation of what happens during root canal treatment.',
+      contentType: 'article',
+      content: 'Root canal therapy is a treatment used to repair and save a tooth that is badly decayed or infected...'
+    },
+    // More content would be here
+  ];
+
+  let filtered = [...educationContent];
+
+  if (category && category !== 'all') {
+    filtered = filtered.filter(item => item.category === category);
+  }
+
+  if (search) {
+    const searchStr = String(search).toLowerCase();
+    filtered = filtered.filter(item => 
+      item.title.toLowerCase().includes(searchStr) || 
+      item.description.toLowerCase().includes(searchStr)
+    );
+  }
+
+  res.json(filtered);
 });
 
 // Mount all routes under /api prefix
