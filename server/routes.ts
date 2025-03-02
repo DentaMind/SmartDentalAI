@@ -373,6 +373,179 @@ router.get("/ai/analytics/practice-performance", requireAuth, requireRole(["doct
   }
 });
 
+// Dashboard Analytics Routes
+router.get("/dashboard/analytics", requireAuth, requireRole(["doctor", "admin"]), async (req, res) => {
+  try {
+    const startDateParam = req.query.startDate as string;
+    const endDateParam = req.query.endDate as string;
+    
+    const startDate = startDateParam ? new Date(startDateParam) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const endDate = endDateParam ? new Date(endDateParam) : new Date();
+    
+    const dashboardData = await dashboardAnalytics.generateDashboardData(startDate, endDate);
+    const insights = await dashboardAnalytics.generateSmartInsights(dashboardData);
+    
+    res.json({
+      ...dashboardData,
+      insights
+    });
+  } catch (error) {
+    console.error("Dashboard analytics error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to generate dashboard analytics" 
+    });
+  }
+});
+
+router.get("/dashboard/perio-trends", requireAuth, requireRole(["doctor"]), async (req, res) => {
+  try {
+    const months = parseInt(req.query.months as string) || 6;
+    const trends = await dashboardAnalytics.getPeriodontalHealthTrends(months);
+    
+    res.json(trends);
+  } catch (error) {
+    console.error("Periodontal trends error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to get periodontal trends" 
+    });
+  }
+});
+
+router.get("/dashboard/ai-impact", requireAuth, requireRole(["doctor", "admin"]), async (req, res) => {
+  try {
+    const metrics = await dashboardAnalytics.getAIImpactMetrics();
+    
+    res.json(metrics);
+  } catch (error) {
+    console.error("AI impact metrics error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to get AI impact metrics" 
+    });
+  }
+});
+
+// Patient Portal Routes
+router.post("/patient-portal/messages", requireAuth, async (req, res) => {
+  try {
+    const message = await patientPortal.sendMessage(req.body);
+    
+    res.status(201).json(message);
+  } catch (error) {
+    console.error("Message sending error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to send message" 
+    });
+  }
+});
+
+router.post("/patient-portal/appointment-requests", requireAuth, async (req, res) => {
+  try {
+    const request = await patientPortal.requestAppointment(req.body);
+    
+    res.status(201).json(request);
+  } catch (error) {
+    console.error("Appointment request error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to request appointment" 
+    });
+  }
+});
+
+router.post("/patient-portal/documents", requireAuth, async (req, res) => {
+  try {
+    const documentAccess = await patientPortal.shareDocument(req.body);
+    
+    res.status(201).json(documentAccess);
+  } catch (error) {
+    console.error("Document sharing error:", error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Failed to share document" 
+    });
+  }
+});
+
+router.get("/patient-portal/timeline/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
+  try {
+    const patientId = parseInt(req.params.patientId);
+    const timeline = await patientPortal.getPatientTimeline(patientId);
+    
+    res.json(timeline);
+  } catch (error) {
+    console.error("Patient timeline error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to get patient timeline" 
+    });
+  }
+});
+
+router.get("/patient-portal/education/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
+  try {
+    const patientId = parseInt(req.params.patientId);
+    const condition = req.query.condition as string;
+    const resources = await patientPortal.getPatientEducationResources(patientId, condition);
+    
+    res.json(resources);
+  } catch (error) {
+    console.error("Education resources error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to get education resources" 
+    });
+  }
+});
+
+// Data Integrity Routes
+router.post("/validation/patient", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+  try {
+    const validation = await dataIntegrity.validatePatientData(req.body);
+    
+    res.json(validation);
+  } catch (error) {
+    console.error("Patient validation error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to validate patient data" 
+    });
+  }
+});
+
+router.post("/validation/dental-chart", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+  try {
+    const validation = await dataIntegrity.validateDentalChart(req.body);
+    
+    res.json(validation);
+  } catch (error) {
+    console.error("Dental chart validation error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to validate dental chart" 
+    });
+  }
+});
+
+router.post("/validation/appointment", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+  try {
+    const validation = await dataIntegrity.validateAppointment(req.body);
+    
+    res.json(validation);
+  } catch (error) {
+    console.error("Appointment validation error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to validate appointment" 
+    });
+  }
+});
+
+router.get("/system-integrity", requireAuth, requireRole(["admin"]), async (req, res) => {
+  try {
+    const integrity = await dataIntegrity.checkSystemIntegrity();
+    
+    res.json(integrity);
+  } catch (error) {
+    console.error("System integrity check error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to check system integrity" 
+    });
+  }
+});
+
 // Medical History Analysis
 router.get("/patients/:id/medical-history", requireAuth, requireOwnership("id"), async (req, res) => {
   try {

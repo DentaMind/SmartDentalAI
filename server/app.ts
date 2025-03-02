@@ -3,7 +3,11 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { predictFromSymptoms } from "./services/ai-prediction";
 import { requireAuth, requireRole, requireOwnership } from "./middleware/auth";
-import {financialService} from "./services/financial"; // Assuming this service exists
+import { errorHandler, notFoundHandler, handleRateLimitError } from "./middleware/error-handler";
+import { financialService } from "./services/financial";
+import { patientPortal } from "./services/patient-portal";
+import { dashboardAnalytics } from "./services/dashboard-analytics";
+import { dataIntegrity } from "./services/data-integrity";
 
 const app = express();
 const router = express.Router();
@@ -165,5 +169,9 @@ router.post("/api/payments", requireAuth, async (req, res) => {
 
 // Mount all routes under /api prefix
 app.use("/api", router);
+
+// Add error handling middleware
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 export default app;
