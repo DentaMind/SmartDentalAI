@@ -193,6 +193,23 @@ export const symptomPredictionSchema = z.object({
   })
 });
 
+// Define PatientMedicalHistory type
+export interface PatientMedicalHistory {
+  systemicConditions?: string[];
+  medications?: string[];
+  allergies?: string[];
+  surgicalHistory?: string[];
+  familyHistory?: string[];
+  smoking?: boolean;
+  alcohol?: boolean;
+  pregnancyStatus?: string;
+  vitalSigns?: {
+    bloodPressure?: string;
+    heartRate?: number;
+    respiratoryRate?: number;
+  };
+}
+
 export type SymptomPrediction = z.infer<typeof symptomPredictionSchema>;
 
 // Types
