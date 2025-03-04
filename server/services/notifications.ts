@@ -1,452 +1,21 @@
-
-import { storage } from "../storage";
 import { z } from "zod";
+import * as crypto from "crypto";
+import { securityService } from "./security";
+import storage from "../storage";
 
-// Notification schemas
-const notificationSchema = z.object({
-  userId: z.number().optional(),
-  type: z.enum([
-    "appointment_reminder", 
-    "appointment_confirmation", 
-    "lab_status_update", 
-    "treatment_completion", 
-    "payment_received", 
-    "insurance_update",
-    "system_alert",
-    "clinical_alert",
-    "message",
-    "task_assignment"
-  ]),
-  title: z.string(),
-  message: z.string(),
-  data: z.record(z.string(), z.any()).optional(),
-  priority: z.enum(["low", "normal", "high", "urgent"]).default("normal"),
-  channel: z.array(z.enum(["email", "sms", "in_app", "push"])),
-  scheduledFor: z.date().optional(),
-});
-
-const userPreferencesSchema = z.object({
-  userId: z.number(),
-  channels: z.object({
-    email: z.boolean().default(true),
-    sms: z.boolean().default(true),
-    in_app: z.boolean().default(true),
-    push: z.boolean().default(true),
-  }),
-  preferences: z.object({
-    appointment_reminder: z.object({
-      enabled: z.boolean().default(true),
-      advanceTime: z.number().default(24), // hours
-      channels: z.array(z.enum(["email", "sms", "in_app", "push"])).default(["email", "sms"]),
-    }),
-    // Similar structure for other notification types
-  }).optional(),
-  do_not_disturb: z.object({
-    enabled: z.boolean().default(false),
-    startTime: z.string().default("22:00"),
-    endTime: z.string().default("07:00"),
-    allowUrgent: z.boolean().default(true),
-  }).optional(),
-});
-
-class NotificationService {
-  private activeConnections: Map<number, any[]> = new Map();
-  
-  // In-memory notification storage for demo purposes
-  // In a real system, these would be stored in the database
-  private notifications: any[] = [];
-  private userPreferences: Map<number, any> = new Map();
-  
-  async sendNotification(notificationData: z.infer<typeof notificationSchema>) {
-    try {
-      // Validate notification data
-      const validData = notificationSchema.parse(notificationData);
-      
-      // Generate notification ID
-      const notificationId = this.generateNotificationId();
-      
-      // Create notification object
-      const notification = {
-        id: notificationId,
-        ...validData,
-        createdAt: new Date(),
-        status: "pending"
-      };
-      
-      // Store notification
-      this.notifications.push(notification);
-      
-      // If scheduled for future, queue it
-      if (validData.scheduledFor && validData.scheduledFor > new Date()) {
-        this.scheduleNotification(notification);
-        return { 
-          id: notificationId, 
-          status: "scheduled", 
-          scheduledFor: validData.scheduledFor 
-        };
-      }
-      
-      // Otherwise, send immediately
-      if (validData.userId) {
-        // Check user preferences
-        const userPrefs = await this.getUserPreferences(validData.userId);
-        const channels = this.determineChannels(validData, userPrefs);
-        
-        if (channels.length === 0) {
-          return { 
-            id: notificationId, 
-            status: "skipped", 
-            reason: "user_preferences" 
-          };
-        }
-        
-        // Send through each channel
-        for (const channel of channels) {
-          await this.sendThroughChannel(notification, channel);
-        }
-        
-        // Update notification status
-        notification.status = "sent";
-        notification.sentAt = new Date();
-        
-        // Add to connected clients if applicable
-        this.notifyConnectedClients(validData.userId, notification);
-        
-        return { 
-          id: notificationId, 
-          status: "sent", 
-          channels, 
-          sentAt: new Date() 
-        };
-      } else {
-        // Broadcast notification (e.g., system alerts)
-        await this.broadcastNotification(notification);
-        
-        // Update notification status
-        notification.status = "broadcast";
-        notification.sentAt = new Date();
-        
-        return { 
-          id: notificationId, 
-          status: "broadcast", 
-          sentAt: new Date() 
-        };
-      }
-    } catch (error) {
-      console.error("Notification send error:", error);
-      throw new Error(error instanceof Error ? error.message : "Failed to send notification");
-    }
-  }
-  
-  async createAppointmentReminders(days: number = 1) {
-    try {
-      // Get appointments within the next specified days
-      const now = new Date();
-      const targetDate = new Date(now);
-      targetDate.setDate(targetDate.getDate() + days);
-      
-      // Get all appointments between now and target date
-      // This would normally query the database
-      const upcomingAppointments = [];
-      
-      // Create reminders for each appointment
-      for (const appointment of upcomingAppointments) {
-        await this.sendNotification({
-          userId: appointment.patientId,
-          type: "appointment_reminder",
-          title: "Upcoming Appointment Reminder",
-          message: `You have an appointment scheduled on ${new Date(appointment.date).toLocaleDateString()} at ${new Date(appointment.date).toLocaleTimeString()}.`,
-          data: { appointmentId: appointment.id },
-          priority: "normal",
-          channel: ["email", "sms", "in_app"]
-        });
-      }
-      
-      return { 
-        status: "completed", 
-        appointmentsProcessed: upcomingAppointments.length 
-      };
-    } catch (error) {
-      console.error("Appointment reminders error:", error);
-      throw new Error(error instanceof Error ? error.message : "Failed to create appointment reminders");
-    }
-  }
-  
-  async getUserNotifications(userId: number, options: { unreadOnly?: boolean, limit?: number } = {}) {
-    try {
-      // Get notifications for user
-      const userNotifications = this.notifications.filter(n => 
-        n.userId === userId && 
-        (options.unreadOnly ? !n.readAt : true)
-      );
-      
-      // Sort by created date (most recent first)
-      userNotifications.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-      
-      // Apply limit if specified
-      const limit = options.limit || 50;
-      const limitedNotifications = userNotifications.slice(0, limit);
-      
-      return {
-        notifications: limitedNotifications,
-        unreadCount: userNotifications.filter(n => !n.readAt).length,
-        totalCount: userNotifications.length
-      };
-    } catch (error) {
-      console.error("Get user notifications error:", error);
-      throw new Error(error instanceof Error ? error.message : "Failed to get user notifications");
-    }
-  }
-  
-  async markNotificationRead(notificationId: string, userId: number) {
-    try {
-      // Find notification
-      const notification = this.notifications.find(n => n.id === notificationId && n.userId === userId);
-      
-      if (!notification) {
-        throw new Error("Notification not found");
-      }
-      
-      // Mark as read
-      notification.readAt = new Date();
-      
-      return { 
-        id: notificationId, 
-        status: "read", 
-        readAt: notification.readAt 
-      };
-    } catch (error) {
-      console.error("Mark notification read error:", error);
-      throw new Error(error instanceof Error ? error.message : "Failed to mark notification as read");
-    }
-  }
-  
-  async updateUserPreferences(preferences: z.infer<typeof userPreferencesSchema>) {
-    try {
-      // Validate preferences
-      const validPrefs = userPreferencesSchema.parse(preferences);
-      
-      // Update user preferences
-      this.userPreferences.set(validPrefs.userId, validPrefs);
-      
-      return { 
-        userId: validPrefs.userId, 
-        status: "updated",
-        preferences: validPrefs
-      };
-    } catch (error) {
-      console.error("Update user preferences error:", error);
-      throw new Error(error instanceof Error ? error.message : "Failed to update user preferences");
-    }
-  }
-  
-  async getUserPreferences(userId: number) {
-    try {
-      // Get user preferences
-      let prefs = this.userPreferences.get(userId);
-      
-      // If no preferences found, create default
-      if (!prefs) {
-        prefs = userPreferencesSchema.parse({ userId });
-        this.userPreferences.set(userId, prefs);
-      }
-      
-      return prefs;
-    } catch (error) {
-      console.error("Get user preferences error:", error);
-      throw new Error(error instanceof Error ? error.message : "Failed to get user preferences");
-    }
-  }
-  
-  // Client connection management for real-time notifications
-  registerConnection(userId: number, connection: any) {
-    if (!this.activeConnections.has(userId)) {
-      this.activeConnections.set(userId, []);
-    }
-    
-    this.activeConnections.get(userId)?.push(connection);
-    console.log(`User ${userId} connected. Total connections: ${this.activeConnections.get(userId)?.length}`);
-  }
-  
-  removeConnection(userId: number, connection: any) {
-    if (this.activeConnections.has(userId)) {
-      const connections = this.activeConnections.get(userId) || [];
-      const index = connections.indexOf(connection);
-      
-      if (index !== -1) {
-        connections.splice(index, 1);
-        console.log(`User ${userId} disconnected. Remaining connections: ${connections.length}`);
-        
-        // Clean up if no more connections
-        if (connections.length === 0) {
-          this.activeConnections.delete(userId);
-        }
-      }
-    }
-  }
-  
-  // Private helper methods
-  private generateNotificationId() {
-    return `notif-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-  }
-  
-  private scheduleNotification(notification: any) {
-    const now = new Date();
-    const scheduledTime = notification.scheduledFor;
-    const delay = scheduledTime.getTime() - now.getTime();
-    
-    // Schedule notification for later
-    setTimeout(() => {
-      this.sendNotification({
-        ...notification,
-        scheduledFor: undefined // Remove scheduling to send immediately
-      });
-    }, delay);
-  }
-  
-  private determineChannels(notification: any, userPreferences: any) {
-    // Start with notification's requested channels
-    let channels = [...notification.channel];
-    
-    // Filter based on user preferences
-    channels = channels.filter(channel => {
-      // Check if this channel is enabled by user
-      if (!userPreferences.channels[channel]) {
-        return false;
-      }
-      
-      // Check do not disturb settings
-      if (userPreferences.do_not_disturb?.enabled) {
-        const now = new Date();
-        const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-        const startTime = userPreferences.do_not_disturb.startTime;
-        const endTime = userPreferences.do_not_disturb.endTime;
-        
-        // Check if current time is within do not disturb window
-        const isDuringDND = this.isTimeBetween(currentTime, startTime, endTime);
-        
-        if (isDuringDND) {
-          // Allow only if notification is urgent and user allows urgent during DND
-          if (!(notification.priority === "urgent" && userPreferences.do_not_disturb.allowUrgent)) {
-            return false;
-          }
-        }
-      }
-      
-      // Check notification type preferences if available
-      if (userPreferences.preferences && userPreferences.preferences[notification.type]) {
-        const typePref = userPreferences.preferences[notification.type];
-        
-        // Check if this type is enabled
-        if (!typePref.enabled) {
-          return false;
-        }
-        
-        // Check if this channel is preferred for this notification type
-        if (typePref.channels && !typePref.channels.includes(channel)) {
-          return false;
-        }
-      }
-      
-      return true;
-    });
-    
-    return channels;
-  }
-  
-  private async sendThroughChannel(notification: any, channel: string) {
-    // In a real system, these would integrate with external services
-    switch (channel) {
-      case "email":
-        console.log(`Sending email notification to user ${notification.userId}: ${notification.title}`);
-        break;
-      case "sms":
-        console.log(`Sending SMS notification to user ${notification.userId}: ${notification.title}`);
-        break;
-      case "push":
-        console.log(`Sending push notification to user ${notification.userId}: ${notification.title}`);
-        break;
-      case "in_app":
-        // Handled by notifyConnectedClients
-        break;
-    }
-  }
-  
-  private notifyConnectedClients(userId: number, notification: any) {
-    const connections = this.activeConnections.get(userId) || [];
-    
-    for (const connection of connections) {
-      // Send in-app notification
-      if (connection.send) {
-        connection.send(JSON.stringify({
-          type: "notification",
-          data: notification
-        }));
-      }
-    }
-  }
-  
-  private async broadcastNotification(notification: any) {
-    console.log(`Broadcasting notification: ${notification.title}`);
-    
-    // Broadcast to all connected clients
-    for (const [userId, connections] of this.activeConnections.entries()) {
-      for (const connection of connections) {
-        if (connection.send) {
-          connection.send(JSON.stringify({
-            type: "broadcast",
-            data: notification
-          }));
-        }
-      }
-    }
-  }
-  
-  private isTimeBetween(time: string, start: string, end: string) {
-    // Convert times to minutes since midnight
-    const timeMinutes = this.timeToMinutes(time);
-    const startMinutes = this.timeToMinutes(start);
-    const endMinutes = this.timeToMinutes(end);
-    
-    // Handle overnight periods
-    if (startMinutes > endMinutes) {
-      return timeMinutes >= startMinutes || timeMinutes <= endMinutes;
-    } else {
-      return timeMinutes >= startMinutes && timeMinutes <= endMinutes;
-    }
-  }
-  
-  private timeToMinutes(time: string) {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours * 60 + minutes;
-  }
-}
-
-export const notificationService = new NotificationService();
-import { z } from 'zod';
-import { storage } from '../storage';
-import { securityService } from './security';
-
-// Schema for a notification
+// Notification schema
 const notificationSchema = z.object({
   id: z.string().optional(),
   userId: z.number(),
+  type: z.string(),
   title: z.string(),
   message: z.string(),
-  type: z.enum(['info', 'warning', 'error', 'success']),
-  source: z.string(),
-  sourceId: z.string().optional(),
+  link: z.string().optional(),
   read: z.boolean().default(false),
+  priority: z.enum(["low", "medium", "high"]).default("medium"),
+  data: z.record(z.any()).optional(),
   createdAt: z.date().optional(),
-  expiresAt: z.date().optional(),
-  priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
-  actions: z.array(
-    z.object({
-      label: z.string(),
-      url: z.string().optional(),
-      action: z.string().optional()
-    })
-  ).optional()
+  expiresAt: z.date().optional()
 });
 
 class NotificationService {
@@ -459,10 +28,10 @@ class NotificationService {
         id: notificationData.id || crypto.randomUUID(),
         createdAt: notificationData.createdAt || new Date()
       });
-      
+
       // Store the notification
       const notification = await storage.createNotification(validData);
-      
+
       // Log notification creation
       await securityService.createAuditLog({
         userId: validData.userId,
@@ -471,14 +40,14 @@ class NotificationService {
         resourceId: parseInt(notification.id),
         result: 'success'
       });
-      
+
       return notification;
     } catch (error) {
       console.error('Notification creation error:', error);
       throw error;
     }
   }
-  
+
   // Get all notifications for a user
   async getNotifications(userId: number, options: { 
     includeRead?: boolean, 
@@ -487,21 +56,21 @@ class NotificationService {
   } = {}) {
     try {
       const { includeRead = false, limit = 20, before } = options;
-      
+
       // Get notifications from storage
       const notifications = await storage.getNotifications(userId, {
         includeRead,
         limit,
         before
       });
-      
+
       return notifications;
     } catch (error) {
       console.error('Get notifications error:', error);
       throw error;
     }
   }
-  
+
   // Get unread notification count for a user
   async getUnreadCount(userId: number) {
     try {
@@ -511,17 +80,17 @@ class NotificationService {
       throw error;
     }
   }
-  
+
   // Mark a notification as read
   async markAsRead(notificationId: string, userId: number) {
     try {
       // Make sure the notification belongs to the user
       const notification = await storage.getNotificationById(notificationId);
-      
+
       if (!notification) {
         throw new Error('Notification not found');
       }
-      
+
       if (notification.userId !== userId) {
         // Log security concern
         await securityService.createAuditLog({
@@ -534,39 +103,39 @@ class NotificationService {
         });
         throw new Error('Not authorized to update this notification');
       }
-      
+
       // Update the notification
       await storage.updateNotification(notificationId, { read: true });
-      
+
       return { success: true };
     } catch (error) {
       console.error('Mark notification read error:', error);
       throw error;
     }
   }
-  
+
   // Mark all notifications as read for a user
   async markAllAsRead(userId: number) {
     try {
       await storage.markAllNotificationsAsRead(userId);
-      
+
       return { success: true };
     } catch (error) {
       console.error('Mark all notifications read error:', error);
       throw error;
     }
   }
-  
+
   // Delete a notification
   async deleteNotification(notificationId: string, userId: number) {
     try {
       // Make sure the notification belongs to the user
       const notification = await storage.getNotificationById(notificationId);
-      
+
       if (!notification) {
         throw new Error('Notification not found');
       }
-      
+
       if (notification.userId !== userId) {
         // Log security concern
         await securityService.createAuditLog({
@@ -579,17 +148,17 @@ class NotificationService {
         });
         throw new Error('Not authorized to delete this notification');
       }
-      
+
       // Delete the notification
       await storage.deleteNotification(notificationId);
-      
+
       return { success: true };
     } catch (error) {
       console.error('Delete notification error:', error);
       throw error;
     }
   }
-  
+
   // Get pending (unread) notifications for a user
   async getPendingNotifications(userId: number) {
     try {
@@ -599,7 +168,7 @@ class NotificationService {
       throw error;
     }
   }
-  
+
   // Create notification for multiple users
   async createBulkNotifications(
     userIds: number[], 
@@ -607,7 +176,7 @@ class NotificationService {
   ) {
     try {
       const notifications = [];
-      
+
       for (const userId of userIds) {
         const notification = await this.createNotification({
           ...notificationTemplate,
@@ -615,13 +184,98 @@ class NotificationService {
         });
         notifications.push(notification);
       }
-      
+
       return { count: notifications.length, notifications };
     } catch (error) {
       console.error('Create bulk notifications error:', error);
       throw error;
     }
   }
+
+  // Send appointment reminder notifications
+  async sendAppointmentReminders() {
+    try {
+      // Get appointments coming up in the next 24 hours
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const appointments = await storage.getAppointmentsByDateRange(
+        new Date(), 
+        tomorrow
+      );
+
+      const remindersSent = [];
+
+      for (const appointment of appointments) {
+        // Create notification for the patient
+        const notification = await this.createNotification({
+          userId: appointment.patientId,
+          type: 'appointment_reminder',
+          title: 'Upcoming Appointment Reminder',
+          message: `You have an appointment scheduled for ${new Date(appointment.date).toLocaleString()}`,
+          priority: 'high',
+          data: { appointmentId: appointment.id }
+        });
+
+        remindersSent.push(notification);
+      }
+
+      return { count: remindersSent.length };
+    } catch (error) {
+      console.error('Send appointment reminders error:', error);
+      throw error;
+    }
+  }
+
+  // Send notifications for overdue invoices
+  async sendOverdueInvoiceReminders() {
+    try {
+      // Get overdue invoices
+      const overdueInvoices = await storage.getOverdueInvoices();
+
+      const remindersSent = [];
+
+      for (const invoice of overdueInvoices) {
+        // Create notification for the patient
+        const notification = await this.createNotification({
+          userId: invoice.patientId,
+          type: 'invoice_overdue',
+          title: 'Overdue Payment Reminder',
+          message: `Your invoice #${invoice.id} is overdue. Please make a payment at your earliest convenience.`,
+          priority: 'high',
+          data: { invoiceId: invoice.id, amount: invoice.amount, dueDate: invoice.dueDate }
+        });
+
+        remindersSent.push(notification);
+      }
+
+      return { count: remindersSent.length };
+    } catch (error) {
+      console.error('Send overdue invoice reminders error:', error);
+      throw error;
+    }
+  }
+
+  // Send notifications for lab results
+  async sendLabResultNotification(patientId: number, labResultId: number, doctorName: string) {
+    try {
+      const notification = await this.createNotification({
+        userId: patientId,
+        type: 'lab_result',
+        title: 'New Lab Results Available',
+        message: `Dr. ${doctorName} has uploaded new lab results to your patient portal.`,
+        priority: 'medium',
+        data: { labResultId }
+      });
+
+      return notification;
+    } catch (error) {
+      console.error('Send lab result notification error:', error);
+      throw error;
+    }
+  }
 }
 
 export const notificationService = new NotificationService();
+export { notificationSchema };
+export default notificationService;
