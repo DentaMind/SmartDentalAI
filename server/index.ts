@@ -4,6 +4,7 @@ import { securityService } from "./services/security"; // Import security servic
 import http from 'http';
 import { setupWebSocketServer } from './websocket';
 import dotenv from 'dotenv'; // Import dotenv
+import app from './app';
 
 dotenv.config(); // Load environment variables
 
