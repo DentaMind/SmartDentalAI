@@ -343,7 +343,7 @@ export class MemStorage implements IStorage {
   }
 
   // Backup and data management
-  async createBackup() {
+  async createCompleteBackup() {
     try {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const backupName = `dentamind_backup_${timestamp}`;
@@ -377,7 +377,7 @@ export class MemStorage implements IStorage {
     }
   }
 
-  async restoreFromBackup(backupId: string) {
+  async restoreFromCompleteBackup(backupId: string) {
     // Simulate restore - replace with actual restore mechanism
     console.log(`Restoring from backup: ${backupId}`);
     return { success: true, message: "Restore simulated successfully" };
@@ -461,15 +461,15 @@ export class MemStorage implements IStorage {
   // User methods
   async findUserByUsername(username: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(user => user.username === username);
-  },
+  }
 
   async findUserByEmail(email: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(user => user.email === email);
-  },
+  }
 
   async getUserById(id: number): Promise<User | undefined> {
     return this.users.get(id);
-  },
+  }
 
   async createUserDb(userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {
     const newUser: User = {
@@ -481,7 +481,7 @@ export class MemStorage implements IStorage {
 
     this.users.set(newUser.id, newUser);
     return newUser;
-  },
+  }
 
   async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
     const user = this.users.get(id);
@@ -495,7 +495,7 @@ export class MemStorage implements IStorage {
 
     this.users.set(id, updatedUser);
     return updatedUser;
-  },
+  }
 
   // Notification methods
   async createNotification(notificationData: Omit<Notification, 'id' | 'createdAt'>): Promise<Notification> {
@@ -507,7 +507,7 @@ export class MemStorage implements IStorage {
 
     notifications.push(newNotification); // This should be replaced with a proper storage mechanism
     return newNotification;
-  },
+  }
 
   async getNotifications(userId: number, options: { 
     includeRead?: boolean, 
@@ -533,11 +533,11 @@ export class MemStorage implements IStorage {
     }
 
     return result;
-  },
+  }
 
   async getNotificationById(id: string): Promise<Notification | undefined> {
     return notifications.find(n => n.id === id);
-  },
+  }
 
   async updateNotification(id: string, updates: Partial<Notification>): Promise<Notification | undefined> {
     const notificationIndex = notifications.findIndex(n => n.id === id);
@@ -549,7 +549,7 @@ export class MemStorage implements IStorage {
     };
 
     return notifications[notificationIndex];
-  },
+  }
 
   async deleteNotification(id: string): Promise<boolean> {
     const notificationIndex = notifications.findIndex(n => n.id === id);
@@ -557,11 +557,11 @@ export class MemStorage implements IStorage {
 
     notifications.splice(notificationIndex, 1);
     return true;
-  },
+  }
 
   async getUnreadNotificationCount(userId: number): Promise<number> {
     return notifications.filter(n => n.userId === userId && !n.read).length;
-  },
+  }
 
   async markAllNotificationsAsRead(userId: number): Promise<number> {
     let count = 0;
@@ -574,7 +574,7 @@ export class MemStorage implements IStorage {
     }
 
     return count;
-  },
+  }
 
   // Backup and restore operations
   async createBackup(): Promise<string> {
@@ -589,7 +589,7 @@ export class MemStorage implements IStorage {
     console.log(`Created backup ${backupId}`);
 
     return backupId;
-  },
+  }
 
   async restoreFromBackup(backupId: string): Promise<{ success: boolean, message: string }> {
     // In a real system, this would restore from the backup
@@ -599,7 +599,7 @@ export class MemStorage implements IStorage {
       success: true, 
       message: `Restored from backup ${backupId}` 
     };
-  },
+  }
 
   // Analytics
   async getPracticeAnalytics(timeframe: string): Promise<any> {
