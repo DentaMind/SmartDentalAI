@@ -1,7 +1,7 @@
 import { z } from "zod";
 import * as crypto from "crypto";
 import { securityService } from "./security";
-import storage from "../storage";
+import { storage } from "../storage";
 
 // Notification schema
 const notificationSchema = z.object({
@@ -180,7 +180,8 @@ class NotificationService {
       for (const userId of userIds) {
         const notification = await this.createNotification({
           ...notificationTemplate,
-          userId
+          userId,
+          read: false
         });
         notifications.push(notification);
       }
@@ -214,7 +215,8 @@ class NotificationService {
           title: 'Upcoming Appointment Reminder',
           message: `You have an appointment scheduled for ${new Date(appointment.date).toLocaleString()}`,
           priority: 'high',
-          data: { appointmentId: appointment.id }
+          data: { appointmentId: appointment.id },
+          read: false
         });
 
         remindersSent.push(notification);
@@ -243,7 +245,8 @@ class NotificationService {
           title: 'Overdue Payment Reminder',
           message: `Your invoice #${invoice.id} is overdue. Please make a payment at your earliest convenience.`,
           priority: 'high',
-          data: { invoiceId: invoice.id, amount: invoice.amount, dueDate: invoice.dueDate }
+          data: { invoiceId: invoice.id, amount: invoice.amount, dueDate: invoice.dueDate },
+          read: false
         });
 
         remindersSent.push(notification);
@@ -265,12 +268,64 @@ class NotificationService {
         title: 'New Lab Results Available',
         message: `Dr. ${doctorName} has uploaded new lab results to your patient portal.`,
         priority: 'medium',
-        data: { labResultId }
+        data: { labResultId },
+        read: false
       });
 
       return notification;
     } catch (error) {
       console.error('Send lab result notification error:', error);
+      throw error;
+    }
+  }
+
+  // Send notifications to multiple roles or user groups
+  async sendNotification({
+    type,
+    priority,
+    subject,
+    message,
+    recipients
+  }: {
+    type: string;
+    priority: 'low' | 'medium' | 'high' | 'critical';
+    subject: string;
+    message: string;
+    recipients: { roles?: string[], userIds?: number[] }
+  }) {
+    try {
+      const { roles, userIds = [] } = recipients;
+      let targetUserIds = [...userIds];
+
+      // If roles are specified, find users with those roles
+      if (roles && roles.length > 0) {
+        const usersWithRoles = await storage.getUsersByRoles(roles);
+        targetUserIds = [...targetUserIds, ...usersWithRoles.map(u => u.id)];
+      }
+
+      // Remove duplicates
+      targetUserIds = [...new Set(targetUserIds)];
+
+      if (targetUserIds.length === 0) {
+        return { count: 0, message: "No recipients found" };
+      }
+
+      // Convert priority to our notification priority
+      const notificationPriority = priority === 'critical' ? 'high' : priority;
+
+      // Send notifications
+      return await this.createBulkNotifications(
+        targetUserIds,
+        {
+          type,
+          title: subject,
+          message,
+          priority: notificationPriority as 'low' | 'medium' | 'high',
+          data: { notificationType: type }
+        }
+      );
+    } catch (error) {
+      console.error('Send notification error:', error);
       throw error;
     }
   }

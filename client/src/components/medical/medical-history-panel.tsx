@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, ShieldAlert, AlertTriangle, Check } from "lucide-react";
+import { AlertCircle, ShieldAlert, AlertTriangle, Check, Brain } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -74,7 +73,7 @@ export function MedicalHistoryPanel({ patientId }: MedicalAnalysisProps) {
       );
     } else if (level === "moderate") {
       return (
-        <Badge variant="warning" className="gap-1 bg-amber-500">
+        <Badge variant="outline" className="gap-1 bg-amber-500 text-white border-amber-600">
           <AlertTriangle className="h-3.5 w-3.5" />
           Moderate Risk
         </Badge>
@@ -132,7 +131,7 @@ export function MedicalHistoryPanel({ patientId }: MedicalAnalysisProps) {
               <TabsTrigger value="allergies">Allergies</TabsTrigger>
               <TabsTrigger value="vitals">Vital Signs</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="conditions" className="space-y-4">
               {medicalHistory.systemicConditions.length > 0 ? (
                 <ul className="space-y-2">
@@ -146,7 +145,7 @@ export function MedicalHistoryPanel({ patientId }: MedicalAnalysisProps) {
                 <p className="text-muted-foreground">No systemic conditions reported.</p>
               )}
             </TabsContent>
-            
+
             <TabsContent value="medications" className="space-y-4">
               {medicalHistory.medications.length > 0 ? (
                 <ul className="space-y-2">
@@ -163,7 +162,7 @@ export function MedicalHistoryPanel({ patientId }: MedicalAnalysisProps) {
                 <p className="text-muted-foreground">No medications reported.</p>
               )}
             </TabsContent>
-            
+
             <TabsContent value="allergies" className="space-y-4">
               {medicalHistory.allergies.length > 0 ? (
                 <ul className="space-y-2">
@@ -177,7 +176,7 @@ export function MedicalHistoryPanel({ patientId }: MedicalAnalysisProps) {
                 <p className="text-muted-foreground">No allergies reported.</p>
               )}
             </TabsContent>
-            
+
             <TabsContent value="vitals" className="space-y-4">
               {medicalHistory.vitalSigns ? (
                 <div className="grid grid-cols-2 gap-4">
@@ -218,36 +217,36 @@ export function MedicalHistoryPanel({ patientId }: MedicalAnalysisProps) {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {analysisMutation.data.treatmentContraindications.length > 0 && (
+            {analysisMutation.data.treatmentContraindications?.length > 0 && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Contraindications</AlertTitle>
                 <AlertDescription>
                   <ul className="list-disc pl-5 mt-2">
-                    {analysisMutation.data.treatmentContraindications.map((item, i) => (
+                    {analysisMutation.data.treatmentContraindications.map((item: string, i: number) => (
                       <li key={i}>{item}</li>
                     ))}
                   </ul>
                 </AlertDescription>
               </Alert>
             )}
-            
-            {analysisMutation.data.recommendedPrecautions.length > 0 && (
+
+            {analysisMutation.data.recommendedPrecautions?.length > 0 && (
               <div>
                 <h4 className="font-semibold mb-2">Recommended Precautions</h4>
                 <ul className="list-disc pl-5 space-y-1">
-                  {analysisMutation.data.recommendedPrecautions.map((precaution, i) => (
+                  {analysisMutation.data.recommendedPrecautions.map((precaution: string, i: number) => (
                     <li key={i}>{precaution}</li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {analysisMutation.data.medicationInteractions.length > 0 && (
+            {analysisMutation.data.medicationInteractions?.length > 0 && (
               <div>
                 <h4 className="font-semibold mb-2">Medication Interactions</h4>
                 <div className="space-y-3">
-                  {analysisMutation.data.medicationInteractions.map((interaction, i) => (
+                  {analysisMutation.data.medicationInteractions.map((interaction: any, i: number) => (
                     <div key={i} className="bg-white p-3 rounded-md border">
                       <div className="font-medium">{interaction.medication}</div>
                       <div className="text-sm text-muted-foreground mt-1">
@@ -256,7 +255,7 @@ export function MedicalHistoryPanel({ patientId }: MedicalAnalysisProps) {
                       <div className="mt-2">
                         <span className="text-sm font-medium">Recommendations:</span>
                         <ul className="list-disc pl-5 mt-1 text-sm">
-                          {interaction.recommendations.map((rec, j) => (
+                          {interaction.recommendations.map((rec: string, j: number) => (
                             <li key={j}>{rec}</li>
                           ))}
                         </ul>

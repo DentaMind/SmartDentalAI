@@ -17,8 +17,23 @@ export default function AIDiagnosticsPage() {
 
   const diagnosisMutation = useMutation({
     mutationFn: async (symptoms: string) => {
-      const res = await apiRequest("POST", "/api/ai/diagnosis", { symptoms });
-      return res.json();
+      try {
+        const res = await apiRequest("POST", "/api/ai/diagnosis", { 
+          symptoms,
+          patientHistory: "" // Optional: Add patient history if available
+        });
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error("API Error:", errorText);
+          throw new Error(`Failed to analyze symptoms: ${res.status} ${res.statusText}`);
+        }
+
+        return res.json();
+      } catch (error) {
+        console.error("Diagnosis request error:", error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       toast({
@@ -27,6 +42,7 @@ export default function AIDiagnosticsPage() {
       });
     },
     onError: (error: Error) => {
+      console.error("Diagnosis error:", error);
       toast({
         title: "Analysis Failed",
         description: error.message,
@@ -108,12 +124,15 @@ export default function AIDiagnosticsPage() {
                         <CardTitle className="text-sm">Possible Conditions</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        {diagnosisMutation.data.conditions.map((condition: any, index: number) => (
+                        {diagnosisMutation.data.conditions && diagnosisMutation.data.conditions.map((condition: any, index: number) => (
                           <div key={index} className="mb-2">
                             <p className="font-medium">{condition.name}</p>
                             <p className="text-sm text-muted-foreground">
                               Confidence: {Math.round(condition.confidence * 100)}%
                             </p>
+                            {condition.description && (
+                              <p className="text-sm mt-1">{condition.description}</p>
+                            )}
                           </div>
                         ))}
                       </CardContent>
