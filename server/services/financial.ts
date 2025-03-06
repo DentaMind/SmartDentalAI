@@ -1,11 +1,10 @@
 import { z } from "zod";
 import { storage } from "../storage";
 import {
-  insuranceClaimSchema,
-  paymentSchema
+  insertInsuranceClaimSchema as insuranceClaimSchema,
+  insertPaymentSchema as paymentSchema
 } from "@shared/schema";
 
-// Insurance provider database
 const insuranceProviders = {
   "Delta Dental": {
     name: "Delta Dental",
@@ -42,7 +41,6 @@ const insuranceProviders = {
   }
 };
 
-// Procedure category mapping by ADA code ranges
 const procedureCategories: Record<string, "preventive" | "basic" | "major" | "orthodontic"> = {
   "D0100-D0999": "preventive", // Diagnostic
   "D1000-D1999": "preventive", // Preventive

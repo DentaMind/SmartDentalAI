@@ -9,6 +9,8 @@ dotenv.config();
 
 const startServer = async () => {
   try {
+    console.log('Starting server initialization...');
+
     // Check file integrity before starting
     const integrityCheck = await securityService.performIntegrityCheck();
     if (integrityCheck.status === 'compromised') {
@@ -23,14 +25,18 @@ const startServer = async () => {
       }
     }
 
+    console.log('Creating HTTP server...');
     // Create HTTP server from Express app
     const httpServer = http.createServer(app);
 
+    console.log('Setting up WebSocket server...');
     // Setup WebSocket server
     const wsServer = setupWebSocketServer(httpServer);
 
     // Start the server first
     const PORT = Number(process.env.PORT) || 3000;
+    console.log(`Attempting to start server on port ${PORT}...`);
+
     httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`Server listening on port ${PORT}`);
       console.log(`http://localhost:${PORT}`);
@@ -42,6 +48,7 @@ const startServer = async () => {
       try {
         log("Setting up Vite development server...");
         await setupVite(app);
+        console.log('Vite development server setup complete');
       } catch (error) {
         console.error("Vite setup error:", error);
         console.error("Full error details:", error instanceof Error ? error.stack : error);
@@ -58,5 +65,6 @@ const startServer = async () => {
 
 startServer().catch(error => {
   console.error('Unhandled startup error:', error);
+  console.error('Full error details:', error instanceof Error ? error.stack : error);
   process.exit(1);
 });
