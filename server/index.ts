@@ -1,11 +1,11 @@
 import http from 'http';
 import { setupWebSocketServer } from './websocket';
-import dotenv from 'dotenv'; // Import dotenv
+import dotenv from 'dotenv';
 import app from './app';
 import { setupVite, log } from "./vite";
-import { securityService } from "./services/security"; // Import security service
+import { securityService } from "./services/security";
 
-dotenv.config(); // Load environment variables
+dotenv.config();
 
 // Create HTTP server from Express app
 const httpServer = http.createServer(app);
@@ -13,10 +13,6 @@ const httpServer = http.createServer(app);
 // Setup WebSocket server
 const wsServer = setupWebSocketServer(httpServer);
 
-// Start the HTTP server (which hosts both Express and WebSocket)
-const PORT = process.env.PORT || 3000;
-
-// Perform initial security checks
 const startServer = async () => {
   try {
     // Check file integrity before starting
@@ -33,16 +29,18 @@ const startServer = async () => {
       }
     }
 
-    // Initialize server
+    // In development, setup Vite
     try {
-      // In development, let Vite handle everything
       log("Setting up Vite development server...");
-      await setupVite(app, httpServer);
+      await setupVite(app);
     } catch (error) {
       console.error("Vite setup error:", error);
+      throw error;
     }
 
-    httpServer.listen(PORT, '0.0.0.0', () => { // Listen on 0.0.0.0
+    // Start the server
+    const PORT = Number(process.env.PORT) || 3000;
+    httpServer.listen(PORT, () => {
       console.log(`Server listening on port ${PORT}`);
       console.log(`http://localhost:${PORT}`);
       console.log(`WebSocket server available at ws://localhost:${PORT}`);
