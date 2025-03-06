@@ -1,10 +1,9 @@
-import { storage } from "../storage";
-import { 
-  insuranceClaimSchema, 
-  paymentSchema, 
-  // financialDateRangeSchema 
-} from "@shared/schema";
 import { z } from "zod";
+import { storage } from "../storage";
+import {
+  insuranceClaimSchema,
+  paymentSchema
+} from "@shared/schema";
 
 // Insurance provider database
 const insuranceProviders = {
@@ -58,76 +57,7 @@ const procedureCategories: Record<string, "preventive" | "basic" | "major" | "or
   "D9000-D9999": "basic",      // Adjunctive General Services
 };
 
-import { z } from "zod";
-import { storage } from "../storage";
-
-// Define the missing schemas
-const paymentSchema = z.object({
-  patientId: z.number(),
-  amount: z.number(),
-  treatmentPlanId: z.number().optional(),
-  method: z.string(),
-  description: z.string().optional()
-});
-
-const insuranceClaimSchema = z.object({
-  patientId: z.number(),
-  treatmentPlanId: z.number(),
-  insuranceProvider: z.string(),
-  procedures: z.array(z.object({
-    code: z.string(),
-    fee: z.number()
-  }))
-});
-
-// Mock insurance providers data
-const insuranceProviders = {
-  "Delta Dental": {
-    name: "Delta Dental",
-    coverageRates: {
-      preventive: 0.9,
-      basic: 0.7,
-      major: 0.5,
-      orthodontic: 0.4,
-    },
-    annualMax: 2000,
-  },
-  "Cigna": {
-    name: "Cigna",
-    coverageRates: {
-      preventive: 0.85,
-      basic: 0.65,
-      major: 0.45,
-      orthodontic: 0.35,
-    },
-    annualMax: 1800,
-  },
-  "Aetna": {
-    name: "Aetna",
-    coverageRates: {
-      preventive: 0.8,
-      basic: 0.6,
-      major: 0.4,
-      orthodontic: 0.3,
-    },
-    annualMax: 1500,
-  }
-};
-
-// Procedure categories by code ranges
-const procedureCategories: Record<string, string> = {
-  "D0100-D0999": "preventive", // Diagnostic
-  "D1000-D1999": "preventive", // Preventive
-  "D2000-D2999": "basic",      // Restorative
-  "D3000-D3999": "major",      // Endodontics
-  "D4000-D4999": "major",      // Periodontics
-  "D5000-D5999": "major",      // Prosthodontics (removable)
-  "D6000-D6999": "major",      // Implant Services
-  "D7000-D7999": "basic",      // Oral Surgery
-  "D8000-D8999": "orthodontic" // Orthodontics
-};
-
-export class FinancialService {
+class FinancialService {
   async processPayment(paymentData: z.infer<typeof paymentSchema>) {
     try {
       // Validate payment data
@@ -596,4 +526,8 @@ export class FinancialService {
   }
 }
 
+// Export a singleton instance
 export const financialService = new FinancialService();
+
+// Also export the class for testing purposes
+export { FinancialService };
