@@ -1,0 +1,82 @@
+It looks like you've made multiple fixes but are still running into issues with:
+
+1. **Vite preamble detection errors**
+2. **`__dirname is not defined` in `server/app.ts`**
+3. **Duplicate declarations and exports in `use-auth.tsx` and `financial-dashboard.tsx`**
+
+---
+
+### Steps to Fix:
+
+#### 1. **Fix `__dirname is not defined` Issue**
+Since you're using ES Modules (`type: module` in package.json), `__dirname` is not available by default. Instead, use:
+```ts
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+```
+Use this replacement anywhere `__dirname` is causing an error in `server/app.ts` and other server-side files.
+
+---
+
+#### 2. **Fix Duplicate Declarations in `use-auth.tsx`**
+Check `client/src/hooks/use-auth.tsx` and remove any duplicate definitions for:
+
+- `AuthContext`
+- `AuthProvider`
+- `useAuth`
+
+If these exist multiple times, keep only **one** definition of each.
+
+Example of how it should be structured:
+
+```ts
+import { createContext, useContext, ReactNode } from 'react';
+
+export const AuthContext = createContext<AuthContextType | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  // Your auth logic here
+}
+
+export function useAuth() {
+  return useContext(AuthContext);
+}
+```
+Make sure you don't have multiple exports of the same function.
+
+---
+
+#### 3. **Fix `Vite` Issues**
+- Check `vite.config.ts` (or `vite.config.js`) and ensure you are properly setting up React.
+- Verify `index.html` is correctly configured to reference the correct entry point.
+
+Example of a **correct `vite.config.ts` setup**:
+```ts
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 3000,
+  },
+});
+```
+
+If Vite still fails, run:
+```sh
+rm -rf node_modules .vite
+npm install
+npm run dev
+```
+This will clear any corrupted dependencies and rebuild your project.
+
+---
+
+### Next Steps:
+1. **Apply the fixes above** and restart your server.
+2. If the issue persists, share the latest error logs.
+3. Let me know if you need further debugging help.

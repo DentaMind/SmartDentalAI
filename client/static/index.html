@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DentaMind - Dental Practice Management</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    header {
+      background-color: #2a64f5;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+    }
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    .auth-container {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+      max-width: 400px;
+      margin: 2rem auto;
+    }
+    input {
+      display: block;
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    button {
+      background-color: #2a64f5;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #1a54e5;
+    }
+    .tabs {
+      display: flex;
+      margin-bottom: 1.5rem;
+    }
+    .tab {
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+    .tab.active {
+      border-bottom: 2px solid #2a64f5;
+      font-weight: bold;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>DentaMind</h1>
+    <p>AI-Powered Dental Practice Management</p>
+  </header>
+  
+  <main>
+    <div class="auth-container">
+      <div class="tabs">
+        <div class="tab active" id="login-tab">Login</div>
+        <div class="tab" id="register-tab">Register</div>
+      </div>
+      
+      <div id="login-form">
+        <h2>Login to Your Account</h2>
+        <form id="login">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" placeholder="Enter your username" required>
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Enter your password" required>
+          </div>
+          <button type="submit">Login</button>
+        </form>
+      </div>
+      
+      <div id="register-form" style="display: none;">
+        <h2>Create a New Account</h2>
+        <form id="register">
+          <div class="form-group">
+            <label for="new-username">Username</label>
+            <input type="text" id="new-username" placeholder="Choose a username" required>
+          </div>
+          <div class="form-group">
+            <label for="new-email">Email</label>
+            <input type="email" id="new-email" placeholder="Enter your email" required>
+          </div>
+          <div class="form-group">
+            <label for="new-password">Password</label>
+            <input type="password" id="new-password" placeholder="Choose a password" required>
+          </div>
+          <div class="form-group">
+            <label for="first-name">First Name</label>
+            <input type="text" id="first-name" placeholder="Enter your first name" required>
+          </div>
+          <div class="form-group">
+            <label for="last-name">Last Name</label>
+            <input type="text" id="last-name" placeholder="Enter your last name" required>
+          </div>
+          <button type="submit">Register</button>
+        </form>
+      </div>
+    </div>
+    
+    <p style="text-align: center; margin-top: 2rem;">
+      Static demo version created to verify server connectivity. Visit <a href="/">/</a> for the full application.
+    </p>
+  </main>
+
+  <script>
+    // Simple tab switching
+    document.getElementById('login-tab').addEventListener('click', function() {
+      this.classList.add('active');
+      document.getElementById('register-tab').classList.remove('active');
+      document.getElementById('login-form').style.display = 'block';
+      document.getElementById('register-form').style.display = 'none';
+    });
+    
+    document.getElementById('register-tab').addEventListener('click', function() {
+      this.classList.add('active');
+      document.getElementById('login-tab').classList.remove('active');
+      document.getElementById('login-form').style.display = 'none';
+      document.getElementById('register-form').style.display = 'block';
+    });
+    
+    // Form handling
+    document.getElementById('login').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      
+      fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, password })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Login failed');
+        }
+        return response.json();
+      })
+      .then(data => {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('refreshToken', data.refreshToken);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        window.location.href = '/';
+      })
+      .catch(error => {
+        alert('Error: ' + error.message);
+      });
+    });
+    
+    document.getElementById('register').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const username = document.getElementById('new-username').value;
+      const email = document.getElementById('new-email').value;
+      const password = document.getElementById('new-password').value;
+      const firstName = document.getElementById('first-name').value;
+      const lastName = document.getElementById('last-name').value;
+      
+      fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          username, 
+          email, 
+          password, 
+          firstName, 
+          lastName,
+          role: 'patient'
+        })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Registration failed');
+        }
+        return response.json();
+      })
+      .then(data => {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('refreshToken', data.refreshToken);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        window.location.href = '/';
+      })
+      .catch(error => {
+        alert('Error: ' + error.message);
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,180 +1,8 @@
-
-import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { TaxReporting } from '@/components/financial/tax-reporting';
-import { InsuranceClaimTracker } from '@/components/financial/insurance-claim-tracker';
-
-export default function FinancialDashboardPage() {
-  const [activeTab, setActiveTab] = useState('overview');
-  
-  return (
-    <div className="container mx-auto py-6 space-y-8">
-      <h1 className="text-4xl font-bold mb-8">Financial Dashboard</h1>
-      
-      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-5 w-full">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="claims">Insurance Claims</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
-          <TabsTrigger value="tax">Tax Reporting</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="overview" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Revenue (YTD)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">$248,670.00</div>
-                <p className="text-xs text-muted-foreground">+12.3% from last year</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Outstanding Claims
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">$42,890.00</div>
-                <p className="text-xs text-muted-foreground">32 claims pending</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Patient Receivables
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">$18,450.00</div>
-                <p className="text-xs text-muted-foreground">15 patients with balance</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Collections Rate
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">98.2%</div>
-                <p className="text-xs text-muted-foreground">+2.1% from last year</p>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Monthly Revenue</CardTitle>
-                <CardDescription>
-                  Revenue breakdown for the current year
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-80 flex items-center justify-center">
-                  <p className="text-muted-foreground">Revenue chart will appear here</p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Methods</CardTitle>
-                <CardDescription>
-                  Distribution by payment method
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-80 flex items-center justify-center">
-                  <p className="text-muted-foreground">Payment methods chart will appear here</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Transactions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-96 flex items-center justify-center">
-                  <p className="text-muted-foreground">Recent transactions will appear here</p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Insurance Payments</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-96 flex items-center justify-center">
-                  <p className="text-muted-foreground">Upcoming insurance payments will appear here</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="claims" className="mt-6">
-          <InsuranceClaimTracker />
-        </TabsContent>
-        
-        <TabsContent value="payments" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment Management</CardTitle>
-              <CardDescription>
-                Manage patient payments and transactions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[600px] flex items-center justify-center">
-                <p className="text-muted-foreground">Payment management interface will appear here</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="reports" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Financial Reports</CardTitle>
-              <CardDescription>
-                Generate and view financial reports
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[600px] flex items-center justify-center">
-                <p className="text-muted-foreground">Financial reports interface will appear here</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="tax" className="mt-6">
-          <TaxReporting />
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { TaxReport } from "@/components/financial/tax-report";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DollarSign,
@@ -190,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { BarChart, LineChart, PieChart as PieChartComponent } from "@/components/ui/visualizations";
+import { TaxReporting } from '@/components/financial/tax-reporting';
+import { InsuranceClaimTracker } from '@/components/financial/insurance-claim-tracker';
 
 export default function FinancialDashboardPage() {
   const today = new Date();
@@ -383,8 +213,8 @@ export default function FinancialDashboardPage() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="revenue">Revenue</TabsTrigger>
           <TabsTrigger value="tax">Tax Reports</TabsTrigger>
+          <TabsTrigger value="claims">Insurance Claims</TabsTrigger>
           <TabsTrigger value="forecast">Forecasting</TabsTrigger>
-          <TabsTrigger value="profitability">Profitability</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview">
@@ -398,7 +228,7 @@ export default function FinancialDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  ${financialSummary?.revenue.toLocaleString() || "0"}
+                  ${financialSummary?.revenue?.toLocaleString() || "0"}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Total Revenue
@@ -415,7 +245,7 @@ export default function FinancialDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  ${financialSummary?.netRevenue.toLocaleString() || "0"}
+                  ${financialSummary?.netRevenue?.toLocaleString() || "0"}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   After Refunds & Adjustments
@@ -432,7 +262,7 @@ export default function FinancialDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {financialSummary?.transactionCount.toLocaleString() || "0"}
+                  {financialSummary?.transactionCount?.toLocaleString() || "0"}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Total Transactions
@@ -486,450 +316,28 @@ export default function FinancialDashboardPage() {
           </div>
         </TabsContent>
         
-        <TabsContent value="revenue">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Revenue Breakdown</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-medium">Revenue</h3>
-                    <div className="text-3xl font-bold">
-                      ${financialSummary?.revenue.toLocaleString() || "0"}
-                    </div>
-                    
-                    <div className="mt-4 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Patient Payments:</span>
-                        <span className="font-medium">
-                          ${financialSummary?.paymentMethods?.creditCard || 0 + 
-                            financialSummary?.paymentMethods?.cash || 0 + 
-                            financialSummary?.paymentMethods?.check || 0
-                          }
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between text-sm">
-                        <span>Insurance Payments:</span>
-                        <span className="font-medium">
-                          ${financialSummary?.paymentMethods?.insurance || 0}
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between text-sm">
-                        <span>Other Payments:</span>
-                        <span className="font-medium">
-                          ${financialSummary?.paymentMethods?.other || 0}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-medium">Adjustments</h3>
-                    <div className="text-3xl font-bold">
-                      ${financialSummary?.adjustments.toLocaleString() || "0"}
-                    </div>
-                    
-                    <div className="mt-4 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Insurance Adjustments:</span>
-                        <span className="font-medium">
-                          ${Math.round(financialSummary?.adjustments * 0.8) || 0}
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between text-sm">
-                        <span>Courtesy Adjustments:</span>
-                        <span className="font-medium">
-                          ${Math.round(financialSummary?.adjustments * 0.15) || 0}
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between text-sm">
-                        <span>Other Adjustments:</span>
-                        <span className="font-medium">
-                          ${Math.round(financialSummary?.adjustments * 0.05) || 0}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-medium">Refunds</h3>
-                    <div className="text-3xl font-bold">
-                      ${financialSummary?.refunds.toLocaleString() || "0"}
-                    </div>
-                    
-                    <div className="mt-4 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Patient Refunds:</span>
-                        <span className="font-medium">
-                          ${Math.round(financialSummary?.refunds * 0.7) || 0}
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between text-sm">
-                        <span>Insurance Refunds:</span>
-                        <span className="font-medium">
-                          ${Math.round(financialSummary?.refunds * 0.3) || 0}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Methods</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                  {financialSummary?.paymentMethods && Object.entries({
-                    "Cash": financialSummary.paymentMethods.cash,
-                    "Credit Card": financialSummary.paymentMethods.creditCard,
-                    "Check": financialSummary.paymentMethods.check,
-                    "Insurance": financialSummary.paymentMethods.insurance,
-                    "Other": financialSummary.paymentMethods.other
-                  }).map(([method, amount]) => (
-                    <Card key={method} className="overflow-hidden">
-                      <div className="h-2 bg-primary" />
-                      <CardContent className="p-4">
-                        <h3 className="text-sm font-medium">{method}</h3>
-                        <div className="text-2xl font-bold mt-1">
-                          ${amount.toLocaleString()}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {Math.round((amount / financialSummary.revenue) * 100)}% of total
-                        </p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        <TabsContent value="claims" className="mt-6">
+          <InsuranceClaimTracker />
         </TabsContent>
         
-        <TabsContent value="tax">
-          <TaxReport />
+        <TabsContent value="tax" className="mt-6">
+          <TaxReporting />
         </TabsContent>
         
         <TabsContent value="forecast">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Revenue Forecast</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-80">
-                  <LineChart data={forecastData} />
-                </div>
-                
-                {forecast && (
-                  <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-medium">Forecast Parameters</h4>
-                      <div className="text-sm text-muted-foreground">
-                        Baseline: {forecast.forecastParameters.baselinePeriod}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Growth Rate: {forecast.forecastParameters.growthRate}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Horizon: {forecast.forecastParameters.forecastHorizon}
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-medium">Average Monthly Revenue</h4>
-                      <div className="text-2xl font-bold">
-                        ${forecast.forecastData.reduce((sum: number, d: any) => sum + d.revenue, 0) / 
-                          forecast.forecastData.length
-                        }
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Projected average over next {forecast.forecastData.length} months
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-medium">Projected Annual Revenue</h4>
-                      <div className="text-2xl font-bold">
-                        ${forecast.forecastData.reduce((sum: number, d: any) => sum + d.revenue, 0)}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Next 12 months projected total
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Growth Opportunities</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3">
-                    <li className="flex items-start gap-2">
-                      <TrendingUp className="h-5 w-5 text-green-500 mt-0.5" />
-                      <div>
-                        <h4 className="font-medium">Increase Case Acceptance</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Improving case acceptance by 10% could add approximately $50,000 in annual revenue.
-                        </p>
-                      </div>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <BarChartIcon className="h-5 w-5 text-blue-500 mt-0.5" />
-                      <div>
-                        <h4 className="font-medium">Add New Services</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Adding clear aligner therapy could generate $75,000+ in additional annual revenue.
-                        </p>
-                      </div>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <PieChart className="h-5 w-5 text-purple-500 mt-0.5" />
-                      <div>
-                        <h4 className="font-medium">Reactivate Dormant Patients</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Reactivating 15% of dormant patients could yield $35,000 in additional annual revenue.
-                        </p>
-                      </div>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Clock className="h-5 w-5 text-amber-500 mt-0.5" />
-                      <div>
-                        <h4 className="font-medium">Optimize Schedule</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Reducing no-shows by 5% could add approximately $25,000 in annual production.
-                        </p>
-                      </div>
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Action Plan</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Short-term (30 days)</h4>
-                    <ul className="text-sm space-y-1 list-disc pl-4">
-                      <li>Review and optimize fee schedule</li>
-                      <li>Implement automated patient recall system</li>
-                      <li>Train team on presenting comprehensive treatment plans</li>
-                      <li>Review insurance aging report and follow up on outstanding claims</li>
-                    </ul>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Medium-term (90 days)</h4>
-                    <ul className="text-sm space-y-1 list-disc pl-4">
-                      <li>Launch membership plan for uninsured patients</li>
-                      <li>Implement new marketing campaign for high-value services</li>
-                      <li>Review and optimize procedure times to increase daily production</li>
-                      <li>Add online payment options through patient portal</li>
-                    </ul>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Long-term (6-12 months)</h4>
-                    <ul className="text-sm space-y-1 list-disc pl-4">
-                      <li>Evaluate adding new service line(s) based on demand analysis</li>
-                      <li>Consider adding associate dentist to expand capacity</li>
-                      <li>Review and optimize insurance participation strategy</li>
-                      <li>Implement AI-driven treatment planning to improve case acceptance</li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="profitability">
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Revenue</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">
-                    ${profitability?.revenue.toLocaleString() || "0"}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Total revenue for {currentYear}
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Expenses</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">
-                    ${profitability?.totalExpenses.toLocaleString() || "0"}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Total expenses for {currentYear}
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Profit Margin</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">
-                    {profitability?.profitMargin.toFixed(1) || "0"}%
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Net profit margin for {currentYear}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Expense Breakdown</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="h-80">
-                    <PieChartComponent data={profitabilityData} />
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium mb-4">Expense Categories</h4>
-                    <div className="space-y-4">
-                      {profitability?.expenses && Object.entries(profitability.expenses).map(([category, amount]) => {
-                        // Format category name for display
-                        const formattedCategory = category
-                          .replace(/([A-Z])/g, ' $1')
-                          .replace(/^./, str => str.toUpperCase());
-                        
-                        const percentage = (amount as number / profitability.totalExpenses) * 100;
-                        
-                        return (
-                          <div key={category} className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 rounded-full bg-primary" />
-                              <span>{formattedCategory}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">
-                                ${(amount as number).toLocaleString()}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                ({percentage.toFixed(1)}%)
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Profitability Analysis</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">Key Metrics</h3>
-                      <ul className="space-y-2">
-                        <li className="flex justify-between">
-                          <span className="text-muted-foreground">Revenue Per Active Patient:</span>
-                          <span className="font-medium">$845</span>
-                        </li>
-                        <li className="flex justify-between">
-                          <span className="text-muted-foreground">Production Per Hour:</span>
-                          <span className="font-medium">$425</span>
-                        </li>
-                        <li className="flex justify-between">
-                          <span className="text-muted-foreground">Collection Ratio:</span>
-                          <span className="font-medium">96.5%</span>
-                        </li>
-                        <li className="flex justify-between">
-                          <span className="text-muted-foreground">Staff Expense Ratio:</span>
-                          <span className="font-medium">25%</span>
-                        </li>
-                      </ul>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">Industry Benchmarks</h3>
-                      <ul className="space-y-2">
-                        <li className="flex justify-between">
-                          <span className="text-muted-foreground">Average Profit Margin:</span>
-                          <span className="font-medium">30-35%</span>
-                        </li>
-                        <li className="flex justify-between">
-                          <span className="text-muted-foreground">Staff Expenses:</span>
-                          <span className="font-medium">23-27%</span>
-                        </li>
-                        <li className="flex justify-between">
-                          <span className="text-muted-foreground">Supplies:</span>
-                          <span className="font-medium">5-7%</span>
-                        </li>
-                        <li className="flex justify-between">
-                          <span className="text-muted-foreground">Lab Fees:</span>
-                          <span className="font-medium">7-10%</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                  
-                  <div className="pt-4 border-t">
-                    <h3 className="text-lg font-medium mb-2">Recommendations</h3>
-                    <ul className="space-y-2 list-disc pl-5">
-                      <li>
-                        <span className="font-medium">Review supply ordering process</span>
-                        <p className="text-sm text-muted-foreground">
-                          Current supply costs are 12% of revenue, which is above industry benchmarks.
-                          Consider inventory management system and negotiating with suppliers.
-                        </p>
-                      </li>
-                      <li>
-                        <span className="font-medium">Evaluate insurance participation</span>
-                        <p className="text-sm text-muted-foreground">
-                          Insurance write-offs are impacting profitability. Consider dropping low-reimbursing plans
-                          or implementing a fee-for-service strategy with financing options.
-                        </p>
-                      </li>
-                      <li>
-                        <span className="font-medium">Implement procedure time analysis</span>
-                        <p className="text-sm text-muted-foreground">
-                          Production per hour can be improved through better scheduling and procedure protocols.
-                          Target increasing production per hour by 10%.
-                        </p>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Revenue Forecast</CardTitle>
+              <CardDescription>
+                Projected revenue for the next 12 months
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <LineChart data={forecastData} />
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

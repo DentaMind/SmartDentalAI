@@ -28,7 +28,7 @@ type UserRegistrationData = {
 
 export default function AuthPage() {
   const { t } = useTranslation();
-  const { user, loginMutation, registerMutation } = useAuth();
+  const { user, login, register, isLoading, error } = useAuth();
 
   const loginForm = useForm({
     resolver: zodResolver(insertUserSchema.pick({ username: true, password: true })),
@@ -81,22 +81,28 @@ export default function AuthPage() {
     },
   });
 
-  const onRegister = (data: UserRegistrationData) => {
+  const onRegister = async (data: UserRegistrationData) => {
     console.log("Registering patient with data:", data);
-    registerMutation.mutate({
-      ...data,
-      role: "patient",
-      language: "en"
-    });
+    try {
+      await register({
+        ...data,
+        role: "patient"
+      });
+    } catch (err) {
+      console.error("Registration failed:", err);
+    }
   };
 
-  const onProviderRegister = (data: UserRegistrationData) => {
+  const onProviderRegister = async (data: UserRegistrationData) => {
     console.log("Registering provider with data:", data);
-    registerMutation.mutate({
-      ...data,
-      role: "doctor",
-      language: "en"
-    });
+    try {
+      await register({
+        ...data,
+        role: "doctor"
+      });
+    } catch (err) {
+      console.error("Registration failed:", err);
+    }
   };
 
   if (user) {
@@ -150,7 +156,13 @@ export default function AuthPage() {
 
               <TabsContent value="login">
                 <Form {...loginForm}>
-                  <form onSubmit={loginForm.handleSubmit((data) => loginMutation.mutate(data))} className="space-y-4">
+                  <form onSubmit={loginForm.handleSubmit(async (data) => {
+                    try {
+                      await login(data.username, data.password);
+                    } catch (err) {
+                      console.error("Login failed:", err);
+                    }
+                  })} className="space-y-4">
                     <FormField
                       control={loginForm.control}
                       name="username"
@@ -180,9 +192,9 @@ export default function AuthPage() {
                     <Button 
                       type="submit" 
                       className="w-full" 
-                      disabled={loginMutation.isPending}
+                      disabled={isLoading}
                     >
-                      {loginMutation.isPending ? t("common.loading") : t("auth.login")}
+                      {isLoading ? t("common.loading") : t("auth.login")}
                     </Button>
                   </form>
                 </Form>
@@ -311,9 +323,9 @@ export default function AuthPage() {
                     <Button 
                       type="submit" 
                       className="w-full" 
-                      disabled={registerMutation.isPending}
+                      disabled={isLoading}
                     >
-                      {registerMutation.isPending ? t("common.loading") : t("auth.register")}
+                      {isLoading ? t("common.loading") : t("auth.register")}
                     </Button>
                   </form>
                 </Form>
@@ -434,9 +446,9 @@ export default function AuthPage() {
                     <Button 
                       type="submit" 
                       className="w-full" 
-                      disabled={registerMutation.isPending}
+                      disabled={isLoading}
                     >
-                      {registerMutation.isPending ? t("common.loading") : "Register as Provider"}
+                      {isLoading ? t("common.loading") : "Register as Provider"}
                     </Button>
                   </form>
                 </Form>
