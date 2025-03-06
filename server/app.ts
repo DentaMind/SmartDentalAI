@@ -2,20 +2,21 @@ import express from "express";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { predictFromSymptoms } from "./services/ai-prediction";
-import { aiCoordinator } from "./services/ai-coordinator"; // Added based on context
+import { aiCoordinator } from "./services/ai-coordinator";
 import { requireAuth, requireRole, requireOwnership } from "./middleware/auth";
-import { setupSecurityMiddleware } from "./middleware/security"; // Added security middleware import
+import { setupSecurityMiddleware } from "./middleware/security";
 import { generateDiagnosticReport } from './services/report-generator';
+import { errorHandler, notFoundHandler } from './middleware/error-handler';
+import { securityService } from "./services/security";
+import { financialService } from "./services/financial";
 import path from 'path';
-import { securityService } from "./services/security"; // Added security service import
-import { financialService } from "./services/financial"; // Added financial service import
 
 const app = express();
 const router = express.Router();
 
 // Setup middleware
 app.use(express.json());
-app.use(setupSecurityMiddleware); // Apply security middleware
+setupSecurityMiddleware(app);
 
 // Setup authentication on the router
 setupAuth(router);
@@ -40,67 +41,18 @@ router.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res
   }
 });
 
-// Medical notes - only doctors can create/edit
-router.post("/medical-notes", requireAuth, requireRole(["doctor"]), async (req, res) => {
+// Get all patients route (added from edited code)
+router.get("/patients", requireAuth, async (req, res) => {
   try {
-    const note = await storage.createMedicalNote(req.body);
-    res.status(201).json(note);
+    const patients = await storage.getAllPatients();
+    res.json(patients);
   } catch (error) {
-    res.status(400).json({ message: error instanceof Error ? error.message : "Invalid request" });
+    res.status(500).json({ message: "Failed to get patients" });
   }
 });
 
-// X-rays - doctors and staff can upload, patients can view their own
-router.post("/xrays", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
-  try {
-    const xray = await storage.createXray(req.body);
-    res.status(201).json(xray);
-  } catch (error) {
-    res.status(400).json({ message: error instanceof Error ? error.message : "Invalid request" });
-  }
-});
 
-// Get patient's x-rays
-router.get("/xrays/patient/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
-  try {
-    const xrays = await storage.getPatientXrays(Number(req.params.patientId));
-    res.json(xrays);
-  } catch (error) {
-    res.status(500).json({ message: error instanceof Error ? error.message : "Server error" });
-  }
-});
-
-// Payments and insurance
-router.get("/payments/patient/:patientId", requireAuth, requireOwnership("patientId"), async (req, res) => {
-  try {
-    const payments = await storage.getPatientPayments(Number(req.params.patientId));
-    res.json(payments);
-  } catch (error) {
-    res.status(500).json({ message: error instanceof Error ? error.message : "Server error" });
-  }
-});
-
-// Appointments
-router.post("/appointments", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
-  try {
-    const appointment = await storage.createAppointment(req.body);
-    res.status(201).json(appointment);
-  } catch (error) {
-    res.status(400).json({ message: error instanceof Error ? error.message : "Invalid request" });
-  }
-});
-
-// Treatment plans
-router.post("/treatment-plans", requireAuth, requireRole(["doctor"]), async (req, res) => {
-  try {
-    const plan = await storage.createTreatmentPlan(req.body);
-    res.status(201).json(plan);
-  } catch (error) {
-    res.status(400).json({ message: error instanceof Error ? error.message : "Invalid request" });
-  }
-});
-
-// AI Prediction route - only accessible by doctors
+// AI Diagnosis route (simplified from edited code)
 router.post("/ai/predict", requireAuth, requireRole(["doctor"]), async (req, res) => {
   try {
     const { symptoms, patientHistory } = req.body;
@@ -113,15 +65,12 @@ router.post("/ai/predict", requireAuth, requireRole(["doctor"]), async (req, res
     res.json(prediction);
   } catch (error) {
     console.error("AI Prediction error:", error);
-    res.status(500).json({
-      message: error instanceof Error ? error.message : "Failed to generate prediction"
-    });
+    res.status(500).json({ message: error instanceof Error ? error.message : "Failed to generate prediction" });
   }
 });
 
-
-// Financial routes
-router.get("/api/financial/summary", requireAuth, async (req, res) => {
+// Financial routes (simplified from edited code, removed redundant routes)
+router.get("/financial/summary", requireAuth, async (req, res) => {
   try {
     const startDate = new Date(req.query.startDate as string);
     const endDate = new Date(req.query.endDate as string);
@@ -135,7 +84,7 @@ router.get("/api/financial/summary", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/api/financial/tax-report/:year", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+router.get("/financial/tax-report/:year", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   try {
     const year = parseInt(req.params.year);
     const report = await financialService.generateTaxReport(year);
@@ -147,7 +96,7 @@ router.get("/api/financial/tax-report/:year", requireAuth, requireRole(["doctor"
   }
 });
 
-router.post("/api/insurance/claims", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+router.post("/insurance/claims", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   try {
     const claim = await financialService.submitInsuranceClaim(req.body);
     res.status(201).json(claim);
@@ -158,7 +107,7 @@ router.post("/api/insurance/claims", requireAuth, requireRole(["doctor", "staff"
   }
 });
 
-router.post("/api/payments", requireAuth, async (req, res) => {
+router.post("/payments", requireAuth, async (req, res) => {
   try {
     const payment = await financialService.processPayment(req.body);
     res.status(201).json(payment);
@@ -168,6 +117,7 @@ router.post("/api/payments", requireAuth, async (req, res) => {
     });
   }
 });
+
 
 // Mount all routes under /api prefix
 app.use("/api", router);

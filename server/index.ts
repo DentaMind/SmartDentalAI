@@ -7,12 +7,6 @@ import { securityService } from "./services/security";
 
 dotenv.config();
 
-// Create HTTP server from Express app
-const httpServer = http.createServer(app);
-
-// Setup WebSocket server
-const wsServer = setupWebSocketServer(httpServer);
-
 const startServer = async () => {
   try {
     // Check file integrity before starting
@@ -29,26 +23,40 @@ const startServer = async () => {
       }
     }
 
-    // In development, setup Vite
-    try {
-      log("Setting up Vite development server...");
-      await setupVite(app);
-    } catch (error) {
-      console.error("Vite setup error:", error);
-      throw error;
-    }
+    // Create HTTP server from Express app
+    const httpServer = http.createServer(app);
 
-    // Start the server
+    // Setup WebSocket server
+    const wsServer = setupWebSocketServer(httpServer);
+
+    // Start the server first
     const PORT = Number(process.env.PORT) || 3000;
-    httpServer.listen(PORT, () => {
+    httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`Server listening on port ${PORT}`);
       console.log(`http://localhost:${PORT}`);
       console.log(`WebSocket server available at ws://localhost:${PORT}`);
     });
+
+    // After server is listening, setup Vite in development
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        log("Setting up Vite development server...");
+        await setupVite(app);
+      } catch (error) {
+        console.error("Vite setup error:", error);
+        console.error("Full error details:", error instanceof Error ? error.stack : error);
+        // Don't exit on Vite error, just log it
+        console.warn("Continuing without Vite development server");
+      }
+    }
   } catch (error) {
     console.error('Failed to start server:', error);
+    console.error('Full error details:', error instanceof Error ? error.stack : error);
     process.exit(1);
   }
 };
 
-startServer();
+startServer().catch(error => {
+  console.error('Unhandled startup error:', error);
+  process.exit(1);
+});
