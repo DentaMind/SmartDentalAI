@@ -8,6 +8,7 @@ import { setupSecurityMiddleware } from "./middleware/security"; // Added securi
 import { generateDiagnosticReport } from './services/report-generator';
 import path from 'path';
 import { securityService } from "./services/security"; // Added security service import
+import { financialService } from "./services/financial"; // Added financial service import
 
 const app = express();
 const router = express.Router();
