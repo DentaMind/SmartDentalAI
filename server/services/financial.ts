@@ -58,7 +58,7 @@ const procedureCategories: Record<string, "preventive" | "basic" | "major" | "or
   "D9000-D9999": "basic",      // Adjunctive General Services
 };
 
-export import { z } from "zod";
+import { z } from "zod";
 import { storage } from "../storage";
 
 // Define the missing schemas
@@ -127,7 +127,7 @@ const procedureCategories: Record<string, string> = {
   "D8000-D8999": "orthodontic" // Orthodontics
 };
 
-class FinancialService {
+export class FinancialService {
   async processPayment(paymentData: z.infer<typeof paymentSchema>) {
     try {
       // Validate payment data
