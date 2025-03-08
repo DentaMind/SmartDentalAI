@@ -124,16 +124,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (redirectedFrom) {
         console.log('Will redirect to:', redirectedFrom);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Format error message for user-friendly display
       let message = 'Login failed. Please check your credentials.';
       
-      if (err.response?.data?.message) {
+      if (isAxiosError(err) && err.response?.data?.message) {
         message = err.response.data.message;
-      } else if (err.message === 'MFA_REQUIRED') {
-        message = 'Multi-factor authentication required';
-      } else if (err.message) {
-        message = err.message;
+      } else if (err instanceof Error) {
+        if (err.message === 'MFA_REQUIRED') {
+          message = 'Multi-factor authentication required';
+        } else if (err.message) {
+          message = err.message;
+        }
       }
       
       console.error('Login error:', message);
@@ -157,10 +159,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       setUser(data);
       console.log('User registered successfully:', data);
-    } catch (err: any) {
-      const message = err.response?.data?.message || 
-                     err.message || 
-                     'Registration failed. Please try again.';
+    } catch (err: unknown) {
+      let message = 'Registration failed. Please try again.';
+      
+      if (isAxiosError(err) && err.response?.data?.message) {
+        message = err.response.data.message;
+      } else if (err instanceof Error && err.message) {
+        message = err.message;
+      }
+      
       console.error('Registration error:', err);
       setError(message);
       throw err;
@@ -173,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Call the logout endpoint
       await api.post('/api/auth/logout');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Logout error:', err);
     } finally {
       // Clear local storage regardless of server response
@@ -211,10 +218,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await api.post('/api/auth/mfa/setup');
       return response.data;
-    } catch (err: any) {
-      const message = err.response?.data?.message || 
-                      err.message || 
-                      'MFA setup failed';
+    } catch (err: unknown) {
+      let message = 'MFA setup failed';
+      
+      if (isAxiosError(err) && err.response?.data?.message) {
+        message = err.response.data.message;
+      } else if (err instanceof Error && err.message) {
+        message = err.message;
+      }
+      
       setError(message);
       throw err;
     }
@@ -223,10 +235,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const enableMFA = async (verificationCode: string): Promise<void> => {
     try {
       await api.post('/api/auth/mfa/enable', { verificationCode });
-    } catch (err: any) {
-      const message = err.response?.data?.message || 
-                      err.message || 
-                      'Failed to enable MFA';
+    } catch (err: unknown) {
+      let message = 'Failed to enable MFA';
+      
+      if (isAxiosError(err) && err.response?.data?.message) {
+        message = err.response.data.message;
+      } else if (err instanceof Error && err.message) {
+        message = err.message;
+      }
+      
       setError(message);
       throw err;
     }
@@ -235,10 +252,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const disableMFA = async (password: string): Promise<void> => {
     try {
       await api.post('/api/auth/mfa/disable', { password });
-    } catch (err: any) {
-      const message = err.response?.data?.message || 
-                      err.message || 
-                      'Failed to disable MFA';
+    } catch (err: unknown) {
+      let message = 'Failed to disable MFA';
+      
+      if (isAxiosError(err) && err.response?.data?.message) {
+        message = err.response.data.message;
+      } else if (err instanceof Error && err.message) {
+        message = err.message;
+      }
+      
       setError(message);
       throw err;
     }
@@ -250,10 +272,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         currentPassword, 
         newPassword 
       });
-    } catch (err: any) {
-      const message = err.response?.data?.message || 
-                      err.message || 
-                      'Password change failed';
+    } catch (err: unknown) {
+      let message = 'Password change failed';
+      
+      if (isAxiosError(err) && err.response?.data?.message) {
+        message = err.response.data.message;
+      } else if (err instanceof Error && err.message) {
+        message = err.message;
+      }
+      
       setError(message);
       throw err;
     }
