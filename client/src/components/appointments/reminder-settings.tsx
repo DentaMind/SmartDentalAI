@@ -59,17 +59,43 @@ export function ReminderSettings() {
     refetchOnWindowFocus: false
   });
 
-  // Fetch reminder log
-  const { data: reminderLog, isLoading: isLoadingLog } = useQuery({
-    queryKey: ['/api/scheduler/reminders/logs'],
+  // Fetch reminder stats
+  const { data: reminderStats, isLoading: isLoadingStats } = useQuery({
+    queryKey: ['/api/scheduler/reminders/stats'],
     retry: 1,
     refetchOnWindowFocus: false,
-    enabled: activeTab === 'logs'
+    enabled: activeTab === 'overview'
   });
 
-  // Toggle reminders enabled/disabled
+  // Update reminder settings 
+  const updateSettingsMutation = useMutation({
+    mutationFn: (newSettings: any) => api.post('/api/scheduler/reminders/settings', newSettings),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/scheduler/reminders/settings'] });
+      toast({
+        title: 'Reminder settings updated',
+        description: 'Appointment reminder settings have been successfully updated.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to update reminder settings',
+        description: 'There was an error updating the reminder settings.',
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // Toggle reminders enabled/disabled 
   const toggleRemindersMutation = useMutation({
-    mutationFn: (enabled: boolean) => api.post('/api/scheduler/reminders/toggle', { enabled }),
+    mutationFn: (enabled: boolean) => {
+      // Create a new settings object with the updated enabled status
+      const updatedSettings = {
+        enabled,
+        reminderTypes: settings?.reminderTypes || []
+      };
+      return api.post('/api/scheduler/reminders/settings', updatedSettings);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/scheduler/reminders/settings'] });
       toast({
@@ -88,7 +114,8 @@ export function ReminderSettings() {
 
   // Run reminders now
   const runRemindersMutation = useMutation({
-    mutationFn: () => api.post('/api/scheduler/reminders/run-now'),
+    mutationFn: (timeframe: '24h' | '48h' | '1week' | 'all' = 'all') => 
+      api.post('/api/scheduler/reminders/send', { timeframe }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/scheduler/reminders/settings'] });
       toast({

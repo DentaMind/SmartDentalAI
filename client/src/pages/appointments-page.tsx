@@ -12,8 +12,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Video } from "lucide-react";
+import { Plus, Video, Calendar, Bell, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ReminderSettings } from "@/components/appointments/reminder-settings";
 
 export default function AppointmentsPage() {
   const { t } = useTranslation();
@@ -37,51 +39,101 @@ export default function AppointmentsPage() {
           </Button>
         </div>
 
-        <div className="bg-white rounded-lg shadow">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("appointment.date")}</TableHead>
-                <TableHead>{t("appointment.time")}</TableHead>
-                <TableHead>Patient</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {appointments?.map((appointment) => (
-                <TableRow key={appointment.id}>
-                  <TableCell>
-                    {new Date(appointment.date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(appointment.date).toLocaleTimeString()}
-                  </TableCell>
-                  <TableCell>Patient #{appointment.patientId}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{appointment.status}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    {appointment.isOnline ? (
-                      <Badge variant="secondary">
-                        <Video className="h-4 w-4 mr-1" />
-                        Online
-                      </Badge>
-                    ) : (
-                      <Badge>In-Person</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="sm">
-                      View Details
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <Tabs defaultValue="appointments" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="appointments" className="flex items-center">
+              <Calendar className="h-4 w-4 mr-2" />
+              Appointments
+            </TabsTrigger>
+            <TabsTrigger value="reminders" className="flex items-center">
+              <Bell className="h-4 w-4 mr-2" />
+              Reminders
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center">
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="appointments" className="space-y-4">
+            <div className="bg-white rounded-lg shadow">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("appointment.date")}</TableHead>
+                    <TableHead>{t("appointment.time")}</TableHead>
+                    <TableHead>Patient</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {appointments?.map((appointment) => (
+                    <TableRow key={appointment.id}>
+                      <TableCell>
+                        {new Date(appointment.date).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(appointment.date).toLocaleTimeString()}
+                      </TableCell>
+                      <TableCell>Patient #{appointment.patientId}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{appointment.status}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {appointment.isOnline ? (
+                          <Badge variant="secondary">
+                            <Video className="h-4 w-4 mr-1" />
+                            Online
+                          </Badge>
+                        ) : (
+                          <Badge>In-Person</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm">
+                          View Details
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="reminders">
+            <ReminderSettings />
+          </TabsContent>
+          
+          <TabsContent value="settings">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-lg font-medium mb-4">Appointment Settings</h2>
+              <p className="text-muted-foreground mb-4">
+                Configure general settings for appointments and scheduling.
+              </p>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="online-appointments">Online Appointments</Label>
+                    <p className="text-sm text-muted-foreground">Allow patients to book online appointments</p>
+                  </div>
+                  <Switch id="online-appointments" defaultChecked={true} />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="confirmation-required">Confirmation Required</Label>
+                    <p className="text-sm text-muted-foreground">Require confirmation for all new appointments</p>
+                  </div>
+                  <Switch id="confirmation-required" defaultChecked={true} />
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

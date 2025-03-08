@@ -433,23 +433,69 @@ class SchedulerService {
     }
   }
   
-  // Return reminder settings and stats
+  // Default reminder settings
+  private reminderSettings = {
+    enabled: true,
+    reminderTypes: [
+      { timeframe: '24h', priority: 'high', method: 'both', template: 'default' },
+      { timeframe: '48h', priority: 'medium', method: 'email', template: 'default' },
+      { timeframe: '1week', priority: 'low', method: 'email', template: 'default' }
+    ]
+  };
+
+  // Reminder statistics
+  private reminderStats = {
+    lastRunTime: new Date().toISOString(),
+    remindersSentToday: 0,
+    remindersSentThisWeek: 0,
+    deliveryStats: {
+      email: { sent: 0, opened: 0, failureRate: 0 },
+      sms: { sent: 0, delivered: 0, failureRate: 0 }
+    }
+  };
+  
+  // Return reminder settings
   async getReminderSettings() {
     return {
-      enabled: true,
-      reminderTypes: [
-        { timeframe: '24h', priority: 'high', method: 'email,sms' },
-        { timeframe: '48h', priority: 'medium', method: 'email' },
-        { timeframe: '1week', priority: 'medium', method: 'email' }
-      ],
-      lastRunTime: new Date().toISOString(),
-      remindersSentToday: 12, // This would be actual stats in production
-      remindersSentThisWeek: 87, // This would be actual stats in production
-      deliveryStats: {
-        email: { sent: 75, opened: 52, failureRate: 0.04 },
-        sms: { sent: 24, delivered: 23, failureRate: 0.04 }
-      }
+      ...this.reminderSettings,
+      ...this.reminderStats
     };
+  }
+  
+  // Update reminder settings
+  async updateReminderSettings(settings: any) {
+    try {
+      this.reminderSettings = {
+        enabled: settings.enabled,
+        reminderTypes: settings.reminderTypes.map((type: any) => ({
+          timeframe: type.timeframe,
+          priority: type.priority,
+          method: type.method,
+          template: type.template || 'default'
+        }))
+      };
+      
+      return this.reminderSettings;
+    } catch (error) {
+      console.error("Error updating reminder settings:", error);
+      throw new Error(error instanceof Error ? error.message : "Failed to update reminder settings");
+    }
+  }
+  
+  // Get reminder statistics
+  async getReminderStats() {
+    // In a real implementation, these would be calculated from actual data
+    return this.reminderStats;
+  }
+  
+  // Get appointments by date range
+  async getAppointmentsByDateRange(startDate: Date, endDate: Date) {
+    try {
+      return await storage.getAppointmentsByDateRange(startDate, endDate);
+    } catch (error) {
+      console.error("Error getting appointments by date range:", error);
+      throw new Error(error instanceof Error ? error.message : "Failed to get appointments");
+    }
   }
 }
 
