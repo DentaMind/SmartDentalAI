@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
+import { useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
@@ -105,8 +106,22 @@ export default function AuthPage() {
     }
   };
 
+  // Clear redirect flag when landing on auth page
+  useEffect(() => {
+    sessionStorage.removeItem("inAuthPage");
+    console.log("Auth page loaded, redirect flag cleared");
+    
+    // Get redirected path for better user experience
+    const redirectedFrom = sessionStorage.getItem("redirectedFrom");
+    if (redirectedFrom) {
+      console.log("User was redirected from:", redirectedFrom);
+    }
+  }, []);
+
   if (user) {
-    return <Redirect to="/" />;
+    const redirectTo = sessionStorage.getItem("redirectedFrom") || "/";
+    sessionStorage.removeItem("redirectedFrom");
+    return <Redirect to={redirectTo} />;
   }
 
   return (
@@ -155,6 +170,11 @@ export default function AuthPage() {
               </TabsList>
 
               <TabsContent value="login">
+                {error && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
+                    {error}
+                  </div>
+                )}
                 <Form {...loginForm}>
                   <form onSubmit={loginForm.handleSubmit(async (data) => {
                     try {
