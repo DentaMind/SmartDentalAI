@@ -103,7 +103,7 @@ export function Sidebar() {
     <div className="flex flex-col h-full bg-white border-r border-gray-200">
       <div className="flex items-center justify-center h-20 px-6">
         <Link href="/">
-          <a className="flex items-center gap-3 hover:opacity-90 transition-opacity">
+          <div className="flex items-center gap-3 hover:opacity-90 transition-opacity cursor-pointer">
             <div className="p-2.5 rounded-xl bg-primary text-white shadow-lg rotate-12 hover:rotate-0 transition-transform duration-300">
               <Bot className="h-7 w-7" />
             </div>
@@ -115,7 +115,7 @@ export function Sidebar() {
                 AI-Powered Care
               </span>
             </div>
-          </a>
+          </div>
         </Link>
       </div>
 
@@ -125,10 +125,10 @@ export function Sidebar() {
           const isActive = location === item.href;
           return (
             <Link key={item.href} href={item.href}>
-              <a
+              <div
                 className={`
                   flex items-center px-3 py-2.5 text-sm font-medium rounded-lg gap-3
-                  transition-all duration-200 group
+                  transition-all duration-200 group cursor-pointer
                   ${item.highlight ? 'bg-gradient-to-r from-primary/10 to-primary/5' : ''}
                   ${isActive
                     ? "bg-primary text-white shadow-md"
@@ -149,7 +149,7 @@ export function Sidebar() {
                     New
                   </span>
                 )}
-              </a>
+              </div>
             </Link>
           );
         })}
@@ -173,10 +173,10 @@ export function Sidebar() {
           </h4>
           <nav className="space-y-1">
             <Link href="/security">
-              <a className="flex items-center px-4 py-2 text-gray-700 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors">
+              <div className="flex items-center px-4 py-2 text-gray-700 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors cursor-pointer">
                 <Shield className="w-5 h-5 mr-3" />
                 Security
-              </a>
+              </div>
             </Link>
           </nav>
         </div>
