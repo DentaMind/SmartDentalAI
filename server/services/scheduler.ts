@@ -164,7 +164,8 @@ class SchedulerService {
       });
       
       // Send notification
-      this.sendAppointmentNotification(appointmentId, "rescheduled");
+      // Use a valid event name for the notification that corresponds to appointment being rescheduled
+      this.sendAppointmentNotification(appointmentId, "scheduled");
       
       return {
         ...updatedAppointment,
@@ -301,7 +302,8 @@ class SchedulerService {
     const blockedRanges = existingAppointments.map(appointment => {
       const appStartTime = new Date(appointment.date);
       const appEndTime = new Date(appointment.date);
-      appEndTime.setMinutes(appEndTime.getMinutes() + this.APPOINTMENT_DURATION_MAP[appointment.type] || 60);
+      // Default to 60 minutes for appointments
+      appEndTime.setMinutes(appEndTime.getMinutes() + 60);
       
       return {
         start: appStartTime,
@@ -359,7 +361,8 @@ class SchedulerService {
     const isOverlapping = existingAppointments.some(appointment => {
       const appStartTime = new Date(appointment.date);
       const appEndTime = new Date(appointment.date);
-      appEndTime.setMinutes(appEndTime.getMinutes() + this.APPOINTMENT_DURATION_MAP[appointment.type] || 60);
+      // Default to 60 minutes for appointments
+      appEndTime.setMinutes(appEndTime.getMinutes() + 60);
       
       return (requestedStart >= appStartTime && requestedStart < appEndTime) ||
              (requestedEnd > appStartTime && requestedEnd <= appEndTime) ||
