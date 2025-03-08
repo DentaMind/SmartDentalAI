@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
     <title>DentaMind - Dental Practice Management</title>
+    <!-- Fix for Vite HMR -->
+    <script type="module">
+      import { installPreamble } from "/@vite/client";
+      if (typeof installPreamble === 'function') {
+        installPreamble();
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
