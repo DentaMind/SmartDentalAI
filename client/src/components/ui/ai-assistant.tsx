@@ -1,309 +1,345 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
-import { HelpCircle, X, MinusCircle, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { motion, AnimatePresence } from "framer-motion";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/queryClient"; 
+import { Bot, ChevronDown, ChevronUp, Sparkles, X, Send, Lightbulb, Wand2 } from "lucide-react";
 
 interface AiAssistantProps {
   contextType?: 'patient' | 'staff' | 'provider';
   initialSuggestions?: string[];
 }
 
-// Sample assistant responses
-const assistantResponses = {
-  patient: {
-    requestAppointment: "To request an appointment, go to the Appointments tab and click on 'Request New Appointment'. You'll need to provide your preferred dates and details about the visit.",
-    insuranceVerification: "Your insurance will be verified when you request an appointment. Make sure your insurance information is up to date in your profile settings.",
-    viewRecords: "You can view your dental records, including x-rays and treatment history, in the Records section under your patient profile.",
-    paymentOptions: "We offer various payment options including credit card, bank transfer, and payment plans for larger procedures. You can manage your payment preferences in the Billing section.",
-    contactStaff: "You can message our staff directly through the Messages tab in the navigation menu. Messages are typically answered within 1 business day.",
-  },
-  staff: {
-    managePatients: "To add a new patient, go to the Patients section and click 'Add Patient'. You'll need their basic information, contact details, and insurance information.",
-    scheduleAppointment: "In the Calendar view, you can click on any open time slot to schedule a new appointment. Make sure to verify the patient's insurance before confirming.",
-    processPayment: "Process patient payments in the Billing section. Select the patient, enter the amount, and choose the payment method. All transactions are securely recorded.",
-    insuranceClaim: "To submit an insurance claim, go to the Insurance section, select the patient and procedure, then click 'Submit Claim'. The system will automatically prepare the necessary documentation.",
-    timeClockSystem: "Use the Time Clock tab to clock in at the beginning of your shift and clock out when you leave. Make sure to select the correct location when clocking in.",
-  },
-  provider: {
-    reviewCases: "Review upcoming patient cases in the Dashboard. Click on a patient's name to see their complete dental history, including previous treatments and x-rays.",
-    updateTreatmentPlan: "Modify a patient's treatment plan in their profile under the Treatment Plans tab. You can add procedures, update costs, and set priorities.",
-    aiDiagnostics: "For AI assistance with diagnostics, upload patient x-rays or images to the AI Analysis tool in the Diagnostics section.",
-    manageSchedule: "Manage your availability in the Calendar Settings. You can set regular hours, block off time for specific procedures, or mark days as unavailable.",
-    performProcedures: "Record procedure details in the patient's chart immediately after completion. This information will automatically update their treatment plan and billing.",
-  }
-};
-
 export function AIAssistant({ contextType = 'patient', initialSuggestions = [] }: AiAssistantProps) {
   const { user } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [query, setQuery] = useState("");
-  const [conversation, setConversation] = useState<{role: 'user' | 'assistant', content: string}[]>([]);
+  const { toast } = useToast();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>(initialSuggestions);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [firstExpand, setFirstExpand] = useState(true);
 
-  // Create initial greeting based on time of day and user
+  // Scroll to bottom of messages
   useEffect(() => {
-    const hour = new Date().getHours();
-    let greeting = "Good ";
-    if (hour < 12) greeting += "morning";
-    else if (hour < 18) greeting += "afternoon";
-    else greeting += "evening";
-    
-    if (user) {
-      greeting += `, ${user.firstName}! I'm your dental AI assistant. How can I help you today?`;
-    } else {
-      greeting += "! I'm your dental AI assistant. How can I help you today?";
+    if (messagesEndRef.current && isExpanded) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
+  }, [messages, isExpanded]);
 
-    setConversation([{role: 'assistant', content: greeting}]);
-    
-    // Set default suggestions based on context
-    if (initialSuggestions.length === 0) {
-      if (contextType === 'patient') {
-        setSuggestions([
-          "How do I request an appointment?",
-          "How does insurance verification work?",
-          "How can I view my dental records?",
-        ]);
-      } else if (contextType === 'staff') {
-        setSuggestions([
-          "How do I add a new patient?",
-          "How do I process a payment?",
-          "How do I use the time clock system?",
-        ]);
-      } else {
-        setSuggestions([
-          "How do I review patient cases?",
-          "How do I update a treatment plan?",
-          "How do I use the AI diagnostics?",
-        ]);
-      }
+  // Generate greeting on first expand
+  useEffect(() => {
+    if (isExpanded && firstExpand && messages.length === 0) {
+      setFirstExpand(false);
+      generateInitialGreeting();
     }
-  }, [user, contextType, initialSuggestions]);
+  }, [isExpanded, firstExpand, messages]);
 
-  const handleSendMessage = () => {
-    if (!query.trim()) return;
+  // Get dynamic greeting based on user role
+  const generateInitialGreeting = () => {
+    let greeting = "";
+    let name = user?.firstName || "there";
     
-    // Add user message to conversation
-    setConversation(prev => [...prev, {role: 'user', content: query}]);
+    switch(contextType) {
+      case 'patient':
+        greeting = `Hi ${name}! I'm your dental care assistant. I can help you navigate your care plan, explain procedures, or schedule appointments. How can I assist you today?`;
+        break;
+      case 'staff':
+        greeting = `Hello ${name}! I'm your practice assistant. I can help with scheduling, patient records, insurance verification, or system navigation. What do you need help with?`;
+        break;
+      case 'provider':
+        greeting = `Welcome, Dr. ${name}! I'm your clinical assistant. I can help with treatment planning, diagnostic suggestions, or practice management. What would you like assistance with?`;
+        break;
+      default:
+        greeting = `Hello ${name}! I'm your DentaMind AI assistant. How can I help you today?`;
+    }
     
-    // Generate a response based on the query
-    setTimeout(() => {
-      let response = "I'm sorry, I don't have specific information about that. Please contact our office for more details.";
-      
-      // Simple keyword matching for demo purposes
-      const lowerQuery = query.toLowerCase();
-      if (contextType === 'patient') {
-        if (lowerQuery.includes('appointment')) {
-          response = assistantResponses.patient.requestAppointment;
-        } else if (lowerQuery.includes('insurance')) {
-          response = assistantResponses.patient.insuranceVerification;
-        } else if (lowerQuery.includes('record') || lowerQuery.includes('history')) {
-          response = assistantResponses.patient.viewRecords;
-        } else if (lowerQuery.includes('pay') || lowerQuery.includes('bill')) {
-          response = assistantResponses.patient.paymentOptions;
-        } else if (lowerQuery.includes('contact') || lowerQuery.includes('message')) {
-          response = assistantResponses.patient.contactStaff;
-        }
-      } else if (contextType === 'staff') {
-        if (lowerQuery.includes('patient') && (lowerQuery.includes('add') || lowerQuery.includes('new'))) {
-          response = assistantResponses.staff.managePatients;
-        } else if (lowerQuery.includes('appointment') || lowerQuery.includes('schedule')) {
-          response = assistantResponses.staff.scheduleAppointment;
-        } else if (lowerQuery.includes('payment') || lowerQuery.includes('bill')) {
-          response = assistantResponses.staff.processPayment;
-        } else if (lowerQuery.includes('insurance') || lowerQuery.includes('claim')) {
-          response = assistantResponses.staff.insuranceClaim;
-        } else if (lowerQuery.includes('clock') || lowerQuery.includes('time')) {
-          response = assistantResponses.staff.timeClockSystem;
-        }
-      } else {
-        if (lowerQuery.includes('case') || lowerQuery.includes('review')) {
-          response = assistantResponses.provider.reviewCases;
-        } else if (lowerQuery.includes('treatment') || lowerQuery.includes('plan')) {
-          response = assistantResponses.provider.updateTreatmentPlan;
-        } else if (lowerQuery.includes('ai') || lowerQuery.includes('diagnos')) {
-          response = assistantResponses.provider.aiDiagnostics;
-        } else if (lowerQuery.includes('schedule') || lowerQuery.includes('availab')) {
-          response = assistantResponses.provider.manageSchedule;
-        } else if (lowerQuery.includes('procedure') || lowerQuery.includes('record')) {
-          response = assistantResponses.provider.performProcedures;
-        }
-      }
-      
-      // Add assistant response to conversation
-      setConversation(prev => [...prev, {role: 'assistant', content: response}]);
-    }, 800);
-    
-    setQuery("");
+    setIsTyping(true);
+    simulateTyping(greeting, 'assistant');
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setQuery(suggestion);
-    setConversation(prev => [...prev, {role: 'user', content: suggestion}]);
+  // Simulate typing effect
+  const simulateTyping = (text: string, role: 'user' | 'assistant') => {
+    setIsTyping(true);
     
-    // Generate a response based on the suggestion
+    // Add message with typing effect
     setTimeout(() => {
-      let response = "I don't have an answer for that specific question yet.";
+      setMessages(prev => [...prev, { role, content: text }]);
+      setIsTyping(false);
       
-      if (suggestion === "How do I request an appointment?") {
-        response = assistantResponses.patient.requestAppointment;
-      } else if (suggestion === "How does insurance verification work?") {
-        response = assistantResponses.patient.insuranceVerification;
-      } else if (suggestion === "How can I view my dental records?") {
-        response = assistantResponses.patient.viewRecords;
-      } else if (suggestion === "How do I add a new patient?") {
-        response = assistantResponses.staff.managePatients;
-      } else if (suggestion === "How do I process a payment?") {
-        response = assistantResponses.staff.processPayment;
-      } else if (suggestion === "How do I use the time clock system?") {
-        response = assistantResponses.staff.timeClockSystem;
-      } else if (suggestion === "How do I review patient cases?") {
-        response = assistantResponses.provider.reviewCases;
-      } else if (suggestion === "How do I update a treatment plan?") {
-        response = assistantResponses.provider.updateTreatmentPlan;
-      } else if (suggestion === "How do I use the AI diagnostics?") {
-        response = assistantResponses.provider.aiDiagnostics;
+      // Generate suggestions after assistant responds
+      if (role === 'assistant') {
+        generateSuggestions();
       }
+    }, 500 + Math.min(text.length * 10, 1500)); // Typing speed based on message length
+  };
+
+  // Generate contextual suggestions
+  const generateSuggestions = () => {
+    // If initialSuggestions were provided and this is first response, use those
+    if (initialSuggestions.length > 0 && messages.length <= 1) {
+      setSuggestions(initialSuggestions);
+      return;
+    }
+    
+    // Otherwise generate contextual suggestions based on conversation
+    const contextualSuggestions: Record<string, string[]> = {
+      patient: [
+        "How do I book an appointment?",
+        "Can you explain my treatment plan?",
+        "What should I do after my procedure?",
+        "How can I update my insurance?",
+      ],
+      staff: [
+        "How do I check in a patient?",
+        "How can I verify insurance coverage?",
+        "Where do I find patient records?",
+        "How do I use the time clock?",
+      ],
+      provider: [
+        "How do I access patient history?",
+        "Can you show me recent imaging studies?",
+        "How do I create a treatment plan?",
+        "Where are the practice analytics?"
+      ]
+    };
+    
+    // Get suggestions based on context type
+    const defaultSuggestions = contextualSuggestions[contextType] || contextualSuggestions.patient;
+    
+    // Randomize which suggestions to show
+    const shuffled = [...defaultSuggestions].sort(() => 0.5 - Math.random());
+    setSuggestions(shuffled.slice(0, 3));
+  };
+
+  // Handle user sending a message
+  const handleSendMessage = async () => {
+    if (!input.trim()) return;
+    
+    const userMessage = input.trim();
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    
+    // Use AI to generate response
+    try {
+      setIsTyping(true);
       
-      setConversation(prev => [...prev, {role: 'assistant', content: response}]);
-    }, 800);
+      // In a real implementation, this would be an API call to our AI service
+      // For now we'll simulate a response
+      const aiResponse = await simulateAIResponse(userMessage);
+      
+      simulateTyping(aiResponse, 'assistant');
+    } catch (error) {
+      setIsTyping(false);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Unable to get a response. Please try again.",
+      });
+    }
+  };
+
+  // Simulate AI response (in a real app, this would call to an AI API)
+  const simulateAIResponse = async (userMessage: string): Promise<string> => {
+    // Simplified simulation of AI response based on context and user message
+    const lowerCaseMessage = userMessage.toLowerCase();
     
-    setQuery("");
+    // Context-aware responses
+    if (lowerCaseMessage.includes('appointment')) {
+      return "To schedule an appointment, you can use the Appointments tab in the navigation menu. From there, you can see available slots and select a time that works for you. Would you like me to walk you through the process?";
+    } else if (lowerCaseMessage.includes('treatment') || lowerCaseMessage.includes('procedure')) {
+      return "Your treatment plan details can be found in the Treatment Plans section. It includes procedure information, estimated costs, and timeline. I can help explain specific procedures if you'd like more information.";
+    } else if (lowerCaseMessage.includes('insurance')) {
+      return "Insurance information can be updated in your profile settings. We currently have your insurance provider on file. Would you like to verify your coverage for a specific procedure?";
+    } else if (lowerCaseMessage.includes('clock in') || lowerCaseMessage.includes('time clock')) {
+      return "The time clock feature is available in the Time Clock section. You can clock in/out, view your hours, and see reports. Let me know if you need help with specific features!";
+    } else if (lowerCaseMessage.includes('plan') && contextType === 'provider') {
+      return "You can create a comprehensive treatment plan using our AI-assisted planning tool. Go to the patient's record, select 'Create Treatment Plan', and you'll be guided through the process with intelligent suggestions based on the patient's history and diagnostic information.";
+    }
     
-    // Update suggestions based on the context
+    // Generic responses based on context type
     if (contextType === 'patient') {
-      setSuggestions([
-        "How do I pay my bill?",
-        "How can I message the staff?",
-        "What should I do before my appointment?",
-      ]);
+      return "I understand you're asking about your dental care. The DentaMind platform gives you access to all your records, upcoming appointments, and treatment plans. Is there a specific part of your care you'd like help with?";
     } else if (contextType === 'staff') {
-      setSuggestions([
-        "How do I submit an insurance claim?",
-        "How do I schedule an appointment?",
-        "How do I reset a patient's password?",
-      ]);
+      return "As a staff member, you have access to patient management, appointment scheduling, and billing functions. I can help you navigate any of these areas more effectively. What specifically are you working on today?";
     } else {
-      setSuggestions([
-        "How do I manage my schedule?",
-        "How do I record procedure details?",
-        "How do I view patient insurance information?",
-      ]);
+      return "As a provider, you have access to our complete suite of AI-powered diagnostic and treatment planning tools. I can help you leverage these features to improve patient outcomes. Would you like me to explain a specific feature in more detail?";
+    }
+  };
+
+  // Handle clicking a suggestion
+  const handleSuggestionClick = (suggestion: string) => {
+    setInput(suggestion);
+    handleSendMessage();
+  };
+
+  // Handle Enter key press
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
     }
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <>
+      {/* Minimized version */}
       <AnimatePresence>
-        {!isOpen ? (
+        {!isExpanded && (
           <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.8, opacity: 0 }}
-            className="flex justify-end"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-4 right-4 z-50"
           >
             <Button
-              onClick={() => setIsOpen(true)}
-              className="rounded-full w-14 h-14 flex items-center justify-center bg-primary hover:bg-primary/90 shadow-lg"
+              onClick={() => setIsExpanded(true)}
+              className="rounded-full w-14 h-14 shadow-lg flex items-center justify-center bg-primary hover:bg-primary/90"
             >
-              <Sparkles className="h-6 w-6 text-white" />
+              <Bot className="h-7 w-7 text-white" />
             </Button>
-          </motion.div>
-        ) : (
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 20, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <Card className={`w-80 shadow-lg ${isMinimized ? 'h-auto' : 'h-[32rem]'}`}>
-              <CardHeader className="bg-primary text-white p-3 flex flex-row items-center justify-between rounded-t-lg">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5" />
-                  <h3 className="font-medium">Dental AI Assistant</h3>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-7 w-7 text-white hover:bg-primary-foreground/20"
-                    onClick={() => setIsMinimized(!isMinimized)}
-                  >
-                    {isMinimized ? <ChevronUp className="h-4 w-4" /> : <MinusCircle className="h-4 w-4" />}
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-7 w-7 text-white hover:bg-primary-foreground/20"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              {!isMinimized && (
-                <>
-                  <CardContent className="p-3 max-h-[21rem] overflow-y-auto flex flex-col space-y-3">
-                    {conversation.map((message, index) => (
-                      <div 
-                        key={index} 
-                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div 
-                          className={`max-w-[85%] p-3 rounded-lg ${
-                            message.role === 'user' 
-                              ? 'bg-primary text-white' 
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {message.content}
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                  <div className="p-3 border-t">
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {suggestions.map((suggestion, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handleSuggestionClick(suggestion)}
-                          className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700"
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex space-x-2">
-                      <Textarea 
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Ask a question..."
-                        className="resize-none h-9 min-h-[2.25rem] py-2"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSendMessage();
-                          }
-                        }}
-                      />
-                      <Button 
-                        onClick={handleSendMessage}
-                        className="px-3"
-                      >
-                        Send
-                      </Button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </Card>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+
+      {/* Expanded chat window */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ opacity: 0, y: 100, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 100, scale: 0.9 }}
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-4 right-4 w-80 md:w-96 h-[520px] bg-white rounded-lg shadow-xl z-50 flex flex-col overflow-hidden border border-border"
+          >
+            {/* Header */}
+            <div className="p-3 border-b flex items-center justify-between bg-primary text-white">
+              <div className="flex items-center gap-2">
+                <Bot className="h-5 w-5" />
+                <h3 className="font-medium">DentaMind Assistant</h3>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full text-primary-foreground hover:bg-primary-foreground/10"
+                  onClick={() => setIsExpanded(false)}
+                >
+                  <ChevronDown className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full text-primary-foreground hover:bg-primary-foreground/10"
+                  onClick={() => {
+                    setMessages([]);
+                    setFirstExpand(true);
+                    setIsExpanded(false);
+                  }}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-gray-50">
+              {messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={cn(
+                    "flex gap-2 max-w-[90%]",
+                    message.role === "user" ? "ml-auto" : "mr-auto"
+                  )}
+                >
+                  {message.role === "assistant" && (
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                      <Bot className="h-4 w-4 text-white" />
+                    </div>
+                  )}
+                  <div
+                    className={cn(
+                      "py-2 px-3 rounded-lg",
+                      message.role === "user"
+                        ? "bg-primary text-white rounded-tr-none"
+                        : "bg-white border rounded-tl-none"
+                    )}
+                  >
+                    {message.content}
+                  </div>
+                  {message.role === "user" && (
+                    <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
+                      <div className="text-gray-600 text-sm font-medium">
+                        {user?.firstName?.charAt(0) || "U"}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {isTyping && (
+                <div className="flex gap-2 max-w-[90%] mr-auto">
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                    <Bot className="h-4 w-4 text-white" />
+                  </div>
+                  <div className="py-3 px-4 rounded-lg bg-white border rounded-tl-none flex items-center">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                      <div className="w-2 h-2 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: "150ms" }}></div>
+                      <div className="w-2 h-2 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: "300ms" }}></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Suggestions */}
+            {suggestions.length > 0 && !isTyping && (
+              <div className="p-2 pt-0 grid grid-cols-1 gap-2 bg-gray-50 border-t">
+                {suggestions.map((suggestion, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    size="sm"
+                    className="justify-start text-sm whitespace-normal h-auto py-1.5 px-3 text-left"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                  >
+                    <Lightbulb className="h-3.5 w-3.5 mr-2 flex-shrink-0 text-primary" />
+                    <span className="truncate">{suggestion}</span>
+                  </Button>
+                ))}
+              </div>
+            )}
+
+            {/* Input */}
+            <div className="p-3 border-t flex gap-2">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="Type your question..."
+                className="flex-1"
+                disabled={isTyping}
+              />
+              <Button
+                size="icon"
+                onClick={handleSendMessage}
+                disabled={!input.trim() || isTyping}
+                className="flex-shrink-0 bg-primary text-white hover:bg-primary/90"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

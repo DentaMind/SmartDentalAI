@@ -1,55 +1,105 @@
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { TimeClockComponent } from "@/components/staff/time-clock";
-import { Sidebar } from "@/components/layout/sidebar";
-import { AIAssistant } from "@/components/ui/ai-assistant";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CalendarCheck, Clock, HelpCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Clock, CalendarClock, ClipboardList, Users, BarChart } from "lucide-react";
 
 export default function TimeClockPage() {
   const { user } = useAuth();
-  const isStaffOrDoctor = user?.role === 'staff' || user?.role === 'doctor';
-
+  const [activeTab, setActiveTab] = useState<string>("my-timeclock");
+  
+  // Check if user has supervisor role (doctor or admin)
+  const isSupervisor = user?.role === "doctor" || user?.role === "admin";
+  
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold text-gray-800 flex items-center">
-                <Clock className="mr-2 h-6 w-6" />
-                Employee Time Clock
-              </h1>
-              <div className="text-sm text-gray-600 flex items-center">
-                <CalendarCheck className="mr-1 h-4 w-4" />
-                <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-              </div>
-            </div>
-
-            {!isStaffOrDoctor && (
-              <Alert className="mb-6">
-                <HelpCircle className="h-4 w-4" />
-                <AlertTitle>Access Restricted</AlertTitle>
-                <AlertDescription>
-                  The time clock system is only available for staff and providers. If you need access, please contact your administrator.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {isStaffOrDoctor && (
-              <div className="grid gap-6">
-                <TimeClockComponent userId={user?.id} />
-              </div>
-            )}
+    <div className="container mx-auto py-6 max-w-7xl">
+      <header className="mb-8">
+        <div className="flex items-center gap-4 mb-2">
+          <div className="p-2 rounded-md bg-primary/10">
+            <Clock className="h-8 w-8 text-primary" />
           </div>
-        </main>
-      </div>
+          <h1 className="text-3xl font-bold">Time Clock</h1>
+        </div>
+        <p className="text-muted-foreground">
+          Track your work hours and view time reports
+        </p>
+      </header>
       
-      <AIAssistant contextType="staff" initialSuggestions={[
-        "How do I use the time clock system?",
-        "What happens if I forget to clock out?",
-        "How are my work hours calculated?"
-      ]} />
+      <Tabs
+        defaultValue="my-timeclock"
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-4"
+      >
+        <div className="flex justify-between items-center">
+          <TabsList>
+            <TabsTrigger value="my-timeclock" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              <span>My Time Clock</span>
+            </TabsTrigger>
+            {isSupervisor && (
+              <>
+                <TabsTrigger value="team-timeclock" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  <span>Team Time Clock</span>
+                </TabsTrigger>
+                <TabsTrigger value="reports" className="flex items-center gap-2">
+                  <BarChart className="h-4 w-4" />
+                  <span>Reports</span>
+                </TabsTrigger>
+              </>
+            )}
+          </TabsList>
+        </div>
+        
+        <TabsContent value="my-timeclock" className="space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>My Time Clock</CardTitle>
+              <CardDescription>
+                Clock in and out to record your work hours
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TimeClockComponent userId={user?.id} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {isSupervisor && (
+          <TabsContent value="team-timeclock" className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Team Time Clock</CardTitle>
+                <CardDescription>
+                  Monitor and manage your team's time records
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <TimeClockComponent supervisorView />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+        
+        {isSupervisor && (
+          <TabsContent value="reports" className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Time Clock Reports</CardTitle>
+                <CardDescription>
+                  View and export time clock reports for payroll and analysis
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <TimeClockComponent supervisorView />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 }

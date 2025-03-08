@@ -12,17 +12,17 @@ import AppointmentsPage from "@/pages/appointments-page";
 import TreatmentPlansPage from "@/pages/treatment-plans-page";
 import AIDiagnosticsPage from "@/pages/ai-diagnostics";
 import BillingPage from "@/pages/billing";
+import TimeClockPage from "@/pages/time-clock-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import FinancialDashboardPage from "./pages/financial-dashboard";
 import { WebSocketProvider } from "./hooks/use-websocket";
-
-// Placeholder component
-const AIDashboardPage = () => <div>AI Dashboard (Under Construction)</div>;
+import { AIAssistant } from "@/components/ui/ai-assistant";
 
 // Lazy-loaded components
 const AIHub = lazy(() => import('./pages/ai-hub'));
 const OrthodonticDashboard = lazy(() => import('./pages/orthodontic-dashboard'));
 const DentalAIHub = lazy(() => import('./pages/dental-ai-hub'));
+const SubscriptionPage = lazy(() => import('./pages/subscription-page'));
 
 // Loading fallback
 const Loading = () => <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -32,17 +32,19 @@ function Router() {
     <Suspense fallback={<Loading />}>
       <Switch>
         <Route path="/auth" component={AuthPage} />
+        <Route path="/auth/signup" component={AuthPage} />
+        <Route path="/auth/subscription" component={SubscriptionPage} />
         <ProtectedRoute path="/" component={HomePage} />
         <ProtectedRoute path="/patients" component={PatientsPage} />
         <ProtectedRoute path="/appointments" component={AppointmentsPage} />
         <ProtectedRoute path="/treatment-plans" component={TreatmentPlansPage} />
         <ProtectedRoute path="/ai-diagnostics" component={AIDiagnosticsPage} />
         <ProtectedRoute path="/billing" component={BillingPage} />
-        <Route path="/ai-dashboard" component={AIDashboardPage} />
-        <Route path="/ai-hub" component={AIHub} />
-        <Route path="/orthodontic-dashboard" component={OrthodonticDashboard} />
-        <Route path="/dental-ai-hub" component={DentalAIHub} />
-        <Route path="/financial" component={FinancialDashboardPage} />
+        <ProtectedRoute path="/time-clock" component={TimeClockPage} />
+        <ProtectedRoute path="/ai-hub" component={AIHub} />
+        <ProtectedRoute path="/orthodontic-dashboard" component={OrthodonticDashboard} />
+        <ProtectedRoute path="/dental-ai-hub" component={DentalAIHub} />
+        <ProtectedRoute path="/financial" component={FinancialDashboardPage} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
@@ -50,12 +52,16 @@ function Router() {
 }
 
 function App() {
+  // Check if we're on auth pages, don't show assistant there
+  const isAuthPage = window.location.pathname.includes('/auth');
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <WebSocketProvider>
           <Router />
           <Toaster />
+          {!isAuthPage && <AIAssistant />}
         </WebSocketProvider>
       </AuthProvider>
     </QueryClientProvider>

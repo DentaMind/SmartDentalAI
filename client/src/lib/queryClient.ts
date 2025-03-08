@@ -7,20 +7,43 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
-
+// Support both REST-style (method, url, data) and simple GET (url) API requests
+export async function apiRequest<T = any>(
+  urlOrConfig: string | { method: string; url: string; body?: string | object },
+  options?: RequestInit
+): Promise<T> {
+  let url: string;
+  let config: RequestInit = { ...options };
+  
+  // Handle different calling styles
+  if (typeof urlOrConfig === 'string') {
+    url = urlOrConfig;
+    config.method = options?.method || 'GET';
+  } else {
+    url = urlOrConfig.url;
+    config.method = urlOrConfig.method;
+    if (urlOrConfig.body) {
+      config.headers = { 
+        ...config.headers,
+        'Content-Type': 'application/json'
+      };
+      config.body = typeof urlOrConfig.body === 'string' 
+        ? urlOrConfig.body 
+        : JSON.stringify(urlOrConfig.body);
+    }
+  }
+  
+  config.credentials = 'include';
+  
+  const res = await fetch(url, config);
   await throwIfResNotOk(res);
-  return res;
+  
+  // Parse JSON response if it exists
+  if (res.headers.get('content-type')?.includes('application/json')) {
+    return res.json();
+  }
+  
+  return res.text() as unknown as T;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
