@@ -20,19 +20,28 @@ import {
   Clock,
   Shield,
 } from "lucide-react";
+import { LucideIcon } from "lucide-react";
+
+// Define the navigation item interface with optional highlight property
+interface NavigationItem {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+  highlight?: boolean;
+}
 
 export function Sidebar() {
   const [location] = useLocation();
   const { t } = useTranslation();
-  const { logoutMutation, user } = useAuth();
+  const { logout, user } = useAuth();
 
   // Define navigation items based on user role
-  const getNavigationItems = () => {
-    const baseItems = [
+  const getNavigationItems = (): NavigationItem[] => {
+    const baseItems: NavigationItem[] = [
       { name: t("nav.home"), href: "/", icon: Home },
     ];
 
-    const doctorItems = [
+    const doctorItems: NavigationItem[] = [
       { 
         name: t("nav.aiDiagnostics"), 
         href: "/ai-diagnostics", 
@@ -45,11 +54,11 @@ export function Sidebar() {
       { name: t("nav.xrays"), href: "/xrays", icon: Image },
       { name: t("nav.billing"), href: "/billing", icon: DollarSign },
       { name: t("nav.timeClock"), href: "/time-clock", icon: Clock },
-      { name: t("nav.orthodonticAI"), href: "/orthodontic-dashboard", icon: Ruler, highlight: true}, // Added Orthodontic AI
-      { name: t("nav.dentalAISuite"), href: "/dental-ai-hub", icon: Bot, highlight: true} //Added Dental AI Suite
+      { name: t("nav.orthodonticAI"), href: "/orthodontic-dashboard", icon: Ruler, highlight: true }, // Added Orthodontic AI
+      { name: t("nav.dentalAISuite"), href: "/dental-ai-hub", icon: Bot, highlight: true } //Added Dental AI Suite
     ];
 
-    const staffItems = [
+    const staffItems: NavigationItem[] = [
       { 
         name: t("nav.aiDiagnostics"), 
         href: "/ai-diagnostics", 
@@ -60,11 +69,11 @@ export function Sidebar() {
       { name: t("nav.appointments"), href: "/appointments", icon: Calendar },
       { name: t("nav.billing"), href: "/billing", icon: DollarSign },
       { name: t("nav.timeClock"), href: "/time-clock", icon: Clock },
-      { name: t("nav.orthodonticAI"), href: "/orthodontic-dashboard", icon: Ruler, highlight: true}, // Added Orthodontic AI
-      { name: t("nav.dentalAISuite"), href: "/dental-ai-hub", icon: Bot, highlight: true} //Added Dental AI Suite
+      { name: t("nav.orthodonticAI"), href: "/orthodontic-dashboard", icon: Ruler, highlight: true }, // Added Orthodontic AI
+      { name: t("nav.dentalAISuite"), href: "/dental-ai-hub", icon: Bot, highlight: true } //Added Dental AI Suite
     ];
 
-    const patientItems = [
+    const patientItems: NavigationItem[] = [
       { name: t("nav.appointments"), href: "/appointments", icon: Calendar },
       { name: t("nav.treatmentPlans"), href: "/treatment-plans", icon: FileText },
       { name: t("nav.xrays"), href: "/xrays", icon: Image },
@@ -72,7 +81,7 @@ export function Sidebar() {
       { name: t("nav.billing"), href: "/billing", icon: DollarSign },
     ];
 
-    const financialItems = [
+    const financialItems: NavigationItem[] = [
       { name: t("nav.financial"), href: "/financial", icon: DollarSign },
     ];
 
@@ -151,7 +160,7 @@ export function Sidebar() {
         <Button
           variant="ghost"
           className="w-full justify-start text-gray-600 hover:text-primary hover:bg-primary/10 gap-3"
-          onClick={() => logoutMutation.mutate()}
+          onClick={() => logout()}
         >
           <div className="p-1.5 rounded-md bg-primary/10">
             <LogOut className="h-5 w-5 text-primary" />
@@ -165,8 +174,7 @@ export function Sidebar() {
           <nav className="space-y-1">
             <Link href="/security">
               <a className="flex items-center px-4 py-2 text-gray-700 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors">
-                {/* Assuming LuShieldCheck is available; replace with appropriate icon if needed */}
-                <span className="mr-3 text-lg">&#128272;</span> {/* Placeholder icon */}
+                <Shield className="w-5 h-5 mr-3" />
                 Security
               </a>
             </Link>

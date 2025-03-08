@@ -178,9 +178,12 @@ export function TimeClockComponent({ userId, supervisorView = false }: TimeClock
       const hours = data.totalHours || 0;
       const minutes = Math.round((hours % 1) * 60);
       
+      // Handle potentially null clockOutTime by providing a fallback
+      const clockOutTime = data.clockOutTime ? new Date(data.clockOutTime) : new Date();
+      
       toast({
         title: "Clocked Out",
-        description: `Successfully clocked out at ${format(new Date(data.clockOutTime), 'h:mm a')}. Total time: ${Math.floor(hours)}h ${minutes}m.`,
+        description: `Successfully clocked out at ${format(clockOutTime, 'h:mm a')}. Total time: ${Math.floor(hours)}h ${minutes}m.`,
       });
       
       setActiveEntry(null);
