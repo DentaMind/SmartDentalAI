@@ -62,6 +62,7 @@ import { PatientNotes } from "@/components/patients/patient-notes";
 import { PatientIntakeForm } from "@/components/patients/patient-intake-form";
 import { MultilingualInterpreter } from "@/components/patients/multilingual-interpreter";
 import { ProviderSignOff } from "@/components/patients/provider-sign-off";
+import { XrayAnalysis } from "@/components/patients/xray-analysis";
 
 // Helper function to get initials from name
 const getInitials = (name: string) => {
@@ -460,37 +461,8 @@ export default function PatientTreatmentPage() {
             
             {/* X-Rays & Scans Tab */}
             <TabsContent value="x-rays" className="pt-6">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold">X-Rays & Scans</h2>
-                  <p className="text-muted-foreground">View and manage patient imaging</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="gap-2">
-                    <Camera className="h-4 w-4" />
-                    Start X-Ray
-                  </Button>
-                  <Button className="gap-2">
-                    <Tooth className="h-4 w-4" />
-                    Start Intraoral Scan
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="p-16 text-center bg-muted/30 border border-dashed rounded-lg">
-                <h3 className="text-lg font-medium mb-2">No X-Rays or Scans</h3>
-                <p className="text-muted-foreground mb-4">
-                  This patient doesn't have any x-rays or intraoral scans in their record.
-                </p>
-                <div className="flex justify-center gap-4">
-                  <Button variant="outline">
-                    Upload Images
-                  </Button>
-                  <Button>
-                    Start Imaging
-                  </Button>
-                </div>
-              </div>
+              {/* We're importing the XrayAnalysis component */}
+              <XrayAnalysis patientId={patientId} patientName={patientName} />
             </TabsContent>
             
             {/* Medications Tab */}
