@@ -13,9 +13,10 @@ import { Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 interface ReminderType {
-  timeframe: string;
-  priority: string;
-  method: string;
+  timeframe: '24h' | '48h' | '1week';
+  priority: 'low' | 'medium' | 'high';
+  method: 'email' | 'sms' | 'both';
+  template?: string;
 }
 
 interface ReminderSettings {
@@ -160,21 +161,26 @@ export function ReminderSettings() {
   }
 
   const formattedReminderTypes = settings?.reminderTypes.map(type => {
-    // Convert timeframe to readable format
-    let timeframeText = type.timeframe;
+    // Create readable format for timeframe (without modifying the original type)
+    let timeframeText: string;
     switch (type.timeframe) {
       case '24h': timeframeText = '24 hours before'; break;
       case '48h': timeframeText = '48 hours before'; break;
       case '1week': timeframeText = '1 week before'; break;
+      default: timeframeText = type.timeframe;
     }
     
-    // Convert method to readable list
-    const methods = type.method.split(',').map(m => m.trim());
+    // Convert method to array of methods
+    const methods = type.method === 'both' ? ['email', 'sms'] : [type.method];
     
+    // Return a new object with the original properties plus our display helpers
     return {
-      ...type,
-      timeframeText,
-      methods
+      timeframe: type.timeframe, // Keep the original enum value
+      priority: type.priority,
+      method: type.method,
+      template: type.template,
+      timeframeText, // Add the display text
+      methods // Add the methods array
     };
   }) || [];
 
