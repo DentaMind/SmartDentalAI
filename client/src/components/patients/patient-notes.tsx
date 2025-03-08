@@ -80,8 +80,8 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
     queryKey: ["/api/notes", patientId],
     queryFn: async () => {
       try {
-        const res = await apiRequest("GET", `/api/patients/${patientId}/notes`);
-        return res.json();
+        const data = await apiRequest<Note[]>(`/api/patients/${patientId}/notes`);
+        return data;
       } catch (error) {
         console.error("Failed to fetch patient notes:", error);
         return [];

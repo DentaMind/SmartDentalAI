@@ -93,8 +93,8 @@ export function PatientHealthAlerts({ patient }: PatientHealthAlertsProps) {
     queryKey: ["/api/health-alerts", patient?.id],
     queryFn: async () => {
       try {
-        const res = await apiRequest("GET", `/api/patients/${patient.id}/health-alerts`);
-        return res.json();
+        const data = await apiRequest<HealthAlert[]>(`/api/patients/${patient.id}/health-alerts`);
+        return data;
       } catch (error) {
         console.error("Failed to fetch health alerts:", error);
         return [];
@@ -113,8 +113,13 @@ export function PatientHealthAlerts({ patient }: PatientHealthAlertsProps) {
     queryKey: ["/api/medical-info", patient?.id],
     queryFn: async () => {
       try {
-        const res = await apiRequest("GET", `/api/patients/${patient.id}/medical-info`);
-        return res.json();
+        const data = await apiRequest<{
+          conditions: MedicalCondition[];
+          medications: Medication[];
+          allergies: Allergy[];
+          vitalSigns: VitalSigns;
+        }>(`/api/patients/${patient.id}/medical-info`);
+        return data;
       } catch (error) {
         console.error("Failed to fetch medical information:", error);
         return {

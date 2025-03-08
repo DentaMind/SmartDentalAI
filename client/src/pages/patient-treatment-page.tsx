@@ -1,451 +1,530 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useParams, useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
-import { usePatientById } from "@/hooks/use-patient";
 import { useAuth } from "@/hooks/use-auth";
+import { usePatientById } from "@/hooks/use-patient";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
-import { PatientXrays } from "@/components/patients/patient-xrays";
-import { PatientTreatmentPlan } from "@/components/patients/patient-treatment-plan";
+import { Separator } from "@/components/ui/separator";
+import { 
+  AlertCircle, 
+  BellRing, 
+  Brain, 
+  Calendar, 
+  Camera, 
+  ChevronLeft, 
+  ClipboardList, 
+  Clock, 
+  FileText, 
+  Languages, 
+  Pencil, 
+  Pill, 
+  Save, 
+  Stethoscope, 
+  Tooth, 
+  UserCog, 
+  X 
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+// Import patient-specific components
 import { PatientHealthAlerts } from "@/components/patients/patient-health-alerts";
 import { PatientNotes } from "@/components/patients/patient-notes";
 import { PatientIntakeForm } from "@/components/patients/patient-intake-form";
-import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
-import { useParams, useLocation } from "wouter";
-import { 
-  ArrowLeft, 
-  Calendar, 
-  Clock, 
-  Edit, 
-  FileText, 
-  Mail, 
-  MessageSquare, 
-  Phone, 
-  Plus, 
-  User,
-  Video
-} from "lucide-react";
+import { MultilingualInterpreter } from "@/components/patients/multilingual-interpreter";
+import { ProviderSignOff } from "@/components/patients/provider-sign-off";
+
+// Helper function to get initials from name
+const getInitials = (name: string) => {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+};
+
+// Define treatment page sections
+const sections = [
+  { id: "health-alerts", label: "Health Alerts", icon: <AlertCircle className="h-4 w-4" /> },
+  { id: "notes", label: "Patient Notes", icon: <FileText className="h-4 w-4" /> },
+  { id: "treatment-plan", label: "Treatment Plan", icon: <ClipboardList className="h-4 w-4" /> },
+  { id: "x-rays", label: "X-rays & Scans", icon: <Camera className="h-4 w-4" /> },
+  { id: "medications", label: "Medications", icon: <Pill className="h-4 w-4" /> },
+  { id: "appointments", label: "Appointments", icon: <Calendar className="h-4 w-4" /> },
+];
 
 export default function PatientTreatmentPage() {
-  const { patientId } = useParams<{ patientId: string }>();
+  const params = useParams();
+  const patientId = parseInt(params.id || "0");
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("overview");
+  
+  // State management
+  const [activeTab, setActiveTab] = useState("health-alerts");
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+  const [showSignOffModal, setShowSignOffModal] = useState(false);
   
   // Fetch patient data
-  const { patient, loading: isLoading, error } = usePatientById(patientId ? parseInt(patientId) : undefined);
+  const { data: patient, isLoading } = usePatientById(patientId);
   
-  // Fetch additional patient data
-  const { data: patientDetails } = useQuery({
-    queryKey: ["/api/patient-details", patientId],
-    queryFn: async () => {
-      try {
-        const res = await apiRequest<any>("GET", `/api/patients/${patientId}/details`);
-        return res;
-      } catch (error) {
-        console.error("Failed to fetch patient details:", error);
-        return null;
-      }
-    },
-    enabled: !!patientId
-  });
-
+  // When component is about to unmount (user navigating away)
   useEffect(() => {
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load patient information. Please try again.",
-        variant: "destructive"
-      });
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasChanges) {
+        // Standard way to show confirmation dialog before page unload
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasChanges]);
+  
+  // Handle back navigation with confirmation if there are changes
+  const handleBackNavigation = () => {
+    if (hasChanges) {
+      setIsExiting(true);
+      setShowSignOffModal(true);
+    } else {
+      // No changes, navigate back directly
       navigate("/patients");
     }
-  }, [error, toast, navigate]);
-
-  const handleNewAppointment = () => {
-    navigate(`/appointments/new?patientId=${patientId}`);
+  };
+  
+  // Handle successful sign-off
+  const handleSignOffSuccess = () => {
+    setHasChanges(false);
+    setShowSignOffModal(false);
+    
+    // If exiting, navigate back
+    if (isExiting) {
+      toast({
+        title: "Changes saved",
+        description: "Your changes have been successfully saved and signed off",
+        variant: "default",
+      });
+      
+      setTimeout(() => {
+        navigate("/patients");
+      }, 500);
+    }
+  };
+  
+  // Handling when changes are made to patient record
+  const handleChanges = () => {
+    setHasChanges(true);
+  };
+  
+  // Track changes in patient notes
+  const handleNotesChange = () => {
+    handleChanges();
   };
 
+  // Handle saving changes without exiting
+  const handleSaveChanges = () => {
+    setShowSignOffModal(true);
+  };
+  
+  // Fallback if patient isn't found
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-[calc(100vh-4rem)]">
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite] mr-3"></div>
-        <span className="text-muted-foreground">Loading patient information...</span>
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
-
-  return (
-    <div className="container py-6 max-w-7xl">
-      <div className="mb-6">
-        <Button 
-          variant="ghost" 
-          className="gap-2 mb-4"
-          onClick={() => navigate("/patients")}
-        >
-          <ArrowLeft className="h-4 w-4" />
+  
+  if (!patient) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen">
+        <div className="flex items-center justify-center w-20 h-20 rounded-full bg-red-100 mb-4">
+          <X className="h-10 w-10 text-red-600" />
+        </div>
+        <h1 className="text-2xl font-bold mb-2">Patient Not Found</h1>
+        <p className="text-muted-foreground mb-4">The patient you're looking for doesn't exist or you don't have permission to view it.</p>
+        <Button onClick={() => navigate("/patients")}>
           Back to Patients
         </Button>
-        
-        <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">
-              {patient?.firstName} {patient?.lastName}
-            </h1>
-            <p className="text-muted-foreground">
-              Patient #{patient?.id} · DOB: {new Date(patient?.dateOfBirth || "").toLocaleDateString()}
-            </p>
-          </div>
+      </div>
+    );
+  }
+  
+  // Combine first and last name
+  const patientName = `${patient.firstName} ${patient.lastName}`;
+  
+  return (
+    <div className="container mx-auto py-6 max-w-7xl">
+      {/* Provider Sign-Off Modal */}
+      <ProviderSignOff
+        open={showSignOffModal}
+        onClose={() => setShowSignOffModal(false)}
+        onSuccess={handleSignOffSuccess}
+        patientId={patientId}
+        patientName={patientName}
+        hasChanges={hasChanges}
+      />
+      
+      {/* Header with Patient Info and Actions */}
+      <div className="flex justify-between items-start mb-6">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={handleBackNavigation}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
           
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" className="gap-2">
-              <Phone className="h-4 w-4" />
-              Call
-            </Button>
-            <Button variant="outline" className="gap-2">
-              <Mail className="h-4 w-4" />
-              Email
-            </Button>
-            <Button variant="outline" className="gap-2">
-              <MessageSquare className="h-4 w-4" />
-              Message
-            </Button>
-            <Button 
-              className="gap-2"
-              onClick={handleNewAppointment}
-            >
-              <Plus className="h-4 w-4" />
-              New Appointment
-            </Button>
+          <div className="flex items-center gap-3">
+            <Avatar className="h-12 w-12">
+              <AvatarImage src={patient.profileImage} />
+              <AvatarFallback className="bg-primary/10 text-primary">
+                {getInitials(patientName)}
+              </AvatarFallback>
+            </Avatar>
+            
+            <div>
+              <h1 className="text-2xl font-bold">{patientName}</h1>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                {patient.dateOfBirth && (
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    <span>
+                      {new Date(patient.dateOfBirth).toLocaleDateString()} 
+                      ({Math.floor((new Date().getTime() - new Date(patient.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} y/o)
+                    </span>
+                  </div>
+                )}
+                {patient.insuranceProvider && (
+                  <div className="flex items-center gap-1">
+                    <FileText className="h-3 w-3" />
+                    <span>{patient.insuranceProvider}</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <MultilingualInterpreter 
+            patientId={patientId}
+            patientPreferredLanguage="english"
+          />
+          
+          {hasChanges && (
+            <Button 
+              onClick={handleSaveChanges}
+              className="gap-2"
+            >
+              <Save className="h-4 w-4" />
+              Save & Sign Off
+            </Button>
+          )}
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* Left Sidebar - Quick Access Panel */}
+        <Card className="md:col-span-1">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Patient Information</CardTitle>
+            <CardTitle className="text-lg">Quick Access</CardTitle>
+            <CardDescription>Common actions and information</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex gap-3 items-center">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium">{patient?.firstName} {patient?.lastName}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date().getFullYear() - new Date(patient?.dateOfBirth || "").getFullYear()} years old
-                  </p>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs text-muted-foreground">Phone</p>
-                  <p className="text-sm">{patient?.phoneNumber || "Not provided"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Email</p>
-                  <p className="text-sm">{patient?.email || "Not provided"}</p>
-                </div>
-              </div>
-              
-              <div>
-                <p className="text-xs text-muted-foreground">Insurance</p>
-                <p className="text-sm">{patient?.insuranceProvider || "Not provided"}</p>
-                {patient?.insuranceNumber && (
-                  <p className="text-xs text-muted-foreground mt-1">Policy: {patient.insuranceNumber}</p>
-                )}
-              </div>
-              
-              <Separator />
-              
-              <div className="pt-1">
-                <Button variant="outline" size="sm" className="w-full gap-2">
-                  <Edit className="h-4 w-4" />
-                  Edit Information
+          <CardContent className="space-y-6">
+            {/* Start X-Ray/Scan Actions */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Imaging</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" size="sm" className="flex flex-col items-center justify-center h-20 gap-2 text-xs">
+                  <Camera className="h-4 w-4" />
+                  Start X-Ray
                 </Button>
+                <Button variant="outline" size="sm" className="flex flex-col items-center justify-center h-20 gap-2 text-xs">
+                  <Tooth className="h-4 w-4" />
+                  Intraoral Scan
+                </Button>
+              </div>
+            </div>
+            
+            <Separator />
+            
+            {/* Patient Info Summary */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Patient Info</h3>
+              <Card className="bg-muted/50">
+                <CardContent className="p-3 space-y-2 text-xs">
+                  <div className="grid grid-cols-2">
+                    <div className="font-medium">Phone:</div>
+                    <div>{patient.phoneNumber || "N/A"}</div>
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <div className="font-medium">Email:</div>
+                    <div className="truncate">{patient.email || "N/A"}</div>
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <div className="font-medium">Insurance:</div>
+                    <div>{patient.insuranceProvider || "N/A"}</div>
+                  </div>
+                  {patient.insuranceNumber && (
+                    <div className="grid grid-cols-2">
+                      <div className="font-medium">Policy #:</div>
+                      <div>{patient.insuranceNumber}</div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+            
+            <Separator />
+            
+            {/* Recent Activity */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Recent Activity</h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 p-2 rounded-md border border-dashed">
+                  <Calendar className="h-4 w-4 text-blue-500" />
+                  <div className="text-xs">
+                    <div className="font-medium">Last Visit</div>
+                    <div className="text-muted-foreground">2 weeks ago</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-2 rounded-md border border-dashed">
+                  <Tooth className="h-4 w-4 text-green-500" />
+                  <div className="text-xs">
+                    <div className="font-medium">Last Procedure</div>
+                    <div className="text-muted-foreground">Dental Cleaning</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-2 rounded-md border border-dashed">
+                  <Stethoscope className="h-4 w-4 text-purple-500" />
+                  <div className="text-xs">
+                    <div className="font-medium">Next Appointment</div>
+                    <div className="text-muted-foreground">Mar 15, 2025</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Care Team */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Care Team</h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs">
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="text-[10px]">DJ</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="font-medium">Dr. Jane Smith</div>
+                    <div className="text-muted-foreground">Primary Dentist</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="text-[10px]">BT</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="font-medium">Bob Thompson</div>
+                    <div className="text-muted-foreground">Dental Hygienist</div>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Upcoming Appointment</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {patientDetails?.nextAppointment ? (
-              <div className="space-y-3">
-                <div className="flex gap-3 items-center">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Calendar className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{patientDetails.nextAppointment.type}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(patientDetails.nextAppointment.date).toLocaleDateString()} at {
-                        new Date(patientDetails.nextAppointment.date).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })
-                      }
-                    </p>
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Provider</p>
-                    <p className="text-sm">{patientDetails.nextAppointment.provider}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Duration</p>
-                    <p className="text-sm">{patientDetails.nextAppointment.duration} minutes</p>
-                  </div>
-                </div>
-                
+        {/* Main Content Area */}
+        <div className="md:col-span-3 space-y-6">
+          {/* Alert Banners */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3 p-3 rounded-md bg-amber-50 border border-amber-200">
+              <div className="flex-shrink-0">
+                <BellRing className="h-5 w-5 text-amber-500" />
+              </div>
+              <div className="flex-grow">
+                <h3 className="font-medium text-amber-800">Patient Reminder</h3>
+                <p className="text-sm text-amber-700">Annual x-rays are due this visit</p>
+              </div>
+              <Button variant="ghost" size="sm" className="text-amber-700">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="flex items-center gap-3 p-3 rounded-md bg-blue-50 border border-blue-200">
+              <div className="flex-shrink-0">
+                <UserCog className="h-5 w-5 text-blue-500" />
+              </div>
+              <div className="flex-grow">
+                <h3 className="font-medium text-blue-800">Insurance Verification</h3>
+                <p className="text-sm text-blue-700">Insurance benefits have been verified for today's visit</p>
+              </div>
+              <Button variant="ghost" size="sm" className="text-blue-700">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="flex items-center gap-3 p-3 rounded-md bg-violet-50 border border-violet-200">
+              <div className="flex-shrink-0">
+                <Brain className="h-5 w-5 text-violet-500" />
+              </div>
+              <div className="flex-grow">
+                <h3 className="font-medium text-violet-800">AI-Powered Assistant</h3>
+                <p className="text-sm text-violet-700">
+                  AI has analyzed this patient's records and has insights to share
+                </p>
+              </div>
+              <Button variant="outline" size="sm" className="bg-violet-100 text-violet-700 border-violet-300">
+                View Insights
+              </Button>
+            </div>
+          </div>
+          
+          {/* Main Content Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid grid-cols-3 md:grid-cols-6">
+              {sections.map((section) => (
+                <TabsTrigger key={section.id} value={section.id} className="gap-2">
+                  {section.icon}
+                  <span className="hidden sm:inline">{section.label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            
+            {/* Health Alerts Tab */}
+            <TabsContent value="health-alerts" className="pt-6">
+              <PatientHealthAlerts patient={patient} />
+            </TabsContent>
+            
+            {/* Patient Notes Tab */}
+            <TabsContent value="notes" className="pt-6">
+              <PatientNotes patientId={patientId} />
+            </TabsContent>
+            
+            {/* Treatment Plan Tab */}
+            <TabsContent value="treatment-plan" className="pt-6">
+              <div className="flex justify-between items-center mb-6">
                 <div>
-                  <p className="text-xs text-muted-foreground">Notes</p>
-                  <p className="text-sm">
-                    {patientDetails.nextAppointment.notes || "No additional notes"}
-                  </p>
+                  <h2 className="text-2xl font-bold">Treatment Plan</h2>
+                  <p className="text-muted-foreground">Manage and view treatment plans</p>
                 </div>
-                
-                <Separator />
-                
-                <div className="pt-1 flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1 gap-2">
-                    <Edit className="h-4 w-4" />
-                    Reschedule
+                <Button className="gap-2">
+                  <Pencil className="h-4 w-4" />
+                  Create Treatment Plan
+                </Button>
+              </div>
+              
+              <div className="p-16 text-center bg-muted/30 border border-dashed rounded-lg">
+                <h3 className="text-lg font-medium mb-2">No Active Treatment Plans</h3>
+                <p className="text-muted-foreground mb-4">
+                  This patient doesn't have any active treatment plans. Create a new treatment plan to get started.
+                </p>
+                <Button>
+                  Create Treatment Plan
+                </Button>
+              </div>
+            </TabsContent>
+            
+            {/* X-Rays & Scans Tab */}
+            <TabsContent value="x-rays" className="pt-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold">X-Rays & Scans</h2>
+                  <p className="text-muted-foreground">View and manage patient imaging</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="gap-2">
+                    <Camera className="h-4 w-4" />
+                    Start X-Ray
                   </Button>
-                  <Button variant="default" size="sm" className="flex-1 gap-2">
-                    <Video className="h-4 w-4" />
-                    Start Visit
+                  <Button className="gap-2">
+                    <Tooth className="h-4 w-4" />
+                    Start Intraoral Scan
                   </Button>
                 </div>
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-6 text-center">
-                <Calendar className="h-10 w-10 text-muted-foreground mb-3" />
-                <p className="font-medium">No upcoming appointments</p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  This patient doesn't have any scheduled appointments
+              
+              <div className="p-16 text-center bg-muted/30 border border-dashed rounded-lg">
+                <h3 className="text-lg font-medium mb-2">No X-Rays or Scans</h3>
+                <p className="text-muted-foreground mb-4">
+                  This patient doesn't have any x-rays or intraoral scans in their record.
                 </p>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleNewAppointment}
-                >
+                <div className="flex justify-center gap-4">
+                  <Button variant="outline">
+                    Upload Images
+                  </Button>
+                  <Button>
+                    Start Imaging
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+            
+            {/* Medications Tab */}
+            <TabsContent value="medications" className="pt-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold">Medications</h2>
+                  <p className="text-muted-foreground">View and manage patient medications</p>
+                </div>
+                <Button className="gap-2">
+                  <Pill className="h-4 w-4" />
+                  Add Medication
+                </Button>
+              </div>
+              
+              <div className="p-16 text-center bg-muted/30 border border-dashed rounded-lg">
+                <h3 className="text-lg font-medium mb-2">No Medications</h3>
+                <p className="text-muted-foreground mb-4">
+                  This patient doesn't have any medications in their record.
+                </p>
+                <Button>
+                  Add Medication
+                </Button>
+              </div>
+            </TabsContent>
+            
+            {/* Appointments Tab */}
+            <TabsContent value="appointments" className="pt-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold">Appointments</h2>
+                  <p className="text-muted-foreground">View and manage patient appointments</p>
+                </div>
+                <Button className="gap-2">
+                  <Calendar className="h-4 w-4" />
                   Schedule Appointment
                 </Button>
               </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Treatment Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex gap-3 items-center">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium">
-                    {patientDetails?.activeTreatmentPlans || 0} Active Treatment {
-                      patientDetails?.activeTreatmentPlans === 1 ? "Plan" : "Plans"
-                    }
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Last update: {
-                      patientDetails?.lastTreatmentUpdate 
-                        ? new Date(patientDetails.lastTreatmentUpdate).toLocaleDateString()
-                        : "Never"
-                    }
-                  </p>
-                </div>
-              </div>
               
-              <Separator />
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs text-muted-foreground">Last Visit</p>
-                  <p className="text-sm">
-                    {patientDetails?.lastVisit 
-                      ? new Date(patientDetails.lastVisit).toLocaleDateString()
-                      : "No previous visits"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Last Cleaning</p>
-                  <p className="text-sm">
-                    {patientDetails?.lastCleaning 
-                      ? new Date(patientDetails.lastCleaning).toLocaleDateString()
-                      : "None recorded"}
-                  </p>
-                </div>
-              </div>
-              
-              <div>
-                <p className="text-xs text-muted-foreground">Active Treatments</p>
-                {patientDetails?.treatmentSummary ? (
-                  <ul className="text-sm list-disc pl-4 mt-1 space-y-1">
-                    {patientDetails.treatmentSummary.map((treatment, index) => (
-                      <li key={index}>{treatment}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm">No active treatments</p>
-                )}
-              </div>
-              
-              <Separator />
-              
-              <div className="pt-1">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full gap-2"
-                  onClick={() => setActiveTab("treatment")}
-                >
-                  <FileText className="h-4 w-4" />
-                  View Treatment Plans
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="treatment">Treatment Plan</TabsTrigger>
-          <TabsTrigger value="xrays">X-Rays & Imaging</TabsTrigger>
-          <TabsTrigger value="notes">Clinical Notes</TabsTrigger>
-          <TabsTrigger value="forms">Patient Forms</TabsTrigger>
-          <TabsTrigger value="history">Appointment History</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="overview">
-          <div className="grid grid-cols-1 gap-6">
-            <PatientHealthAlerts patient={patient} />
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="treatment">
-          <div className="grid grid-cols-1 gap-6">
-            {patientId && <PatientTreatmentPlan patientId={parseInt(patientId)} />}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="xrays">
-          <div className="grid grid-cols-1 gap-6">
-            {patientId && <PatientXrays patientId={parseInt(patientId)} />}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="notes">
-          <div className="grid grid-cols-1 gap-6">
-            {patientId && <PatientNotes patientId={parseInt(patientId)} />}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="forms">
-          <div className="grid grid-cols-1 gap-6">
-            {patientId && <PatientIntakeForm patientId={parseInt(patientId)} />}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="history">
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Appointment History</h2>
-            
-            {patientDetails?.appointmentHistory && patientDetails.appointmentHistory.length > 0 ? (
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="text-left p-3 font-medium">Date</th>
-                      <th className="text-left p-3 font-medium">Type</th>
-                      <th className="text-left p-3 font-medium">Provider</th>
-                      <th className="text-left p-3 font-medium">Status</th>
-                      <th className="text-left p-3 font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {patientDetails.appointmentHistory.map((appointment, index) => (
-                      <tr key={index} className="hover:bg-muted/50">
-                        <td className="p-3">
-                          <div className="font-medium">
-                            {new Date(appointment.date).toLocaleDateString()}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {new Date(appointment.date).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </div>
-                        </td>
-                        <td className="p-3">{appointment.type}</td>
-                        <td className="p-3">{appointment.provider}</td>
-                        <td className="p-3">
-                          <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            appointment.status === "completed" ? "bg-green-100 text-green-800" :
-                            appointment.status === "cancelled" ? "bg-red-100 text-red-800" :
-                            appointment.status === "no-show" ? "bg-amber-100 text-amber-800" :
-                            "bg-blue-100 text-blue-800"
-                          }`}>
-                            {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <Button variant="ghost" size="sm">
-                            View Details
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="text-center py-10 bg-gray-50 rounded-lg border">
-                <Clock className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                <h3 className="text-lg font-medium">No Appointment History</h3>
-                <p className="text-muted-foreground max-w-sm mx-auto mt-1">
-                  This patient doesn't have any past appointments on record.
+              <div className="p-16 text-center bg-muted/30 border border-dashed rounded-lg">
+                <h3 className="text-lg font-medium mb-2">No Upcoming Appointments</h3>
+                <p className="text-muted-foreground mb-4">
+                  This patient doesn't have any upcoming appointments scheduled.
                 </p>
-                <Button 
-                  className="mt-4"
-                  onClick={handleNewAppointment}
-                >
-                  Schedule First Appointment
+                <Button>
+                  Schedule Appointment
                 </Button>
               </div>
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </div>
   );
 }
