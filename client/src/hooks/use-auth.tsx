@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check the server session status regardless of local storage
     (async () => {
       try {
-        const response = await api.get('/api/auth/user');
+        const response = await api.get('/api/user');
         if (response.status === 200) {
           // Update user from server data, which is the source of truth
           setUser(response.data);
@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     
     try {
-      const response = await api.post('/api/auth/login', { 
+      const response = await api.post('/api/login', { 
         username, 
         password,
         mfaCode
@@ -126,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     
     try {
-      const response = await api.post('/api/auth/register', userData);
+      const response = await api.post('/api/register', userData);
       const data = response.data;
       
       // Store user data
@@ -149,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try {
       // Call the logout endpoint
-      await api.post('/api/auth/logout');
+      await api.post('/api/logout');
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
@@ -162,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshAuth = async () => {
     try {
       // For session-based auth, we just need to check if the session is still valid
-      const response = await api.get('/api/auth/user');
+      const response = await api.get('/api/user');
       
       if (response.status === 200) {
         setUser(response.data);
@@ -180,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const setupMFA = async (): Promise<MFASetupData> => {
     try {
-      const response = await api.post('/api/auth/mfa/setup');
+      const response = await api.post('/api/mfa/setup');
       return response.data;
     } catch (err: any) {
       const message = err.response?.data?.message || 
@@ -193,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const enableMFA = async (verificationCode: string): Promise<void> => {
     try {
-      await api.post('/api/auth/mfa/enable', { verificationCode });
+      await api.post('/api/mfa/enable', { verificationCode });
     } catch (err: any) {
       const message = err.response?.data?.message || 
                       err.message || 
