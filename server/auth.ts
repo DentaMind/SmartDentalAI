@@ -5,11 +5,23 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { User } from "@shared/schema";
 
+// Define a simplified user type for authentication purposes
+type AuthUser = {
+  id: number;
+  username: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  specialization?: string;
+};
+
+// Extend Express User interface for TypeScript type checking
 declare global {
   namespace Express {
-    interface User extends SelectUser {}
+    interface User extends AuthUser {}
   }
 }
 
@@ -59,14 +71,26 @@ export function setupAuth(router: express.Router) {
           return done(null, false, { message: "Invalid username or password" });
         }
 
-        const isValidPassword = await comparePasswords(password, user.password);
+        // We need to access the passwordHash property from storage interface
+        const isValidPassword = await comparePasswords(password, user.passwordHash);
         console.log(`Password validation result for ${username}: ${isValidPassword}`);
 
         if (!isValidPassword) {
           return done(null, false, { message: "Invalid username or password" });
         }
 
-        return done(null, user);
+        // Create an AuthUser object with only the needed properties
+        const authUser: AuthUser = {
+          id: user.id,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          role: user.role,
+          specialization: user.specialization,
+        };
+
+        return done(null, authUser);
       } catch (error) {
         console.error("Login error:", error);
         return done(error);
@@ -86,7 +110,19 @@ export function setupAuth(router: express.Router) {
       if (!user) {
         return done(null, false);
       }
-      done(null, user);
+      
+      // Create an AuthUser object with only the needed properties
+      const authUser: AuthUser = {
+        id: user.id,
+        username: user.username,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        role: user.role,
+        specialization: user.specialization,
+      };
+      
+      done(null, authUser);
     } catch (error) {
       console.error("Deserialization error:", error);
       done(error);
@@ -97,8 +133,10 @@ export function setupAuth(router: express.Router) {
     try {
       console.log("Registration attempt:", { username: req.body.username });
 
-      if (!req.body.username || !req.body.password) {
-        return res.status(400).json({ message: "Username and password are required" });
+      if (!req.body.username || !req.body.password || !req.body.firstName || !req.body.lastName || !req.body.email) {
+        return res.status(400).json({ 
+          message: "Username, password, firstName, lastName, and email are required" 
+        });
       }
 
       const existingUser = await storage.getUserByUsername(req.body.username);
@@ -107,21 +145,45 @@ export function setupAuth(router: express.Router) {
       }
 
       const hashedPassword = await hashPassword(req.body.password);
-      const user = await storage.createUser({
+      
+      // Create user object matching the InsertUser schema
+      const userToCreate: InsertUser = {
         username: req.body.username,
         password: hashedPassword,
-        role: req.body.role || "doctor",
+        role: (req.body.role as "doctor" | "staff" | "patient") || "doctor",
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        email: req.body.email,
         language: req.body.language || "en",
-      });
+        phoneNumber: req.body.phoneNumber || null,
+        dateOfBirth: req.body.dateOfBirth || null,
+        insuranceProvider: req.body.insuranceProvider || null,
+        insuranceNumber: req.body.insuranceNumber || null,
+        specialization: req.body.specialization || null,
+        licenseNumber: req.body.licenseNumber || null,
+      };
+      
+      const user = await storage.createUser(userToCreate);
 
       console.log(`User registered successfully: ${user.username}`);
 
-      req.login(user, (err) => {
+      // Create an AuthUser object for session login
+      const authUser: AuthUser = {
+        id: user.id,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        specialization: user.specialization,
+      };
+
+      req.login(authUser, (err) => {
         if (err) {
           console.error("Login error after registration:", err);
           return next(err);
         }
-        res.status(201).json(user);
+        res.status(201).json(authUser);
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -137,7 +199,7 @@ export function setupAuth(router: express.Router) {
         return res.status(400).json({ message: "Username and password are required" });
       }
 
-      passport.authenticate("local", (err: Error | null, user: SelectUser | false, info: { message: string } | undefined) => {
+      passport.authenticate("local", (err: Error | null, user: AuthUser | false, info: { message: string } | undefined) => {
         if (err) {
           console.error("Login error:", err);
           return next(err);

@@ -51,25 +51,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   // Effect to check for existing auth on mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
     
-    if (token && userData) {
+    if (userData) {
       try {
+        // Set the user from localStorage data temporarily
         setUser(JSON.parse(userData));
       } catch (e) {
         console.error('Failed to parse stored user data');
         localStorage.removeItem('user');
-        localStorage.removeItem('token');
       }
     }
     
-    setIsLoading(false);
-    
-    // If token exists, validate it
-    if (token) {
-      refreshAuth();
-    }
+    // Check the server session status regardless of local storage
+    (async () => {
+      try {
+        const response = await api.get('/api/auth/user');
+        if (response.status === 200) {
+          // Update user from server data, which is the source of truth
+          setUser(response.data);
+          // Update localStorage with the latest user data
+          localStorage.setItem('user', JSON.stringify(response.data));
+        }
+      } catch (err) {
+        console.log('No active session found on server');
+        // Clear any potentially stale user data
+        localStorage.removeItem('user');
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    })();
   }, []);
   
   const login = async (username: string, password: string, mfaCode?: string) => {
@@ -114,17 +126,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     
     try {
-      const res = await apiRequest('POST', '/api/auth/register', userData);
-      const data = await res.json();
+      const response = await api.post('/api/auth/register', userData);
+      const data = response.data;
       
-      // Save tokens
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('refreshToken', data.refreshToken);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      // Store user data
+      localStorage.setItem('user', JSON.stringify(data));
       
-      setUser(data.user);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Registration failed';
+      setUser(data);
+      console.log('User registered successfully:', data);
+    } catch (err: any) {
+      const message = err.response?.data?.message || 
+                     err.message || 
+                     'Registration failed. Please try again.';
+      console.error('Registration error:', err);
       setError(message);
       throw err;
     } finally {
@@ -132,41 +146,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    setUser(null);
+  const logout = async () => {
+    try {
+      // Call the logout endpoint
+      await api.post('/api/auth/logout');
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      // Clear local storage regardless of server response
+      localStorage.removeItem('user');
+      setUser(null);
+    }
   };
   
   const refreshAuth = async () => {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (!refreshToken) return;
-    
     try {
-      const res = await apiRequest('POST', '/api/auth/refresh', { refreshToken });
-      const data = await res.json();
+      // For session-based auth, we just need to check if the session is still valid
+      const response = await api.get('/api/auth/user');
       
-      // Update tokens
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('refreshToken', data.refreshToken);
-      
-      // Keep current user data
-      return true;
+      if (response.status === 200) {
+        setUser(response.data);
+        return true;
+      }
+      return false;
     } catch (err) {
-      console.error('Token refresh failed:', err);
-      // Clear auth data on refresh failure
-      logout();
+      console.error('Auth refresh failed:', err);
+      // Clear user data on refresh failure
+      localStorage.removeItem('user');
+      setUser(null);
       return false;
     }
   };
   
   const setupMFA = async (): Promise<MFASetupData> => {
     try {
-      const res = await apiRequest('POST', '/api/auth/mfa/setup', {});
-      return await res.json();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'MFA setup failed';
+      const response = await api.post('/api/auth/mfa/setup');
+      return response.data;
+    } catch (err: any) {
+      const message = err.response?.data?.message || 
+                      err.message || 
+                      'MFA setup failed';
       setError(message);
       throw err;
     }
@@ -174,9 +193,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const enableMFA = async (verificationCode: string): Promise<void> => {
     try {
-      await apiRequest('POST', '/api/auth/mfa/enable', { verificationCode });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'MFA enable failed';
+      await api.post('/api/auth/mfa/enable', { verificationCode });
+    } catch (err: any) {
+      const message = err.response?.data?.message || 
+                      err.message || 
+                      'Failed to enable MFA';
       setError(message);
       throw err;
     }
@@ -184,9 +205,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const disableMFA = async (password: string): Promise<void> => {
     try {
-      await apiRequest('POST', '/api/auth/mfa/disable', { password });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'MFA disable failed';
+      await api.post('/api/auth/mfa/disable', { password });
+    } catch (err: any) {
+      const message = err.response?.data?.message || 
+                      err.message || 
+                      'Failed to disable MFA';
       setError(message);
       throw err;
     }
@@ -194,12 +217,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
     try {
-      await apiRequest('POST', '/api/auth/password/change', { 
+      await api.post('/api/auth/password/change', { 
         currentPassword, 
         newPassword 
       });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Password change failed';
+    } catch (err: any) {
+      const message = err.response?.data?.message || 
+                      err.message || 
+                      'Password change failed';
       setError(message);
       throw err;
     }
