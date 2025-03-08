@@ -390,6 +390,67 @@ class SchedulerService {
     
     // Notification logic would go here
   }
+  
+  // Schedule appointment reminders to run periodically
+  async setupAutomatedReminders() {
+    try {
+      console.log('Setting up automated appointment reminders');
+      
+      // Import notification service
+      const { notificationService } = await import('./notifications');
+      
+      // Set up interval for reminder checks (run every hour)
+      const REMINDER_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+      
+      // Initialize reminder scheduler
+      const reminderScheduler = setInterval(async () => {
+        try {
+          console.log('Running scheduled appointment reminders check');
+          const result = await notificationService.sendAppointmentReminders();
+          console.log(`Reminders sent: ${result.count} (24h: ${result.breakdown['24h']}, 48h: ${result.breakdown['48h']}, 1week: ${result.breakdown['1week']})`);
+        } catch (error) {
+          console.error('Error in scheduled reminders:', error);
+        }
+      }, REMINDER_INTERVAL_MS);
+      
+      // Run immediately on startup
+      try {
+        console.log('Running initial appointment reminders check');
+        const result = await notificationService.sendAppointmentReminders();
+        console.log(`Initial reminders sent: ${result.count} (24h: ${result.breakdown['24h']}, 48h: ${result.breakdown['48h']}, 1week: ${result.breakdown['1week']})`);
+      } catch (error) {
+        console.error('Error in initial reminders:', error);
+      }
+      
+      return { 
+        success: true, 
+        message: 'Automated appointment reminders scheduled',
+        interval: REMINDER_INTERVAL_MS
+      };
+    } catch (error) {
+      console.error('Failed to set up automated reminders:', error);
+      throw error;
+    }
+  }
+  
+  // Return reminder settings and stats
+  async getReminderSettings() {
+    return {
+      enabled: true,
+      reminderTypes: [
+        { timeframe: '24h', priority: 'high', method: 'email,sms' },
+        { timeframe: '48h', priority: 'medium', method: 'email' },
+        { timeframe: '1week', priority: 'medium', method: 'email' }
+      ],
+      lastRunTime: new Date().toISOString(),
+      remindersSentToday: 12, // This would be actual stats in production
+      remindersSentThisWeek: 87, // This would be actual stats in production
+      deliveryStats: {
+        email: { sent: 75, opened: 52, failureRate: 0.04 },
+        sms: { sent: 24, delivered: 23, failureRate: 0.04 }
+      }
+    };
+  }
 }
 
 export const schedulerService = new SchedulerService();

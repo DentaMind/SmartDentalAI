@@ -196,35 +196,111 @@ class NotificationService {
   // Send appointment reminder notifications
   async sendAppointmentReminders() {
     try {
-      // Get appointments coming up in the next 24 hours
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-
-      const appointments = await storage.getAppointmentsByDateRange(
-        new Date(), 
-        tomorrow
-      );
-
+      // Send reminders for all timeframes
+      const results = await Promise.all([
+        this.sendAppointmentRemindersByTimeframe('24h'),
+        this.sendAppointmentRemindersByTimeframe('48h'),
+        this.sendAppointmentRemindersByTimeframe('1week')
+      ]);
+      
+      // Combine results
+      const totalCount = results.reduce((sum, result) => sum + result.count, 0);
+      
+      return { 
+        count: totalCount,
+        breakdown: {
+          '24h': results[0].count,
+          '48h': results[1].count,
+          '1week': results[2].count
+        }
+      };
+    } catch (error) {
+      console.error('Send appointment reminders error:', error);
+      throw error;
+    }
+  }
+  
+  // Send appointment reminders for a specific timeframe
+  async sendAppointmentRemindersByTimeframe(timeframe: '24h' | '48h' | '1week') {
+    try {
+      const now = new Date();
+      const startDate = new Date(now);
+      const endDate = new Date(now);
+      let reminderType = '';
+      let messagePrefix = '';
+      
+      // Configure date range and message based on timeframe
+      switch (timeframe) {
+        case '24h':
+          // Look for appointments 24 hours from now (±1 hour window)
+          startDate.setHours(now.getHours() + 23);
+          endDate.setHours(now.getHours() + 25);
+          reminderType = 'appointment_reminder_24h';
+          messagePrefix = 'Your appointment is tomorrow';
+          break;
+        case '48h':
+          // Look for appointments 48 hours from now (±1 hour window)
+          startDate.setHours(now.getHours() + 47);
+          endDate.setHours(now.getHours() + 49);
+          reminderType = 'appointment_reminder_48h';
+          messagePrefix = 'Your appointment is in 2 days';
+          break;
+        case '1week':
+          // Look for appointments 1 week from now (±2 hour window)
+          startDate.setHours(now.getHours() + 166); // 7 days minus 2 hours
+          endDate.setHours(now.getHours() + 170); // 7 days plus 2 hours
+          reminderType = 'appointment_reminder_1week';
+          messagePrefix = 'Your appointment is in 1 week';
+          break;
+      }
+      
+      // Get appointments in the targeted timeframe
+      const appointments = await storage.getAppointmentsByDateRange(startDate, endDate);
+      
       const remindersSent = [];
-
+      
       for (const appointment of appointments) {
+        // Format the date nicely
+        const appointmentDate = new Date(appointment.date);
+        const dateStr = appointmentDate.toLocaleDateString('en-US', { 
+          weekday: 'long',
+          month: 'long', 
+          day: 'numeric'
+        });
+        const timeStr = appointmentDate.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit'
+        });
+        
+        // Get doctor's name
+        let doctorName = 'your doctor';
+        const doctor = await storage.getUser(appointment.doctorId);
+        if (doctor) {
+          doctorName = `Dr. ${doctor.lastName}`;
+        }
+        
         // Create notification for the patient
         const notification = await this.createNotification({
           userId: appointment.patientId,
-          type: 'appointment_reminder',
+          type: reminderType,
           title: 'Upcoming Appointment Reminder',
-          message: `You have an appointment scheduled for ${new Date(appointment.date).toLocaleString()}`,
-          priority: 'high',
-          data: { appointmentId: appointment.id },
+          message: `${messagePrefix} (${dateStr} at ${timeStr}) with ${doctorName}. Please call the office if you need to reschedule.`,
+          priority: timeframe === '24h' ? 'high' : 'medium',
+          data: { 
+            appointmentId: appointment.id,
+            appointmentDate: appointment.date.toISOString(),
+            doctorId: appointment.doctorId,
+            timeframe
+          },
           read: false
         });
-
+        
         remindersSent.push(notification);
       }
-
-      return { count: remindersSent.length };
+      
+      return { timeframe, count: remindersSent.length, appointments: appointments.length };
     } catch (error) {
-      console.error('Send appointment reminders error:', error);
+      console.error(`Send ${timeframe} appointment reminders error:`, error);
       throw error;
     }
   }

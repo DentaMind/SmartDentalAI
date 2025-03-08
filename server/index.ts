@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import app from './app';
 import { setupVite, log } from "./vite";
 import { securityService } from "./services/security";
+import { schedulerService } from "./services/scheduler";
 
 dotenv.config();
 
@@ -55,6 +56,18 @@ const startServer = async () => {
         // Don't exit on Vite error, just log it
         console.warn("Continuing without Vite development server");
       }
+    }
+    
+    // Initialize automated appointment reminders
+    try {
+      console.log('Initializing automated appointment reminders...');
+      const reminderSetup = await schedulerService.setupAutomatedReminders();
+      console.log(`Appointment reminders initialized: ${reminderSetup.message}`);
+    } catch (error) {
+      console.error('Failed to set up appointment reminders:', error);
+      console.error('Full error details:', error instanceof Error ? error.stack : error);
+      // Don't exit on reminder setup error, just log it
+      console.warn('Continuing without automated reminders');
     }
   } catch (error) {
     console.error('Failed to start server:', error);

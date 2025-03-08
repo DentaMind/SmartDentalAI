@@ -324,6 +324,12 @@ export class MemStorage implements IStorage {
         appointment.doctorId === doctorId && appointment.date >= startOfDay && appointment.date <= endOfDay
     );
   }
+  
+  async getAppointmentsByDateRange(startDate: Date, endDate: Date) {
+    return Array.from(this.appointments.values()).filter(appointment =>
+        appointment.date >= startDate && appointment.date <= endDate
+    );
+  }
 
   async getAppointment(appointmentId: number) {
     return this.appointments.get(appointmentId);
