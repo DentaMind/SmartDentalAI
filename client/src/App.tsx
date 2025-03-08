@@ -24,6 +24,12 @@ const OrthodonticDashboard = lazy(() => import('./pages/orthodontic-dashboard'))
 const DentalAIHub = lazy(() => import('./pages/dental-ai-hub'));
 const SubscriptionPage = lazy(() => import('./pages/subscription-page'));
 
+// Component wrappers for lazy-loaded components to fix TypeScript issues
+const AIHubWrapper = () => <AIHub />;
+const OrthodonticDashboardWrapper = () => <OrthodonticDashboard />;
+const DentalAIHubWrapper = () => <DentalAIHub />;
+const SubscriptionPageWrapper = () => <SubscriptionPage />;
+
 // Loading fallback
 const Loading = () => <div className="flex items-center justify-center h-screen">Loading...</div>;
 
@@ -33,7 +39,7 @@ function Router() {
       <Switch>
         <Route path="/auth" component={AuthPage} />
         <Route path="/auth/signup" component={AuthPage} />
-        <Route path="/auth/subscription" component={SubscriptionPage} />
+        <Route path="/auth/subscription" component={SubscriptionPageWrapper} />
         <ProtectedRoute path="/" component={HomePage} />
         <ProtectedRoute path="/patients" component={PatientsPage} />
         <ProtectedRoute path="/appointments" component={AppointmentsPage} />
@@ -41,9 +47,9 @@ function Router() {
         <ProtectedRoute path="/ai-diagnostics" component={AIDiagnosticsPage} />
         <ProtectedRoute path="/billing" component={BillingPage} />
         <ProtectedRoute path="/time-clock" component={TimeClockPage} />
-        <ProtectedRoute path="/ai-hub" component={AIHub} />
-        <ProtectedRoute path="/orthodontic-dashboard" component={OrthodonticDashboard} />
-        <ProtectedRoute path="/dental-ai-hub" component={DentalAIHub} />
+        <ProtectedRoute path="/ai-hub" component={AIHubWrapper} />
+        <ProtectedRoute path="/orthodontic-dashboard" component={OrthodonticDashboardWrapper} />
+        <ProtectedRoute path="/dental-ai-hub" component={DentalAIHubWrapper} />
         <ProtectedRoute path="/financial" component={FinancialDashboardPage} />
         <Route component={NotFound} />
       </Switch>

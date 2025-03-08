@@ -166,14 +166,27 @@ app.get('/static', (req, res) => {
   }
 });
 
-// Update the main app page to link to static version
+// Root path handler - serves the main React application
 app.get('/', (req, res, next) => {
-  // Add a link to the static version in the main app
+  // Redirect to static version if query param is set
   if (req.query.static === 'true') {
     res.redirect('/static');
     return;
   }
-  next();
+  
+  // For development mode, we'll let Vite middleware handle the request in index.ts
+  // For production, we'd serve static files
+  if (process.env.NODE_ENV === 'production') {
+    const indexPath = path.resolve(__dirname, '..', 'client', 'dist', 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(500).send('Application not built. Please run build script first.');
+    }
+  } else {
+    // In development, pass to next middleware (which will be Vite)
+    next();
+  }
 });
 
 // IMPORTANT: Error handlers should be last, after Vite middleware is set up in index.ts
