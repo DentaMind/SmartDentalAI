@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { apiRequest } from '@/lib/queryClient';
+import { api } from '@/lib/api';
 
 interface User {
   id: number;
@@ -77,28 +77,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     
     try {
-      const res = await apiRequest('POST', '/api/auth/login', { 
+      const response = await api.post('/api/auth/login', { 
         username, 
         password,
         mfaCode
       });
       
-      const data = await res.json();
+      const userData = response.data;
       
       // Handle MFA required response
-      if (data.status === 'mfa_required') {
+      if (userData.status === 'mfa_required') {
         setIsLoading(false);
         throw new Error('MFA_REQUIRED');
       }
       
-      // Save tokens
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('refreshToken', data.refreshToken);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      // For session-based auth, we don't need to store tokens
+      // Instead, just store user data for UI purposes
+      localStorage.setItem('user', JSON.stringify(userData));
       
-      setUser(data.user);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Login failed';
+      setUser(userData);
+      console.log('User logged in successfully:', userData);
+    } catch (err: any) {
+      const message = err.response?.data?.message || 
+                      err.message || 
+                      'Login failed. Please check your credentials.';
+      console.error('Login error:', err);
       setError(message);
       throw err;
     } finally {
