@@ -31,8 +31,14 @@ api.interceptors.response.use(
   (error) => {
     // Handle authentication errors globally
     if (error.response && error.response.status === 401) {
-      // Redirect to auth page if not authenticated
-      window.location.href = '/auth';
+      // Only redirect if we're not already on the auth page and not in a redirect loop
+      if (!window.location.pathname.includes('/auth') && sessionStorage.getItem("inAuthPage") !== "true") {
+        console.log('Not authenticated, redirecting to auth page');
+        sessionStorage.setItem("inAuthPage", "true");
+        window.location.href = '/auth';
+      } else {
+        console.log('Already on auth page or redirecting prevented');
+      }
     }
     
     // Create a standardized error message

@@ -8,6 +8,14 @@ import App from "./App";
 import "./index.css";
 import "./i18n";
 
+// Prevent redirect loop by storing a flag in sessionStorage
+if (window.location.pathname === "/auth") {
+  sessionStorage.setItem("inAuthPage", "true");
+} else if (sessionStorage.getItem("inAuthPage") === "true") {
+  // If we are redirected from the auth page, don't go back there immediately
+  sessionStorage.removeItem("inAuthPage");
+}
+
 /**
  * This is the main entry point for the application
  * We use a functional approach to prepare and render the application
