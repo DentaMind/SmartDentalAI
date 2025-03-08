@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { useState } from 'react';
+import { apiRequest } from '@/lib/queryClient';
 
 export interface Patient {
   id: number;
+  userId: number;
   firstName: string;
   lastName: string;
   dateOfBirth: string;
@@ -11,59 +12,111 @@ export interface Patient {
   phoneNumber: string;
   insuranceProvider?: string;
   insuranceNumber?: string;
-  userId: number;
+  medicalHistory?: Record<string, any>;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
+/**
+ * Hook to fetch all patients
+ */
 export function usePatient() {
-  const { data, isLoading, error } = useQuery({
+  const [patients, setPatients] = useState<Patient[]>([]);
+  
+  const { data, isLoading, error } = useQuery<Patient[]>({
     queryKey: ['/api/patients'],
-    retry: false,
+    onSuccess: (data) => {
+      setPatients(data || []);
+    }
   });
 
   return {
-    patients: data as Patient[] || [],
+    patients: data || patients,
     loading: isLoading,
     error
   };
 }
 
+/**
+ * Hook to fetch a specific patient by ID
+ */
 export function usePatientById(patientId?: number) {
-  const { data: patients } = useQuery({
-    queryKey: ['/api/patients'],
-    retry: false,
+  const [patient, setPatient] = useState<Patient | null>(null);
+  
+  const { data, isLoading, error } = useQuery<Patient>({
+    queryKey: ['/api/patients', patientId],
+    enabled: !!patientId,
+    onSuccess: (data) => {
+      setPatient(data || null);
+    }
   });
 
-  const [patient, setPatient] = useState<Patient | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (!patientId || !patients) return;
-    
-    const foundPatient = (patients as Patient[]).find(p => p.id === patientId);
-    setPatient(foundPatient || null);
-  }, [patientId, patients]);
-
-  const fetchPatientDetails = async (id: number) => {
-    if (!id) return;
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await api.get(`/api/patients/${id}`);
-      setPatient(response.data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch patient details');
-    } finally {
-      setLoading(false);
-    }
+  return {
+    patient: data || patient,
+    loading: isLoading,
+    error
   };
+}
+
+/**
+ * Hook to fetch patient medical history
+ */
+export function usePatientMedicalHistory(patientId?: number) {
+  const [medicalHistory, setMedicalHistory] = useState<Record<string, any> | null>(null);
+  
+  const { data, isLoading, error } = useQuery<Record<string, any>>({
+    queryKey: ['/api/patients/medical-history', patientId],
+    enabled: !!patientId,
+    onSuccess: (data) => {
+      setMedicalHistory(data || null);
+    }
+  });
 
   return {
-    patient,
-    loading,
-    error,
-    fetchPatientDetails
+    medicalHistory: data || medicalHistory,
+    loading: isLoading,
+    error
+  };
+}
+
+/**
+ * Hook to fetch patient treatments
+ */
+export function usePatientTreatments(patientId?: number) {
+  const [treatments, setTreatments] = useState<any[]>([]);
+  
+  const { data, isLoading, error } = useQuery<any[]>({
+    queryKey: ['/api/treatment-plans/patient', patientId],
+    enabled: !!patientId,
+    onSuccess: (data) => {
+      setTreatments(data || []);
+    }
+  });
+
+  return {
+    treatments: data || treatments,
+    loading: isLoading,
+    error
+  };
+}
+
+/**
+ * Hook to fetch patient appointments
+ */
+export function usePatientAppointments(patientId?: number) {
+  const [appointments, setAppointments] = useState<any[]>([]);
+  
+  const { data, isLoading, error } = useQuery<any[]>({
+    queryKey: ['/api/appointments/patient', patientId],
+    enabled: !!patientId,
+    onSuccess: (data) => {
+      setAppointments(data || []);
+    }
+  });
+
+  return {
+    appointments: data || appointments,
+    loading: isLoading,
+    error
   };
 }
