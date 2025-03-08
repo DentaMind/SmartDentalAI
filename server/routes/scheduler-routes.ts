@@ -86,6 +86,24 @@ router.get('/reminders/stats', requireAuth, requireRole(['doctor', 'staff']), as
   }
 });
 
+// Get reminder logs 
+router.get('/reminders/logs', requireAuth, requireRole(['doctor', 'staff']), async (req, res) => {
+  try {
+    // For now, return an empty array - this will be implemented fully in the future
+    res.json({
+      items: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: 10,
+      totalPages: 0
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to get reminder logs" 
+    });
+  }
+});
+
 // Get appointments by date range
 router.get('/appointments', requireAuth, async (req, res) => {
   try {

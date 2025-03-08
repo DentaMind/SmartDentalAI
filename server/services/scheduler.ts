@@ -488,6 +488,46 @@ class SchedulerService {
     return this.reminderStats;
   }
   
+  // Send appointment reminders manually
+  async sendReminders(timeframe: '24h' | '48h' | '1week' | 'all' = 'all') {
+    try {
+      const { notificationService } = await import('./notifications');
+      
+      // If a specific timeframe is requested, only send that type of reminder
+      if (timeframe !== 'all') {
+        const result = await notificationService.sendAppointmentRemindersByTimeframe(timeframe);
+        
+        // Update stats
+        this.reminderStats.lastRunTime = new Date().toISOString();
+        this.reminderStats.remindersSentToday += result.count;
+        this.reminderStats.remindersSentThisWeek += result.count;
+        
+        return {
+          success: true,
+          count: result.count,
+          timeframe
+        };
+      } else {
+        // Send all reminders
+        const result = await notificationService.sendAppointmentReminders();
+        
+        // Update stats
+        this.reminderStats.lastRunTime = new Date().toISOString();
+        this.reminderStats.remindersSentToday += result.count;
+        this.reminderStats.remindersSentThisWeek += result.count;
+        
+        return {
+          success: true,
+          count: result.count,
+          breakdown: result.breakdown
+        };
+      }
+    } catch (error) {
+      console.error("Error sending reminders:", error);
+      throw new Error(error instanceof Error ? error.message : "Failed to send reminders");
+    }
+  }
+  
   // Get appointments by date range
   async getAppointmentsByDateRange(startDate: Date, endDate: Date) {
     try {

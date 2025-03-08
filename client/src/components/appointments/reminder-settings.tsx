@@ -39,12 +39,13 @@ interface ReminderSettings {
 interface ReminderLogEntry {
   id: string;
   timestamp: string;
-  type: string;
-  timeframe: string;
-  appointmentId: number;
+  patientId: number;
   patientName: string;
+  timeframe: '24h' | '48h' | '1week' | string;
   sentTo: string;
   status: 'sent' | 'delivered' | 'opened' | 'failed';
+  method?: 'email' | 'sms';
+  appointmentId: number;
 }
 
 export function ReminderSettings() {
@@ -65,6 +66,18 @@ export function ReminderSettings() {
     retry: 1,
     refetchOnWindowFocus: false,
     enabled: activeTab === 'overview'
+  });
+  
+  // Fetch reminder logs
+  const { data: reminderLog, isLoading: isLoadingLog } = useQuery({
+    queryKey: ['/api/scheduler/reminders/logs'],
+    retry: 1,
+    refetchOnWindowFocus: false,
+    enabled: activeTab === 'logs',
+    // Placeholder for now until we implement the logs endpoint
+    queryFn: async () => ({ 
+      items: [] // Empty array for now
+    })
   });
 
   // Update reminder settings 
