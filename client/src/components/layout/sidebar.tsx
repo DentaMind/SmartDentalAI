@@ -19,6 +19,7 @@ import {
   Ruler,
   Clock,
   Shield,
+  LayoutDashboard,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -39,6 +40,7 @@ export function Sidebar() {
   const getNavigationItems = (): NavigationItem[] => {
     const baseItems: NavigationItem[] = [
       { name: t("nav.home"), href: "/", icon: Home },
+      { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, highlight: true },
     ];
 
     const doctorItems: NavigationItem[] = [

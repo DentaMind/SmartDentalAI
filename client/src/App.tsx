@@ -15,6 +15,7 @@ import BillingPage from "@/pages/billing";
 import TimeClockPage from "@/pages/time-clock-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import FinancialDashboardPage from "./pages/financial-dashboard";
+import DashboardPage from "@/pages/dashboard-page";
 import { WebSocketProvider } from "./hooks/use-websocket";
 import { AIAssistant } from "@/components/ui/ai-assistant";
 
@@ -41,6 +42,7 @@ function Router() {
         <Route path="/auth/signup" component={AuthPage} />
         <Route path="/auth/subscription" component={SubscriptionPageWrapper} />
         <ProtectedRoute path="/" component={HomePage} />
+        <ProtectedRoute path="/dashboard" component={DashboardPage} />
         <ProtectedRoute path="/patients" component={PatientsPage} />
         <ProtectedRoute path="/appointments" component={AppointmentsPage} />
         <ProtectedRoute path="/treatment-plans" component={TreatmentPlansPage} />
