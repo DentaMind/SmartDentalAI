@@ -1,562 +1,213 @@
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Brain, UploadCloud, Image, FileText } from 'lucide-react';
+import { usePatientById } from '@/hooks/use-patient';
 
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UploadButton } from "@/components/ui/upload-button";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, BrainCircuit, Camera, FileImage, BarChart3, Ruler, User } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-
-interface OrthodonticAnalysisProps {
+interface OrthodonticAnalyzerProps {
   patientId?: number;
-  onAnalysisComplete?: (analysis: any) => void;
+  onAnalysisComplete?: (analysisData: any) => void;
 }
 
-export function OrthodonticAnalyzer({ patientId, onAnalysisComplete }: OrthodonticAnalysisProps) {
-  const [activeTab, setActiveTab] = useState("capture");
-  const [images, setImages] = useState<string[]>([]);
-  const [measurements, setMeasurements] = useState<Record<string, number>>({});
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [analysis, setAnalysis] = useState<any>(null);
-  const [patientType, setPatientType] = useState("adolescent");
-  const { toast } = useToast();
+export function OrthodonticAnalyzer({ patientId, onAnalysisComplete }: OrthodonticAnalyzerProps) {
+  const { patient, loading } = usePatientById(patientId);
+  const [analysisInProgress, setAnalysisInProgress] = useState(false);
+  const [activeTab, setActiveTab] = useState('images');
 
-  const handleImageUpload = (urls: string[]) => {
-    setImages([...images, ...urls]);
-    if (activeTab === "capture" && urls.length > 0) {
-      setActiveTab("measurements");
-    }
-  };
-
-  const handleCapture = async () => {
-    // This would connect to a camera in a real implementation
-    toast({
-      title: "Camera activated",
-      description: "Position the patient and capture the image.",
-    });
+  const handleRunAnalysis = () => {
+    setAnalysisInProgress(true);
     
-    // Simulate image capture
+    // Mock analysis generation after a delay
     setTimeout(() => {
-      const mockImageUrl = "https://example.com/mock-orthodontic-image.jpg";
-      setImages([...images, mockImageUrl]);
-      setActiveTab("measurements");
-    }, 1500);
-  };
-
-  const handleMeasurementChange = (key: string, value: string) => {
-    setMeasurements({
-      ...measurements,
-      [key]: parseFloat(value) || 0
-    });
-  };
-
-  const analyzeCase = async () => {
-    if (!patientId) {
-      toast({
-        title: "Patient ID required",
-        description: "Please select a patient first.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (images.length === 0) {
-      toast({
-        title: "Images required",
-        description: "Please upload or capture at least one image.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsAnalyzing(true);
-    setProgress(0);
-
-    // Simulate analysis process
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        const newProgress = prev + 10;
-        if (newProgress >= 100) {
-          clearInterval(interval);
-          simulateAnalysisComplete();
-        }
-        return newProgress;
-      });
-    }, 400);
-  };
-
-  const simulateAnalysisComplete = () => {
-    // Mock analysis result
-    const mockAnalysis = {
-      facialProfile: {
-        analysis: "Class II skeletal pattern with mandibular retrognathia",
-        recommendations: [
-          "Consider functional appliance therapy",
-          "Monitor growth pattern closely",
-          "Evaluate TMJ function"
-        ],
-        indicators: [
-          "Convex profile",
-          "Retrognathic mandible",
-          "Normal maxillary position"
-        ]
-      },
-      dentalArchAnalysis: {
-        archForm: "Tapered maxillary arch, ovoid mandibular arch",
-        crowding: "Moderate maxillary crowding (4-6mm), mild mandibular crowding (2-3mm)",
-        spacing: "No significant spacing",
-        recommendations: [
-          "Arch expansion in maxilla",
-          "Interproximal reduction in mandible",
-          "Maintain arch form during treatment"
-        ]
-      },
-      cephalometricMeasurements: {
-        snAngle: measurements.sna || 82,
-        anBAngle: measurements.anb || 4.5,
-        mandibularPlaneAngle: measurements.mandibularPlane || 25,
-        frankfortMandibularAngle: measurements.frankfortMandibular || 27,
-        interpretation: "Class II skeletal relationship with normal vertical dimensions"
-      },
-      treatmentOptions: [
-        {
-          option: "Fixed Appliances with Class II Elastics",
-          duration: "24-30 months",
-          pros: [
-            "Comprehensive control of tooth movement",
-            "Ability to correct significant malocclusions",
-            "Well-established treatment approach"
-          ],
-          cons: [
-            "Longer treatment time",
-            "More frequent adjustments required",
-            "Potential for decalcification if hygiene is poor"
-          ],
-          estimatedCost: 5500
+      const mockAnalysis = {
+        facialProfile: {
+          analysis: "Class II skeletal pattern with mandibular retrognathism",
+          recommendations: ["Consider growth modification therapy", "Evaluate for functional appliance"],
+          indicators: ["Increased overjet", "Retrognathic mandible", "Convex profile"]
         },
-        {
-          option: "Clear Aligners with Precision Cuts",
-          duration: "24-36 months",
-          pros: [
-            "Improved aesthetics during treatment",
-            "Better oral hygiene potential",
-            "Fewer emergency visits"
-          ],
-          cons: [
-            "May require longer treatment duration",
-            "Relies heavily on patient compliance",
-            "Higher cost"
-          ],
-          estimatedCost: 6800
-        }
-      ],
-      growthPrediction: patientType !== "adult" ? {
-        potentialGrowth: "Moderate mandibular growth expected over next 12-18 months",
-        recommendations: [
-          "Utilize growth for Class II correction",
-          "Consider staged treatment approach",
-          "Re-evaluate growth in 6 months"
+        dentalArchAnalysis: {
+          archForm: "Narrow maxillary arch with V-shaped tendency",
+          crowding: "Moderate maxillary crowding (4-6mm)",
+          spacing: "Minimal mandibular spacing",
+          recommendations: ["Arch expansion indicated", "Interproximal reduction not required"]
+        },
+        cephalometricMeasurements: {
+          snAngle: 82,
+          anBAngle: 6,
+          mandibularPlaneAngle: 28,
+          frankfortMandibularAngle: 26,
+          interpretation: "Class II skeletal relationship with normal vertical proportions"
+        },
+        treatmentOptions: [
+          {
+            option: "Non-extraction with functional appliance",
+            duration: "24-30 months",
+            pros: ["Addresses skeletal discrepancy", "Improves profile", "Maintains arch width"],
+            cons: ["Requires excellent compliance", "Longer treatment duration", "Two-phase treatment needed"],
+            estimatedCost: 6800
+          },
+          {
+            option: "Clear aligner therapy with elastics",
+            duration: "18-24 months",
+            pros: ["Aesthetic treatment option", "Good compliance predictor", "Fewer appointments needed"],
+            cons: ["Limited skeletal correction", "May require attachments", "Cost consideration"],
+            estimatedCost: 5500
+          },
+          {
+            option: "Fixed appliances with Class II mechanics",
+            duration: "22-28 months",
+            pros: ["Predictable tooth movement", "Good control of root positioning", "Versatile mechanics"],
+            cons: ["Aesthetic concerns", "Oral hygiene challenges", "Increased emergency visits"],
+            estimatedCost: 5200
+          }
         ],
-        timeframe: "80% of remaining growth expected within next 24 months"
-      } : undefined
-    };
-    
-    setAnalysis(mockAnalysis);
-    setIsAnalyzing(false);
-    setActiveTab("results");
-    
-    if (onAnalysisComplete) {
-      onAnalysisComplete(mockAnalysis);
-    }
-    
-    toast({
-      title: "Analysis complete",
-      description: "Orthodontic analysis has been generated successfully.",
-      variant: "default"
-    });
+        growthPrediction: {
+          potentialGrowth: "Moderate mandibular growth potential based on CVM stage 3",
+          recommendations: ["Capitalize on remaining growth with functional appliance", "Monitor cervical vertebral maturation"],
+          timeframe: "12-18 months of active growth remaining"
+        }
+      };
+      
+      setAnalysisInProgress(false);
+      if (onAnalysisComplete) {
+        onAnalysisComplete(mockAnalysis);
+      }
+    }, 3000);
   };
-  
+
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <BrainCircuit className="h-5 w-5 text-primary" />
-          Orthodontic AI Analyzer
+          <Brain className="h-5 w-5 text-primary" />
+          Orthodontic AI Analysis
         </CardTitle>
         <CardDescription>
-          Advanced AI-powered orthodontic analysis and treatment planning
+          Upload and analyze orthodontic records to generate AI-powered treatment recommendations
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid grid-cols-3">
-            <TabsTrigger value="capture" disabled={isAnalyzing}>
-              <FileImage className="h-4 w-4 mr-2" />
-              Image Capture
-            </TabsTrigger>
-            <TabsTrigger value="measurements" disabled={isAnalyzing || images.length === 0}>
-              <Ruler className="h-4 w-4 mr-2" />
-              Measurements
-            </TabsTrigger>
-            <TabsTrigger value="results" disabled={!analysis}>
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Analysis
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="capture" className="space-y-4">
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="patientType">Patient Type</Label>
-                <Select value={patientType} onValueChange={setPatientType}>
-                  <SelectTrigger id="patientType">
-                    <SelectValue placeholder="Select patient type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="child">Child (Under 12)</SelectItem>
-                    <SelectItem value="adolescent">Adolescent (12-18)</SelectItem>
-                    <SelectItem value="adult">Adult (18+)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Upload or Capture Images</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-primary/20 rounded-lg p-6 space-y-2">
-                    <FileImage className="h-8 w-8 text-primary/60" />
-                    <div className="text-sm text-center text-muted-foreground">
-                      Drag and drop images or click to upload
-                    </div>
-                    <UploadButton onUpload={handleImageUpload} accept="image/*" />
-                  </div>
-                  
-                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-primary/20 rounded-lg p-6 space-y-2">
-                    <Camera className="h-8 w-8 text-primary/60" />
-                    <div className="text-sm text-center text-muted-foreground">
-                      Use camera to capture images
-                    </div>
-                    <Button onClick={handleCapture}>
-                      Activate Camera
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              
-              {images.length > 0 && (
-                <div className="space-y-2">
-                  <Label>{images.length} Image(s) Selected</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {images.map((image, index) => (
-                      <div key={index} className="border rounded-md overflow-hidden">
-                        <div className="bg-muted h-24 flex items-center justify-center">
-                          <FileImage className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                        <div className="p-2 text-xs truncate">Image {index + 1}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <div className="flex justify-end">
-              <Button 
-                variant="default" 
-                disabled={images.length === 0} 
-                onClick={() => setActiveTab("measurements")}
-              >
-                Continue to Measurements
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="measurements" className="space-y-4">
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sna">SNA Angle (°)</Label>
-                  <Input
-                    id="sna"
-                    type="number"
-                    value={measurements.sna || ""}
-                    onChange={(e) => handleMeasurementChange("sna", e.target.value)}
-                    placeholder="82"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="snb">SNB Angle (°)</Label>
-                  <Input
-                    id="snb"
-                    type="number"
-                    value={measurements.snb || ""}
-                    onChange={(e) => handleMeasurementChange("snb", e.target.value)}
-                    placeholder="80"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="anb">ANB Angle (°)</Label>
-                  <Input
-                    id="anb"
-                    type="number"
-                    value={measurements.anb || ""}
-                    onChange={(e) => handleMeasurementChange("anb", e.target.value)}
-                    placeholder="2"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="wits">Wits Appraisal (mm)</Label>
-                  <Input
-                    id="wits"
-                    type="number"
-                    value={measurements.wits || ""}
-                    onChange={(e) => handleMeasurementChange("wits", e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="frankfortMandibular">FMA (°)</Label>
-                  <Input
-                    id="frankfortMandibular"
-                    type="number"
-                    value={measurements.frankfortMandibular || ""}
-                    onChange={(e) => handleMeasurementChange("frankfortMandibular", e.target.value)}
-                    placeholder="25"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="mandibularPlane">MP-SN (°)</Label>
-                  <Input
-                    id="mandibularPlane"
-                    type="number"
-                    value={measurements.mandibularPlane || ""}
-                    onChange={(e) => handleMeasurementChange("mandibularPlane", e.target.value)}
-                    placeholder="32"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="overjet">Overjet (mm)</Label>
-                  <Input
-                    id="overjet"
-                    type="number"
-                    value={measurements.overjet || ""}
-                    onChange={(e) => handleMeasurementChange("overjet", e.target.value)}
-                    placeholder="2.5"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="overbite">Overbite (mm)</Label>
-                  <Input
-                    id="overbite"
-                    type="number"
-                    value={measurements.overbite || ""}
-                    onChange={(e) => handleMeasurementChange("overbite", e.target.value)}
-                    placeholder="2"
-                  />
-                </div>
-              </div>
-              
-              <div className="text-sm text-muted-foreground">
-                <p>Optional: Add these measurements manually or let AI detect them from the images.</p>
-              </div>
-            </div>
-            
-            <div className="flex justify-between">
-              <Button 
-                variant="outline" 
-                onClick={() => setActiveTab("capture")}
-              >
-                Back to Images
-              </Button>
-              <Button 
-                variant="default" 
-                onClick={analyzeCase}
-                disabled={isAnalyzing}
-              >
-                {isAnalyzing ? "Analyzing..." : "Generate Analysis"}
-                {!isAnalyzing && <BrainCircuit className="ml-2 h-4 w-4" />}
-              </Button>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="results" className="space-y-6">
-            {isAnalyzing ? (
-              <div className="space-y-4 py-8">
-                <div className="text-center">
-                  <BrainCircuit className="h-12 w-12 mx-auto animate-pulse text-primary" />
-                  <h3 className="mt-2 text-lg font-medium">AI Analysis in Progress</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Our AI is analyzing images and measurements for comprehensive orthodontic assessment
-                  </p>
-                </div>
-                <Progress value={progress} className="w-full" />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Skeleton className="h-24 w-full" />
-                  <Skeleton className="h-24 w-full" />
-                  <Skeleton className="h-24 w-full" />
-                  <Skeleton className="h-24 w-full" />
-                </div>
-              </div>
-            ) : analysis ? (
-              <>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">Facial Profile</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="font-medium">{analysis.facialProfile.analysis}</p>
-                      <div className="mt-2">
-                        <p className="text-sm font-medium text-muted-foreground">Key Indicators:</p>
-                        <ul className="ml-6 mt-1 list-disc text-sm">
-                          {analysis.facialProfile.indicators.map((indicator: string, i: number) => (
-                            <li key={i}>{indicator}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">Dental Arch Analysis</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div>
-                        <span className="text-sm font-medium text-muted-foreground">Arch Form: </span>
-                        <span>{analysis.dentalArchAnalysis.archForm}</span>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-muted-foreground">Crowding: </span>
-                        <span>{analysis.dentalArchAnalysis.crowding}</span>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-muted-foreground">Spacing: </span>
-                        <span>{analysis.dentalArchAnalysis.spacing}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">Cephalometric Analysis</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <span className="text-sm font-medium text-muted-foreground">SNA: </span>
-                            <span>{analysis.cephalometricMeasurements.snAngle}°</span>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-muted-foreground">ANB: </span>
-                            <span>{analysis.cephalometricMeasurements.anBAngle}°</span>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-muted-foreground">MP-SN: </span>
-                            <span>{analysis.cephalometricMeasurements.mandibularPlaneAngle}°</span>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-muted-foreground">FMA: </span>
-                            <span>{analysis.cephalometricMeasurements.frankfortMandibularAngle}°</span>
-                          </div>
-                        </div>
-                        <div className="mt-2">
-                          <p className="text-sm font-medium">Interpretation:</p>
-                          <p className="text-sm">{analysis.cephalometricMeasurements.interpretation}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  {analysis.growthPrediction && (
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">Growth Prediction</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <p>{analysis.growthPrediction.potentialGrowth}</p>
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Timeframe:</p>
-                          <p className="text-sm">{analysis.growthPrediction.timeframe}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-                
+      <CardContent className="space-y-6">
+        {!patient && patientId ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Loading patient information...</p>
+          </div>
+        ) : !patientId ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Please select a patient to begin analysis</p>
+          </div>
+        ) : (
+          <>
+            <div className="p-4 bg-muted rounded-md">
+              <h3 className="font-medium text-sm">Patient Information</h3>
+              <div className="grid grid-cols-2 gap-2 mt-2">
                 <div>
-                  <h3 className="text-lg font-medium mb-3">Treatment Options</h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {analysis.treatmentOptions.map((option: any, i: number) => (
-                      <Card key={i}>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-base">{option.option}</CardTitle>
-                          <CardDescription>Duration: {option.duration}</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-2">
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Advantages:</p>
-                            <ul className="ml-6 mt-1 list-disc text-sm">
-                              {option.pros.map((pro: string, j: number) => (
-                                <li key={j}>{pro}</li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Disadvantages:</p>
-                            <ul className="ml-6 mt-1 list-disc text-sm">
-                              {option.cons.map((con: string, j: number) => (
-                                <li key={j}>{con}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        </CardContent>
-                        <CardFooter>
-                          <div className="text-sm">
-                            <span className="font-medium">Estimated Cost: </span>
-                            <span>${option.estimatedCost.toLocaleString()}</span>
-                          </div>
-                        </CardFooter>
-                      </Card>
-                    ))}
+                  <p className="text-xs text-muted-foreground">Name</p>
+                  <p className="text-sm">{patient?.firstName} {patient?.lastName}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Date of Birth</p>
+                  <p className="text-sm">{patient?.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString() : 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+            
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid grid-cols-3 mb-4">
+                <TabsTrigger value="images">
+                  <Image className="h-4 w-4 mr-2" />
+                  Images
+                </TabsTrigger>
+                <TabsTrigger value="scans">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Scans & Records
+                </TabsTrigger>
+                <TabsTrigger value="analysis">
+                  <Brain className="h-4 w-4 mr-2" />
+                  Analysis
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="images" className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium mb-2">Facial Photographs</p>
+                    <div className="border-2 border-dashed rounded-md h-40 flex items-center justify-center">
+                      <div className="text-center">
+                        <UploadCloud className="h-8 w-8 text-muted-foreground/50 mx-auto" />
+                        <p className="text-sm text-muted-foreground mt-2">Drag & drop or click to upload</p>
+                        <Input type="file" className="hidden" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm font-medium mb-2">Intraoral Photographs</p>
+                    <div className="border-2 border-dashed rounded-md h-40 flex items-center justify-center">
+                      <div className="text-center">
+                        <UploadCloud className="h-8 w-8 text-muted-foreground/50 mx-auto" />
+                        <p className="text-sm text-muted-foreground mt-2">Drag & drop or click to upload</p>
+                        <Input type="file" className="hidden" />
+                      </div>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="flex justify-end space-x-2">
-                  <Button variant="outline" onClick={() => setActiveTab("measurements")}>
-                    Edit Measurements
-                  </Button>
-                  <Button>
-                    Generate Treatment Plan
+              </TabsContent>
+              
+              <TabsContent value="scans" className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium mb-2">Cephalometric Radiograph</p>
+                    <div className="border-2 border-dashed rounded-md h-40 flex items-center justify-center">
+                      <div className="text-center">
+                        <UploadCloud className="h-8 w-8 text-muted-foreground/50 mx-auto" />
+                        <p className="text-sm text-muted-foreground mt-2">Drag & drop or click to upload</p>
+                        <Input type="file" className="hidden" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm font-medium mb-2">3D Scan / Model</p>
+                    <div className="border-2 border-dashed rounded-md h-40 flex items-center justify-center">
+                      <div className="text-center">
+                        <UploadCloud className="h-8 w-8 text-muted-foreground/50 mx-auto" />
+                        <p className="text-sm text-muted-foreground mt-2">Drag & drop or click to upload</p>
+                        <Input type="file" className="hidden" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="analysis" className="space-y-4">
+                <div className="text-center">
+                  <div className="mb-6">
+                    <Brain className="h-16 w-16 mx-auto text-primary/20" />
+                    <h3 className="text-lg font-medium mt-2">AI Analysis</h3>
+                    <p className="text-sm text-muted-foreground max-w-md mx-auto mt-1">
+                      The AI will analyze all uploaded images and records to generate 
+                      comprehensive orthodontic analysis and treatment recommendations
+                    </p>
+                  </div>
+                  
+                  <Button 
+                    size="lg" 
+                    onClick={handleRunAnalysis}
+                    disabled={analysisInProgress}
+                  >
+                    {analysisInProgress ? (
+                      <>Running Analysis...</>
+                    ) : (
+                      <>Run Comprehensive Analysis</>
+                    )}
                   </Button>
                 </div>
-              </>
-            ) : (
-              <div className="text-center py-8">
-                <User className="h-12 w-12 mx-auto text-muted-foreground" />
-                <h3 className="mt-2 text-lg font-medium">No Analysis Available</h3>
-                <p className="text-sm text-muted-foreground">
-                  Complete the previous steps to generate an orthodontic analysis
-                </p>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+              </TabsContent>
+            </Tabs>
+          </>
+        )}
       </CardContent>
     </Card>
   );

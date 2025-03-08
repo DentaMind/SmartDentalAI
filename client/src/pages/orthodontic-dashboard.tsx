@@ -1,14 +1,14 @@
 
 import { useState } from "react";
-import { DashboardShell } from "@/components/dashboard-shell";
-import { DashboardHeader } from "@/components/dashboard-header";
+import { DashboardShell } from "@/components/dashboard/shell";
+import { DashboardHeader } from "@/components/dashboard/header";
 import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { OrthodonticAnalyzer } from "@/components/orthodontic/orthodontic-analyzer";
 import { usePatient } from "@/hooks/use-patient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BrainCircuit, Calendar, ChevronRight, Cog, Ruler, ThreeDCubeSphere, User } from "lucide-react";
+import { BrainCircuit, Calendar, ChevronRight, Cog, Ruler, Box, User } from "lucide-react";
 
 export default function OrthodonticDashboard() {
   const [selectedPatientId, setSelectedPatientId] = useState<number | undefined>(undefined);
@@ -54,7 +54,7 @@ export default function OrthodonticDashboard() {
             Analysis
           </TabsTrigger>
           <TabsTrigger value="3d" disabled={!analysis}>
-            <ThreeDCubeSphere className="h-4 w-4 mr-2" />
+            <Box className="h-4 w-4 mr-2" />
             3D Simulation
           </TabsTrigger>
           <TabsTrigger value="treatment" disabled={!analysis}>
@@ -78,7 +78,7 @@ export default function OrthodonticDashboard() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <ThreeDCubeSphere className="h-5 w-5 text-primary" />
+                <Box className="h-5 w-5 text-primary" />
                 3D Treatment Simulation
               </CardTitle>
               <CardDescription>
@@ -88,7 +88,7 @@ export default function OrthodonticDashboard() {
             <CardContent>
               <div className="h-[400px] rounded-md flex items-center justify-center bg-muted border">
                 <div className="text-center space-y-3">
-                  <ThreeDCubeSphere className="h-16 w-16 mx-auto text-muted-foreground/50" />
+                  <Box className="h-16 w-16 mx-auto text-muted-foreground/50" />
                   <div>
                     <p className="text-lg font-medium">3D Simulation</p>
                     <p className="text-sm text-muted-foreground">
