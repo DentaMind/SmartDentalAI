@@ -1,362 +1,308 @@
+import React, { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Upload, Zap, Loader2, XCircle, CheckCircle, AlertTriangle } from "lucide-react";
 
-import React, { useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Slider } from '@/components/ui/slider';
-import { 
-  ImagePlus, ZoomIn, ZoomOut, RotateCw, Scan, PanelLeftOpen, 
-  PanelLeftClose, Save, Download
-} from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
-
-interface XRayAnalysisResult {
-  findings: {
-    region: string;
+interface AnalysisResult {
+  findings: Array<{
+    type: string;
+    location: string;
+    severity: "low" | "medium" | "high";
     description: string;
     confidence: number;
-    boundingBox?: { x: number, y: number, width: number, height: number };
-  }[];
+  }>;
   recommendations: string[];
   overallAssessment: string;
 }
 
 export function AdvancedXRayAnalyzer() {
-  const [image, setImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<XRayAnalysisResult | null>(null);
-  const [zoom, setZoom] = useState(100);
-  const [rotation, setRotation] = useState(0);
-  const [showAnnotations, setShowAnnotations] = useState(true);
-  const [activeTab, setActiveTab] = useState('panoramic');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imageRef = useRef<HTMLImageElement | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setError(null);
+    setAnalysisResult(null);
+    
+    if (file) {
+      if (!file.type.includes("image")) {
+        setError("Please upload an image file");
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        return;
+      }
+      
+      setSelectedFile(file);
       const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setImage(event.target.result as string);
-          setAnalysisResult(null);
-          
-          // Prepare image for rendering
-          const img = new Image();
-          img.src = event.target.result as string;
-          imageRef.current = img;
-          img.onload = () => drawImage();
-        }
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
       };
-      reader.readAsDataURL(e.target.files[0]);
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+  
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    setError(null);
+    setAnalysisResult(null);
+    
+    if (file) {
+      if (!file.type.includes("image")) {
+        setError("Please upload an image file");
+        return;
+      }
+      
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  const analyzeImage = async () => {
-    if (!image) return;
-    
+  const analyzeXRay = async () => {
+    if (!selectedFile) {
+      setError("Please select an X-Ray image to analyze");
+      return;
+    }
+
     setIsAnalyzing(true);
-    
+    setError(null);
+
     try {
-      // Simulate API call to analyze the image
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock analysis result
-      const mockResult: XRayAnalysisResult = {
-        findings: [
-          {
-            region: "Tooth #36",
-            description: "Periapical radiolucency suggesting infection",
-            confidence: 0.92,
-            boundingBox: { x: 220, y: 150, width: 40, height: 30 }
-          },
-          {
-            region: "Tooth #25",
-            description: "Deep carious lesion with possible pulpal involvement",
-            confidence: 0.87,
-            boundingBox: { x: 320, y: 130, width: 35, height: 25 }
-          },
-          {
-            region: "Maxillary Sinus",
-            description: "Slight mucosal thickening, possible sinusitis",
-            confidence: 0.78,
-            boundingBox: { x: 380, y: 80, width: 60, height: 40 }
-          }
-        ],
-        recommendations: [
-          "Endodontic evaluation for tooth #36",
-          "Consider root canal treatment for tooth #25",
-          "Monitor maxillary sinus, correlate with clinical symptoms"
-        ],
-        overallAssessment: "Multiple dental pathologies detected. Patient would benefit from comprehensive endodontic and restorative evaluation."
-      };
-      
-      setAnalysisResult(mockResult);
-      drawImage(mockResult);
-      
-      toast({
-        title: "Analysis Complete",
-        description: "The X-ray image has been analyzed successfully.",
-      });
-    } catch (error) {
-      console.error("Error analyzing image:", error);
-      toast({
-        title: "Analysis Failed",
-        description: "Could not analyze the X-ray image. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
+      // In a real implementation, this would be an API call to the AI service
+      // For now, we'll simulate a response after a delay
+      setTimeout(() => {
+        // Mock analysis result
+        const mockResult: AnalysisResult = {
+          findings: [
+            {
+              type: "Caries",
+              location: "Tooth 36, distal surface",
+              severity: "medium",
+              description: "Radiolucency consistent with carious lesion on distal surface of lower left first molar",
+              confidence: 0.89,
+            },
+            {
+              type: "Periodontal Bone Loss",
+              location: "Teeth 31-33, buccal aspect",
+              severity: "high",
+              description: "Significant horizontal bone loss visible in the anterior mandibular region",
+              confidence: 0.94,
+            },
+            {
+              type: "Periapical Radiolucency",
+              location: "Tooth 46, root apex",
+              severity: "medium",
+              description: "Small radiolucent area at the apex of lower right first molar, suggesting possible periapical inflammation",
+              confidence: 0.78,
+            },
+          ],
+          recommendations: [
+            "Restorative treatment for carious lesion on tooth 36",
+            "Periodontal evaluation and possible deep cleaning for areas 31-33",
+            "Consider endodontic evaluation for tooth 46",
+            "Follow-up radiograph in 6 months to assess treatment outcomes",
+          ],
+          overallAssessment: "Multiple dental pathologies detected requiring prompt attention. Periodontal status shows signs of moderate disease progression. Restorative needs include attention to carious lesions. Potential endodontic involvement in one tooth.",
+        };
+        
+        setAnalysisResult(mockResult);
+        setIsAnalyzing(false);
+      }, 2500);
+    } catch (err) {
+      setError("An error occurred during analysis. Please try again.");
       setIsAnalyzing(false);
     }
   };
-  
-  const drawImage = (result?: XRayAnalysisResult | null) => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    const img = imageRef.current;
-    
-    if (!canvas || !ctx || !img) return;
-    
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Set canvas dimensions
-    canvas.width = img.width;
-    canvas.height = img.height;
-    
-    // Apply transformations
-    ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.rotate((rotation * Math.PI) / 180);
-    ctx.scale(zoom / 100, zoom / 100);
-    ctx.translate(-img.width / 2, -img.height / 2);
-    
-    // Draw image
-    ctx.drawImage(img, 0, 0);
-    
-    // Draw annotations if enabled and we have results
-    if (showAnnotations && (result || analysisResult)) {
-      const findings = result?.findings || analysisResult?.findings || [];
-      
-      findings.forEach(finding => {
-        if (finding.boundingBox) {
-          const { x, y, width, height } = finding.boundingBox;
-          
-          // Draw bounding box
-          ctx.strokeStyle = 'red';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(x, y, width, height);
-          
-          // Draw label
-          ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
-          ctx.fillRect(x, y - 20, finding.region.length * 8, 20);
-          ctx.fillStyle = 'white';
-          ctx.font = '12px Arial';
-          ctx.fillText(finding.region, x + 5, y - 5);
-        }
-      });
+
+  // Get severity color for badges
+  const getSeverityColor = (severity: "low" | "medium" | "high") => {
+    switch (severity) {
+      case "low":
+        return "bg-blue-100 text-blue-800";
+      case "medium":
+        return "bg-amber-100 text-amber-800";
+      case "high":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
-    
-    ctx.restore();
   };
-  
-  const handleZoomChange = (value: number[]) => {
-    setZoom(value[0]);
-    drawImage();
-  };
-  
-  const rotateImage = () => {
-    setRotation((prevRotation) => (prevRotation + 90) % 360);
-    drawImage();
-  };
-  
-  const toggleAnnotations = () => {
-    setShowAnnotations(!showAnnotations);
-    drawImage();
-  };
-  
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-  
-  const downloadAnalysis = () => {
-    if (!analysisResult) return;
-    
-    const element = document.createElement('a');
-    const file = new Blob(
-      [JSON.stringify(analysisResult, null, 2)],
-      { type: 'application/json' }
-    );
-    element.href = URL.createObjectURL(file);
-    element.download = `xray-analysis-${new Date().toISOString()}.json`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+
+  // Get confidence level text
+  const getConfidenceText = (confidence: number) => {
+    if (confidence >= 0.9) return "Very High";
+    if (confidence >= 0.8) return "High";
+    if (confidence >= 0.7) return "Moderate";
+    if (confidence >= 0.6) return "Fair";
+    return "Low";
   };
 
   return (
-    <div className="flex h-[calc(100vh-120px)]">
-      {/* Main image viewer */}
-      <div className={`flex-1 flex flex-col ${sidebarOpen ? 'mr-4' : ''}`}>
-        <div className="bg-card rounded-lg p-4 mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">X-Ray Analysis</h2>
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="icon" onClick={toggleSidebar}>
-              {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
-            </Button>
-            <label htmlFor="image-upload">
-              <Button variant="outline" size="icon" asChild>
-                <span>
-                  <ImagePlus className="h-4 w-4" />
-                  <input
-                    id="image-upload"
-                    type="file"
-                    className="sr-only"
-                    accept="image/*"
-                    onChange={handleImageUpload}
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Advanced X-Ray Analysis</CardTitle>
+          <CardDescription>
+            Upload a dental X-ray image for AI-powered analysis and detection of potential issues
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div 
+            className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer"
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onClick={() => document.getElementById("xray-upload")?.click()}
+          >
+            {previewUrl ? (
+              <div className="space-y-4 w-full">
+                <div className="relative max-w-md mx-auto">
+                  <img 
+                    src={previewUrl} 
+                    alt="X-Ray preview" 
+                    className="max-h-64 max-w-full mx-auto rounded-lg shadow-md"
                   />
-                </span>
-              </Button>
-            </label>
-            {image && (
+                  <button 
+                    className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedFile(null);
+                      setPreviewUrl(null);
+                      setAnalysisResult(null);
+                    }}
+                  >
+                    <XCircle className="h-5 w-5 text-gray-500" />
+                  </button>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">{selectedFile?.name}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {selectedFile && (selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+              </div>
+            ) : (
               <>
-                <Button variant="outline" size="icon" onClick={() => handleZoomChange([zoom + 10])}>
-                  <ZoomIn className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon" onClick={() => handleZoomChange([zoom - 10])}>
-                  <ZoomOut className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon" onClick={rotateImage}>
-                  <RotateCw className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon" onClick={toggleAnnotations}>
-                  <Scan className="h-4 w-4" />
-                </Button>
+                <div className="bg-primary/10 p-3 rounded-full mb-4">
+                  <Upload className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold">Upload X-Ray Image</h3>
+                <p className="text-sm text-muted-foreground mt-1 mb-4">
+                  Drag and drop or click to browse files
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Supported formats: JPEG, PNG, DICOM
+                </p>
               </>
             )}
+            <Input 
+              id="xray-upload" 
+              type="file" 
+              className="hidden" 
+              onChange={handleFileChange}
+              accept="image/*,.dcm"
+            />
           </div>
-        </div>
-        
-        <Tabs defaultValue="panoramic" value={activeTab} onValueChange={setActiveTab} className="mb-4">
-          <TabsList>
-            <TabsTrigger value="panoramic">Panoramic</TabsTrigger>
-            <TabsTrigger value="bitewing">Bitewing</TabsTrigger>
-            <TabsTrigger value="periapical">Periapical</TabsTrigger>
-            <TabsTrigger value="cbct">CBCT</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        
-        <div className="flex-1 bg-card rounded-lg overflow-hidden relative">
-          {!image && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
-              <ImagePlus className="h-16 w-16 mb-4" />
-              <p>Upload an X-ray image to begin analysis</p>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-center space-x-2">
+              <AlertTriangle className="h-5 w-5" />
+              <span>{error}</span>
             </div>
           )}
-          
-          {image && (
-            <div className="relative h-full">
-              <canvas
-                ref={canvasRef}
-                className="max-w-full max-h-full object-contain mx-auto"
-              />
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-background/90 rounded-full px-3 py-1.5 shadow-lg">
-                <Slider
-                  value={[zoom]}
-                  min={50}
-                  max={200}
-                  step={5}
-                  onValueChange={handleZoomChange}
-                  className="w-40"
-                />
+
+          <div className="flex justify-center">
+            <Button 
+              onClick={analyzeXRay} 
+              disabled={!selectedFile || isAnalyzing}
+              className="space-x-2"
+              size="lg"
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Analyzing...</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="h-4 w-4" />
+                  <span>Analyze X-Ray</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {analysisResult && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Analysis Results</CardTitle>
+            <CardDescription>
+              AI-detected findings and recommendations based on the uploaded X-ray
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-medium mb-2">Detected Findings</h3>
+                <div className="space-y-3">
+                  {analysisResult.findings.map((finding, index) => (
+                    <Card key={index}>
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-medium">{finding.type}</h4>
+                          <Badge className={getSeverityColor(finding.severity)}>
+                            {finding.severity.charAt(0).toUpperCase() + finding.severity.slice(1)} Severity
+                          </Badge>
+                        </div>
+                        <p className="text-sm mb-2">{finding.description}</p>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Location: {finding.location}</span>
+                          <span>Confidence: {getConfidenceText(finding.confidence)} ({(finding.confidence * 100).toFixed(0)}%)</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h3 className="text-lg font-medium mb-2">Recommendations</h3>
+                <ul className="space-y-2">
+                  {analysisResult.recommendations.map((recommendation, index) => (
+                    <li key={index} className="flex items-start space-x-2">
+                      <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                      <span>{recommendation}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h3 className="text-lg font-medium mb-2">Overall Assessment</h3>
+                <p className="text-sm">{analysisResult.overallAssessment}</p>
               </div>
             </div>
-          )}
-          
-          {image && !analysisResult && (
-            <div className="absolute bottom-4 right-4">
-              <Button 
-                onClick={analyzeImage} 
-                disabled={isAnalyzing}
-                className="shadow-lg"
-              >
-                {isAnalyzing ? "Analyzing..." : "Analyze X-Ray"}
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-      
-      {/* Analysis sidebar */}
-      {sidebarOpen && (
-        <div className="w-80 flex flex-col">
-          <Card className="flex-1">
-            <CardHeader>
-              <CardTitle className="text-lg">Analysis Results</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {!analysisResult ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  {image ? (
-                    isAnalyzing ? (
-                      <div className="space-y-4">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                        <p>Analyzing X-ray image...</p>
-                      </div>
-                    ) : (
-                      <p>Click "Analyze X-Ray" to begin AI analysis</p>
-                    )
-                  ) : (
-                    <p>Upload an image to get started</p>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="font-medium mb-2">Findings</h3>
-                    <ul className="space-y-3">
-                      {analysisResult.findings.map((finding, index) => (
-                        <li key={index} className="border rounded-md p-2 text-sm">
-                          <div className="font-medium">{finding.region}</div>
-                          <div>{finding.description}</div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Confidence: {Math.round(finding.confidence * 100)}%
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-medium mb-2">Recommendations</h3>
-                    <ul className="list-disc pl-4 text-sm space-y-1">
-                      {analysisResult.recommendations.map((rec, index) => (
-                        <li key={index}>{rec}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-medium mb-2">Overall Assessment</h3>
-                    <p className="text-sm">{analysisResult.overallAssessment}</p>
-                  </div>
-                  
-                  <div className="flex space-x-2 pt-4">
-                    <Button variant="outline" size="sm" className="flex-1" onClick={downloadAnalysis}>
-                      <Download className="h-4 w-4 mr-2" />
-                      Export
-                    </Button>
-                    <Button size="sm" className="flex-1">
-                      <Save className="h-4 w-4 mr-2" />
-                      Save to Record
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

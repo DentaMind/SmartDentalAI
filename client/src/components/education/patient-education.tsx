@@ -1,222 +1,203 @@
+import React, { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BookOpen, Search, FilePlus2, Heart, Smile, AlertCircle } from "lucide-react";
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Search, BookOpen, Share2 } from 'lucide-react';
-
-interface EducationMaterial {
-  id: string;
+interface EducationResource {
   title: string;
-  category: string;
   description: string;
-  contentType: 'video' | 'article' | 'illustration';
-  content: string;
-  thumbnailUrl?: string;
+  type: "video" | "article" | "interactive";
+  length: string;
 }
 
-const EDUCATION_CATEGORIES = [
-  'Preventive Care',
-  'Periodontal Disease',
-  'Endodontics',
-  'Restorative',
-  'Prosthodontics',
-  'Oral Surgery',
-  'Pediatric Dentistry',
-  'Orthodontics'
-];
+interface EducationResourcesMap {
+  preventive: EducationResource[];
+  restorative: EducationResource[];
+  periodontal: EducationResource[];
+  emergency: EducationResource[];
+  [key: string]: EducationResource[]; // Index signature
+}
+
+interface CategoryItem {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+}
 
 export function PatientEducation() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('all');
-  const [materials, setMaterials] = useState<EducationMaterial[]>([]);
-  const [filteredMaterials, setFilteredMaterials] = useState<EducationMaterial[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Simulate fetching education materials
-  useEffect(() => {
-    // In a real implementation, replace with API call
-    setTimeout(() => {
-      const dummyMaterials: EducationMaterial[] = [
-        {
-          id: '1',
-          title: 'Understanding Periodontal Disease',
-          category: 'Periodontal Disease',
-          description: 'Learn about the causes, symptoms, and treatments for gum disease.',
-          contentType: 'video',
-          content: 'https://example.com/videos/periodontal-disease.mp4',
-          thumbnailUrl: 'https://example.com/thumbnails/perio.jpg'
-        },
-        {
-          id: '2',
-          title: 'Root Canal Therapy Explained',
-          category: 'Endodontics',
-          description: 'A detailed explanation of what happens during root canal treatment.',
-          contentType: 'article',
-          content: 'Root canal therapy is a treatment used to repair and save a tooth that is badly decayed or infected...'
-        },
-        {
-          id: '3',
-          title: 'Proper Brushing Techniques',
-          category: 'Preventive Care',
-          description: 'Step-by-step guide to effective tooth brushing.',
-          contentType: 'illustration',
-          content: 'https://example.com/illustrations/brushing.png'
-        },
-        {
-          id: '4',
-          title: 'Dental Implant Process',
-          category: 'Prosthodontics',
-          description: 'The complete guide to dental implant procedure and recovery.',
-          contentType: 'video',
-          content: 'https://example.com/videos/implant-process.mp4',
-          thumbnailUrl: 'https://example.com/thumbnails/implant.jpg'
-        },
-        {
-          id: '5',
-          title: 'Wisdom Teeth Extraction',
-          category: 'Oral Surgery',
-          description: 'Information about wisdom teeth removal procedure and aftercare.',
-          contentType: 'article',
-          content: 'Wisdom teeth extraction is a surgical procedure to remove one or more wisdom teeth...'
-        }
-      ];
-      
-      setMaterials(dummyMaterials);
-      setFilteredMaterials(dummyMaterials);
-      setIsLoading(false);
-    }, 1000);
-  }, []);
+  // Mock education categories
+  const categories: CategoryItem[] = [
+    { id: "preventive", label: "Preventive Care", icon: <FilePlus2 className="h-4 w-4 mr-2" /> },
+    { id: "restorative", label: "Restorative", icon: <Smile className="h-4 w-4 mr-2" /> },
+    { id: "periodontal", label: "Periodontal", icon: <Heart className="h-4 w-4 mr-2" /> },
+    { id: "emergency", label: "Emergency Care", icon: <AlertCircle className="h-4 w-4 mr-2" /> },
+  ];
 
-  // Filter materials based on category and search query
-  useEffect(() => {
-    let filtered = materials;
-    
-    // Filter by category
-    if (activeCategory !== 'all') {
-      filtered = filtered.filter(item => item.category === activeCategory);
-    }
-    
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(item => 
-        item.title.toLowerCase().includes(query) || 
-        item.description.toLowerCase().includes(query)
-      );
-    }
-    
-    setFilteredMaterials(filtered);
-  }, [searchQuery, activeCategory, materials]);
-
-  // Render content based on type
-  const renderContent = (material: EducationMaterial) => {
-    switch (material.contentType) {
-      case 'video':
-        return (
-          <div className="aspect-video bg-gray-100 rounded-md overflow-hidden">
-            {material.thumbnailUrl ? (
-              <img src={material.thumbnailUrl} alt={material.title} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <span className="text-muted-foreground">Video Preview</span>
-              </div>
-            )}
-          </div>
-        );
-      case 'article':
-        return (
-          <div className="prose prose-sm max-w-none">
-            <p className="line-clamp-3">{material.content}</p>
-            <Button variant="link" className="p-0">Read more</Button>
-          </div>
-        );
-      case 'illustration':
-        return (
-          <div className="aspect-square bg-gray-100 rounded-md overflow-hidden">
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-muted-foreground">Illustration</span>
-            </div>
-          </div>
-        );
-      default:
-        return null;
-    }
+  // Mock education resources 
+  const educationResources: EducationResourcesMap = {
+    preventive: [
+      {
+        title: "Proper Brushing Techniques",
+        description: "Learn the correct way to brush your teeth to prevent cavities and maintain oral health.",
+        type: "video",
+        length: "4 minutes",
+      },
+      {
+        title: "Importance of Regular Dental Checkups",
+        description: "Why seeing your dentist regularly is crucial for preventing serious dental issues.",
+        type: "article",
+        length: "3 min read",
+      },
+      {
+        title: "Flossing 101: A Comprehensive Guide",
+        description: "Everything you need to know about flossing properly to maintain gum health.",
+        type: "interactive",
+        length: "5 minutes",
+      },
+    ],
+    restorative: [
+      {
+        title: "Understanding Dental Implants",
+        description: "What you need to know about dental implants as a long-term solution for missing teeth.",
+        type: "article",
+        length: "5 min read",
+      },
+      {
+        title: "The Crown Procedure Explained",
+        description: "Step-by-step explanation of what happens during a dental crown procedure.",
+        type: "video",
+        length: "7 minutes",
+      },
+      {
+        title: "Caring for Your New Fillings",
+        description: "How to properly care for new dental fillings to ensure they last as long as possible.",
+        type: "article",
+        length: "4 min read",
+      },
+    ],
+    periodontal: [
+      {
+        title: "Warning Signs of Gum Disease",
+        description: "Learn to recognize the early symptoms of periodontal disease before it progresses.",
+        type: "interactive",
+        length: "6 minutes",
+      },
+      {
+        title: "Deep Cleaning: Scaling and Root Planing",
+        description: "What to expect during a deep cleaning procedure for treating gum disease.",
+        type: "video",
+        length: "8 minutes",
+      },
+      {
+        title: "Living with Receding Gums",
+        description: "Tips and treatment options for managing receding gums and preventing further regression.",
+        type: "article",
+        length: "6 min read",
+      },
+    ],
+    emergency: [
+      {
+        title: "Handling a Knocked-Out Tooth",
+        description: "Emergency steps to take if you or someone else has a tooth knocked out.",
+        type: "article",
+        length: "2 min read",
+      },
+      {
+        title: "Managing Severe Dental Pain",
+        description: "Temporary relief measures for severe tooth pain until you can see a dentist.",
+        type: "video",
+        length: "5 minutes",
+      },
+      {
+        title: "What Constitutes a Dental Emergency?",
+        description: "How to determine if your dental issue requires immediate emergency attention.",
+        type: "article",
+        length: "3 min read",
+      },
+    ],
   };
 
+  // Filter resources based on search query
+  const filterResources = (resources: EducationResource[]): EducationResource[] => {
+    if (!searchQuery) return resources;
+    return resources.filter(
+      (resource) =>
+        resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        resource.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  };
+
+  // Render resource card
+  const ResourceCard = ({ resource }: { resource: EducationResource }) => (
+    <Card className="h-full">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg">{resource.title}</CardTitle>
+          <span className="text-xs px-2 py-1 bg-gray-100 rounded-full">
+            {resource.type}
+          </span>
+        </div>
+        <CardDescription>{resource.description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex justify-between items-center">
+          <span className="text-xs text-muted-foreground">
+            {resource.length}
+          </span>
+          <button className="text-sm font-medium text-primary hover:underline">
+            View Resource
+          </button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <h2 className="text-2xl font-bold tracking-tight">Patient Education Library</h2>
-        <div className="relative w-full sm:w-64">
+    <div className="space-y-4">
+      <div className="flex items-center space-x-2">
+        <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search materials..."
+            placeholder="Search educational resources..."
             className="pl-8"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
-      
-      <Tabs defaultValue="all" value={activeCategory} onValueChange={setActiveCategory}>
-        <TabsList className="flex flex-wrap">
-          <TabsTrigger value="all">All Categories</TabsTrigger>
-          {EDUCATION_CATEGORIES.map(category => (
-            <TabsTrigger key={category} value={category}>
-              {category}
+
+      <Tabs defaultValue="preventive" className="space-y-4">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {categories.map((category) => (
+            <TabsTrigger key={category.id} value={category.id} className="flex items-center">
+              {category.icon}
+              {category.label}
             </TabsTrigger>
           ))}
         </TabsList>
-        
-        <TabsContent value={activeCategory} className="mt-6">
-          {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {[1, 2, 3].map(i => (
-                <Card key={i} className="opacity-70 animate-pulse">
-                  <CardHeader className="h-24 bg-gray-100"></CardHeader>
-                  <CardContent className="pt-4">
-                    <div className="h-4 bg-gray-100 rounded mb-2"></div>
-                    <div className="h-4 bg-gray-100 rounded w-3/4"></div>
-                  </CardContent>
-                </Card>
+
+        {Object.keys(educationResources).map((category) => (
+          <TabsContent key={category} value={category} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filterResources(educationResources[category]).map((resource, index) => (
+                <ResourceCard key={index} resource={resource} />
               ))}
             </div>
-          ) : filteredMaterials.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {filteredMaterials.map(material => (
-                <Card key={material.id}>
-                  <CardHeader>
-                    <CardTitle className="text-lg">{material.title}</CardTitle>
-                    <div className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-primary-100 text-primary-800">
-                      {material.category}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground">{material.description}</p>
-                    {renderContent(material)}
-                    <div className="flex justify-between">
-                      <Button variant="outline" size="sm">
-                        <BookOpen className="h-4 w-4 mr-2" />
-                        View
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Share2 className="h-4 w-4 mr-2" />
-                        Share
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No education materials found matching your criteria.</p>
-            </div>
-          )}
-        </TabsContent>
+            {filterResources(educationResources[category]).length === 0 && (
+              <div className="text-center py-10">
+                <BookOpen className="mx-auto h-8 w-8 text-muted-foreground" />
+                <h3 className="mt-4 text-lg font-medium">No resources found</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Try adjusting your search query to find what you're looking for.
+                </p>
+              </div>
+            )}
+          </TabsContent>
+        ))}
       </Tabs>
     </div>
   );
