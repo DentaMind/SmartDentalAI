@@ -1,6 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '@/lib/api';
 
+// Type guard for axios error responses
+function isAxiosError(error: any): error is { response?: { status: number; data?: any } } {
+  return error && typeof error === 'object' && 'response' in error;
+}
+
 interface User {
   id: number;
   username: string;
@@ -73,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Update localStorage with the latest user data
           localStorage.setItem('user', JSON.stringify(response.data));
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.log('No active session found on server');
         // Clear any potentially stale user data
         localStorage.removeItem('user');
@@ -89,6 +94,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     
     try {
+      // Clear any existing auth flags to prevent UI issues
+      sessionStorage.removeItem("inAuthPage");
+      
       const response = await api.post('/api/auth/login', { 
         username, 
         password,
@@ -100,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Handle MFA required response
       if (userData.status === 'mfa_required') {
         setIsLoading(false);
+        console.log('MFA required for login');
         throw new Error('MFA_REQUIRED');
       }
       
@@ -108,12 +117,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('user', JSON.stringify(userData));
       
       setUser(userData);
-      console.log('User logged in successfully:', userData);
+      console.log('User logged in successfully');
+      
+      // Clear redirected path on successful login
+      const redirectedFrom = sessionStorage.getItem("redirectedFrom");
+      if (redirectedFrom) {
+        console.log('Will redirect to:', redirectedFrom);
+      }
     } catch (err: any) {
-      const message = err.response?.data?.message || 
-                      err.message || 
-                      'Login failed. Please check your credentials.';
-      console.error('Login error:', err);
+      // Format error message for user-friendly display
+      let message = 'Login failed. Please check your credentials.';
+      
+      if (err.response?.data?.message) {
+        message = err.response.data.message;
+      } else if (err.message === 'MFA_REQUIRED') {
+        message = 'Multi-factor authentication required';
+      } else if (err.message) {
+        message = err.message;
+      }
+      
+      console.error('Login error:', message);
       setError(message);
       throw err;
     } finally {
@@ -150,7 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Call the logout endpoint
       await api.post('/api/auth/logout');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Logout error:', err);
     } finally {
       // Clear local storage regardless of server response
@@ -166,14 +189,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (response.status === 200) {
         setUser(response.data);
+        // Store updated user data
+        localStorage.setItem('user', JSON.stringify(response.data));
         return true;
       }
       return false;
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Auth refresh failed:', err);
-      // Clear user data on refresh failure
-      localStorage.removeItem('user');
-      setUser(null);
+      // Only clear user data if the error is a 401 (unauthorized)
+      // This prevents clearing user data on network errors
+      if (isAxiosError(err) && err.response?.status === 401) {
+        console.log('Session expired or invalid, clearing user data');
+        localStorage.removeItem('user');
+        setUser(null);
+      }
       return false;
     }
   };
