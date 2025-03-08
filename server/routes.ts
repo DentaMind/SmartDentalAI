@@ -5,6 +5,7 @@ import { predictFromSymptoms } from "./services/ai-prediction";
 import { aiCoordinator } from "./services/ai-coordinator";
 import { requireAuth, requireRole, requireOwnership } from "./middleware/auth";
 import { analyzeMedicalHistory } from './services/medical-history-ai';
+import schedulerRoutes from './routes/scheduler-routes';
 import path from 'path';
 
 const app = express();
@@ -199,6 +200,9 @@ router.post("/ai/medical-analysis", requireAuth, async (req, res) => {
     });
   }
 });
+
+// Use scheduler routes
+router.use('/scheduler', schedulerRoutes);
 
 // Mount all routes under /api prefix
 app.use("/api", router);
