@@ -21,6 +21,9 @@ const __dirname = dirname(__filename);
 const app = express();
 const router = express.Router();
 
+// Tell Express app to trust proxies (important for rate limiting in cloud environments)
+app.set('trust proxy', 1);
+
 // Setup middleware
 app.use(express.json());
 setupSecurityMiddleware(app);

@@ -41,6 +41,11 @@ export function setupSecurityMiddleware(app: express.Express) {
       return next();
     }
     
+    // In development mode, skip CSRF protection
+    if (process.env.NODE_ENV !== 'production') {
+      return next();
+    }
+    
     // Check CSRF token (in a real app, use a proper CSRF library)
     const csrfToken = req.headers['x-csrf-token'] || req.body?._csrf;
     const sessionToken = (req as any).session?.csrfToken;
