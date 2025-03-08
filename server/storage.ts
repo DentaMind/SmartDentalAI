@@ -105,9 +105,14 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentId++;
+    // Map password to passwordHash for the storage format
+    const { password, ...userDataWithoutPassword } = insertUser;
     const user: User = {
       id,
-      ...insertUser,
+      ...userDataWithoutPassword,
+      passwordHash: password,
+      mfaSecret: '',
+      mfaEnabled: false,
       language: insertUser.language || "en",
       phoneNumber: insertUser.phoneNumber || null,
       dateOfBirth: insertUser.dateOfBirth || null,

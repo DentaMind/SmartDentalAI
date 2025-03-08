@@ -71,8 +71,8 @@ export function setupAuth(router: express.Router) {
           return done(null, false, { message: "Invalid username or password" });
         }
 
-        // We need to access the password property which is hashed in storage
-        const isValidPassword = await comparePasswords(password, user.password);
+        // We need to access the passwordHash property from storage
+        const isValidPassword = await comparePasswords(password, user.passwordHash);
         console.log(`Password validation result for ${username}: ${isValidPassword}`);
 
         if (!isValidPassword) {
