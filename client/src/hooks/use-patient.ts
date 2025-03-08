@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
-import { apiRequest } from '@/lib/queryClient';
+import { useState, useEffect } from 'react';
 
 export interface Patient {
   id: number;
@@ -24,11 +23,14 @@ export function usePatient() {
   const [patients, setPatients] = useState<Patient[]>([]);
   
   const { data, isLoading, error } = useQuery<Patient[]>({
-    queryKey: ['/api/patients'],
-    onSuccess: (data) => {
-      setPatients(data || []);
-    }
+    queryKey: ['/api/patients']
   });
+
+  useEffect(() => {
+    if (data) {
+      setPatients(data);
+    }
+  }, [data]);
 
   return {
     patients: data || patients,
@@ -45,11 +47,14 @@ export function usePatientById(patientId?: number) {
   
   const { data, isLoading, error } = useQuery<Patient>({
     queryKey: ['/api/patients', patientId],
-    enabled: !!patientId,
-    onSuccess: (data) => {
-      setPatient(data || null);
-    }
+    enabled: !!patientId
   });
+
+  useEffect(() => {
+    if (data) {
+      setPatient(data);
+    }
+  }, [data]);
 
   return {
     patient: data || patient,
@@ -66,11 +71,14 @@ export function usePatientMedicalHistory(patientId?: number) {
   
   const { data, isLoading, error } = useQuery<Record<string, any>>({
     queryKey: ['/api/patients/medical-history', patientId],
-    enabled: !!patientId,
-    onSuccess: (data) => {
-      setMedicalHistory(data || null);
-    }
+    enabled: !!patientId
   });
+
+  useEffect(() => {
+    if (data) {
+      setMedicalHistory(data);
+    }
+  }, [data]);
 
   return {
     medicalHistory: data || medicalHistory,
@@ -87,11 +95,14 @@ export function usePatientTreatments(patientId?: number) {
   
   const { data, isLoading, error } = useQuery<any[]>({
     queryKey: ['/api/treatment-plans/patient', patientId],
-    enabled: !!patientId,
-    onSuccess: (data) => {
-      setTreatments(data || []);
-    }
+    enabled: !!patientId
   });
+
+  useEffect(() => {
+    if (data) {
+      setTreatments(data);
+    }
+  }, [data]);
 
   return {
     treatments: data || treatments,
@@ -108,11 +119,14 @@ export function usePatientAppointments(patientId?: number) {
   
   const { data, isLoading, error } = useQuery<any[]>({
     queryKey: ['/api/appointments/patient', patientId],
-    enabled: !!patientId,
-    onSuccess: (data) => {
-      setAppointments(data || []);
-    }
+    enabled: !!patientId
   });
+
+  useEffect(() => {
+    if (data) {
+      setAppointments(data);
+    }
+  }, [data]);
 
   return {
     appointments: data || appointments,

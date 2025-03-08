@@ -1,53 +1,41 @@
+import { useState } from "react";
+import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserSchema, type InsertUser } from "@shared/schema";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { useTranslation } from "react-i18next";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { useMutation } from "@tanstack/react-query";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
-type AddPatientFormData = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber: string;
-  dateOfBirth: string;
-  insuranceProvider?: string;
-  insuranceNumber?: string;
-  medicalHistory?: string;
-  allergies?: string;
-  emergencyContact?: string;
-};
+interface AddPatientFormProps {
+  onSuccess?: () => void;
+}
 
-export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
+const formSchema = z.object({
+  firstName: z.string().min(2, { message: "First name must be at least 2 characters" }),
+  lastName: z.string().min(2, { message: "Last name must be at least 2 characters" }),
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  phoneNumber: z.string().min(10, { message: "Please enter a valid phone number" }),
+  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Please use YYYY-MM-DD format" }),
+  insuranceProvider: z.string().optional(),
+  insuranceNumber: z.string().optional(),
+  createAccount: z.boolean().default(true)
+});
+
+type AddPatientFormData = z.infer<typeof formSchema>;
+
+export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<AddPatientFormData>({
-    resolver: zodResolver(
-      insertUserSchema.omit({
-        role: true,
-        language: true,
-        specialization: true,
-        licenseNumber: true,
-        username: true,
-        password: true
-      })
-    ),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -56,31 +44,28 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
       dateOfBirth: "",
       insuranceProvider: "",
       insuranceNumber: "",
-      medicalHistory: "",
-      allergies: "",
-      emergencyContact: "",
-    },
+      createAccount: true
+    }
   });
 
   const addPatientMutation = useMutation({
     mutationFn: async (data: AddPatientFormData) => {
-      const res = await apiRequest("POST", "/api/patients", {
-        ...data,
-        role: "patient",
-        language: "en",
-        // Generate a username and password for the patient
-        username: `${data.firstName.toLowerCase()}${data.lastName.toLowerCase()}`,
-        password: Math.random().toString(36).slice(-8) // Generate a random 8-character password
+      return await apiRequest({
+        method: "POST",
+        url: "/api/patients",
+        body: {
+          ...data,
+          role: "patient",
+          language: "en",
+          // Generate a username and password for the patient
+          username: `${data.firstName.toLowerCase()}${data.lastName.toLowerCase()}`,
+          password: Math.random().toString(36).slice(-8) // Generate a random 8-character password
+        }
       });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to add patient");
-      }
-      return res.json();
     },
     onSuccess: () => {
       // Invalidate both the patients list and any related queries
-      queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/patients'] });
       toast({
         title: t("patient.addSuccess"),
         description: t("patient.addSuccessDescription"),
@@ -98,57 +83,59 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
     },
   });
 
+  function onSubmit(data: AddPatientFormData) {
+    setIsSubmitting(true);
+    addPatientMutation.mutate(data);
+  }
+
   return (
-    <div className="max-h-[80vh] overflow-y-auto px-1">
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit((data) => addPatientMutation.mutate(data))}
-          className="space-y-4"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="firstName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>First Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="lastName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Last Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="email"
+            name="firstName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>First Name</FormLabel>
                 <FormControl>
-                  <Input type="email" {...field} />
+                  <Input placeholder="Enter first name" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-
+          
+          <FormField
+            control={form.control}
+            name="lastName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Last Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter last name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="patient@example.com" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="phoneNumber"
@@ -156,13 +143,13 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
               <FormItem>
                 <FormLabel>Phone Number</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input placeholder="(123) 456-7890" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-
+          
           <FormField
             control={form.control}
             name="dateOfBirth"
@@ -176,95 +163,70 @@ export function AddPatientForm({ onSuccess }: { onSuccess?: () => void }) {
               </FormItem>
             )}
           />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="insuranceProvider"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Insurance Provider</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="insuranceNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Insurance Number</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <Alert>
-            <InfoIcon className="h-4 w-4" />
-            <AlertDescription>
-              Blood work results can be accessed in the patient's medical records tab after registration.
-            </AlertDescription>
-          </Alert>
-
+        </div>
+        
+        <Separator className="my-4" />
+        
+        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="medicalHistory"
+            name="insuranceProvider"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t("patient.medicalHistory")}</FormLabel>
+                <FormLabel>Insurance Provider</FormLabel>
                 <FormControl>
-                  <Textarea {...field} />
+                  <Input placeholder="Provider name (optional)" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-
+          
           <FormField
             control={form.control}
-            name="allergies"
+            name="insuranceNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t("patient.allergies")}</FormLabel>
+                <FormLabel>Insurance Number</FormLabel>
                 <FormControl>
-                  <Textarea {...field} />
+                  <Input placeholder="Policy number (optional)" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-
-          <FormField
-            control={form.control}
-            name="emergencyContact"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("patient.emergencyContact")}</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={addPatientMutation.isPending}
-          >
-            {addPatientMutation.isPending ? t("common.loading") : t("patient.add")}
+        </div>
+        
+        <FormField
+          control={form.control}
+          name="createAccount"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>Create patient portal account</FormLabel>
+                <FormDescription>
+                  Create a patient portal account with auto-generated credentials
+                </FormDescription>
+              </div>
+            </FormItem>
+          )}
+        />
+        
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={() => form.reset()}>
+            Cancel
           </Button>
-        </form>
-      </Form>
-    </div>
+          <Button type="submit" disabled={isSubmitting || addPatientMutation.isPending}>
+            {(isSubmitting || addPatientMutation.isPending) ? "Adding..." : "Add Patient"}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 }
