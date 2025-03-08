@@ -31,8 +31,8 @@ api.interceptors.response.use(
   (error) => {
     // Handle authentication errors globally
     if (error.response && error.response.status === 401) {
-      // Redirect to login if not authenticated
-      window.location.href = '/login';
+      // Redirect to auth page if not authenticated
+      window.location.href = '/auth';
     }
     
     // Create a standardized error message
@@ -43,6 +43,8 @@ api.interceptors.response.use(
     
     // Add the error message to the error object
     error.displayMessage = errorMessage;
+    
+    console.error('API Error:', errorMessage);
     
     return Promise.reject(error);
   }
