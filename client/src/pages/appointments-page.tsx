@@ -12,12 +12,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Video, Calendar, Bell, Settings } from "lucide-react";
+import { Plus, Video, Calendar, Bell, Settings, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ReminderSettings } from "@/components/appointments/reminder-settings";
+import { AppointmentScheduler } from "@/components/appointments/appointment-scheduler";
 
 export default function AppointmentsPage() {
   const { t } = useTranslation();
@@ -41,11 +42,15 @@ export default function AppointmentsPage() {
           </Button>
         </div>
 
-        <Tabs defaultValue="appointments" className="space-y-4">
+        <Tabs defaultValue="scheduler" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="appointments" className="flex items-center">
+            <TabsTrigger value="scheduler" className="flex items-center">
               <Calendar className="h-4 w-4 mr-2" />
-              Appointments
+              Scheduler
+            </TabsTrigger>
+            <TabsTrigger value="appointments" className="flex items-center">
+              <Clock className="h-4 w-4 mr-2" />
+              List View
             </TabsTrigger>
             <TabsTrigger value="reminders" className="flex items-center">
               <Bell className="h-4 w-4 mr-2" />
@@ -56,6 +61,10 @@ export default function AppointmentsPage() {
               Settings
             </TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="scheduler">
+            <AppointmentScheduler />
+          </TabsContent>
           
           <TabsContent value="appointments" className="space-y-4">
             <div className="bg-white rounded-lg shadow">
@@ -131,6 +140,33 @@ export default function AppointmentsPage() {
                     <p className="text-sm text-muted-foreground">Require confirmation for all new appointments</p>
                   </div>
                   <Switch id="confirmation-required" defaultChecked={true} />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="buffer-time">Appointment Buffer Time</Label>
+                    <p className="text-sm text-muted-foreground">Set buffer time between appointments (minutes)</p>
+                  </div>
+                  <div className="w-24">
+                    <select
+                      id="buffer-time"
+                      className="w-full p-2 border rounded-md"
+                      defaultValue="10"
+                    >
+                      <option value="5">5</option>
+                      <option value="10">10</option>
+                      <option value="15">15</option>
+                      <option value="30">30</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="insurance-verification">Automatic Insurance Verification</Label>
+                    <p className="text-sm text-muted-foreground">Verify insurance automatically for new appointments</p>
+                  </div>
+                  <Switch id="insurance-verification" defaultChecked={true} />
                 </div>
               </div>
             </div>
