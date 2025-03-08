@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, jsonb, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -165,6 +165,81 @@ export const financialTransactions = pgTable("financial_transactions", {
   fiscalQuarter: integer("fiscal_quarter").notNull(),
 });
 
+// Time clock system
+export const timeClock = pgTable("time_clock", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  clockInTime: timestamp("clock_in_time").notNull(),
+  clockOutTime: timestamp("clock_out_time"),
+  workDate: date("work_date").notNull(),
+  hoursWorked: integer("hours_worked"),
+  notes: text("notes"),
+  status: text("status", { 
+    enum: ["active", "completed", "approved", "rejected", "modified"] 
+  }).notNull().default("active"),
+  supervisorId: integer("supervisor_id"),
+  locationId: integer("location_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Timeclock report aggregation
+export const timeClockReports = pgTable("time_clock_reports", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  totalHours: integer("total_hours").notNull(),
+  status: text("status", { 
+    enum: ["pending", "approved", "paid"] 
+  }).notNull().default("pending"),
+  payrollProcessedDate: timestamp("payroll_processed_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Practice locations
+export const locations = pgTable("locations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  zipCode: text("zip_code").notNull(),
+  phone: text("phone").notNull(),
+  email: text("email"),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+// Subscription plans
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  price: integer("price").notNull(),
+  interval: text("interval", { 
+    enum: ["monthly", "quarterly", "annual"] 
+  }).notNull(),
+  features: jsonb("features").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Practice subscriptions
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  practiceId: integer("practice_id").notNull(),
+  planId: integer("plan_id").notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"),
+  status: text("status", { 
+    enum: ["active", "canceled", "expired", "pending"] 
+  }).notNull().default("active"),
+  autoRenew: boolean("auto_renew").notNull().default(true),
+  cancellationReason: text("cancellation_reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).extend({
   username: z.string().min(1, "Username is required"),
@@ -189,6 +264,27 @@ export const insertXraySchema = createInsertSchema(xrays);
 export const insertPaymentSchema = createInsertSchema(payments);
 export const insertInsuranceClaimSchema = createInsertSchema(insuranceClaims);
 export const insertFinancialTransactionSchema = createInsertSchema(financialTransactions);
+
+// Insert schemas for new tables
+export const insertTimeClockSchema = createInsertSchema(timeClock).extend({
+  workDate: z.string().transform(str => new Date(str)),
+});
+export const insertTimeClockReportSchema = createInsertSchema(timeClockReports);
+export const insertLocationSchema = createInsertSchema(locations);
+export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans);
+export const insertSubscriptionSchema = createInsertSchema(subscriptions);
+
+// Appointment request schema
+export const appointmentRequestSchema = z.object({
+  patientId: z.number(),
+  preferredDates: z.array(z.string()),
+  preferredTime: z.enum(["morning", "afternoon", "evening"]).optional(),
+  appointmentType: z.enum(["examination", "cleaning", "emergency", "followup", "consultation"]),
+  symptoms: z.string().optional(),
+  insuranceProvider: z.string().optional(),
+  insuranceNumber: z.string().optional(),
+  notes: z.string().optional(),
+});
 
 // Add new AI-related schemas
 export const symptomPredictionSchema = z.object({
@@ -301,3 +397,16 @@ export type InsuranceClaim = typeof insuranceClaims.$inferSelect;
 export type InsertInsuranceClaim = z.infer<typeof insertInsuranceClaimSchema>;
 export type FinancialTransaction = typeof financialTransactions.$inferSelect;
 export type InsertFinancialTransaction = z.infer<typeof insertFinancialTransactionSchema>;
+
+// New types for the additional tables
+export type TimeClock = typeof timeClock.$inferSelect;
+export type InsertTimeClock = z.infer<typeof insertTimeClockSchema>;
+export type TimeClockReport = typeof timeClockReports.$inferSelect;
+export type InsertTimeClockReport = z.infer<typeof insertTimeClockReportSchema>;
+export type Location = typeof locations.$inferSelect;
+export type InsertLocation = z.infer<typeof insertLocationSchema>;
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
+export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+export type AppointmentRequest = z.infer<typeof appointmentRequestSchema>;
