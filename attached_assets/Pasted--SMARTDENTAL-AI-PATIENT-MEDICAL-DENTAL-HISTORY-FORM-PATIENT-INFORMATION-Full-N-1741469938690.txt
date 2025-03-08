@@ -1,0 +1,131 @@
+**SMARTDENTAL AI PATIENT MEDICAL & DENTAL HISTORY FORM**
+
+---
+
+## **PATIENT INFORMATION**
+- **Full Name:** ___________________________
+- **Date of Birth:** _______________________
+- **Phone Number:** _______________________
+- **Email Address:** _______________________
+- **Home Address:** _______________________
+- **Emergency Contact Name & Relationship:** ___________________________
+- **Emergency Contact Phone:** _______________________
+
+---
+
+## **MEDICAL HISTORY**  
+Please answer the following questions to the best of your knowledge:
+
+1. **Are you currently under medical treatment?**  
+   - [ ] Yes  
+   - [ ] No  
+   If yes, please explain: ___________________________
+
+2. **Do you have any of the following conditions? (Check all that apply)**
+   - [ ] Heart Disease
+   - [ ] Diabetes
+   - [ ] High Blood Pressure
+   - [ ] Respiratory Disease
+   - [ ] Kidney Disease
+   - [ ] Liver Disease
+   - [ ] Stroke
+   - [ ] Epilepsy or Seizures
+   - [ ] Cancer (Type: ____________)
+   - [ ] HIV/AIDS
+   - [ ] Autoimmune Disorders
+   - [ ] Other (Please specify): ___________________________
+
+3. **Are you taking any medications?**
+   - [ ] Yes  
+   - [ ] No  
+   If yes, please list: ___________________________
+
+4. **Do you have any allergies to medications, latex, or anesthesia?**
+   - [ ] Yes  
+   - [ ] No  
+   If yes, please list: ___________________________
+
+5. **Do you smoke or use tobacco products?**
+   - [ ] Yes  
+   - [ ] No  
+
+6. **For Female Patients:** Are you pregnant or nursing?
+   - [ ] Yes  
+   - [ ] No  
+
+---
+
+## **DENTAL HISTORY**
+1. **Date of Last Dental Visit:** ___________________________
+2. **Have you had any of the following?**  
+   - [ ] Tooth Sensitivity
+   - [ ] Bleeding Gums
+   - [ ] Jaw Pain or Clicking
+   - [ ] Loose Teeth
+   - [ ] Bad Breath
+   - [ ] Previous Oral Surgery
+   - [ ] Orthodontic Treatment
+   - [ ] Other (Please specify): ___________________________
+3. **Are you experiencing any pain or discomfort today?**  
+   - [ ] Yes  
+   - [ ] No  
+   If yes, please describe: ___________________________
+
+---
+
+## **CURRENT SYMPTOMS & CHIEF COMPLAINT**
+1. **What is the main reason for today’s visit?** ___________________________
+2. **Describe any current dental or oral pain:** ___________________________
+3. **Do you have any health concerns you would like us to know?**  
+   - [ ] Yes  
+   - [ ] No  
+   If yes, please describe: ___________________________
+
+---
+
+## **PATIENT CONSENT & LEGAL AGREEMENTS**
+
+### **HIPAA CONSENT FORM**
+I, **[Patient’s Full Name]**, acknowledge that I have been provided with a copy of the Notice of Privacy Practices for this dental office and understand my rights regarding the protection of my personal health information.
+
+**Signature:** ___________________________  **Date:** _______________________
+
+---
+
+### **INFORMED CONSENT FOR TREATMENT**
+I, **[Patient’s Full Name]**, understand that dental treatment involves risks, including but not limited to discomfort, swelling, nerve damage, and the need for future procedures. I consent to the examination and treatment as deemed necessary by my provider.
+
+**Signature:** ___________________________  **Date:** _______________________
+
+---
+
+### **FINANCIAL RESPONSIBILITY AGREEMENT**
+I, **[Patient’s Full Name]**, agree to be financially responsible for all services rendered. I understand that my insurance policy is a contract between myself and my insurance company, and that I am responsible for any remaining balance.
+
+**Signature:** ___________________________  **Date:** _______________________
+
+---
+
+### **ASSIGNMENT OF BENEFITS AGREEMENT**
+I, **[Patient’s Full Name]**, authorize my insurance benefits to be paid directly to the dental provider and allow the release of information necessary to process insurance claims.
+
+**Signature:** ___________________________  **Date:** _______________________
+
+---
+
+### **OFFICE POLICIES ACKNOWLEDGMENT**
+I, **[Patient’s Full Name]**, have reviewed and understand the office policies, including cancellation, payment, and confidentiality policies.
+
+**Signature:** ___________________________  **Date:** _______________________
+
+---
+
+**FOR OFFICE USE ONLY:**
+- Provider Name: ___________________________
+- Reviewed by: ___________________________
+- Date of Review: ___________________________
+
+---
+
+This form will be securely stored in the patient's profile and used for future appointments. By signing this document, you agree to all terms outlined above.
+

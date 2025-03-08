@@ -1,0 +1,152 @@
+**SMARTDENTAL AI PATIENT MEDICAL & DENTAL HISTORY FORM**
+
+---
+
+## **PATIENT INFORMATION**
+- **Full Name:** ___________________________
+- **Date of Birth:** _______________________
+- **Phone Number:** _______________________
+- **Email Address:** _______________________
+- **Home Address:** _______________________
+- **Emergency Contact Name & Relationship:** ___________________________
+- **Emergency Contact Phone:** _______________________
+
+---
+
+## **MEDICAL HISTORY**  
+Please answer the following questions to the best of your knowledge:
+
+1. **Are you currently under medical treatment?**  
+   - [ ] Yes  
+   - [ ] No  
+   If yes, please explain: ___________________________
+
+2. **Do you have any of the following conditions? (Check all that apply)**
+   - [ ] Heart Disease
+   - [ ] High Blood Pressure
+   - [ ] Low Blood Pressure
+   - [ ] Diabetes (Type 1 or Type 2)
+   - [ ] High Cholesterol
+   - [ ] Asthma
+   - [ ] COPD (Chronic Obstructive Pulmonary Disease)
+   - [ ] Sleep Apnea
+   - [ ] Kidney Disease
+   - [ ] Liver Disease
+   - [ ] Hepatitis (A, B, or C)
+   - [ ] Thyroid Disorder (Hyperthyroidism/Hypothyroidism)
+   - [ ] Stroke
+   - [ ] Epilepsy or Seizures
+   - [ ] Cancer (Type: ____________)
+   - [ ] HIV/AIDS
+   - [ ] Autoimmune Disorders (Lupus, Rheumatoid Arthritis, etc.)
+   - [ ] Osteoporosis
+   - [ ] Blood Disorders (Anemia, Clotting Issues, etc.)
+   - [ ] Gastrointestinal Disorders (GERD, Crohn’s, IBS, etc.)
+   - [ ] Depression/Anxiety
+   - [ ] Other Mental Health Conditions: ___________________________
+   - [ ] Neurological Disorders (Parkinson’s, Alzheimer’s, etc.)
+   - [ ] Other (Please specify): ___________________________
+
+3. **Are you taking any medications?**
+   - [ ] Yes  
+   - [ ] No  
+   If yes, please list all medications including dosage and frequency: ___________________________
+
+4. **Do you have any allergies to medications, latex, or anesthesia?**
+   - [ ] Yes  
+   - [ ] No  
+   If yes, please list: ___________________________
+
+5. **Who is your Primary Care Physician (PCP)?**
+   - **Name:** ___________________________
+   - **Last Visit Date:** ___________________________
+
+6. **Do you smoke or use tobacco products?**
+   - [ ] Yes  
+   - [ ] No  
+
+7. **For Female Patients:** Are you pregnant or nursing?
+   - [ ] Yes  
+   - [ ] No  
+
+---
+
+## **DENTAL HISTORY**
+1. **Date of Last Dental Visit:** ___________________________
+2. **Have you had any of the following?**  
+   - [ ] Tooth Sensitivity
+   - [ ] Bleeding Gums
+   - [ ] Jaw Pain or Clicking
+   - [ ] Loose Teeth
+   - [ ] Bad Breath
+   - [ ] Previous Oral Surgery
+   - [ ] Orthodontic Treatment
+   - [ ] Other (Please specify): ___________________________
+3. **Are you experiencing any pain or discomfort today?**  
+   - [ ] Yes  
+   - [ ] No  
+   If yes, please describe: ___________________________
+
+---
+
+## **CURRENT SYMPTOMS & CHIEF COMPLAINT**
+1. **What is the main reason for today’s visit?** ___________________________
+2. **Describe any current dental or oral pain:** ___________________________
+3. **Do you have any health concerns you would like us to know?**  
+   - [ ] Yes  
+   - [ ] No  
+   If yes, please describe: ___________________________
+
+---
+
+## **PATIENT CONSENT & LEGAL AGREEMENTS**
+
+### **HIPAA CONSENT & LEGAL AGREEMENT**
+I, **[Patient’s Full Name]**, acknowledge that I have been provided with a copy of the Notice of Privacy Practices for this dental office and understand my rights regarding the protection of my personal health information.
+
+### **INFORMED CONSENT FOR TREATMENT & RELEASE OF LIABILITY**
+I, **[Patient’s Full Name]**, hereby authorize the dental providers and staff at this facility to perform necessary examinations, diagnostic procedures, and treatments as deemed appropriate for my oral health. I understand that:
+- Dental procedures may carry risks including, but not limited to, temporary discomfort, swelling, nerve damage, and allergic reactions.
+- AI-assisted diagnostics are used in this facility to enhance treatment accuracy but are subject to human verification and final provider approval.
+- I release the dental provider and staff from any liability related to unforeseen complications arising from treatment.
+
+### **AI-PROCESSED DATA CONSENT**
+I understand that this facility utilizes **AI-powered diagnostics and treatment recommendations**. I acknowledge that:
+- AI-generated diagnoses require final human validation by a licensed dental professional.
+- My **radiographs, intraoral scans, and treatment history** may be processed using **machine-learning algorithms** to assist in treatment planning.
+- AI-driven analysis aims to **improve diagnostic accuracy, early disease detection, and enhance patient outcomes.**
+
+### **FINANCIAL RESPONSIBILITY AGREEMENT**
+I, **[Patient’s Full Name]**, acknowledge that:
+- I am financially responsible for all services rendered, whether or not covered by insurance.
+- My insurance benefits are a contract between myself and my insurance provider, and any remaining balance is my responsibility.
+- Any unpaid balance beyond [timeframe] may be subject to collection actions, and I agree to pay any associated fees.
+
+### **CANCELLATION & NO-SHOW POLICY**
+I understand that:
+- Cancellations must be made at least [timeframe] in advance, or a cancellation fee may apply.
+- Repeated no-shows may result in dismissal from the practice.
+
+### **PHOTO & X-RAY RELEASE CONSENT**
+I consent to the use of my **x-rays, photographs, and intraoral scans** for educational, research, or training purposes, provided that my identity is not disclosed.
+- [ ] Yes  
+- [ ] No  
+
+### **ACKNOWLEDGMENT & SIGNATURE**
+By signing below, I acknowledge and agree to all terms outlined in this document, including **HIPAA compliance, AI-assisted diagnostic acknowledgment, treatment consent, financial responsibility, office policies, and liability release.**
+
+**Patient Name (Printed):** ___________________________
+
+**Patient Signature:** ___________________________  **Date:** _______________________
+
+**Guardian Signature (if applicable):** ___________________________
+
+---
+
+**FOR OFFICE USE ONLY:**
+- Provider Name: ___________________________
+- Reviewed by: ___________________________
+- Date of Review: ___________________________
+
+This form will be securely stored in the patient's profile and used for future appointments. By signing this document, you agree to all terms outlined above.
+
