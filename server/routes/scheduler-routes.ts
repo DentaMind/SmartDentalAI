@@ -22,7 +22,7 @@ router.get('/reminders/settings', requireAuth, requireRole(['doctor', 'staff']),
       return res.json({
         enabled: true,
         reminderTypes: [
-          { timeframe: '24h', priority: 'high', method: 'email,sms' },
+          { timeframe: '24h', priority: 'high', method: 'both' },
           { timeframe: '48h', priority: 'medium', method: 'email' },
           { timeframe: '1week', priority: 'low', method: 'email' }
         ],
