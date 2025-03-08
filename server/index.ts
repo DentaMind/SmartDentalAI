@@ -34,7 +34,7 @@ const startServer = async () => {
     const wsServer = setupWebSocketServer(httpServer);
 
     // Start the server first
-    const PORT = Number(process.env.PORT) || 3000;
+    const PORT = Number(process.env.PORT) || 5000;
     console.log(`Attempting to start server on port ${PORT}...`);
 
     httpServer.listen(PORT, '0.0.0.0', () => {
