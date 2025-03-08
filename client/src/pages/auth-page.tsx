@@ -478,7 +478,7 @@ export default function AuthPage() {
                         <div className="border rounded-lg p-4 hover:border-primary hover:bg-blue-50 cursor-pointer relative">
                           <input type="radio" name="plan" className="absolute right-2 top-2" defaultChecked />
                           <h4 className="font-medium mb-1">Basic</h4>
-                          <p className="text-xl font-bold mb-2">$99<span className="text-sm font-normal">/month</span></p>
+                          <p className="text-xl font-bold mb-2">$499<span className="text-sm font-normal">/month</span></p>
                           <ul className="text-sm space-y-1 text-gray-600">
                             <li>• Up to 500 patients</li>
                             <li>• Basic AI diagnostics</li>
@@ -488,7 +488,7 @@ export default function AuthPage() {
                         <div className="border rounded-lg p-4 hover:border-primary hover:bg-blue-50 cursor-pointer relative">
                           <input type="radio" name="plan" className="absolute right-2 top-2" />
                           <h4 className="font-medium mb-1">Professional</h4>
-                          <p className="text-xl font-bold mb-2">$199<span className="text-sm font-normal">/month</span></p>
+                          <p className="text-xl font-bold mb-2">$699<span className="text-sm font-normal">/month</span></p>
                           <ul className="text-sm space-y-1 text-gray-600">
                             <li>• Unlimited patients</li>
                             <li>• Advanced AI tools</li>
@@ -498,7 +498,7 @@ export default function AuthPage() {
                         <div className="border rounded-lg p-4 hover:border-primary hover:bg-blue-50 cursor-pointer relative">
                           <input type="radio" name="plan" className="absolute right-2 top-2" />
                           <h4 className="font-medium mb-1">Enterprise</h4>
-                          <p className="text-xl font-bold mb-2">$299<span className="text-sm font-normal">/month</span></p>
+                          <p className="text-xl font-bold mb-2">$1499<span className="text-sm font-normal">/month</span></p>
                           <ul className="text-sm space-y-1 text-gray-600">
                             <li>• Multi-location support</li>
                             <li>• Full AI suite access</li>
