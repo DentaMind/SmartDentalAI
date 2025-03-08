@@ -12,13 +12,15 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
+interface ReminderType {
+  timeframe: string;
+  priority: string;
+  method: string;
+}
+
 interface ReminderSettings {
   enabled: boolean;
-  reminderTypes: {
-    timeframe: string;
-    priority: string;
-    method: string;
-  }[];
+  reminderTypes: ReminderType[];
   lastRunTime: string;
   remindersSentToday: number;
   remindersSentThisWeek: number;
@@ -54,7 +56,7 @@ export function ReminderSettings() {
   const [activeTab, setActiveTab] = useState('overview');
 
   // Fetch reminder settings
-  const { data: settings, isLoading: isLoadingSettings } = useQuery({
+  const { data: settings, isLoading: isLoadingSettings } = useQuery<ReminderSettings>({
     queryKey: ['/api/scheduler/reminders/settings'],
     retry: 1,
     refetchOnWindowFocus: false
@@ -68,21 +70,25 @@ export function ReminderSettings() {
     enabled: activeTab === 'overview'
   });
   
+  interface ReminderLogResponse {
+    items: ReminderLogEntry[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }
+  
   // Fetch reminder logs
-  const { data: reminderLog, isLoading: isLoadingLog } = useQuery({
+  const { data: reminderLog, isLoading: isLoadingLog } = useQuery<ReminderLogResponse>({
     queryKey: ['/api/scheduler/reminders/logs'],
     retry: 1,
     refetchOnWindowFocus: false,
-    enabled: activeTab === 'logs',
-    // Placeholder for now until we implement the logs endpoint
-    queryFn: async () => ({ 
-      items: [] // Empty array for now
-    })
+    enabled: activeTab === 'logs'
   });
 
   // Update reminder settings 
   const updateSettingsMutation = useMutation({
-    mutationFn: (newSettings: any) => api.post('/api/scheduler/reminders/settings', newSettings),
+    mutationFn: (newSettings: Partial<ReminderSettings>) => api.post('/api/scheduler/reminders/settings', newSettings),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/scheduler/reminders/settings'] });
       toast({
@@ -220,7 +226,7 @@ export function ReminderSettings() {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={() => runRemindersMutation.mutate()}
+                    onClick={() => runRemindersMutation.mutate('all')}
                     disabled={!settings?.enabled || runRemindersMutation.isPending}
                   >
                     {runRemindersMutation.isPending ? (
@@ -478,7 +484,7 @@ export function ReminderSettings() {
       
       <CardFooter className="border-t px-6 py-4 flex justify-end">
         <Button
-          disabled={!activeTab === !('settings')}
+          disabled={activeTab !== 'settings'}
           size="sm"
           className={activeTab === 'settings' ? '' : 'hidden'}
         >
