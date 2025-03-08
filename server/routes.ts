@@ -20,9 +20,39 @@ setupAuth(router);
 // Patient routes
 router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   try {
-    const patient = await storage.createPatient(req.body);
-    res.status(201).json(patient);
+    // Create user first (since patients need a user account)
+    const userData = {
+      username: req.body.username || `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`,
+      password: req.body.password || Math.random().toString(36).slice(-8),
+      email: req.body.email,
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      role: "patient",
+      phoneNumber: req.body.phoneNumber,
+      dateOfBirth: req.body.dateOfBirth,
+      insuranceProvider: req.body.insuranceProvider,
+      insuranceNumber: req.body.insuranceNumber,
+      language: req.body.language || "en"
+    };
+
+    // Create the user
+    const user = await storage.createUser(userData);
+    
+    // Then create patient record linked to the user
+    const patientData = {
+      userId: user.id,
+      medicalHistory: req.body.medicalHistory || null,
+      allergies: req.body.allergies || null,
+      bloodType: req.body.bloodType || null,
+      emergencyContact: req.body.emergencyContact || null
+    };
+    
+    const patient = await storage.createPatient(patientData);
+    
+    // Return both user and patient data
+    res.status(201).json({ ...patient, user });
   } catch (error) {
+    console.error("Error creating patient:", error);
     res.status(400).json({ message: error instanceof Error ? error.message : "Invalid request" });
   }
 });
