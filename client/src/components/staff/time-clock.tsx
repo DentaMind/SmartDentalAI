@@ -346,7 +346,12 @@ export function TimeClockComponent({ userId, supervisorView = false }: TimeClock
                 
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
-                  <DatePickerWithRange dateRange={dateRange} onDateRangeChange={setDateRange} />
+                  <DatePickerWithRange 
+                    dateRange={dateRange} 
+                    onDateRangeChange={(range) => {
+                      if (range) setDateRange(range);
+                    }} 
+                  />
                 </div>
                 
                 <Button
