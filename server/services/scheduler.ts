@@ -160,7 +160,7 @@ class SchedulerService {
       // Update the appointment
       const updatedAppointment = await storage.updateAppointment(appointmentId, {
         date: new Date(newStartTime),
-        status: "rescheduled"
+        status: "scheduled" // Changed from "rescheduled" to valid status
       });
       
       // Send notification
@@ -434,7 +434,7 @@ class SchedulerService {
   }
   
   // Default reminder settings
-  private reminderSettings = {
+  private reminderSettings: import('../../shared/schema').ReminderSettings = {
     enabled: true,
     reminderTypes: [
       { timeframe: '24h', priority: 'high', method: 'both', template: 'default' },
@@ -444,7 +444,7 @@ class SchedulerService {
   };
 
   // Reminder statistics
-  private reminderStats = {
+  private reminderStats: import('../../shared/schema').ReminderStats = {
     lastRunTime: new Date().toISOString(),
     remindersSentToday: 0,
     remindersSentThisWeek: 0,
@@ -455,7 +455,7 @@ class SchedulerService {
   };
   
   // Return reminder settings
-  async getReminderSettings() {
+  async getReminderSettings(): Promise<import('../../shared/schema').CompleteReminderSettings> {
     return {
       ...this.reminderSettings,
       ...this.reminderStats
@@ -463,11 +463,11 @@ class SchedulerService {
   }
   
   // Update reminder settings
-  async updateReminderSettings(settings: any) {
+  async updateReminderSettings(settings: import('../../shared/schema').ReminderSettings): Promise<import('../../shared/schema').ReminderSettings> {
     try {
       this.reminderSettings = {
         enabled: settings.enabled,
-        reminderTypes: settings.reminderTypes.map((type: any) => ({
+        reminderTypes: settings.reminderTypes.map((type) => ({
           timeframe: type.timeframe,
           priority: type.priority,
           method: type.method,

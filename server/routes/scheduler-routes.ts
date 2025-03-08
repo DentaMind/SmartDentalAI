@@ -1,26 +1,19 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { requireAuth, requireRole } from '../middleware/auth';
 import { schedulerService } from '../services/scheduler';
 import { notificationService } from '../services/notifications';
-import { z } from 'zod';
+import { 
+  reminderSettingsSchema, 
+  ReminderSettings, 
+  CompleteReminderSettings, 
+  ReminderLogResponse,
+  ReminderTimeframeType
+} from '../../shared/schema';
 
 const router = express.Router();
 
-// Reminder settings schema
-const reminderSettingsSchema = z.object({
-  enabled: z.boolean(),
-  reminderTypes: z.array(
-    z.object({
-      timeframe: z.enum(['24h', '48h', '1week']),
-      priority: z.enum(['low', 'medium', 'high']),
-      method: z.enum(['email', 'sms', 'both']),
-      template: z.string().optional(),
-    })
-  )
-});
-
 // Get reminder settings
-router.get('/reminders/settings', requireAuth, requireRole(['doctor', 'staff']), async (req, res) => {
+router.get('/reminders/settings', requireAuth, requireRole(['doctor', 'staff']), async (req: Request, res: Response) => {
   try {
     const settings = await schedulerService.getReminderSettings();
     
@@ -60,7 +53,7 @@ router.get('/reminders/settings', requireAuth, requireRole(['doctor', 'staff']),
 });
 
 // Update reminder settings
-router.post('/reminders/settings', requireAuth, requireRole(['doctor', 'staff']), async (req, res) => {
+router.post('/reminders/settings', requireAuth, requireRole(['doctor', 'staff']), async (req: Request, res: Response) => {
   try {
     const settings = reminderSettingsSchema.parse(req.body);
     await schedulerService.updateReminderSettings(settings);
@@ -75,7 +68,7 @@ router.post('/reminders/settings', requireAuth, requireRole(['doctor', 'staff'])
 // This route was duplicated - removed in favor of the implementation below
 
 // Get reminder stats
-router.get('/reminders/stats', requireAuth, requireRole(['doctor', 'staff']), async (req, res) => {
+router.get('/reminders/stats', requireAuth, requireRole(['doctor', 'staff']), async (req: Request, res: Response) => {
   try {
     const stats = await schedulerService.getReminderStats();
     res.json(stats);
@@ -87,7 +80,7 @@ router.get('/reminders/stats', requireAuth, requireRole(['doctor', 'staff']), as
 });
 
 // Get reminder logs 
-router.get('/reminders/logs', requireAuth, requireRole(['doctor', 'staff']), async (req, res) => {
+router.get('/reminders/logs', requireAuth, requireRole(['doctor', 'staff']), async (req: Request, res: Response) => {
   try {
     // Mock data for testing the UI
     const mockLogs = [
@@ -152,7 +145,7 @@ router.get('/reminders/logs', requireAuth, requireRole(['doctor', 'staff']), asy
 });
 
 // Send reminders manually
-router.post('/reminders/send', requireAuth, requireRole(['doctor', 'staff']), async (req, res) => {
+router.post('/reminders/send', requireAuth, requireRole(['doctor', 'staff']), async (req: Request, res: Response) => {
   try {
     const { timeframe = 'all' } = req.body;
     
@@ -170,7 +163,7 @@ router.post('/reminders/send', requireAuth, requireRole(['doctor', 'staff']), as
 });
 
 // Get appointments by date range
-router.get('/appointments', requireAuth, async (req, res) => {
+router.get('/appointments', requireAuth, async (req: Request, res: Response) => {
   try {
     const { startDate, endDate } = req.query;
     

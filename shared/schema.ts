@@ -2,6 +2,44 @@ import { pgTable, text, serial, integer, timestamp, boolean, jsonb } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// ReminderType enum types
+export const ReminderTimeframe = z.enum(['24h', '48h', '1week']);
+export const ReminderPriority = z.enum(['low', 'medium', 'high']);
+export const ReminderMethod = z.enum(['email', 'sms', 'both']);
+
+// Schema for a single reminder type configuration
+export const reminderTypeSchema = z.object({
+  timeframe: ReminderTimeframe,
+  priority: ReminderPriority,
+  method: ReminderMethod,
+  template: z.string().optional(),
+});
+
+// Schema for complete reminder settings
+export const reminderSettingsSchema = z.object({
+  enabled: z.boolean(),
+  reminderTypes: z.array(reminderTypeSchema),
+});
+
+// Schema for reminder stats
+export const reminderStatsSchema = z.object({
+  lastRunTime: z.string(),
+  remindersSentToday: z.number(),
+  remindersSentThisWeek: z.number(),
+  deliveryStats: z.object({
+    email: z.object({
+      sent: z.number(),
+      opened: z.number(),
+      failureRate: z.number(),
+    }),
+    sms: z.object({
+      sent: z.number(),
+      delivered: z.number(),
+      failureRate: z.number(),
+    }),
+  }),
+});
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -211,6 +249,38 @@ export interface PatientMedicalHistory {
 }
 
 export type SymptomPrediction = z.infer<typeof symptomPredictionSchema>;
+
+// Reminder type definitions
+export type ReminderTimeframeType = z.infer<typeof ReminderTimeframe>;
+export type ReminderPriorityType = z.infer<typeof ReminderPriority>;
+export type ReminderMethodType = z.infer<typeof ReminderMethod>;
+export type ReminderType = z.infer<typeof reminderTypeSchema>;
+export type ReminderSettings = z.infer<typeof reminderSettingsSchema>;
+export type ReminderStats = z.infer<typeof reminderStatsSchema>;
+
+// Combined type with settings and stats
+export type CompleteReminderSettings = ReminderSettings & ReminderStats;
+
+// Reminder log type
+export interface ReminderLog {
+  id: string;
+  timestamp: string;
+  patientId: number;
+  patientName: string;
+  timeframe: ReminderTimeframeType;
+  sentTo: string;
+  status: 'delivered' | 'sent' | 'opened' | 'failed';
+  method: 'email' | 'sms';
+  appointmentId: number;
+}
+
+export interface ReminderLogResponse {
+  items: ReminderLog[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
 
 // Types
 export type User = typeof users.$inferSelect;
