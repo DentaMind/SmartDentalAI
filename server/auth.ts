@@ -5,7 +5,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User } from "@shared/schema";
+import { User, InsertUser } from "@shared/schema";
 
 // Define a simplified user type for authentication purposes
 type AuthUser = {
@@ -71,8 +71,8 @@ export function setupAuth(router: express.Router) {
           return done(null, false, { message: "Invalid username or password" });
         }
 
-        // We need to access the passwordHash property from storage interface
-        const isValidPassword = await comparePasswords(password, user.passwordHash);
+        // We need to access the password property which is hashed in storage
+        const isValidPassword = await comparePasswords(password, user.password);
         console.log(`Password validation result for ${username}: ${isValidPassword}`);
 
         if (!isValidPassword) {
