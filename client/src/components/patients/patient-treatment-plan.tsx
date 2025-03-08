@@ -1,86 +1,103 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
 import { 
   Card, 
   CardContent, 
   CardDescription, 
+  CardFooter, 
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import {
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger
-} from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { LoadingAnimation } from "@/components/ui/loading-animation";
 import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
+import { 
+  ArrowRight, 
   Brain, 
-  CheckCircle2, 
-  Clock, 
+  CalendarCheck, 
+  Check, 
+  ChevronsUpDown, 
+  ClipboardCheck, 
   CreditCard, 
   Download, 
-  FilePlus2, 
-  GitBranchPlus, 
-  History, 
-  Pen, 
-  PlusCircle, 
+  EditIcon, 
+  FileText, 
+  GripVertical, 
+  InfoIcon, 
+  ListTodo, 
+  MoreHorizontal, 
+  Plus, 
   Printer, 
-  Share2 
+  Sparkles, 
+  ThumbsUp, 
+  Trash2 
 } from "lucide-react";
 
 interface PatientTreatmentPlanProps {
   patientId: number;
 }
 
-interface Treatment {
+interface TreatmentStep {
   id: number;
-  title: string;
-  description: string;
-  status: "planned" | "in-progress" | "completed" | "cancelled";
+  treatmentPlanId: number;
+  procedure: string;
+  description?: string;
+  status: "planned" | "scheduled" | "completed" | "cancelled";
+  priority: "low" | "medium" | "high";
+  scheduledDate?: string;
+  completedDate?: string;
   cost: number;
-  startDate?: string;
-  endDate?: string;
-  insuranceCoverage?: number;
-  procedureCode?: string;
-  priority: "high" | "medium" | "low";
-  assignedToId?: number;
-  assignedToName?: string;
+  estimatedTime?: string;
+  provider?: string;
   notes?: string;
-  sequence?: number;
-  dependencies?: number[];
-  alternativeOptions?: {
-    description: string;
-    cost: number;
-    pros: string[];
-    cons: string[];
-  }[];
+  teeth?: string[];
+  order: number;
 }
 
 interface TreatmentPlan {
   id: number;
   patientId: number;
   title: string;
-  description: string;
-  createdAt: string;
-  updatedAt: string;
-  status: "active" | "completed" | "cancelled";
-  estimatedCost: number;
-  insuranceEstimate: number;
-  treatments: Treatment[];
-  notes?: string;
+  description?: string;
+  status: "active" | "completed" | "cancelled" | "draft";
+  createdDate: string;
   createdById: number;
   createdByName: string;
+  lastUpdatedDate?: string;
+  completedDate?: string;
+  totalCost: number;
+  insuranceCoverage?: number;
+  patientResponsibility?: number;
+  consentSigned?: boolean;
+  consentDate?: string;
+  aiGenerated?: boolean;
+  steps: TreatmentStep[];
 }
 
 export function PatientTreatmentPlan({ patientId }: PatientTreatmentPlanProps) {
-  const [activeTab, setActiveTab] = useState("current");
+  const [activeTab, setActiveTab] = useState("active");
   const [selectedPlan, setSelectedPlan] = useState<TreatmentPlan | null>(null);
-
+  const [showNewPlanDialog, setShowNewPlanDialog] = useState(false);
+  
+  // Fetch patient treatment plans
   const { data: treatmentPlans, isLoading } = useQuery<TreatmentPlan[]>({
     queryKey: ["/api/treatment-plans", patientId],
     queryFn: async () => {
@@ -94,505 +111,739 @@ export function PatientTreatmentPlan({ patientId }: PatientTreatmentPlanProps) {
     },
   });
 
-  const activePlan = treatmentPlans?.find(plan => plan.status === "active");
-  const completedPlans = treatmentPlans?.filter(plan => plan.status === "completed");
-
-  // AI-powered alternative treatment generator (mock function)
-  const generateAlternatives = async () => {
-    // In a real app, this would call an API to generate alternatives
-    console.log("Generating treatment alternatives...");
-    // Implementation would involve AI analysis of the current plan
-  };
-
-  const renderTreatmentList = (treatments: Treatment[]) => {
-    if (!treatments || treatments.length === 0) {
-      return (
-        <div className="text-center py-6 text-muted-foreground">
-          No treatments added to this plan yet.
-        </div>
-      );
+  // Sample treatment plans for demonstration
+  const sampleTreatmentPlans: TreatmentPlan[] = [
+    {
+      id: 1,
+      patientId,
+      title: "Comprehensive Dental Restoration",
+      description: "Full mouth rehabilitation focusing on posterior quadrants",
+      status: "active",
+      createdDate: "2025-02-10T10:30:00Z",
+      createdById: 1,
+      createdByName: "Dr. Johnson",
+      lastUpdatedDate: "2025-02-15T14:45:00Z",
+      totalCost: 5250,
+      insuranceCoverage: 3000,
+      patientResponsibility: 2250,
+      consentSigned: true,
+      consentDate: "2025-02-12T11:20:00Z",
+      steps: [
+        {
+          id: 101,
+          treatmentPlanId: 1,
+          procedure: "Scaling and Root Planing",
+          description: "Deep cleaning of all quadrants to treat periodontal disease",
+          status: "completed",
+          priority: "high",
+          scheduledDate: "2025-02-15T10:00:00Z",
+          completedDate: "2025-02-15T11:30:00Z",
+          cost: 950,
+          estimatedTime: "90 minutes",
+          provider: "Dr. Johnson",
+          notes: "Patient tolerated procedure well. Recommended chlorhexidine rinse twice daily for 2 weeks.",
+          order: 1
+        },
+        {
+          id: 102,
+          treatmentPlanId: 1,
+          procedure: "Root Canal Therapy",
+          description: "Endodontic treatment of tooth #30",
+          status: "scheduled",
+          priority: "high",
+          scheduledDate: "2025-03-01T14:00:00Z",
+          cost: 1200,
+          estimatedTime: "60 minutes",
+          provider: "Dr. Smith",
+          teeth: ["#30"],
+          order: 2
+        },
+        {
+          id: 103,
+          treatmentPlanId: 1,
+          procedure: "Crown Placement",
+          description: "PFM crown on tooth #30",
+          status: "planned",
+          priority: "medium",
+          cost: 1250,
+          teeth: ["#30"],
+          order: 3
+        },
+        {
+          id: 104,
+          treatmentPlanId: 1,
+          procedure: "Composite Fillings",
+          description: "Composite restorations on teeth #2, #15, and #18",
+          status: "planned",
+          priority: "medium",
+          cost: 750,
+          teeth: ["#2", "#15", "#18"],
+          order: 4
+        },
+        {
+          id: 105,
+          treatmentPlanId: 1,
+          procedure: "Nightguard Fabrication",
+          description: "Custom nightguard for bruxism protection",
+          status: "planned",
+          priority: "low",
+          cost: 550,
+          order: 5
+        }
+      ]
+    },
+    {
+      id: 2,
+      patientId,
+      title: "Cosmetic Enhancement Plan",
+      description: "Aesthetic improvements focusing on anterior teeth",
+      status: "draft",
+      createdDate: "2025-03-05T09:15:00Z",
+      createdById: 1,
+      createdByName: "Dr. Johnson",
+      totalCost: 4800,
+      aiGenerated: true,
+      steps: [
+        {
+          id: 201,
+          treatmentPlanId: 2,
+          procedure: "Teeth Whitening",
+          description: "In-office professional whitening treatment",
+          status: "planned",
+          priority: "medium",
+          cost: 500,
+          estimatedTime: "60 minutes",
+          order: 1
+        },
+        {
+          id: 202,
+          treatmentPlanId: 2,
+          procedure: "Porcelain Veneers",
+          description: "Porcelain veneers on teeth #7-10",
+          status: "planned",
+          priority: "medium",
+          cost: 4300,
+          estimatedTime: "120 minutes",
+          teeth: ["#7", "#8", "#9", "#10"],
+          order: 2
+        }
+      ]
     }
+  ];
 
-    return (
-      <div className="space-y-4">
-        {treatments.map((treatment) => (
-          <div 
-            key={treatment.id} 
-            className="p-4 border rounded-md hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="font-medium">{treatment.title}</h4>
-                  <Badge variant={
-                    treatment.status === "completed" ? "success" : 
-                    treatment.status === "in-progress" ? "default" : 
-                    treatment.status === "cancelled" ? "destructive" : 
-                    "outline"
-                  }>
-                    {treatment.status}
-                  </Badge>
-                  {treatment.priority === "high" && (
-                    <Badge variant="destructive" className="bg-red-100 text-red-800 hover:bg-red-100">
-                      Priority
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {treatment.description}
-                </p>
-              </div>
-              <div className="text-right">
-                <div className="font-medium">${treatment.cost.toFixed(2)}</div>
-                <div className="text-xs text-muted-foreground">
-                  {treatment.procedureCode && `Code: ${treatment.procedureCode}`}
-                </div>
-              </div>
-            </div>
-            
-            {treatment.assignedToName && (
-              <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-                <span>Assigned to: {treatment.assignedToName}</span>
-              </div>
-            )}
+  // Use the real data if available, otherwise use sample data
+  const displayPlans = treatmentPlans || sampleTreatmentPlans;
 
-            {treatment.status === "in-progress" && treatment.startDate && (
-              <div className="mt-2 flex items-center gap-1 text-xs text-green-600">
-                <Clock className="h-3 w-3" />
-                <span>Started on {new Date(treatment.startDate).toLocaleDateString()}</span>
-              </div>
-            )}
+  // Filter plans based on active tab
+  const filteredPlans = displayPlans.filter(plan => 
+    activeTab === "all" || 
+    activeTab === "ai-generated" && plan.aiGenerated || 
+    plan.status === activeTab
+  );
 
-            {treatment.status === "completed" && treatment.endDate && (
-              <div className="mt-2 flex items-center gap-1 text-xs text-blue-600">
-                <CheckCircle2 className="h-3 w-3" />
-                <span>Completed on {new Date(treatment.endDate).toLocaleDateString()}</span>
-              </div>
-            )}
-
-            <div className="mt-3 flex gap-2">
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
-                <Pen className="h-3 w-3 mr-1" />
-                Edit
-              </Button>
-              {treatment.status !== "completed" && (
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-green-600">
-                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                  Mark Complete
-                </Button>
-              )}
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
-                <PlusCircle className="h-3 w-3 mr-1" />
-                Add Note
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+  // Calculate plan progress
+  const calculateProgress = (plan: TreatmentPlan) => {
+    if (plan.steps.length === 0) return 0;
+    const completedSteps = plan.steps.filter(step => step.status === "completed").length;
+    return Math.round((completedSteps / plan.steps.length) * 100);
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <LoadingAnimation />
-        <p className="mt-4 text-muted-foreground">Loading treatment plans...</p>
-      </div>
-    );
-  }
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Treatment Plans</h2>
-          <p className="text-muted-foreground">Manage and track patient treatments</p>
+          <p className="text-muted-foreground">Manage and track patient treatment plans</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2">
-            <Printer className="h-4 w-4" />
-            Print Plan
-          </Button>
-          <Button variant="outline" className="gap-2">
-            <Share2 className="h-4 w-4" />
-            Share with Patient
-          </Button>
-          <Button className="gap-2">
-            <FilePlus2 className="h-4 w-4" />
-            New Treatment Plan
+          <Button className="gap-2" onClick={() => setShowNewPlanDialog(true)}>
+            <Plus className="h-4 w-4" />
+            New Plan
           </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="current" value={activeTab} onValueChange={setActiveTab}>
+      <Tabs defaultValue="active" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6">
-          <TabsTrigger value="current">
-            Current Plan
-          </TabsTrigger>
-          <TabsTrigger value="history">
-            Treatment History
-          </TabsTrigger>
-          <TabsTrigger value="alternatives">
-            AI Alternatives
-          </TabsTrigger>
-          <TabsTrigger value="financials">
-            Financial View
-          </TabsTrigger>
+          <TabsTrigger value="active">Active Plans</TabsTrigger>
+          <TabsTrigger value="completed">Completed</TabsTrigger>
+          <TabsTrigger value="draft">Drafts</TabsTrigger>
+          <TabsTrigger value="ai-generated">AI Generated</TabsTrigger>
+          <TabsTrigger value="all">All Plans</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="current">
-          {activePlan ? (
-            <div className="space-y-6">
-              <div className="bg-white p-6 rounded-lg border shadow-sm">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-semibold">{activePlan.title}</h3>
-                    <p className="text-sm text-muted-foreground">{activePlan.description}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge>Active</Badge>
-                      <span className="text-sm text-muted-foreground">
-                        Created {new Date(activePlan.createdAt).toLocaleDateString()} by {activePlan.createdByName}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold">${activePlan.estimatedCost.toFixed(2)}</div>
-                    <div className="text-sm text-muted-foreground">Estimated total cost</div>
-                    <div className="text-sm text-green-600 mt-1">
-                      ${activePlan.insuranceEstimate.toFixed(2)} covered by insurance
-                    </div>
-                  </div>
-                </div>
-
-                <Separator className="my-4" />
-                
-                <div className="mb-4">
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-primary" />
-                    Treatment Progress
-                  </h4>
-                  
-                  <div className="relative pt-1">
-                    <div className="flex mb-2 items-center justify-between">
-                      <div>
-                        <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-primary bg-primary-100">
-                          In Progress
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-xs font-semibold inline-block text-primary">
-                          {activePlan.treatments.filter(t => t.status === "completed").length} / {activePlan.treatments.length} Treatments
-                        </span>
-                      </div>
-                    </div>
-                    <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-primary-100">
-                      <div 
-                        style={{ 
-                          width: `${(activePlan.treatments.filter(t => t.status === "completed").length / activePlan.treatments.length) * 100}%` 
-                        }} 
-                        className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary"
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-4">Treatments</h4>
-                  {renderTreatmentList(activePlan.treatments)}
-                </div>
-
-                <div className="mt-6 flex justify-end gap-2">
-                  <Button variant="outline" className="gap-2">
-                    <History className="h-4 w-4" />
-                    View Revisions
-                  </Button>
-                  <Button variant="outline" className="gap-2">
-                    <Download className="h-4 w-4" />
-                    Export as PDF
-                  </Button>
-                  <Button className="gap-2">
-                    <Pen className="h-4 w-4" />
-                    Edit Plan
-                  </Button>
-                </div>
-              </div>
+        <TabsContent value={activeTab}>
+          {isLoading ? (
+            <div className="text-center py-10">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite] mb-3"></div>
+              <p className="text-muted-foreground">Loading treatment plans...</p>
             </div>
-          ) : (
-            <div className="bg-white p-6 rounded-lg border shadow-sm text-center">
-              <div className="py-8">
-                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FilePlus2 className="h-10 w-10 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-medium">No Active Treatment Plan</h3>
-                <p className="text-muted-foreground max-w-md mx-auto mt-2">
-                  There is no active treatment plan for this patient. Create a new treatment plan to get started.
-                </p>
-                <Button className="mt-4 gap-2">
-                  <FilePlus2 className="h-4 w-4" />
-                  Create Treatment Plan
-                </Button>
-              </div>
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="history">
-          <div className="space-y-6">
-            {completedPlans && completedPlans.length > 0 ? (
-              completedPlans.map((plan) => (
-                <Card key={plan.id} className="mb-6">
-                  <CardHeader>
+          ) : filteredPlans.length > 0 ? (
+            <div className="space-y-4">
+              {filteredPlans.map((plan) => (
+                <Card key={plan.id} className={`overflow-hidden ${plan.aiGenerated ? "border-primary/20 bg-primary/5" : ""}`}>
+                  <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                       <div>
-                        <CardTitle>{plan.title}</CardTitle>
-                        <CardDescription>{plan.description}</CardDescription>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Badge variant="outline">Completed</Badge>
-                          <span className="text-sm text-muted-foreground">
-                            {new Date(plan.updatedAt).toLocaleDateString()}
-                          </span>
+                        <CardTitle className="flex items-center gap-2 cursor-pointer" onClick={() => setSelectedPlan(plan)}>
+                          {plan.aiGenerated && <Brain className="h-4 w-4 text-primary" />}
+                          {plan.title}
+                        </CardTitle>
+                        <CardDescription>
+                          Created on {new Date(plan.createdDate).toLocaleDateString()} by {plan.createdByName}
+                        </CardDescription>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant="outline"
+                          className={
+                            plan.status === "active" ? "border-green-200 text-green-800" :
+                            plan.status === "completed" ? "border-blue-200 text-blue-800" :
+                            plan.status === "cancelled" ? "border-red-200 text-red-800" :
+                            "border-amber-200 text-amber-800"
+                          }
+                        >
+                          {plan.status.charAt(0).toUpperCase() + plan.status.slice(1)}
+                        </Badge>
+                        <div className="flex">
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm" onClick={() => setSelectedPlan(plan)}>
-                        View Details
-                      </Button>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div>
-                        <div className="text-sm text-muted-foreground">Total Cost</div>
-                        <div className="font-semibold">${plan.estimatedCost.toFixed(2)}</div>
+                  <CardContent className="pb-2">
+                    {plan.description && (
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {plan.description}
+                      </p>
+                    )}
+                    
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm">Progress</span>
+                        <span className="text-sm font-medium">{calculateProgress(plan)}%</span>
                       </div>
+                      <Progress value={calculateProgress(plan)} className="h-2" />
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-3">
                       <div>
-                        <div className="text-sm text-muted-foreground">Insurance Coverage</div>
-                        <div className="font-semibold">${plan.insuranceEstimate.toFixed(2)}</div>
+                        <p className="text-xs text-muted-foreground">Total Cost</p>
+                        <p className="font-medium">{formatCurrency(plan.totalCost)}</p>
                       </div>
-                      <div>
-                        <div className="text-sm text-muted-foreground">Treatments</div>
-                        <div className="font-semibold">{plan.treatments.length} procedures</div>
+                      
+                      {plan.insuranceCoverage !== undefined && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Insurance Coverage</p>
+                          <p className="font-medium">{formatCurrency(plan.insuranceCoverage)}</p>
+                        </div>
+                      )}
+                      
+                      {plan.patientResponsibility !== undefined && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Patient Responsibility</p>
+                          <p className="font-medium">{formatCurrency(plan.patientResponsibility)}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2 mt-4">
+                      <h4 className="text-sm font-medium">Treatment Steps</h4>
+                      <div className="space-y-2">
+                        {plan.steps.slice(0, 3).map((step) => (
+                          <div 
+                            key={step.id} 
+                            className="flex items-center p-2 border rounded-md hover:bg-gray-50 cursor-pointer transition-colors"
+                            onClick={() => setSelectedPlan(plan)}
+                          >
+                            <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mr-3 ${
+                              step.status === "completed" ? "bg-green-100" :
+                              step.status === "scheduled" ? "bg-blue-100" :
+                              step.status === "cancelled" ? "bg-red-100" :
+                              "bg-gray-100"
+                            }`}>
+                              {step.status === "completed" ? (
+                                <Check className="h-3 w-3 text-green-600" />
+                              ) : (
+                                <span className="text-xs font-medium">{step.order}</span>
+                              )}
+                            </div>
+                            <div className="flex-grow min-w-0">
+                              <p className="text-sm font-medium truncate">{step.procedure}</p>
+                              <div className="flex items-center">
+                                {step.teeth && (
+                                  <span className="text-xs text-muted-foreground mr-2">
+                                    Teeth: {step.teeth.join(", ")}
+                                  </span>
+                                )}
+                                {step.scheduledDate && (
+                                  <span className="text-xs text-muted-foreground flex items-center">
+                                    <CalendarCheck className="h-3 w-3 mr-1" />
+                                    {new Date(step.scheduledDate).toLocaleDateString()}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <Badge 
+                              variant={
+                                step.status === "completed" ? "outline" :
+                                step.status === "scheduled" ? "secondary" :
+                                step.status === "cancelled" ? "destructive" :
+                                "outline"
+                              }
+                              className="ml-2 flex-shrink-0"
+                            >
+                              {step.status.charAt(0).toUpperCase() + step.status.slice(1)}
+                            </Badge>
+                          </div>
+                        ))}
+                        
+                        {plan.steps.length > 3 && (
+                          <Button 
+                            variant="ghost" 
+                            className="w-full text-sm text-muted-foreground"
+                            onClick={() => setSelectedPlan(plan)}
+                          >
+                            View all {plan.steps.length} steps <ChevronsUpDown className="h-4 w-4 ml-1" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
+                  <CardFooter>
+                    <div className="flex justify-between w-full">
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" className="gap-1">
+                          <Printer className="h-4 w-4" />
+                          Print
+                        </Button>
+                        <Button variant="ghost" size="sm" className="gap-1">
+                          <Download className="h-4 w-4" />
+                          Export
+                        </Button>
+                      </div>
+                      <div>
+                        {plan.status === "draft" && (
+                          <Button variant="outline" size="sm" className="gap-1">
+                            <EditIcon className="h-4 w-4" />
+                            Edit Plan
+                          </Button>
+                        )}
+                        {plan.status === "active" && !plan.consentSigned && (
+                          <Button variant="outline" size="sm" className="gap-1">
+                            <ClipboardCheck className="h-4 w-4" />
+                            Mark Consent
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardFooter>
                 </Card>
-              ))
-            ) : (
-              <div className="bg-white p-6 rounded-lg border shadow-sm text-center">
-                <div className="py-8">
-                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <History className="h-10 w-10 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-medium">No Treatment History</h3>
-                  <p className="text-muted-foreground max-w-md mx-auto mt-2">
-                    This patient has no completed treatment plans in their history.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="alternatives">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-primary" />
-                AI-Generated Treatment Alternatives
-              </CardTitle>
-              <CardDescription>
-                Our AI can analyze the current treatment plan and suggest alternative approaches
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-primary-50 p-4 rounded-md mb-6 flex items-start gap-4">
-                <div className="p-2 bg-primary-100 rounded-full text-primary">
-                  <Brain className="h-6 w-6" />
-                </div>
-                <div>
-                  <h4 className="font-medium">How it works</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    The AI will analyze the current treatment plan, patient history, and latest evidence-based 
-                    dentistry to suggest personalized alternative treatment approaches that may be more 
-                    affordable, less invasive, or better suited to the patient's specific needs.
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-center py-8">
-                <div className="w-20 h-20 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <GitBranchPlus className="h-10 w-10 text-primary" />
-                </div>
-                <h3 className="text-lg font-medium">Generate Alternative Treatment Options</h3>
-                <p className="text-muted-foreground max-w-md mx-auto mt-2">
-                  Click the button below to have our AI generate alternative treatment approaches based on 
-                  the current plan.
-                </p>
-                <Button className="mt-4 gap-2" onClick={generateAlternatives}>
-                  <Brain className="h-4 w-4" />
-                  Generate Alternatives
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="financials">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-primary" />
-                  Financial Summary
-                </CardTitle>
-                <CardDescription>
-                  Cost breakdown and payment options for treatment plans
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {activePlan ? (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="p-4 bg-gray-50 rounded-lg text-center">
-                        <div className="text-sm text-muted-foreground mb-1">Total Treatment Cost</div>
-                        <div className="text-2xl font-bold">${activePlan.estimatedCost.toFixed(2)}</div>
-                      </div>
-                      <div className="p-4 bg-green-50 rounded-lg text-center">
-                        <div className="text-sm text-muted-foreground mb-1">Insurance Coverage</div>
-                        <div className="text-2xl font-bold text-green-700">${activePlan.insuranceEstimate.toFixed(2)}</div>
-                      </div>
-                      <div className="p-4 bg-blue-50 rounded-lg text-center">
-                        <div className="text-sm text-muted-foreground mb-1">Patient Responsibility</div>
-                        <div className="text-2xl font-bold text-blue-700">
-                          ${(activePlan.estimatedCost - activePlan.insuranceEstimate).toFixed(2)}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-3">Treatment Cost Breakdown</h4>
-                      <div className="border rounded-md overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Treatment
-                              </th>
-                              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Cost
-                              </th>
-                              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Insurance
-                              </th>
-                              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Patient Pays
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {activePlan.treatments.map((treatment) => (
-                              <tr key={treatment.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                  {treatment.title}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
-                                  ${treatment.cost.toFixed(2)}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 text-right">
-                                  ${(treatment.insuranceCoverage || 0).toFixed(2)}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 text-right">
-                                  ${(treatment.cost - (treatment.insuranceCoverage || 0)).toFixed(2)}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                          <tfoot className="bg-gray-50">
-                            <tr>
-                              <td className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Totals
-                              </td>
-                              <td className="px-6 py-3 text-right text-xs font-medium text-gray-900">
-                                ${activePlan.estimatedCost.toFixed(2)}
-                              </td>
-                              <td className="px-6 py-3 text-right text-xs font-medium text-green-600">
-                                ${activePlan.insuranceEstimate.toFixed(2)}
-                              </td>
-                              <td className="px-6 py-3 text-right text-xs font-medium text-blue-600">
-                                ${(activePlan.estimatedCost - activePlan.insuranceEstimate).toFixed(2)}
-                              </td>
-                            </tr>
-                          </tfoot>
-                        </table>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-3">Payment Options</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
-                          <h5 className="font-medium">Pay in Full</h5>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Pay the entire amount and receive a 5% discount
-                          </p>
-                          <div className="mt-3 text-lg font-semibold text-green-700">
-                            ${(
-                              (activePlan.estimatedCost - activePlan.insuranceEstimate) * 0.95
-                            ).toFixed(2)}
-                          </div>
-                          <Button size="sm" className="mt-2 w-full">Select</Button>
-                        </div>
-
-                        <div className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
-                          <h5 className="font-medium">3-Month Plan</h5>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Split payments over 3 months with no interest
-                          </p>
-                          <div className="mt-3 text-lg font-semibold">
-                            ${(
-                              (activePlan.estimatedCost - activePlan.insuranceEstimate) / 3
-                            ).toFixed(2)}/mo
-                          </div>
-                          <Button size="sm" className="mt-2 w-full" variant="outline">Select</Button>
-                        </div>
-
-                        <div className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
-                          <h5 className="font-medium">Care Credit</h5>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            No interest if paid in full within 12 months
-                          </p>
-                          <div className="mt-3 text-lg font-semibold">
-                            ${(
-                              (activePlan.estimatedCost - activePlan.insuranceEstimate) / 12
-                            ).toFixed(2)}/mo
-                          </div>
-                          <Button size="sm" className="mt-2 w-full" variant="outline">Select</Button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" className="gap-2">
-                        <Printer className="h-4 w-4" />
-                        Print Estimate
-                      </Button>
-                      <Button variant="outline" className="gap-2">
-                        <Share2 className="h-4 w-4" />
-                        Email to Patient
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">
-                      No active treatment plan to display financial information.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-10 bg-gray-50 rounded-lg border">
+              <ListTodo className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+              <h3 className="text-lg font-medium">No Treatment Plans Found</h3>
+              <p className="text-muted-foreground max-w-sm mx-auto mt-1">
+                There are no {activeTab !== "all" && activeTab !== "ai-generated" ? activeTab : ""} 
+                {activeTab === "ai-generated" ? "AI generated " : ""} 
+                treatment plans available for this patient.
+              </p>
+              <Button 
+                className="mt-4 gap-2"
+                onClick={() => setShowNewPlanDialog(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Create Treatment Plan
+              </Button>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
+
+      {/* New Treatment Plan Dialog */}
+      <Dialog open={showNewPlanDialog} onOpenChange={setShowNewPlanDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Create New Treatment Plan</DialogTitle>
+            <DialogDescription>
+              Create a comprehensive treatment plan for this patient
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="planTitle">Plan Title</Label>
+              <Input id="planTitle" placeholder="e.g. Comprehensive Restoration" />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="planDescription">Description</Label>
+              <Textarea 
+                id="planDescription" 
+                placeholder="Enter a description of the overall treatment plan" 
+                rows={3}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label>Treatment Steps</Label>
+                <Button variant="outline" size="sm" className="gap-1">
+                  <Plus className="h-4 w-4" />
+                  Add Step
+                </Button>
+              </div>
+              
+              <div className="space-y-4 mt-3">
+                {[1, 2].map((stepNum) => (
+                  <div key={stepNum} className="border rounded-md p-4 relative">
+                    <div className="absolute -left-3 -top-3 flex items-center justify-center w-6 h-6 bg-primary text-white rounded-full text-sm font-medium">
+                      {stepNum}
+                    </div>
+                    <div className="absolute right-2 top-2">
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <GripVertical className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                      <div className="space-y-2">
+                        <Label>Procedure</Label>
+                        <Input placeholder="e.g. Root Canal Therapy" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Affected Teeth</Label>
+                        <Input placeholder="e.g. #18, #19" />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2 mb-4">
+                      <Label>Description</Label>
+                      <Textarea rows={2} placeholder="Brief description of the procedure" />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Cost</Label>
+                        <Input placeholder="Enter cost" type="number" min="0" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Priority</Label>
+                        <Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="high">High</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="low">Low</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Estimated Time</Label>
+                        <Input placeholder="e.g. 60 minutes" />
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end mt-4">
+                      <Button variant="ghost" size="sm" className="text-red-500 gap-1">
+                        <Trash2 className="h-4 w-4" />
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <Separator />
+            
+            <div className="space-y-4">
+              <h3 className="font-medium">AI Assistance</h3>
+              
+              <div className="flex items-start space-x-3 p-4 bg-primary/5 border border-primary/20 rounded-md">
+                <Sparkles className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <p className="text-sm text-primary font-medium">Generate Treatment Plan with AI</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    SmartDental AI can suggest an optimal treatment plan based on the patient's dental history, x-rays, and current conditions.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-3 gap-1 border-primary/50 text-primary"
+                  >
+                    <Brain className="h-4 w-4" />
+                    Generate AI Plan
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <div className="flex justify-between w-full items-center">
+              <div className="flex items-center space-x-2">
+                <Checkbox id="saveDraft" />
+                <Label htmlFor="saveDraft">Save as draft</Label>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowNewPlanDialog(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={() => setShowNewPlanDialog(false)}>
+                  Create Plan
+                </Button>
+              </div>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Treatment Plan Detail Dialog */}
+      {selectedPlan && (
+        <Dialog open={!!selectedPlan} onOpenChange={(open) => !open && setSelectedPlan(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+            <DialogHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <DialogTitle className="flex items-center gap-2">
+                    {selectedPlan.aiGenerated && <Brain className="h-5 w-5 text-primary" />}
+                    {selectedPlan.title}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Created on {new Date(selectedPlan.createdDate).toLocaleDateString()} by {selectedPlan.createdByName}
+                  </DialogDescription>
+                </div>
+                <Badge 
+                  variant="outline"
+                  className={
+                    selectedPlan.status === "active" ? "border-green-200 text-green-800" :
+                    selectedPlan.status === "completed" ? "border-blue-200 text-blue-800" :
+                    selectedPlan.status === "cancelled" ? "border-red-200 text-red-800" :
+                    "border-amber-200 text-amber-800"
+                  }
+                >
+                  {selectedPlan.status.charAt(0).toUpperCase() + selectedPlan.status.slice(1)}
+                </Badge>
+              </div>
+            </DialogHeader>
+            
+            <div className="space-y-6 py-4">
+              {selectedPlan.description && (
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
+                  <p>{selectedPlan.description}</p>
+                </div>
+              )}
+              
+              <div className="bg-gray-50 p-4 rounded-md grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Total Cost</h3>
+                  <p className="text-lg font-medium">{formatCurrency(selectedPlan.totalCost)}</p>
+                </div>
+                
+                {selectedPlan.insuranceCoverage !== undefined && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Insurance Coverage</h3>
+                    <p className="text-lg font-medium">{formatCurrency(selectedPlan.insuranceCoverage)}</p>
+                  </div>
+                )}
+                
+                {selectedPlan.patientResponsibility !== undefined && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Patient Responsibility</h3>
+                    <p className="text-lg font-medium">{formatCurrency(selectedPlan.patientResponsibility)}</p>
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-medium">Treatment Steps</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">Progress:</span>
+                    <Progress value={calculateProgress(selectedPlan)} className="h-2 w-24" />
+                    <span className="text-sm font-medium">{calculateProgress(selectedPlan)}%</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  {selectedPlan.steps.map((step) => (
+                    <div 
+                      key={step.id} 
+                      className="relative border rounded-md p-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className={`absolute -left-3 -top-3 flex items-center justify-center w-6 h-6 rounded-full text-sm font-medium ${
+                        step.status === "completed" ? "bg-green-500 text-white" :
+                        step.status === "scheduled" ? "bg-blue-500 text-white" :
+                        step.status === "cancelled" ? "bg-red-500 text-white" :
+                        "bg-gray-200 text-gray-700"
+                      }`}>
+                        {step.status === "completed" ? (
+                          <Check className="h-3 w-3" />
+                        ) : (
+                          <span>{step.order}</span>
+                        )}
+                      </div>
+                      
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-medium">{step.procedure}</h4>
+                        <Badge 
+                          variant={
+                            step.status === "completed" ? "outline" :
+                            step.status === "scheduled" ? "secondary" :
+                            step.status === "cancelled" ? "destructive" :
+                            "outline"
+                          }
+                        >
+                          {step.status.charAt(0).toUpperCase() + step.status.slice(1)}
+                        </Badge>
+                      </div>
+                      
+                      {step.description && (
+                        <p className="text-sm text-muted-foreground mb-3">{step.description}</p>
+                      )}
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Cost</p>
+                          <p className="text-sm font-medium">{formatCurrency(step.cost)}</p>
+                        </div>
+                        
+                        {step.estimatedTime && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">Est. Time</p>
+                            <p className="text-sm font-medium">{step.estimatedTime}</p>
+                          </div>
+                        )}
+                        
+                        {step.provider && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">Provider</p>
+                            <p className="text-sm font-medium">{step.provider}</p>
+                          </div>
+                        )}
+                        
+                        {step.teeth && step.teeth.length > 0 && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">Teeth</p>
+                            <p className="text-sm font-medium">{step.teeth.join(", ")}</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {step.status !== "completed" && step.status !== "cancelled" && (
+                        <div className="flex justify-end mt-3 gap-2">
+                          {step.status !== "scheduled" && (
+                            <Button variant="outline" size="sm" className="gap-1">
+                              <CalendarCheck className="h-4 w-4" />
+                              Schedule
+                            </Button>
+                          )}
+                          <Button variant="outline" size="sm" className="gap-1">
+                            <Check className="h-4 w-4" />
+                            Mark Completed
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {selectedPlan.aiGenerated && (
+                <div className="bg-primary/5 border border-primary/20 p-4 rounded-md">
+                  <div className="flex items-start gap-3">
+                    <Brain className="h-5 w-5 text-primary mt-1" />
+                    <div>
+                      <h4 className="font-medium text-primary mb-2">AI Treatment Recommendations</h4>
+                      <p className="text-sm">
+                        This treatment plan was generated by SmartDental AI based on the patient's dental history, 
+                        x-rays, and current conditions. The plan prioritizes urgent treatments while optimizing for 
+                        cost-effectiveness and long-term oral health.
+                      </p>
+                      <div className="mt-3 flex items-center gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="gap-1 border-primary/50 text-primary"
+                        >
+                          <InfoIcon className="h-4 w-4" />
+                          View AI Reasoning
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                        >
+                          <ThumbsUp className="h-4 w-4" />
+                          Accept Plan
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {selectedPlan.consentSigned && (
+                <div className="bg-green-50 p-3 rounded-md flex items-center gap-2">
+                  <ClipboardCheck className="h-5 w-5 text-green-600" />
+                  <div>
+                    <p className="text-sm font-medium text-green-800">Patient Consent Signed</p>
+                    <p className="text-xs text-green-700">
+                      Patient signed consent for this treatment plan on {new Date(selectedPlan.consentDate!).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <div className="flex justify-between w-full">
+                <div className="flex gap-2">
+                  <Button variant="outline" className="gap-2">
+                    <Printer className="h-4 w-4" />
+                    Print Plan
+                  </Button>
+                  <Button variant="outline" className="gap-2">
+                    <CreditCard className="h-4 w-4" />
+                    Payment Options
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  {selectedPlan.status === "draft" && (
+                    <Button className="gap-2">
+                      <ArrowRight className="h-4 w-4" />
+                      Activate Plan
+                    </Button>
+                  )}
+                  {selectedPlan.status === "active" && !selectedPlan.consentSigned && (
+                    <Button className="gap-2">
+                      <FileText className="h-4 w-4" />
+                      Record Consent
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
