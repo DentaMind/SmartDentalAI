@@ -30,10 +30,29 @@ import {
   Pill, 
   Save, 
   Stethoscope, 
-  Tooth, 
   UserCog, 
   X 
 } from "lucide-react";
+
+// Custom Tooth icon since it's not available in lucide-react
+const Tooth = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M12 5.5c-1.5-1-2.5-2-3-3-.5-1.5-.5-4-2-4-.5 0-1 .5-1 1 0 1 1 2 1 3 0 .5-.5 1-1 1-1.5 0-3-1-3-2.5 0-1 .5-2 1.5-2.5.5 0 1.5-.5 2.5-.5 4 0 5.5 3 7 5 1.5-2 3-5 7-5 1 0 2 .5 2.5.5 1 .5 1.5 1.5 1.5 2.5 0 1.5-1.5 2.5-3 2.5-.5 0-1-.5-1-1 0-1 1-2 1-3 0-.5-.5-1-1-1-1.5 0-1.5 2.5-2 4-.5 1-1.5 2-3 3z" />
+    <path d="M8 14c-3-3-4-6-4-8 0-1 0-2 1-3 0 0 2 1 4 3 2 1 3 3 3 6v10c0 1 0 2-1 2-2 0-7-4-7-8 0-2 1-4 3-5" />
+    <path d="M16 14c3-3 4-6 4-8 0-1 0-2-1-3 0 0-2 1-4 3-2 1-3 3-3 6v10c0 1 0 2 1 2 2 0 7-4 7-8 0-2-1-4-3-5" />
+  </svg>
+);
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -77,7 +96,7 @@ export default function PatientTreatmentPage() {
   const [showSignOffModal, setShowSignOffModal] = useState(false);
   
   // Fetch patient data
-  const { data: patient, isLoading } = usePatientById(patientId);
+  const { patient, loading: isLoading } = usePatientById(patientId);
   
   // When component is about to unmount (user navigating away)
   useEffect(() => {
@@ -193,7 +212,6 @@ export default function PatientTreatmentPage() {
           
           <div className="flex items-center gap-3">
             <Avatar className="h-12 w-12">
-              <AvatarImage src={patient.profileImage} />
               <AvatarFallback className="bg-primary/10 text-primary">
                 {getInitials(patientName)}
               </AvatarFallback>

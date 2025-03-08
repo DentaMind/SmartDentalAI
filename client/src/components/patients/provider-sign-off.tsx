@@ -73,14 +73,16 @@ export function ProviderSignOff({
   // Mutation for submitting sign-off
   const signOffMutation = useMutation({
     mutationFn: async (data: SignOffFormValues) => {
-      return apiRequest("POST", "/api/provider/sign-off", {
-        body: JSON.stringify({
+      return apiRequest({
+        method: "POST", 
+        url: "/api/provider/sign-off", 
+        body: {
           licenseNumber: data.licenseNumber,
           patientId,
           providerId: user?.id,
           acknowledgeChanges: data.acknowledgeChanges,
           timestamp: new Date().toISOString(),
-        }),
+        }
       });
     },
     onSuccess: () => {
