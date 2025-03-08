@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect, Route } from "wouter";
+import { Redirect, Route, useLocation } from "wouter";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
+import { useEffect } from "react";
 
 export function ProtectedRoute({
   path,
@@ -9,7 +10,19 @@ export function ProtectedRoute({
   path: string;
   component: () => React.JSX.Element;
 }) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, refreshAuth } = useAuth();
+  const [location] = useLocation();
+  
+  // Attempt to refresh authentication when component mounts or path changes
+  useEffect(() => {
+    // Only attempt to refresh if we're on this route path and not already authenticated
+    if (location === path && !user && !isLoading) {
+      console.log(`[protected-route] Attempting to refresh authentication for path: ${path}`);
+      refreshAuth().catch(error => {
+        console.error("[protected-route] Auth refresh failed:", error);
+      });
+    }
+  }, [path, location, user, isLoading, refreshAuth]);
 
   if (isLoading) {
     return (
@@ -23,10 +36,12 @@ export function ProtectedRoute({
   }
 
   if (!user) {
-    // Check if we're already in a redirect cycle to prevent infinite loops
-    if (sessionStorage.getItem("inAuthPage") !== "true") {
+    // Prevent redirect loops by checking if already on auth page
+    const isAuthPage = location.startsWith("/auth");
+    if (!isAuthPage && sessionStorage.getItem("inAuthPage") !== "true") {
+      // Store where we're redirecting from for post-login redirection
       sessionStorage.setItem("redirectedFrom", path);
-      console.log("[protected-route] Redirecting to auth page from:", path);
+      console.log(`[protected-route] Redirecting to auth page from: ${path}`);
       
       return (
         <Route path={path}>
@@ -45,5 +60,6 @@ export function ProtectedRoute({
     }
   }
 
+  // User is authenticated, render the protected component
   return <Route path={path} component={Component} />
 }

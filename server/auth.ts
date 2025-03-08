@@ -310,10 +310,18 @@ export function setupAuth(router: express.Router) {
   });
 
   router.get("/user", (req, res) => {
+    // Log the request without sensitive details
+    console.log(`User endpoint accessed. Authenticated: ${req.isAuthenticated()}`);
+    
     if (!req.isAuthenticated()) {
+      // Create an audit log
+      const ipAddress = req.ip || req.socket.remoteAddress || 'unknown';
+      console.log(`[AUDIT] ${new Date().toISOString()} | User: anonymous | Action: api_request | Resource: /user | Result: success`);
       console.log("Unauthenticated user tried to access /user");
-      return res.sendStatus(401);
+      return res.status(401).json({ message: "Not authenticated" });
     }
+    
+    // User is authenticated, return user data
     res.json(req.user);
   });
 }
