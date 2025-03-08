@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { OrthodonticAnalyzer } from "@/components/orthodontic/orthodontic-analyzer";
-import { usePatient, Patient } from "@/hooks/use-patient";
+import { usePatient, Patient } from "../hooks/use-patient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrainCircuit, Calendar, ChevronRight, Cog, Ruler, Box, User } from "lucide-react";
 

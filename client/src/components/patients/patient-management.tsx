@@ -5,8 +5,8 @@ import { Plus, Search, FileText, UserPlus, Trash2, Edit, MoreVertical } from "lu
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { usePatient, Patient } from "@/hooks/use-patient";
-import { DataTable } from "@/components/ui/data-table";
+import { usePatient, Patient } from "../../hooks/use-patient";
+import { DataTable } from "../ui/data-table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";

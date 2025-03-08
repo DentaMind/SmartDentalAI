@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Brain, UploadCloud, Image, FileText } from 'lucide-react';
-import { usePatientById } from '@/hooks/use-patient';
+import { usePatientById } from '../../hooks/use-patient';
 
 interface OrthodonticAnalyzerProps {
   patientId?: number;
