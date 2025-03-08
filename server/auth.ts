@@ -6,6 +6,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User, InsertUser } from "@shared/schema";
+import { requireAuth } from "./middleware/auth";
 
 // Define a simplified user type for authentication purposes
 type AuthUser = {
@@ -129,7 +130,7 @@ export function setupAuth(router: express.Router) {
     }
   });
 
-  router.post("/register", async (req, res, next) => {
+  router.post("/auth/register", async (req, res, next) => {
     try {
       console.log("Registration attempt:", { username: req.body.username });
 
@@ -191,7 +192,7 @@ export function setupAuth(router: express.Router) {
     }
   });
 
-  router.post("/login", (req, res, next) => {
+  router.post("/auth/login", (req, res, next) => {
     try {
       console.log("Login attempt:", { username: req.body.username });
 
@@ -225,7 +226,7 @@ export function setupAuth(router: express.Router) {
     }
   });
 
-  router.post("/logout", (req, res, next) => {
+  router.post("/auth/logout", (req, res, next) => {
     const username = req.user?.username;
     console.log(`Logout attempt for user: ${username}`);
 
@@ -237,6 +238,75 @@ export function setupAuth(router: express.Router) {
       console.log(`User logged out successfully: ${username}`);
       res.sendStatus(200);
     });
+  });
+
+  // MFA setup endpoint
+  router.post("/auth/mfa/setup", requireAuth, async (req, res) => {
+    try {
+      // This would actually generate MFA secrets and QR codes in a production app
+      // For demo purposes, we're just returning mock data
+      const mfaSecret = randomBytes(20).toString('hex');
+      res.json({
+        mfaSecret,
+        currentCode: "123456", // This would be generated based on the secret
+        setupUri: `otpauth://totp/DentaMind:${req.user?.username}?secret=${mfaSecret}&issuer=DentaMind`
+      });
+    } catch (error) {
+      console.error("MFA setup error:", error);
+      res.status(500).json({ message: "Failed to setup MFA" });
+    }
+  });
+
+  // MFA enable endpoint
+  router.post("/auth/mfa/enable", requireAuth, (req, res) => {
+    try {
+      const { verificationCode } = req.body;
+      
+      if (!verificationCode) {
+        return res.status(400).json({ message: "Verification code is required" });
+      }
+      
+      // In a real app, this would verify the code against the user's MFA secret
+      // and then enable MFA for their account
+      res.json({ success: true });
+    } catch (error) {
+      console.error("MFA enable error:", error);
+      res.status(500).json({ message: "Failed to enable MFA" });
+    }
+  });
+
+  // MFA disable endpoint
+  router.post("/auth/mfa/disable", requireAuth, (req, res) => {
+    try {
+      const { password } = req.body;
+      
+      if (!password) {
+        return res.status(400).json({ message: "Password is required" });
+      }
+      
+      // In a real app, this would verify the password and disable MFA
+      res.json({ success: true });
+    } catch (error) {
+      console.error("MFA disable error:", error);
+      res.status(500).json({ message: "Failed to disable MFA" });
+    }
+  });
+
+  // Password change endpoint
+  router.post("/auth/password/change", requireAuth, (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current and new password are required" });
+      }
+      
+      // In a real app, this would verify the current password and update to the new one
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Password change error:", error);
+      res.status(500).json({ message: "Failed to change password" });
+    }
   });
 
   router.get("/user", (req, res) => {
