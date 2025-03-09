@@ -155,29 +155,80 @@ export class MemStorage implements IStorage {
       phoneNumber: insertPatient.phoneNumber || null,
       dateOfBirth: insertPatient.dateOfBirth || null,
       
-      // New fields from the extended patient form
+      // Personal Information
       homeAddress: insertPatient.homeAddress || null,
+      socialSecurityNumber: insertPatient.socialSecurityNumber || null,
+      
+      // Emergency contact information
       emergencyContactName: insertPatient.emergencyContactName || null,
       emergencyContactPhone: insertPatient.emergencyContactPhone || null,
       emergencyContactRelationship: insertPatient.emergencyContactRelationship || null,
       
+      // Insurance Information
       insuranceProvider: insertPatient.insuranceProvider || null,
-      insuranceNumber: insertPatient.insuranceNumber || null,
+      insuranceNumber: insertPatient.insuranceNumber || null, 
+      insuranceGroupNumber: insertPatient.insuranceGroupNumber || null,
+      insurancePrimaryHolder: insertPatient.insurancePrimaryHolder || null,
+      insuranceHolderRelation: insertPatient.insuranceHolderRelation || null,
       
-      // Medical history extended fields
+      // Medical history expanded fields
       medicalHistory: insertPatient.medicalHistory || null,
-      currentTreatment: insertPatient.currentTreatment || null,
-      medications: insertPatient.medications || null,
+      underPhysicianCare: insertPatient.underPhysicianCare || null,
+      physicianConditions: insertPatient.physicianConditions || null,
       allergies: insertPatient.allergies || null,
-      bloodType: insertPatient.bloodType || null,
+      pastSurgeries: insertPatient.pastSurgeries || null,
+      currentMedications: insertPatient.currentMedications || null,
+      adverseAnestheticReaction: insertPatient.adverseAnestheticReaction || null,
+      hospitalizedRecently: insertPatient.hospitalizedRecently || null,
+      
+      // Medical conditions
+      hypertension: insertPatient.hypertension || null,
+      diabetes: insertPatient.diabetes || null,
+      heartDisease: insertPatient.heartDisease || null,
+      asthma: insertPatient.asthma || null,
+      arthritis: insertPatient.arthritis || null,
+      cancer: insertPatient.cancer || null,
+      stroke: insertPatient.stroke || null,
+      kidneyDisease: insertPatient.kidneyDisease || null,
+      liverDisease: insertPatient.liverDisease || null,
+      thyroidDisease: insertPatient.thyroidDisease || null,
+      mentalIllness: insertPatient.mentalIllness || null,
+      seizures: insertPatient.seizures || null,
+      bleedingDisorders: insertPatient.bleedingDisorders || null,
+      autoimmune: insertPatient.autoimmune || null,
+      hepatitis: insertPatient.hepatitis || null,
+      hivAids: insertPatient.hivAids || null,
+      lungDisease: insertPatient.lungDisease || null,
+      osteoporosis: insertPatient.osteoporosis || null,
+      
+      // Lifestyle
       smokesTobacco: insertPatient.smokesTobacco || null,
+      useAlcohol: insertPatient.useAlcohol || null,
       isPregnantOrNursing: insertPatient.isPregnantOrNursing || null,
+      
+      // Legacy fields
+      medications: insertPatient.medications || null,
+      bloodType: insertPatient.bloodType || null,
       
       // Dental history
       lastDentalVisit: insertPatient.lastDentalVisit || null,
-      dentalHistory: insertPatient.dentalHistory || null,
-      currentSymptoms: insertPatient.currentSymptoms || null,
+      whenIssueStarted: insertPatient.whenIssueStarted || null,
+      experiencedBefore: insertPatient.experiencedBefore || null,
       chiefComplaint: insertPatient.chiefComplaint || null,
+      currentSymptoms: insertPatient.currentSymptoms || null,
+      previousDentalProcedures: insertPatient.previousDentalProcedures || null,
+      dentalHistory: insertPatient.dentalHistory || null,
+      
+      // Dental conditions
+      hadGumDisease: insertPatient.hadGumDisease || null,
+      hadExtractions: insertPatient.hadExtractions || null,
+      hadDentalImplants: insertPatient.hadDentalImplants || null,
+      hadOrthodonticTreatment: insertPatient.hadOrthodonticTreatment || null,
+      hadRootCanal: insertPatient.hadRootCanal || null,
+      hadJawPain: insertPatient.hadJawPain || null,
+      sensitivityToHotCold: insertPatient.sensitivityToHotCold || null,
+      grindTeeth: insertPatient.grindTeeth || null,
+      interestedInCosmetic: insertPatient.interestedInCosmetic || null,
       
       // Consent forms
       hipaaConsent: insertPatient.hipaaConsent || null,
