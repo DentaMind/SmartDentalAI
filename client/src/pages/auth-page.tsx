@@ -129,13 +129,35 @@ export default function AuthPage() {
   
   const onStaffRegister = async (data: UserRegistrationData) => {
     console.log("Registering staff with data:", data);
+    
+    // Verify the license number is in proper format
+    const licenseNumberRegex = /^[A-Z]{2}\d{6}$/;
+    if (data.licenseNumber && !licenseNumberRegex.test(data.licenseNumber)) {
+      staffForm.setError("licenseNumber", { 
+        type: "manual", 
+        message: "License number must be in format: 2 letters followed by 6 digits (e.g., AB123456)" 
+      });
+      return;
+    }
+    
     try {
+      // In a real implementation, we would first verify the license number with a database
+      // before allowing registration
       await register({
         ...data,
         role: "staff"
       });
     } catch (err) {
       console.error("Registration failed:", err);
+      
+      // Handle specific error for invalid license
+      const errorMessage = err instanceof Error ? err.message : "Registration failed";
+      if (errorMessage.includes("license")) {
+        staffForm.setError("licenseNumber", { 
+          type: "manual", 
+          message: "License number not found in our system. Please contact administration." 
+        });
+      }
     }
   };
 

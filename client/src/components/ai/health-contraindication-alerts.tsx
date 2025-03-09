@@ -248,87 +248,181 @@ const HealthContraindicationAlerts: React.FC<{
     feedbackMutation.mutate({ alertId, feedback });
   };
   
-  // If no alerts data, use some mock data for demonstration
-  const mockAlerts: ContraindicationAlert[] = [
-    {
-      id: "alert1",
-      patientId,
-      title: "Medication Interaction Risk",
-      description: "Potential interaction between prescribed Amoxicillin and patient's current medication Warfarin. Risk of increased bleeding due to alteration of gut flora and reduction in vitamin K production.",
-      severity: "high",
-      source: "medication",
-      sourceName: "Medication Interaction Check",
-      createdAt: new Date("2025-03-05T10:30:00"),
-      updatedAt: new Date("2025-03-05T10:30:00"),
-      status: "active",
-      recommendedAction: "Consider alternative antibiotic or adjust Warfarin dosage with close INR monitoring.",
-      references: [
-        "Johnson et al. (2022). Antibiotic-Warfarin Interactions. Journal of Clinical Pharmacy",
-        "American Dental Association Guidelines (2024)"
-      ],
-      additionalData: {
-        medications: ["Amoxicillin", "Warfarin"],
-        interactionMechanism: "Antibiotic-induced alteration of vitamin K production",
-        monitoringRecommendation: "Check INR within 3-5 days of starting antibiotic"
-      }
-    },
-    {
-      id: "alert2",
-      patientId,
-      title: "Uncontrolled Hypertension",
-      description: "Patient's last recorded blood pressure was 165/95 mm Hg. Caution advised with vasoconstrictors in local anesthetics.",
-      severity: "medium",
-      source: "condition",
-      sourceName: "Vital Signs Monitor",
-      createdAt: new Date("2025-03-04T14:45:00"),
-      updatedAt: new Date("2025-03-04T14:45:00"),
-      status: "active",
-      recommendedAction: "Limit epinephrine to no more than 2 carpules (1:100,000) per appointment. Consider medical consultation prior to extensive procedures.",
-      references: [
-        "American Heart Association (2023). Hypertension Management in Dental Settings",
-        "Dental Management of the Medically Compromised Patient, 9th Edition"
-      ]
-    },
-    {
-      id: "alert3",
-      patientId,
-      title: "Abnormal Liver Function Test Results",
-      description: "Recent lab results show elevated ALT (85 U/L) and AST (90 U/L), indicating potential liver function issues. Caution with hepatically metabolized medications.",
-      severity: "medium",
-      source: "lab",
-      sourceName: "Laboratory Analysis",
-      createdAt: new Date("2025-03-01T09:15:00"),
-      updatedAt: new Date("2025-03-01T09:15:00"),
-      status: "active",
-      recommendedAction: "Avoid or reduce dosage of acetaminophen-containing analgesics. Consider medical consultation before prescribing NSAIDs.",
-      additionalData: {
-        labValues: {
+  // Generate more comprehensive and dynamic demonstration alerts
+  const generateDynamicAlerts = (): ContraindicationAlert[] => {
+    // Get today's date for more realistic timestamps
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const lastWeek = new Date(today);
+    lastWeek.setDate(lastWeek.getDate() - 7);
+    
+    // Common dental medications with potential interactions
+    const medications = [
+      { name: "Amoxicillin", interactions: ["Warfarin", "Methotrexate", "Allopurinol"], type: "antibiotic" },
+      { name: "Ketoconazole", interactions: ["Simvastatin", "Lovastatin", "Alprazolam"], type: "antifungal" },
+      { name: "Erythromycin", interactions: ["Carbamazepine", "Theophylline", "Digoxin"], type: "antibiotic" },
+      { name: "Ibuprofen", interactions: ["Warfarin", "Lithium", "Methotrexate"], type: "NSAID" },
+      { name: "Acetaminophen", interactions: ["Warfarin", "Isoniazid"], type: "analgesic" }
+    ];
+    
+    // Common medical conditions with dental implications
+    const conditions = [
+      { name: "Hypertension", severity: "medium", risk: "Epinephrine in anesthetics", recommendation: "Limit epinephrine to 0.04mg per appointment" },
+      { name: "Diabetes", severity: "high", risk: "Delayed healing, increased infection risk", recommendation: "Monitor blood glucose, schedule morning appointments" },
+      { name: "Osteoporosis + Bisphosphonates", severity: "critical", risk: "Osteonecrosis of the jaw", recommendation: "Avoid invasive procedures" },
+      { name: "Immunosuppression", severity: "high", risk: "Opportunistic infections", recommendation: "Prophylactic antibiotics may be needed" }
+    ];
+    
+    // Generate medication interaction alert
+    const randomMedIndex = Math.floor(Math.random() * medications.length);
+    const medication = medications[randomMedIndex];
+    const interactionIndex = Math.floor(Math.random() * medication.interactions.length);
+    const interactingMed = medication.interactions[interactionIndex];
+    
+    // Generate condition alert
+    const randomCondIndex = Math.floor(Math.random() * conditions.length);
+    const condition = conditions[randomCondIndex];
+    
+    // Generate lab results alert
+    const labValues = {
+      "elevated": { 
+        name: "Liver Function Tests", 
+        values: {
           "ALT": "85 U/L (Normal: 7-55 U/L)",
           "AST": "90 U/L (Normal: 8-48 U/L)",
           "ALP": "150 U/L (Normal: 40-129 U/L)"
+        },
+        description: "Recent lab results show elevated liver enzymes, indicating potential liver function issues. Caution with hepatically metabolized medications.",
+        recommendation: "Avoid or reduce dosage of acetaminophen. Consider medical consultation before prescribing NSAIDs."
+      },
+      "abnormal": {
+        name: "Complete Blood Count",
+        values: {
+          "WBC": "11.5 K/μL (Normal: 4.5-10 K/μL)",
+          "Platelets": "120 K/μL (Normal: 150-450 K/μL)",
+          "Neutrophils": "75% (Normal: 40-60%)"
+        },
+        description: "CBC shows elevated white blood cell count and low platelets, which may indicate infection or inflammation. Consider implications for dental treatment.",
+        recommendation: "Monitor for signs of infection. Consider possible causes of platelet reduction before invasive procedures."
+      }
+    };
+    
+    const labKeysArray = Object.keys(labValues);
+    const randomLabKey = labKeysArray[Math.floor(Math.random() * labKeysArray.length)];
+    const labResult = labValues[randomLabKey as keyof typeof labValues];
+    
+    // Generate X-ray finding alert
+    const xrayFindings = [
+      {
+        tooth: "#19",
+        finding: "periapical radiolucency",
+        description: "AI analysis of recent periapical radiograph detected radiolucency associated with tooth #19, suggesting possible periapical infection.",
+        recommendation: "Clinical evaluation recommended. Consider pulp vitality testing and endodontic referral if symptomatic.",
+        confidence: "85%",
+        size: "3.2mm in diameter"
+      },
+      {
+        tooth: "#30",
+        finding: "interproximal caries",
+        description: "AI analysis detected radiolucency in the interproximal region between teeth #30 and #31, consistent with dental caries.",
+        recommendation: "Recommend restoration to prevent progression and pulpal involvement.",
+        confidence: "93%",
+        size: "2.1mm in length"
+      },
+      {
+        tooth: "#3",
+        finding: "horizontal bone loss",
+        description: "AI analysis detected horizontal bone loss in the maxillary right posterior region, particularly around tooth #3, suggesting periodontal disease.",
+        recommendation: "Periodontal evaluation and possible scaling and root planing recommended.",
+        confidence: "89%",
+        measurement: "4mm bone loss from CEJ"
+      }
+    ];
+    
+    const randomXrayIndex = Math.floor(Math.random() * xrayFindings.length);
+    const xrayFinding = xrayFindings[randomXrayIndex];
+    
+    return [
+      {
+        id: "alert1",
+        patientId,
+        title: `${medication.name} - ${interactingMed} Interaction Risk`,
+        description: `Potential interaction between prescribed ${medication.name} and patient's current medication ${interactingMed}. May result in decreased efficacy or increased toxicity.`,
+        severity: "high",
+        source: "medication",
+        sourceName: "Medication Interaction Check",
+        createdAt: yesterday,
+        updatedAt: yesterday,
+        status: "active",
+        recommendedAction: `Consider alternative ${medication.type} or adjust dosing with appropriate monitoring.`,
+        references: [
+          `ADA Clinical Practice Guidelines (2024). ${medication.type.charAt(0).toUpperCase() + medication.type.slice(1)} Interactions in Dental Practice`,
+          `Journal of Dental Pharmacology (2023). ${medication.name} Drug Interactions in Dental Settings`
+        ],
+        additionalData: {
+          medications: [medication.name, interactingMed],
+          interactionMechanism: `Altered metabolism via CYP450 enzyme system`,
+          monitoringRecommendation: `Monitor for signs of ${medication.name === "Warfarin" ? "increased bleeding" : "therapeutic failure or toxicity"}`
+        }
+      },
+      {
+        id: "alert2",
+        patientId,
+        title: condition.name,
+        description: `Patient has ${condition.name}. ${condition.risk}.`,
+        severity: condition.severity,
+        source: "condition",
+        sourceName: "Medical History Analysis",
+        createdAt: today,
+        updatedAt: today,
+        status: "active",
+        recommendedAction: condition.recommendation,
+        references: [
+          `American Dental Association (2024). Dental Management of Patients with ${condition.name}`,
+          `Journal of Advanced Dental Practice (2023). Evidence-based Approaches to ${condition.name} in Dental Settings`
+        ]
+      },
+      {
+        id: "alert3",
+        patientId,
+        title: `Abnormal ${labResult.name}`,
+        description: labResult.description,
+        severity: "medium",
+        source: "lab",
+        sourceName: "Laboratory Analysis",
+        createdAt: lastWeek,
+        updatedAt: lastWeek,
+        status: "active",
+        recommendedAction: labResult.recommendation,
+        additionalData: {
+          labValues: labResult.values
+        }
+      },
+      {
+        id: "alert4",
+        patientId,
+        title: `${xrayFinding.finding.charAt(0).toUpperCase() + xrayFinding.finding.slice(1)} on Tooth ${xrayFinding.tooth}`,
+        description: xrayFinding.description,
+        severity: "low",
+        source: "xray",
+        sourceName: "X-ray AI Analysis",
+        createdAt: lastWeek,
+        updatedAt: lastWeek,
+        status: "active",
+        recommendedAction: xrayFinding.recommendation,
+        additionalData: {
+          xrayDate: lastWeek.toISOString().split('T')[0],
+          aiConfidence: xrayFinding.confidence,
+          location: `Tooth ${xrayFinding.tooth}`,
+          size: xrayFinding.size || xrayFinding.measurement
         }
       }
-    },
-    {
-      id: "alert4",
-      patientId,
-      title: "Potential Periapical Pathology",
-      description: "AI analysis of recent periapical radiograph detected radiolucency associated with tooth #19, suggesting possible periapical infection.",
-      severity: "low",
-      source: "xray",
-      sourceName: "X-ray AI Analysis",
-      createdAt: new Date("2025-02-15T11:20:00"),
-      updatedAt: new Date("2025-02-15T11:20:00"),
-      status: "active",
-      recommendedAction: "Clinical evaluation of tooth #19 recommended. Consider pulp vitality testing and endodontic referral if symptomatic.",
-      additionalData: {
-        xrayDate: "2025-02-15",
-        aiConfidence: "85%",
-        location: "Tooth #19, periapical region",
-        size: "Approximately 3.2mm in diameter"
-      }
-    }
-  ];
+    ];
+  };
+  
+  // Use the dynamic alerts generator
+  const mockAlerts = generateDynamicAlerts();
   
   // Determine which alerts to display
   const displayAlerts = alerts?.length ? alerts : mockAlerts;
