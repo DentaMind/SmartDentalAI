@@ -5,6 +5,7 @@ import app from './app';
 import { setupVite, log } from "./vite";
 import { securityService } from "./services/security";
 import { schedulerService } from "./services/scheduler";
+import { seedDatabase } from "./seed-data";
 
 dotenv.config();
 
@@ -68,6 +69,22 @@ const startServer = async () => {
       console.error('Full error details:', error instanceof Error ? error.stack : error);
       // Don't exit on reminder setup error, just log it
       console.warn('Continuing without automated reminders');
+    }
+    
+    // Seed the database with test data if in development mode
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        console.log('Seeding database with test data...');
+        const seedData = await seedDatabase();
+        console.log('Database seeding completed. Test credentials:');
+        console.log('Dentist:', seedData.dentist);
+        console.log('Patients:', seedData.patients);
+      } catch (error) {
+        console.error('Failed to seed database:', error);
+        console.error('Full error details:', error instanceof Error ? error.stack : error);
+        // Don't exit on seeding error, just log it
+        console.warn('Continuing without seeding database');
+      }
     }
   } catch (error) {
     console.error('Failed to start server:', error);
