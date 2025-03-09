@@ -254,7 +254,7 @@ export function WeeklySchedule({ onAddAppointment, onViewAppointment }: WeeklySc
         </div>
         
         {/* Time Slots */}
-        <div className="overflow-auto max-h-[600px]">
+        <div className="overflow-auto max-h-[400px] md:max-h-[500px]">
           {timeSlots.map((timeSlot, timeIndex) => (
             <div 
               key={timeSlot} 
@@ -273,7 +273,7 @@ export function WeeklySchedule({ onAddAppointment, onViewAppointment }: WeeklySc
               
               {/* Provider Columns */}
               {currentWeek.map((date, dateIndex) => (
-                <div key={dateIndex} className="relative min-h-[30px] border-r border-gray-200 group">
+                <div key={dateIndex} className="relative min-h-[24px] border-r border-gray-200 group">
                   <div className="absolute inset-0 grid grid-cols-1 divide-y divide-gray-100">
                     {providers.map((provider, providerIndex) => {
                       const appointment = getAppointmentForSlot(provider.id, date, timeSlot);
