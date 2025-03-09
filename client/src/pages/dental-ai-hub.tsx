@@ -188,6 +188,10 @@ export default function DentalAIHub() {
           <AdvancedXRayAnalyzer />
         </TabsContent>
         
+        <TabsContent value="treatment">
+          <AITreatmentPlanner />
+        </TabsContent>
+        
         <TabsContent value="education">
           <PatientEducation />
         </TabsContent>
