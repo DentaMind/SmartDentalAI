@@ -137,6 +137,24 @@ const createEmptyToothData = (): PerioToothData => ({
   }
 });
 
+// Helper function to determine tooth type
+const getToothType = (toothId: number): 'molar' | 'premolar' | 'canine' | 'incisor' => {
+  // Adult teeth numbering: 1-32
+  // 1-2, 15-16, 17-18, 31-32 are molars
+  // 3-5, 12-14, 19-21, 28-30 are premolars
+  // 6, 11, 22, 27 are canines
+  // 7-10, 23-26 are incisors
+  if ([1, 2, 15, 16, 17, 18, 31, 32].includes(toothId)) {
+    return 'molar';
+  } else if ([3, 4, 5, 12, 13, 14, 19, 20, 21, 28, 29, 30].includes(toothId)) {
+    return 'premolar';
+  } else if ([6, 11, 22, 27].includes(toothId)) {
+    return 'canine';
+  } else {
+    return 'incisor';
+  }
+};
+
 // Create empty chart data
 const createEmptyChartData = (): PerioChartData => {
   const teeth: { [toothId: number]: PerioToothData } = {};
@@ -170,8 +188,41 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
   const [chartData, setChartData] = useState<PerioChartData>(initialData || createEmptyChartData());
   
   // UI state
-  const [selectedArch, setSelectedArch] = useState<'upper' | 'lower'>('upper');
+  const [selectedArch, setSelectedArch] = useState<'upper' | 'lower' | 'both'>('upper');
   const [selectedSurface, setSelectedSurface] = useState<'facial' | 'lingual'>('facial');
+  const [selectedView, setSelectedView] = useState<'all' | 'buccal' | 'lingual' | 'occlusal'>('all');
+  
+  // Helper function to determine tooth type based on tooth number
+  const getToothType = (toothNumber: number): 'molar' | 'premolar' | 'canine' | 'incisor' => {
+    // Upper arch
+    if (toothNumber >= 1 && toothNumber <= 16) {
+      if (toothNumber === 1 || toothNumber === 2 || toothNumber === 15 || toothNumber === 16) {
+        return 'molar';
+      } else if (toothNumber === 3 || toothNumber === 14) {
+        return 'molar'; // Third molars
+      } else if (toothNumber === 4 || toothNumber === 5 || toothNumber === 12 || toothNumber === 13) {
+        return 'premolar';
+      } else if (toothNumber === 6 || toothNumber === 11) {
+        return 'canine';
+      } else {
+        return 'incisor'; // Teeth 7-10
+      }
+    } 
+    // Lower arch
+    else {
+      if (toothNumber === 17 || toothNumber === 18 || toothNumber === 31 || toothNumber === 32) {
+        return 'molar';
+      } else if (toothNumber === 19 || toothNumber === 30) {
+        return 'molar'; // Third molars
+      } else if (toothNumber === 20 || toothNumber === 21 || toothNumber === 28 || toothNumber === 29) {
+        return 'premolar';
+      } else if (toothNumber === 22 || toothNumber === 27) {
+        return 'canine';
+      } else {
+        return 'incisor'; // Teeth 23-26
+      }
+    }
+  };
   const [selectedMeasurement, setSelectedMeasurement] = useState<string>('pocketDepth');
   const [activeTab, setActiveTab] = useState<'chart' | 'aiAnalysis'>('chart');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -530,7 +581,11 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
   };
   
   // Get the current teeth array based on selected arch
-  const currentTeeth = selectedArch === 'upper' ? ADULT_TEETH_UPPER : ADULT_TEETH_LOWER;
+  const currentTeeth = selectedArch === 'upper' 
+    ? ADULT_TEETH_UPPER 
+    : selectedArch === 'lower' 
+      ? ADULT_TEETH_LOWER
+      : [...ADULT_TEETH_UPPER, ...ADULT_TEETH_LOWER];
   
   // Render the measurement table for pocket depth, recession, attachment loss
   const renderNumericMeasurementTable = (
@@ -1026,21 +1081,50 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
             <div className="flex flex-col sm:flex-row justify-between gap-4">
               <div>
                 <h3 className="text-sm font-medium mb-2">Select Arch</h3>
-                <div className="flex space-x-2">
+                <div className="flex space-x-1">
                   <Button 
                     variant={selectedArch === 'upper' ? 'default' : 'outline'} 
                     size="sm" 
                     onClick={() => setSelectedArch('upper')}
                   >
-                    Upper Arch (1-16)
+                    Upper (1-16)
                   </Button>
                   <Button 
                     variant={selectedArch === 'lower' ? 'default' : 'outline'} 
                     size="sm" 
                     onClick={() => setSelectedArch('lower')}
                   >
-                    Lower Arch (17-32)
+                    Lower (17-32)
                   </Button>
+                  <Button 
+                    variant={selectedArch === 'both' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setSelectedArch('both')}
+                  >
+                    Both Arches
+                  </Button>
+                </div>
+              </div>
+              
+              {/* View Options */}
+              <div>
+                <h3 className="text-sm font-medium mb-2">View</h3>
+                <div className="flex space-x-2">
+                  <Select 
+                    defaultValue="all" 
+                    value={selectedView}
+                    onValueChange={(value: 'all' | 'buccal' | 'lingual' | 'occlusal') => setSelectedView(value)}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Select View" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Views</SelectItem>
+                      <SelectItem value="buccal">Buccal</SelectItem>
+                      <SelectItem value="lingual">Lingual</SelectItem>
+                      <SelectItem value="occlusal">Occlusal</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               
@@ -1073,14 +1157,70 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
                     {selectedArch === 'upper' ? 'Upper Arch' : 'Lower Arch'}
                   </h3>
                   <div className="flex justify-center gap-1 p-2">
-                    {currentTeeth.map(toothId => (
-                      <div 
-                        key={`tooth-icon-${toothId}`}
-                        className="w-8 h-12 border border-gray-300 rounded flex items-center justify-center bg-white"
-                      >
-                        <span className="text-sm font-medium">{toothId}</span>
-                      </div>
-                    ))}
+                    {currentTeeth.map(toothId => {
+                      const toothType = getToothType(toothId);
+                      const toothColor = chartData.teeth[toothId].pocketDepths.facial.some(depth => depth > 3) ? 
+                        'bg-yellow-50' : 'bg-white';
+                      
+                      return (
+                        <div 
+                          key={`tooth-icon-${toothId}`}
+                          className={`relative w-10 h-16 border border-gray-300 rounded-md flex flex-col ${toothColor} overflow-hidden`}
+                        >
+                          {/* Tooth Number */}
+                          <div className="absolute top-0 left-0 right-0 text-center text-xs font-bold bg-blue-50 border-b border-gray-300">
+                            {toothId}
+                          </div>
+                          
+                          {/* Tooth Shape based on type */}
+                          <div className="flex-1 flex items-center justify-center pt-4">
+                            {toothType === 'molar' && (
+                              <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M5 7C5 5.34315 6.34315 4 8 4H16C17.6569 4 19 5.34315 19 7V17C19 18.6569 17.6569 20 16 20H8C6.34315 20 5 18.6569 5 17V7Z" 
+                                  fill="white" stroke="gray" strokeWidth="1" />
+                                <path d="M8 10L16 10" stroke="gray" strokeWidth="0.5" />
+                                <path d="M8 14L16 14" stroke="gray" strokeWidth="0.5" />
+                                <path d="M12 7L12 17" stroke="gray" strokeWidth="0.5" />
+                              </svg>
+                            )}
+                            {toothType === 'premolar' && (
+                              <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M7 7C7 5.34315 8.34315 4 10 4H14C15.6569 4 17 5.34315 17 7V17C17 18.6569 15.6569 20 14 20H10C8.34315 20 7 18.6569 7 17V7Z" 
+                                  fill="white" stroke="gray" strokeWidth="1" />
+                                <path d="M9 10L15 10" stroke="gray" strokeWidth="0.5" />
+                                <path d="M9 14L15 14" stroke="gray" strokeWidth="0.5" />
+                                <path d="M12 7L12 17" stroke="gray" strokeWidth="0.5" />
+                              </svg>
+                            )}
+                            {toothType === 'canine' && (
+                              <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9 4C9 4 8 6 8 10V20H16V10C16 6 15 4 15 4H9Z" 
+                                  fill="white" stroke="gray" strokeWidth="1" />
+                                <path d="M12 7L12 17" stroke="gray" strokeWidth="0.5" />
+                              </svg>
+                            )}
+                            {toothType === 'incisor' && (
+                              <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M10 4H14L15 20H9L10 4Z" 
+                                  fill="white" stroke="gray" strokeWidth="1" />
+                                <path d="M12 7L12 17" stroke="gray" strokeWidth="0.5" />
+                              </svg>
+                            )}
+                          </div>
+                          
+                          {/* Color coded markers for pocket depths */}
+                          <div className="absolute bottom-0 left-0 right-0 flex justify-around">
+                            {[0, 1, 2].map(i => {
+                              const facialDepth = chartData.teeth[toothId].pocketDepths.facial[i];
+                              const colorClass = facialDepth <= 3 ? 'bg-green-300' : facialDepth <= 5 ? 'bg-yellow-300' : 'bg-red-300';
+                              return (
+                                <div key={`depth-${toothId}-${i}`} className={`w-2 h-2 rounded-full ${colorClass}`}></div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
