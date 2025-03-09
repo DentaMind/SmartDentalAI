@@ -268,10 +268,10 @@ const HealthContraindicationAlerts: React.FC<{
     
     // Common medical conditions with dental implications
     const conditions = [
-      { name: "Hypertension", severity: "medium", risk: "Epinephrine in anesthetics", recommendation: "Limit epinephrine to 0.04mg per appointment" },
-      { name: "Diabetes", severity: "high", risk: "Delayed healing, increased infection risk", recommendation: "Monitor blood glucose, schedule morning appointments" },
-      { name: "Osteoporosis + Bisphosphonates", severity: "critical", risk: "Osteonecrosis of the jaw", recommendation: "Avoid invasive procedures" },
-      { name: "Immunosuppression", severity: "high", risk: "Opportunistic infections", recommendation: "Prophylactic antibiotics may be needed" }
+      { name: "Hypertension", severity: "medium" as const, risk: "Epinephrine in anesthetics", recommendation: "Limit epinephrine to 0.04mg per appointment" },
+      { name: "Diabetes", severity: "high" as const, risk: "Delayed healing, increased infection risk", recommendation: "Monitor blood glucose, schedule morning appointments" },
+      { name: "Osteoporosis + Bisphosphonates", severity: "critical" as const, risk: "Osteonecrosis of the jaw", recommendation: "Avoid invasive procedures" },
+      { name: "Immunosuppression", severity: "high" as const, risk: "Opportunistic infections", recommendation: "Prophylactic antibiotics may be needed" }
     ];
     
     // Generate medication interaction alert

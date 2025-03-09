@@ -101,42 +101,254 @@ const xrayTypes = [
   { value: 'full_mouth', label: 'Full Mouth Series' },
 ];
 
-// Mock AI analysis for demonstration purposes
-const mockAIAnalysis = {
-  findings: [
-    {
-      region: "Tooth #19",
-      description: "Periapical radiolucency detected, suggesting possible infection",
-      confidence: 0.89,
-      severity: "moderate",
-      type: "endodontic"
-    },
-    {
-      region: "Alveolar bone in quadrant 2",
-      description: "Horizontal bone loss observed",
-      confidence: 0.92,
-      severity: "moderate",
-      type: "periodontal"
-    },
-    {
-      region: "Tooth #30",
-      description: "Deep carious lesion approaching pulp",
+// Enhanced AI analysis for demonstration purposes with more comprehensive data
+const generateAIAnalysisForXrayType = (xrayType: string, date: Date = new Date()): Record<string, any> => {
+  // Common dental findings categories by x-ray type
+  const findings = {
+    // Findings specific to different x-ray types
+    periapical: [
+      {
+        region: "Tooth #19",
+        description: "Periapical radiolucency detected, suggesting possible infection",
+        confidence: 0.89,
+        boundingBox: { x: 120, y: 200, width: 40, height: 30 },
+        severity: "moderate",
+        type: "endodontic"
+      },
+      {
+        region: "Root of tooth #19",
+        description: "Possible root fracture detected",
+        confidence: 0.72,
+        boundingBox: { x: 130, y: 230, width: 20, height: 25 },
+        severity: "severe",
+        type: "endodontic"
+      }
+    ],
+    bitewing: [
+      {
+        region: "Tooth #30-31 interproximal",
+        description: "Interproximal caries detected",
+        confidence: 0.91,
+        boundingBox: { x: 150, y: 180, width: 15, height: 10 },
+        severity: "moderate",
+        type: "caries"
+      },
+      {
+        region: "Alveolar crest between #18-19",
+        description: "Early horizontal bone loss observed",
+        confidence: 0.85,
+        boundingBox: { x: 200, y: 210, width: 30, height: 20 },
+        severity: "mild",
+        type: "periodontal"
+      }
+    ],
+    panoramic: [
+      {
+        region: "Right mandibular condyle",
+        description: "Flattening of condylar head observed",
+        confidence: 0.87,
+        boundingBox: { x: 80, y: 100, width: 40, height: 35 },
+        severity: "moderate",
+        type: "tmj"
+      },
+      {
+        region: "Left maxillary sinus",
+        description: "Mucosal thickening detected",
+        confidence: 0.82,
+        boundingBox: { x: 350, y: 120, width: 60, height: 45 },
+        severity: "mild",
+        type: "pathology"
+      },
+      {
+        region: "Tooth #17",
+        description: "Impacted third molar with mesial angulation",
+        confidence: 0.94,
+        boundingBox: { x: 410, y: 200, width: 35, height: 30 },
+        severity: "moderate",
+        type: "surgical"
+      }
+    ],
+    cbct: [
+      {
+        region: "Left maxillary posterior region",
+        description: "Periapical radiolucency associated with tooth #14",
+        confidence: 0.93,
+        boundingBox: { x: 300, y: 150, width: 25, height: 25 },
+        severity: "moderate",
+        type: "endodontic"
+      },
+      {
+        region: "Right mandibular canal",
+        description: "Close proximity of third molar roots to inferior alveolar nerve",
+        confidence: 0.96,
+        boundingBox: { x: 120, y: 220, width: 45, height: 25 },
+        severity: "moderate",
+        type: "surgical"
+      },
+      {
+        region: "Maxillary right second premolar",
+        description: "Additional palatal root detected",
+        confidence: 0.89,
+        boundingBox: { x: 180, y: 130, width: 20, height: 35 },
+        severity: "informational",
+        type: "anatomical"
+      }
+    ],
+    cephalometric: [
+      {
+        region: "Mandibular symphysis",
+        description: "Class II skeletal pattern with mandibular retrusion",
+        confidence: 0.91,
+        boundingBox: { x: 200, y: 250, width: 30, height: 40 },
+        severity: "moderate",
+        type: "orthodontic"
+      },
+      {
+        region: "Soft tissue profile",
+        description: "Convex profile with reduced lower facial height",
+        confidence: 0.88,
+        boundingBox: { x: 100, y: 150, width: 50, height: 150 },
+        severity: "mild",
+        type: "orthodontic"
+      }
+    ],
+    occlusal: [
+      {
+        region: "Maxillary anterior region",
+        description: "Supernumerary tooth detected palatal to #9",
+        confidence: 0.86,
+        boundingBox: { x: 220, y: 180, width: 15, height: 15 },
+        severity: "mild",
+        type: "developmental"
+      }
+    ],
+    full_mouth: [
+      {
+        region: "Multiple posterior regions",
+        description: "Generalized horizontal bone loss of 3-4mm",
+        confidence: 0.92,
+        boundingBox: { x: 150, y: 200, width: 300, height: 100 },
+        severity: "moderate",
+        type: "periodontal"
+      },
+      {
+        region: "Tooth #3, #14, #19, #30",
+        description: "Multiple carious lesions detected",
+        confidence: 0.90,
+        boundingBox: { x: 200, y: 250, width: 200, height: 50 },
+        severity: "moderate",
+        type: "caries"
+      }
+    ]
+  };
+  
+  // Select findings based on x-ray type, or use periapical as default
+  const selectedFindings = findings[xrayType as keyof typeof findings] || findings.periapical;
+  
+  // Add common general findings with a 30% probability
+  if (Math.random() > 0.7) {
+    selectedFindings.push({
+      region: "General observation",
+      description: "Overall good bone quality and density",
       confidence: 0.95,
-      severity: "severe",
-      type: "caries"
-    }
-  ],
-  recommendations: [
-    "Endodontic evaluation recommended for tooth #19",
-    "Consider periodontal treatment for quadrant 2",
-    "Restorative treatment needed for tooth #30"
-  ],
-  overallAssessment: "Multiple pathologies detected. Comprehensive treatment plan recommended.",
-  automatedMeasurements: {
-    "boneHeight_19_distal": 2.3,
-    "boneHeight_19_mesial": 2.1,
-    "cariesDepth_30": 3.7
+      boundingBox: { x: 0, y: 0, width: 0, height: 0 }, // General observation doesn't have a specific area
+      severity: "informational",
+      type: "general"
+    });
   }
+  
+  // Generate recommendations based on findings
+  const recommendations = selectedFindings.map(finding => {
+    switch (finding.type) {
+      case 'endodontic':
+        return `Endodontic evaluation recommended for ${finding.region}`;
+      case 'periodontal':
+        return `Periodontal treatment indicated for ${finding.region}`;
+      case 'caries':
+        return `Restorative treatment needed for ${finding.region}`;
+      case 'surgical':
+        return `Surgical consultation recommended for ${finding.region}`;
+      case 'orthodontic':
+        return `Orthodontic assessment recommended`;
+      case 'tmj':
+        return `TMJ evaluation suggested`;
+      case 'pathology':
+        return `Further evaluation of ${finding.region} pathology recommended`;
+      default:
+        return `Monitor ${finding.region} at next appointment`;
+    }
+  });
+  
+  // Generate automated measurements based on x-ray type
+  let automatedMeasurements: Record<string, number> = {};
+  
+  if (xrayType === 'periapical' || xrayType === 'bitewing') {
+    automatedMeasurements = {
+      "boneHeight_19_distal": 2.3,
+      "boneHeight_19_mesial": 2.1,
+      "cariesDepth_30": 3.7
+    };
+  } else if (xrayType === 'panoramic') {
+    automatedMeasurements = {
+      "condylarHeight_right": 15.4,
+      "condylarHeight_left": 15.1,
+      "ramusHeight_right": 52.3,
+      "ramusHeight_left": 51.8
+    };
+  } else if (xrayType === 'cephalometric') {
+    automatedMeasurements = {
+      "sna_angle": 82.3,
+      "snb_angle": 78.1,
+      "anb_angle": 4.2,
+      "frankfort_mandibular_angle": 25.6
+    };
+  } else if (xrayType === 'cbct') {
+    automatedMeasurements = {
+      "bone_width_site_19": 8.2,
+      "bone_height_site_19": 11.5,
+      "distance_to_nerve_19": 3.7,
+      "sinus_floor_distance_3": 5.2
+    };
+  }
+  
+  // Generate comparison with previous analysis if available (50% chance)
+  let comparisonWithPrevious = null;
+  if (Math.random() > 0.5) {
+    const sixMonthsAgo = new Date(date);
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    
+    comparisonWithPrevious = {
+      previousImageDate: sixMonthsAgo.toISOString().split('T')[0],
+      changes: [
+        "New periapical lesion on tooth #19 - increased by 2.3mm since previous X-ray",
+        "Bone loss increased by 0.8mm in quadrant 2",
+        "No progression of carious lesion on tooth #30"
+      ],
+      progression: Math.random() > 0.6 ? "worsened" : Math.random() > 0.5 ? "stable" : "improved",
+      notes: "Regular monitoring recommended. Compare again in 6 months."
+    };
+  }
+  
+  // Create complete analysis object
+  return {
+    findings: selectedFindings,
+    recommendations: recommendations,
+    overallAssessment: selectedFindings.length > 2 
+      ? "Multiple findings detected. Comprehensive treatment plan recommended."
+      : selectedFindings.length > 0 
+        ? "Localized findings detected. Specific treatment indicated."
+        : "No significant pathology detected. Routine monitoring recommended.",
+    automatedMeasurements: automatedMeasurements,
+    comparisonWithPrevious: comparisonWithPrevious,
+    aiModel: "DentalVisionAI v2.3",
+    analysisDate: new Date().toISOString(),
+    confidenceScore: 0.88 + (Math.random() * 0.1),
+    threeDimensionalInsights: xrayType === 'cbct' ? {
+      volumetricAnalysis: "Normal bone density and trabecular pattern",
+      structuralRelationships: "No abnormal proximity to vital structures",
+      nervesAndVessels: "Inferior alveolar nerve located 3.7mm from roots of tooth #19"
+    } : undefined
+  };
 };
 
 // Component for uploading, viewing, and analyzing X-rays
@@ -362,19 +574,36 @@ const AdvancedXRayAnalyzer: React.FC<{
     setIsAnalyzing(true);
     setShowAnalysisDialog(true);
     
-    // Simulate API call delay (in a real app, this would be a real API call)
+    // Simulate API call delay (in a real app, this would be a real API call with AI analysis)
     setTimeout(() => {
-      // Update the selected X-ray with mock analysis results
+      // Generate dynamic AI analysis based on the X-ray type
+      const dynamicAnalysis = generateAIAnalysisForXrayType(selectedXRay.type, selectedXRay.date);
+      
+      // Determine if pathology was detected based on findings
+      const hasPathology = dynamicAnalysis.findings.some(
+        (finding: any) => finding.severity === "moderate" || finding.severity === "severe"
+      );
+      
+      // Update the selected X-ray with the generated analysis results
       const updatedXRay = {
         ...selectedXRay,
-        aiAnalysis: mockAIAnalysis,
+        aiAnalysis: dynamicAnalysis,
         analysisDate: new Date(),
-        pathologyDetected: true,
+        pathologyDetected: hasPathology,
       };
       
       setSelectedXRay(updatedXRay);
-      setAnalysisResult(mockAIAnalysis);
+      setAnalysisResult(dynamicAnalysis);
       setIsAnalyzing(false);
+      
+      // Show appropriate toast based on analysis results
+      toast({
+        title: hasPathology ? 'Potential pathology detected' : 'Analysis complete',
+        description: hasPathology 
+          ? `The AI analysis has identified ${dynamicAnalysis.findings.length} findings that require attention.`
+          : 'X-ray analysis complete. No significant pathology detected.',
+        variant: hasPathology ? 'default' : 'default',
+      });
       
       // In a real application, you would call the mutation here:
       // analyzeXRayMutation.mutate(selectedXRay.id);
@@ -476,7 +705,7 @@ const AdvancedXRayAnalyzer: React.FC<{
         type: "periapical",
         imageUrl: "https://www.dentalcare.com/~/media/MDA2017US/Images/CE-courses/content-images/340/Fig7.ashx?h=200&w=400&la=en-US&hash=AF50A5B74B00176E25FC0F7FA76E09BD",
         notes: "Periapical X-ray of tooth #19",
-        aiAnalysis: mockAIAnalysis,
+        aiAnalysis: generateAIAnalysisForXrayType("periapical"),
         analysisDate: new Date("2025-02-15"),
         pathologyDetected: true,
         comparisonResult: null,
