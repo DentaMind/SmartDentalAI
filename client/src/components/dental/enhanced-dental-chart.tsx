@@ -1112,18 +1112,30 @@ const EnhancedDentalChart: React.FC<EnhancedDentalChartProps> = ({
     );
   };
   
+  // State for active tab
+  const [activeTab, setActiveTab] = useState('chart');
+
   return (
     <Card className="w-full">
       <CardHeader>
         <div className="flex justify-between items-center">
           <div>
-            <CardTitle>Dental Chart</CardTitle>
+            <CardTitle>Restorative Dental Chart</CardTitle>
             <CardDescription>
-              Interactive dental chart with surface-specific conditions
+              AI-powered dental chart with treatment planning
             </CardDescription>
           </div>
           
           <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="view-mode">{chartData.viewMode === 'clinical' ? 'Clinical View' : 'Patient View'}</Label>
+              <Switch 
+                id="view-mode" 
+                checked={chartData.viewMode === 'patient'}
+                onCheckedChange={toggleViewMode}
+              />
+            </div>
+          
             <div className="flex items-center space-x-2">
               <Label htmlFor="dentition-type">Primary Teeth</Label>
               <Switch 
@@ -1139,16 +1151,39 @@ const EnhancedDentalChart: React.FC<EnhancedDentalChartProps> = ({
             </div>
             
             {!readOnly && (
-              <Button onClick={saveDentalChart}>
-                <Save className="h-4 w-4 mr-2" />
-                Save Chart
-              </Button>
+              <div className="flex space-x-2">
+                <Button variant="outline" onClick={generateAiSuggestions}>
+                  <Brain className="h-4 w-4 mr-2" />
+                  AI Suggestions
+                </Button>
+                
+                <Button onClick={saveDentalChart}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Chart
+                </Button>
+              </div>
             )}
           </div>
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-6">
+      <CardContent>
+        <Tabs defaultValue="chart" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid grid-cols-4 mb-6">
+            <TabsTrigger value="chart">Chart</TabsTrigger>
+            <TabsTrigger value="ai">
+              AI Suggestions
+              {chartData.aiSuggestions?.length ? (
+                <span className="ml-2 bg-primary text-white text-xs font-bold px-2 py-1 rounded-full">
+                  {chartData.aiSuggestions.length}
+                </span>
+              ) : null}
+            </TabsTrigger>
+            <TabsTrigger value="plan">Treatment Plan</TabsTrigger>
+            <TabsTrigger value="insurance">Insurance</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="chart" className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
             <h3 className="text-sm font-medium mb-2">Select Arch</h3>
@@ -1242,6 +1277,20 @@ const EnhancedDentalChart: React.FC<EnhancedDentalChartProps> = ({
             ))}
           </div>
         </div>
+          </TabsContent>
+          
+          <TabsContent value="ai">
+            {renderAiSuggestions()}
+          </TabsContent>
+          
+          <TabsContent value="plan">
+            {renderTreatmentPlan()}
+          </TabsContent>
+          
+          <TabsContent value="insurance">
+            {renderInsuranceInfo()}
+          </TabsContent>
+        </Tabs>
       </CardContent>
       
       <CardFooter className="border-t pt-4 flex justify-between">
@@ -1262,12 +1311,36 @@ const EnhancedDentalChart: React.FC<EnhancedDentalChartProps> = ({
           </Tooltip>
         </TooltipProvider>
         
-        {!readOnly && (
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export Chart
-          </Button>
-        )}
+        <div className="flex space-x-2">
+          {!readOnly && (
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export Chart
+            </Button>
+          )}
+          
+          {activeTab === 'chart' && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setActiveTab('ai')}
+                  >
+                    <Brain className="h-4 w-4 mr-2" />
+                    View AI Suggestions
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">
+                    See AI-generated treatment recommendations based on current dental conditions
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
       </CardFooter>
     </Card>
   );
