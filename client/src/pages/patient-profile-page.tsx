@@ -295,7 +295,7 @@ export default function PatientProfilePage() {
                             toast({
                               title: "Periodontal Chart Saved",
                               description: `Chart data saved for patient #${patientId} by examiner #${enhancedData.examinerId || 1}`,
-                              variant: "success"
+                              variant: "default"
                             });
                             // In a real app, you would call an API to save this data
                             // Example: savePeriodontalChart(enhancedData);

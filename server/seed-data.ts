@@ -73,7 +73,7 @@ export async function seedDatabase() {
         chiefComplaint: "Sensitivity in upper right molar",
         currentSymptoms: "Pain when eating cold foods",
         previousDentalProcedures: "Regular cleanings, one root canal (2021)",
-        highBloodPressure: true
+        hypertension: true
       },
       {
         userId: dentist.id + 2, // User ID for this patient
@@ -88,7 +88,7 @@ export async function seedDatabase() {
         currentMedications: "Metformin 500mg twice daily, Atorvastatin 20mg daily",
         diabetes: true,
         heartDisease: false,
-        highBloodPressure: true,
+        hypertension: true,
         smokesTobacco: true,
         useAlcohol: false,
         lastDentalVisit: "2023-08-22",
