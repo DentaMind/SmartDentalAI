@@ -142,6 +142,9 @@ export const insuranceClaims = pgTable("insurance_claims", {
   denialReason: text("denial_reason"),
   insuranceNotes: text("insurance_notes"),
   followUpDate: timestamp("follow_up_date"),
+  expectedAmount: integer("expected_amount"),
+  insuranceProvider: text("insurance_provider"),
+  procedures: jsonb("procedures"),
 });
 
 export const financialTransactions = pgTable("financial_transactions", {

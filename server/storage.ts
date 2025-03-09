@@ -349,6 +349,10 @@ export class MemStorage implements IStorage {
   async getInsuranceClaimsByPatient(patientId: number) {
     return Array.from(this.insuranceClaims.values()).filter(claim => claim.patientId === patientId);
   }
+  
+  async getInsuranceClaimsByStatus(status: string) {
+    return Array.from(this.insuranceClaims.values()).filter(claim => claim.status === status);
+  }
 
   // Appointments
   async getDoctorAppointmentsByDate(doctorId: number, date: string) {
