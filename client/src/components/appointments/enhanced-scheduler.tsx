@@ -56,7 +56,7 @@ const appointmentTypes: Record<AppointmentType, { name: string; color: string }>
 };
 
 // Helper function to generate time slots
-const generateTimeSlots = (startHour = 8, endHour = 17, interval = 15) => {
+const generateTimeSlots = (startHour = 7, endHour = 19, interval = 15) => {
   const slots = [];
   for (let hour = startHour; hour < endHour; hour++) {
     for (let minute = 0; minute < 60; minute += interval) {
@@ -93,9 +93,17 @@ export function EnhancedScheduler({ initialDate = new Date(), onAppointmentSelec
     queryFn: () => apiRequest<Location[]>('/api/locations')
   });
   
+  // Query for all providers (doctors and hygienists)
   const { data: providers = [] } = useQuery({ 
     queryKey: ['/api/providers'],
-    queryFn: () => apiRequest<Provider[]>('/api/users?role=doctor')
+    queryFn: async () => {
+      // Get doctors and hygienists
+      const doctors = await apiRequest<Provider[]>('/api/users?role=doctor');
+      const hygienists = await apiRequest<Provider[]>('/api/users?role=staff&specialization=hygienist').catch(() => []);
+      
+      // Combine and return all providers
+      return [...doctors, ...hygienists];
+    }
   });
   
   // Calculate date range based on view mode
