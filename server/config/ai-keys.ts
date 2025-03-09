@@ -139,7 +139,28 @@ export function getAPIUsageStats(): Record<AIServiceType, UsageStats> {
 }
 
 /**
- * Determine if we should use the backup API key based on rate limits
+ * Calculate current request rate for an AI service
+ * Returns requests per minute based on recent usage
+ */
+export function calculateCurrentRate(serviceType: AIServiceType): number {
+  const stats = apiUsage[serviceType];
+  const now = Date.now();
+  const oneMinuteAgo = now - 60000;
+  
+  // If no recent requests, rate is 0
+  if (stats.lastRequestTime < oneMinuteAgo) {
+    return 0;
+  }
+  
+  // Calculate requests per minute based on the time window
+  const timeSinceFirstRequest = now - (now - 60000);
+  const requestsPerMinute = stats.requestCount * (60000 / timeSinceFirstRequest);
+  
+  return requestsPerMinute;
+}
+
+/**
+ * Determine if we should use the backup API key based on rate limits and priority
  * This helps prevent rate limiting errors by switching to backup keys
  */
 export function shouldUseBackup(serviceType: AIServiceType): boolean {
@@ -155,20 +176,70 @@ export function shouldUseBackup(serviceType: AIServiceType): boolean {
     return false;
   }
   
-  // If we've exceeded the rate limit, use backup
-  return stats.requestCount >= config.rateLimitPerMinute;
+  // Get current rate
+  const currentRate = calculateCurrentRate(serviceType);
+  
+  // If we've exceeded 80% of the rate limit, use backup to prevent hitting limits
+  const rateThreshold = config.rateLimitPerMinute * 0.8;
+  return currentRate >= rateThreshold;
 }
 
 /**
- * Get the optimal AI configuration based on current usage
- * Will return the main config or backup if rate limited
+ * Get the optimal AI configuration based on current usage and service priority
+ * Will return the main config, backup, or fallback to shared key based on load
  */
 export function getOptimalAIConfig(serviceType: AIServiceType): AIKeyConfig {
   const config = getAIConfig(serviceType);
+  
+  // Check if we need to use backup
   if (shouldUseBackup(serviceType) && config.backup) {
+    // If the backup key is also rate limited, fall back to shared default
+    if (config.backup.apiKey !== DEFAULT_OPENAI_CONFIG.apiKey && 
+        shouldUseSharedDefault(config.backup)) {
+      console.log(`Both primary and backup keys for ${serviceType} are rate limited, using shared default`);
+      return DEFAULT_OPENAI_CONFIG;
+    }
+    console.log(`Using backup key for ${serviceType} due to rate limiting`);
     return config.backup;
   }
+  
   return config;
+}
+
+/**
+ * Determine if a specific API key config should fall back to the shared default
+ * Used to check if backup keys are also approaching rate limits
+ */
+function shouldUseSharedDefault(config: AIKeyConfig): boolean {
+  // Find which service uses this API key
+  let matchingService: AIServiceType | null = null;
+  
+  for (const [service, serviceConfig] of Object.entries(AI_SERVICE_CONFIGS)) {
+    if (serviceConfig.apiKey === config.apiKey) {
+      matchingService = service as AIServiceType;
+      break;
+    }
+  }
+  
+  if (!matchingService) return false;
+  
+  // Check if this service is approaching rate limits
+  const stats = apiUsage[matchingService];
+  if (!stats || !config.rateLimitPerMinute) return false;
+  
+  const now = Date.now();
+  const oneMinuteAgo = now - 60000;
+  
+  // If no recent requests, no need to use default
+  if (stats.lastRequestTime < oneMinuteAgo) {
+    return false;
+  }
+  
+  // Calculate rate and check if approaching limits
+  const currentRate = calculateCurrentRate(matchingService);
+  const rateThreshold = config.rateLimitPerMinute * 0.9;
+  
+  return currentRate >= rateThreshold;
 }
 
 /**

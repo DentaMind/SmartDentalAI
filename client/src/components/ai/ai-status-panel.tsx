@@ -10,6 +10,10 @@ type AIServiceStatus = {
   status: 'available' | 'limited' | 'unavailable'
   usage: number
   rateLimitPerMinute?: number
+  requestCount?: number
+  lastUsed?: string
+  backupAvailable?: boolean
+  primaryKey?: string
 }
 
 type AIServicesStatus = Record<string, AIServiceStatus>
@@ -91,20 +95,27 @@ export function AIStatusPanel() {
 
   const renderServiceStatus = (name: string, status: AIServiceStatus) => {
     return (
-      <div key={name} className="mb-4">
+      <div key={name} className="mb-6 p-3 border border-gray-100 rounded-md hover:shadow-sm transition-shadow">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center">
             {getStatusIcon(status.status)}
             <span className="ml-2 font-medium">{formatServiceName(name)}</span>
+            {status.backupAvailable && (
+              <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">
+                Backup ready
+              </span>
+            )}
           </div>
           <span className={`text-sm font-medium ${getStatusColor(status.status)}`}>
             {status.status === 'available' ? 'Active' : status.status === 'limited' ? 'High Load' : 'Unavailable'}
           </span>
         </div>
+        
         <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
           <span>API Usage</span>
           <span>{Math.round(status.usage)}%</span>
         </div>
+        
         <Progress 
           value={status.usage} 
           className={`h-2 ${
@@ -115,9 +126,31 @@ export function AIStatusPanel() {
                 : 'bg-green-200'
           }`} 
         />
-        {status.rateLimitPerMinute && (
-          <div className="mt-1 text-xs text-gray-500">
-            Rate limit: {status.rateLimitPerMinute} requests/min
+        
+        <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-600">
+          {status.rateLimitPerMinute && (
+            <div className="bg-gray-50 px-2 py-1 rounded">
+              <span className="font-medium">Rate limit:</span> {status.rateLimitPerMinute}/min
+            </div>
+          )}
+          
+          {status.requestCount !== undefined && (
+            <div className="bg-gray-50 px-2 py-1 rounded">
+              <span className="font-medium">Requests:</span> {status.requestCount}
+            </div>
+          )}
+          
+          {status.lastUsed && (
+            <div className="bg-gray-50 px-2 py-1 rounded">
+              <span className="font-medium">Last used:</span> {new Date(status.lastUsed).toLocaleTimeString()}
+            </div>
+          )}
+        </div>
+        
+        {/* Show key info for administrators only */}
+        {status.primaryKey && (
+          <div className="mt-2 text-xs text-gray-400">
+            Key ending in: ...{status.primaryKey.slice(-4)}
           </div>
         )}
       </div>

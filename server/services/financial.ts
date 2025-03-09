@@ -62,6 +62,10 @@ class FinancialService {
       // Validate payment data
       const validatedData = paymentSchema.parse(paymentData);
 
+      // Get payment method and description or set defaults
+      const paymentMethod = validatedData.method || "cash";
+      const paymentDescription = validatedData.description || "Patient payment";
+
       // Create a new payment record
       const payment = await storage.createPayment({
         patientId: validatedData.patientId,
@@ -70,6 +74,8 @@ class FinancialService {
         date: new Date(),
         status: "processed",
         treatmentPlanId: validatedData.treatmentPlanId,
+        method: paymentMethod,
+        description: paymentDescription
       });
 
       // Create corresponding financial transaction record
@@ -80,9 +86,9 @@ class FinancialService {
         type: "payment",
         amount: validatedData.amount,
         date: new Date(),
-        method: validatedData.method as any,
+        method: paymentMethod,
         status: "completed",
-        description: validatedData.description || "Patient payment",
+        description: paymentDescription,
         fiscalYear: fiscalData.fiscalYear,
         fiscalQuarter: fiscalData.fiscalQuarter,
       });
@@ -99,10 +105,15 @@ class FinancialService {
       // Validate claim data
       const validatedData = insuranceClaimSchema.parse(claimData);
 
+      // Parse procedures properly and ensure they're in the right format
+      const procedures = Array.isArray(validatedData.procedures) 
+        ? validatedData.procedures 
+        : [];
+      
       // Calculate expected reimbursement
       const expectedReimbursement = this.calculateExpectedReimbursement(
-        validatedData.procedures,
-        validatedData.insuranceProvider
+        procedures as Array<{code: string, fee: number}>,
+        validatedData.insuranceProvider || "Standard"
       );
 
       // Generate claim number
@@ -116,6 +127,9 @@ class FinancialService {
         status: "submitted",
         claimNumber,
         approvedAmount: 0, // Will be updated when claim is processed
+        expectedAmount: expectedReimbursement,
+        insuranceProvider: validatedData.insuranceProvider || "Standard",
+        procedures: procedures
       });
 
       // Mock electronic submission to insurance (in real system, this would call an API)

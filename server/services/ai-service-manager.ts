@@ -25,18 +25,28 @@ class AIServiceManager {
    * Gets an OpenAI client for a specific service type
    */
   private getOpenAIClient(serviceType: AIServiceType): OpenAI {
-    if (!this.openAIClients[serviceType]) {
-      const config = getOptimalAIConfig(serviceType);
-      if (!config.apiKey) {
-        throw new Error(`No API key found for service type: ${serviceType}`);
-      }
+    // Get the optimal configuration based on current load
+    const config = getOptimalAIConfig(serviceType);
+    
+    if (!config.apiKey) {
+      throw new Error(`No API key found for service type: ${serviceType}`);
+    }
 
-      this.openAIClients[serviceType] = new OpenAI({
+    // Create a cache key that includes the API key to handle key rotation
+    const cacheKey = `${serviceType}_${config.apiKey.substring(0, 8)}`;
+    
+    // Check if we already have a client with this API key
+    if (!this.openAIClients[cacheKey]) {
+      console.log(`Creating new OpenAI client for ${serviceType} with key ending in ${config.apiKey.slice(-4)}`);
+      
+      this.openAIClients[cacheKey] = new OpenAI({
         apiKey: config.apiKey,
-        organization: process.env.OPENAI_ORGANIZATION_ID
+        organization: process.env.OPENAI_ORGANIZATION_ID,
+        baseURL: config.baseUrl
       });
     }
-    return this.openAIClients[serviceType];
+    
+    return this.openAIClients[cacheKey];
   }
 
   /**
