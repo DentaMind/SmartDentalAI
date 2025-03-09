@@ -86,6 +86,33 @@ interface PerioChartData {
   examinerId: number;
   bop: number; // Bleeding on probing percentage
   plaque: number; // Plaque index percentage
+  
+  // Advanced AI-powered data
+  riskLevel: 'low' | 'moderate' | 'high';
+  riskFactors: string[];
+  recommendedRecallInterval: 3 | 4 | 6; // months
+  complianceScore: number; // 0-100
+  
+  // Treatment recommendations
+  needsSRP: boolean; // Scaling and Root Planing needed
+  needsPerioSurgery: boolean; 
+  needsLaserTherapy: boolean;
+  recommendedTreatments: string[];
+  
+  // Comparative analysis
+  previousChartId?: number;
+  improvementSites: number[];
+  deterioratingSites: number[];
+  
+  // AI notes and analysis
+  aiSummary: string;
+  worstSites: Array<{toothId: number, position: string, depth: number}>;
+  homeCarePlan: string;
+  
+  // Automated scheduling
+  nextRecallDate?: Date;
+  remindersSent: number;
+  missedAppointments: number;
 }
 
 // Component props
@@ -152,7 +179,32 @@ const initializeEmptyChart = (patientId: number, examinerId: number): PerioChart
     notes: "",
     examinerId,
     bop: 0,
-    plaque: 0
+    plaque: 0,
+    
+    // Initialize AI-powered data with default values
+    riskLevel: 'low',
+    riskFactors: [],
+    recommendedRecallInterval: 6, // Default to 6 months
+    complianceScore: 100, // Start with perfect compliance
+    
+    // Treatment recommendations
+    needsSRP: false,
+    needsPerioSurgery: false,
+    needsLaserTherapy: false,
+    recommendedTreatments: [],
+    
+    // Comparative analysis
+    improvementSites: [],
+    deterioratingSites: [],
+    
+    // AI notes and analysis
+    aiSummary: "No previous periodontal assessment available.",
+    worstSites: [],
+    homeCarePlan: "Regular brushing twice daily with fluoride toothpaste. Daily flossing recommended.",
+    
+    // Automated scheduling
+    remindersSent: 0,
+    missedAppointments: 0
   };
 };
 
@@ -203,6 +255,149 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
       bop: totalSites > 0 ? Math.round((bleedingSites / totalSites) * 100) : 0,
       plaque: totalSites > 0 ? Math.round((plaqueSites / totalSites) * 100) : 0
     }));
+  };
+  
+  // State for AI analysis
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showAIInsights, setShowAIInsights] = useState(false);
+  
+  // AI risk analysis
+  const generateRiskAnalysis = () => {
+    setIsAnalyzing(true);
+    
+    // Simulate AI analysis (in a real app, this would call an API)
+    setTimeout(() => {
+      // Count pockets >= 5mm (moderate to severe)
+      let deepPocketCount = 0;
+      let totalMobility = 0;
+      let bleedingSiteCount = 0;
+      let suppressionSiteCount = 0;
+      let totalSites = 0;
+      
+      const worstSites: Array<{toothId: number, position: string, depth: number}> = [];
+      
+      // Analyze all teeth
+      Object.entries(chartData.teeth).forEach(([toothIdStr, tooth]) => {
+        const toothId = parseInt(toothIdStr);
+        
+        // Check each surface and position
+        ['facial', 'lingual'].forEach((surface) => {
+          const surfaceKey = surface as 'facial' | 'lingual';
+          
+          // Check pocket depths
+          tooth.pocketDepths[surfaceKey].forEach((depth, index) => {
+            totalSites++;
+            
+            // Track deep pockets
+            if (depth >= 5) {
+              deepPocketCount++;
+              
+              // Add to worst sites
+              const positionNames = ['Mesial', 'Middle', 'Distal'];
+              worstSites.push({
+                toothId,
+                position: `${surface === 'facial' ? 'Facial' : 'Lingual'} ${positionNames[index]}`,
+                depth
+              });
+            }
+            
+            // Track bleeding sites
+            if (tooth.bleeding[surfaceKey][index]) {
+              bleedingSiteCount++;
+            }
+            
+            // Track suppuration sites
+            if (tooth.suppuration[surfaceKey][index]) {
+              suppressionSiteCount++;
+            }
+          });
+        });
+        
+        // Track mobility
+        totalMobility += tooth.mobilityGrade;
+      });
+      
+      // Sort worst sites by depth (descending)
+      worstSites.sort((a, b) => b.depth - a.depth);
+      
+      // Keep only top 5 worst sites
+      const topWorstSites = worstSites.slice(0, 5);
+      
+      // Calculate risk factors
+      const riskFactors: string[] = [];
+      if (deepPocketCount > 0) riskFactors.push(`${deepPocketCount} sites with pockets ≥ 5mm`);
+      if (chartData.bop > 20) riskFactors.push(`${chartData.bop}% bleeding on probing`);
+      if (suppressionSiteCount > 0) riskFactors.push(`${suppressionSiteCount} sites with suppuration`);
+      if (totalMobility > 0) riskFactors.push(`${totalMobility} teeth with mobility`);
+      if (chartData.plaque > 30) riskFactors.push(`${chartData.plaque}% plaque score`);
+      
+      // Determine risk level
+      let riskLevel: 'low' | 'moderate' | 'high' = 'low';
+      if (deepPocketCount > 8 || chartData.bop > 40 || suppressionSiteCount > 3) {
+        riskLevel = 'high';
+      } else if (deepPocketCount > 3 || chartData.bop > 20 || suppressionSiteCount > 0) {
+        riskLevel = 'moderate';
+      }
+      
+      // Determine recommended recall interval
+      const recommendedRecallInterval = riskLevel === 'high' ? 3 : (riskLevel === 'moderate' ? 4 : 6);
+      
+      // Determine treatment recommendations
+      const needsSRP = deepPocketCount > 2 || chartData.bop > 30;
+      const needsPerioSurgery = deepPocketCount > 8 || (deepPocketCount > 4 && suppressionSiteCount > 0);
+      const needsLaserTherapy = deepPocketCount > 4 && chartData.bop > 30;
+      
+      // Build treatment recommendations list
+      const recommendedTreatments: string[] = [];
+      if (needsSRP) recommendedTreatments.push("Scaling and Root Planing");
+      if (needsPerioSurgery) recommendedTreatments.push("Periodontal Surgery Evaluation");
+      if (needsLaserTherapy) recommendedTreatments.push("Laser Therapy");
+      if (chartData.plaque > 40) recommendedTreatments.push("Enhanced Oral Hygiene Instruction");
+      
+      // Generate home care plan
+      let homeCarePlan = "Regular brushing twice daily with fluoride toothpaste. ";
+      
+      if (chartData.plaque > 30) {
+        homeCarePlan += "Recommend electric toothbrush with pressure sensor. ";
+      }
+      
+      if (chartData.bop > 20) {
+        homeCarePlan += "Daily flossing and interdental brushes for all contact areas. ";
+      }
+      
+      if (riskLevel === 'high') {
+        homeCarePlan += "Consider antimicrobial mouth rinse (e.g., chlorhexidine) for 2 weeks. ";
+      }
+      
+      // Generate AI summary
+      const aiSummary = `Patient presents with ${deepPocketCount} deep pocket sites (≥5mm) and ${chartData.bop}% bleeding on probing, indicating ${riskLevel} risk for periodontal disease progression. ${
+        riskLevel === 'high' 
+          ? 'Immediate intervention recommended.' 
+          : (riskLevel === 'moderate' 
+              ? 'Requires close monitoring and targeted therapy.' 
+              : 'Maintain preventive care regimen.')
+      }`;
+      
+      // Update chart data with AI analysis
+      setChartData(prev => ({
+        ...prev,
+        riskLevel,
+        riskFactors,
+        recommendedRecallInterval,
+        needsSRP,
+        needsPerioSurgery,
+        needsLaserTherapy,
+        recommendedTreatments,
+        worstSites: topWorstSites,
+        homeCarePlan,
+        aiSummary,
+        // Set next recall date based on interval
+        nextRecallDate: new Date(Date.now() + recommendedRecallInterval * 30 * 24 * 60 * 60 * 1000)
+      }));
+      
+      setIsAnalyzing(false);
+      setShowAIInsights(true);
+    }, 1000); // Simulate 1 second processing time
   };
   
   // Update statistics when chart data changes
@@ -650,6 +845,133 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
     );
   };
   
+  // Render the AI insights panel
+  const renderAIInsights = () => {
+    const getRiskLevelColor = () => {
+      if (chartData.riskLevel === 'high') return 'text-red-600';
+      if (chartData.riskLevel === 'moderate') return 'text-yellow-600';
+      return 'text-green-600';
+    };
+    
+    return (
+      <div className="space-y-6">
+        {/* AI Summary */}
+        <div className="p-4 border rounded-md bg-blue-50">
+          <h3 className="text-lg font-medium mb-2">AI Perio Analysis Summary</h3>
+          <p className="text-sm">{chartData.aiSummary}</p>
+        </div>
+        
+        {/* Risk Assessment */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-4 border rounded-md">
+            <h3 className="text-md font-medium mb-2">Risk Assessment</h3>
+            <div className="flex items-center space-x-2 mb-3">
+              <span className="font-medium">Risk Level:</span>
+              <span className={`font-bold ${getRiskLevelColor()}`}>
+                {chartData.riskLevel.charAt(0).toUpperCase() + chartData.riskLevel.slice(1)}
+              </span>
+            </div>
+            
+            {chartData.riskFactors.length > 0 ? (
+              <div>
+                <h4 className="text-sm font-medium mb-1">Risk Factors:</h4>
+                <ul className="list-disc list-inside text-sm">
+                  {chartData.riskFactors.map((factor, index) => (
+                    <li key={index}>{factor}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="text-sm text-green-600">No significant risk factors identified.</p>
+            )}
+          </div>
+          
+          {/* Treatment Recommendations */}
+          <div className="p-4 border rounded-md">
+            <h3 className="text-md font-medium mb-2">Treatment Recommendations</h3>
+            {chartData.recommendedTreatments.length > 0 ? (
+              <ul className="list-disc list-inside text-sm">
+                {chartData.recommendedTreatments.map((treatment, index) => (
+                  <li key={index}>{treatment}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-green-600">No interventional treatments recommended at this time.</p>
+            )}
+            
+            <div className="mt-3">
+              <h4 className="text-sm font-medium mb-1">Recommended Recall:</h4>
+              <p className="text-sm">{chartData.recommendedRecallInterval} months</p>
+              {chartData.nextRecallDate && (
+                <p className="text-sm mt-1">
+                  Next appointment: {new Date(chartData.nextRecallDate).toLocaleDateString()}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Worst Sites */}
+        {chartData.worstSites.length > 0 && (
+          <div className="p-4 border rounded-md">
+            <h3 className="text-md font-medium mb-2">Deepest Pocket Sites</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead>
+                  <tr>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tooth</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Depth (mm)</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {chartData.worstSites.map((site, index) => (
+                    <tr key={index}>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm">#{site.toothId}</td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm">{site.position}</td>
+                      <td className={`px-2 py-2 whitespace-nowrap text-sm font-medium ${site.depth >= 6 ? 'text-red-600' : 'text-yellow-600'}`}>
+                        {site.depth} mm
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        
+        {/* Home Care Plan */}
+        <div className="p-4 border rounded-md">
+          <h3 className="text-md font-medium mb-2">Home Care Recommendations</h3>
+          <p className="text-sm">{chartData.homeCarePlan}</p>
+        </div>
+        
+        {/* Voice Controls */}
+        <div className="p-4 border rounded-md bg-gray-50">
+          <h3 className="text-md font-medium mb-2">Voice Control Help</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+            <div>
+              <span className="font-medium">Recording measurements:</span>
+              <ul className="list-disc list-inside ml-2 mt-1">
+                <li>"Tooth 3, distobuccal: 5mm"</li>
+                <li>"Facial pocket on 17, mesial: 4mm"</li>
+                <li>"Record mobility 2 on tooth 31"</li>
+              </ul>
+            </div>
+            <div>
+              <span className="font-medium">Commands:</span>
+              <ul className="list-disc list-inside ml-2 mt-1">
+                <li>"Record bleeding on tooth 6, lingual"</li>
+                <li>"Show upper arch"</li>
+                <li>"Generate analysis"</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -657,7 +979,7 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
           <div>
             <CardTitle>Periodontal Chart</CardTitle>
             <CardDescription>
-              Record comprehensive periodontal measurements
+              AI-powered periodontal assessment and analysis
             </CardDescription>
           </div>
           
