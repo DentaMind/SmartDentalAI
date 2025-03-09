@@ -139,6 +139,13 @@ export class MemStorage implements IStorage {
 
   async createPatient(insertPatient: InsertPatient): Promise<Patient> {
     const id = this.currentId++;
+    
+    // Ensure userId is properly set from insertPatient
+    if (!insertPatient.userId) {
+      console.error("Error: Missing userId in createPatient. InsertPatient data:", insertPatient);
+      throw new Error("Patient must be associated with a user account");
+    }
+    
     const patient: Patient = {
       id,
       userId: insertPatient.userId,

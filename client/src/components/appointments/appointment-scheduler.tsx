@@ -72,6 +72,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { WeeklySchedule } from "./weekly-schedule";
 
 // Types
 interface Doctor {

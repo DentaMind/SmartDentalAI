@@ -40,11 +40,16 @@ router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (r
     console.log("Creating user with data:", userData);
     // Create the user
     const user = await storage.createUser(userData);
+    
+    if (!user || !user.id) {
+      throw new Error("Failed to create user account for patient");
+    }
+    
     console.log("User created successfully:", user);
     
     // Then create patient record linked to the user
     const patientData = {
-      userId: user.id,
+      userId: user.id, // This is the critical field that needs to be set correctly
       medicalHistory: req.body.medicalHistory || null,
       allergies: req.body.allergies || null,
       bloodType: req.body.bloodType || null,
