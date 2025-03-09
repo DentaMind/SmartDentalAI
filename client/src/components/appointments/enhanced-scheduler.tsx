@@ -38,7 +38,17 @@ interface SchedulerProps {
 }
 
 type ViewMode = "day" | "week" | "month";
-type AppointmentType = "annual" | "consultation" | "emergency" | "followup" | "meeting" | "vacation";
+type AppointmentType = 
+  // Exams and hygiene
+  | "comprehensive" | "periodic" | "prophylaxis" | "perioMaint"
+  // Restorative procedures
+  | "composite" | "crownPrep" | "crownDelivery" | "recementCrown" | "veneerPrep"
+  // Surgical and endodontic 
+  | "extraction" | "rootCanal" | "implant"
+  // Quick procedures
+  | "quickAdjust" | "emergencyExam" | "postOp"
+  // Other
+  | "consultation" | "meeting" | "vacation";
 
 interface AppointmentWithMetadata extends Appointment {
   patientName?: string;
@@ -46,13 +56,34 @@ interface AppointmentWithMetadata extends Appointment {
   appointmentTypeColor?: string;
 }
 
-const appointmentTypes: Record<AppointmentType, { name: string; color: string }> = {
-  annual: { name: "Annual Exam", color: "bg-blue-200 hover:bg-blue-300 text-blue-800" },
-  consultation: { name: "Consultation", color: "bg-green-200 hover:bg-green-300 text-green-800" },
-  emergency: { name: "Emergency", color: "bg-red-200 hover:bg-red-300 text-red-800" },
-  followup: { name: "Follow-up", color: "bg-purple-200 hover:bg-purple-300 text-purple-800" },
-  meeting: { name: "Meeting", color: "bg-pink-200 hover:bg-pink-300 text-pink-800" },
-  vacation: { name: "Vacation", color: "bg-slate-200 hover:bg-slate-300 text-slate-800" },
+const appointmentTypes: Record<AppointmentType, { name: string; color: string; defaultDuration: number }> = {
+  // Exams and hygiene
+  comprehensive: { name: "Comprehensive Exam", color: "bg-indigo-200 hover:bg-indigo-300 text-indigo-800", defaultDuration: 60 },
+  periodic: { name: "Periodic Exam", color: "bg-blue-200 hover:bg-blue-300 text-blue-800", defaultDuration: 30 },
+  prophylaxis: { name: "Prophylaxis", color: "bg-green-200 hover:bg-green-300 text-green-800", defaultDuration: 60 },
+  perioMaint: { name: "Perio Maintenance", color: "bg-emerald-200 hover:bg-emerald-300 text-emerald-800", defaultDuration: 60 },
+  
+  // Restorative procedures  
+  composite: { name: "Composite", color: "bg-yellow-200 hover:bg-yellow-300 text-yellow-800", defaultDuration: 60 },
+  crownPrep: { name: "Crown Prep", color: "bg-amber-200 hover:bg-amber-300 text-amber-800", defaultDuration: 90 },
+  crownDelivery: { name: "Crown Delivery", color: "bg-orange-200 hover:bg-orange-300 text-orange-800", defaultDuration: 45 },
+  recementCrown: { name: "Recement Crown", color: "bg-rose-200 hover:bg-rose-300 text-rose-800", defaultDuration: 30 },
+  veneerPrep: { name: "Veneer Prep", color: "bg-pink-200 hover:bg-pink-300 text-pink-800", defaultDuration: 120 },
+  
+  // Surgical and endodontic
+  extraction: { name: "Extraction", color: "bg-red-200 hover:bg-red-300 text-red-800", defaultDuration: 60 },
+  rootCanal: { name: "Root Canal", color: "bg-purple-200 hover:bg-purple-300 text-purple-800", defaultDuration: 90 },
+  implant: { name: "Implant", color: "bg-violet-200 hover:bg-violet-300 text-violet-800", defaultDuration: 120 },
+  
+  // Quick procedures (for side-booking)
+  quickAdjust: { name: "Quick Adjustment", color: "bg-gray-200 hover:bg-gray-300 text-gray-800", defaultDuration: 15 },
+  emergencyExam: { name: "Emergency Exam", color: "bg-red-200 hover:bg-red-300 text-red-800", defaultDuration: 30 },
+  postOp: { name: "Post-Op Check", color: "bg-cyan-200 hover:bg-cyan-300 text-cyan-800", defaultDuration: 15 },
+  
+  // Other
+  consultation: { name: "Consultation", color: "bg-teal-200 hover:bg-teal-300 text-teal-800", defaultDuration: 45 },
+  meeting: { name: "Staff Meeting", color: "bg-slate-200 hover:bg-slate-300 text-slate-800", defaultDuration: 60 },
+  vacation: { name: "Vacation", color: "bg-gray-200 hover:bg-gray-300 text-gray-800", defaultDuration: 480 }, // 8 hours
 };
 
 // Helper function to generate time slots
@@ -142,13 +173,32 @@ export function EnhancedScheduler({ initialDate = new Date(), onAppointmentSelec
         try {
           // In a real implementation, this would be a batch query or included in the original response
           const patientData = await apiRequest<any>(`/api/patients/${appointment.patientId}`);
-          const appointmentType = appointment.notes?.toLowerCase().includes('annual') ? 'annual' 
-                               : appointment.notes?.toLowerCase().includes('consult') ? 'consultation'
-                               : appointment.notes?.toLowerCase().includes('emergency') ? 'emergency'
-                               : appointment.notes?.toLowerCase().includes('follow') ? 'followup'
-                               : appointment.notes?.toLowerCase().includes('meeting') ? 'meeting'
-                               : appointment.notes?.toLowerCase().includes('vacation') ? 'vacation'
-                               : 'consultation';
+          // Map appointment notes to specific dental procedure types
+          const appointmentType = 
+            // Exams and hygiene
+            appointment.notes?.toLowerCase().includes('comprehensive') ? 'comprehensive' 
+            : appointment.notes?.toLowerCase().includes('periodic') ? 'periodic'
+            : appointment.notes?.toLowerCase().includes('prophy') ? 'prophylaxis'
+            : appointment.notes?.toLowerCase().includes('perio maint') ? 'perioMaint'
+            // Restorative procedures
+            : appointment.notes?.toLowerCase().includes('composite') ? 'composite'
+            : appointment.notes?.toLowerCase().includes('crown prep') ? 'crownPrep'
+            : appointment.notes?.toLowerCase().includes('crown deliv') ? 'crownDelivery'
+            : appointment.notes?.toLowerCase().includes('recement') ? 'recementCrown'
+            : appointment.notes?.toLowerCase().includes('veneer') ? 'veneerPrep'
+            // Surgical and endodontic
+            : appointment.notes?.toLowerCase().includes('extract') ? 'extraction'
+            : appointment.notes?.toLowerCase().includes('root canal') ? 'rootCanal'
+            : appointment.notes?.toLowerCase().includes('implant') ? 'implant'
+            // Quick procedures
+            : appointment.notes?.toLowerCase().includes('adjust') ? 'quickAdjust'
+            : appointment.notes?.toLowerCase().includes('emergency') ? 'emergencyExam'
+            : appointment.notes?.toLowerCase().includes('post-op') ? 'postOp'
+            // Other
+            : appointment.notes?.toLowerCase().includes('consult') ? 'consultation'
+            : appointment.notes?.toLowerCase().includes('meeting') ? 'meeting'
+            : appointment.notes?.toLowerCase().includes('vacation') ? 'vacation'
+            : 'comprehensive';
           
           return {
             ...appointment,
@@ -299,7 +349,7 @@ export function EnhancedScheduler({ initialDate = new Date(), onAppointmentSelec
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm font-medium">
-                Dr. {provider.firstName} {provider.lastName}
+                {provider.role === 'doctor' ? 'Dr.' : provider.specialization === 'hygienist' ? 'Hyg.' : ''} {provider.firstName} {provider.lastName}
               </span>
             </div>
           </th>
