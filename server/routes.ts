@@ -20,6 +20,8 @@ setupAuth(router);
 // Patient routes
 router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   try {
+    console.log("Creating new patient:", req.body);
+    
     // Create user first (since patients need a user account)
     const userData = {
       username: req.body.username || `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`,
@@ -27,7 +29,7 @@ router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (r
       email: req.body.email,
       firstName: req.body.firstName,
       lastName: req.body.lastName,
-      role: "patient",
+      role: "patient" as const, // Use a const assertion to fix the type issue
       phoneNumber: req.body.phoneNumber,
       dateOfBirth: req.body.dateOfBirth,
       insuranceProvider: req.body.insuranceProvider,
@@ -35,8 +37,10 @@ router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (r
       language: req.body.language || "en"
     };
 
+    console.log("Creating user with data:", userData);
     // Create the user
     const user = await storage.createUser(userData);
+    console.log("User created successfully:", user);
     
     // Then create patient record linked to the user
     const patientData = {
@@ -47,7 +51,9 @@ router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (r
       emergencyContact: req.body.emergencyContact || null
     };
     
+    console.log("Creating patient with data:", patientData);
     const patient = await storage.createPatient(patientData);
+    console.log("Patient created successfully:", patient);
     
     // Return both user and patient data
     res.status(201).json({ ...patient, user });
@@ -70,9 +76,13 @@ router.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res
 // Get all patients route
 router.get("/patients", requireAuth, async (req, res) => {
   try {
+    console.log("Getting all patients...");
     const patients = await storage.getAllPatients();
+    console.log("Patient count:", patients.length);
+    console.log("Patients:", JSON.stringify(patients, null, 2));
     res.json(patients);
   } catch (error) {
+    console.error("Error getting all patients:", error);
     res.status(500).json({ message: "Failed to get patients" });
   }
 });
@@ -219,7 +229,26 @@ router.post("/ai/medical-analysis", requireAuth, async (req, res) => {
       return res.status(400).json({ message: "Patient ID is required" });
     }
 
-    const medicalHistory = await storage.getPatientMedicalHistory(patientId);
+    const rawMedicalHistory = await storage.getPatientMedicalHistory(patientId);
+    console.log("Raw medical history:", rawMedicalHistory);
+    
+    // Convert string to PatientMedicalHistory object if needed
+    let medicalHistory: PatientMedicalHistory = {};
+    if (typeof rawMedicalHistory === 'string' && rawMedicalHistory) {
+      try {
+        medicalHistory = JSON.parse(rawMedicalHistory) as PatientMedicalHistory;
+      } catch (e) {
+        console.error("Failed to parse medical history:", e);
+        // If parsing fails, create a basic structure with the text
+        medicalHistory = { 
+          systemicConditions: [rawMedicalHistory]
+        };
+      }
+    } else if (typeof rawMedicalHistory === 'object' && rawMedicalHistory !== null) {
+      medicalHistory = rawMedicalHistory as PatientMedicalHistory;
+    }
+    
+    console.log("Processed medical history for analysis:", medicalHistory);
     const analysis = await analyzeMedicalHistory(medicalHistory);
 
     res.json(analysis);

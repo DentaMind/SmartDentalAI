@@ -148,19 +148,47 @@ export class MemStorage implements IStorage {
       emergencyContact: insertPatient.emergencyContact || null,
     };
     this.patients.set(id, patient);
+    console.log("Patient saved to storage:", patient);
+    console.log("Total patients in storage:", this.patients.size);
+    
+    // Print out all patients for debugging
+    console.log("All patients in storage:");
+    this.patients.forEach((p) => {
+      console.log(`- Patient ${p.id}, userId: ${p.userId}`);
+    });
+    
     return patient;
   }
 
   async getAllPatients(): Promise<(Patient & { user: User })[]> {
+    console.log("Getting all patients from storage");
+    console.log("Patients map size:", this.patients.size);
+    
     const patients = Array.from(this.patients.values());
-    const patientsWithUsers = await Promise.all(
-      patients.map(async (patient) => {
-        const user = await this.getUser(patient.userId);
-        if (!user) throw new Error(`User not found for patient ${patient.id}`);
-        return { ...patient, user };
-      })
-    );
-    return patientsWithUsers;
+    console.log("Patients array length:", patients.length);
+    
+    try {
+      const patientsWithUsers = await Promise.all(
+        patients.map(async (patient) => {
+          console.log(`Processing patient ${patient.id} with userId ${patient.userId}`);
+          const user = await this.getUser(patient.userId);
+          
+          if (!user) {
+            console.error(`User not found for patient ${patient.id} with userId ${patient.userId}`);
+            throw new Error(`User not found for patient ${patient.id}`);
+          }
+          
+          console.log(`Found user for patient ${patient.id}:`, user.username);
+          return { ...patient, user };
+        })
+      );
+      
+      console.log("Successfully processed all patients with users");
+      return patientsWithUsers;
+    } catch (error) {
+      console.error("Error in getAllPatients:", error);
+      throw error;
+    }
   }
 
   async createAppointment(insertAppointment: InsertAppointment): Promise<Appointment> {
