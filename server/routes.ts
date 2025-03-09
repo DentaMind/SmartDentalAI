@@ -24,29 +24,40 @@ setupAuth(router);
 router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   try {
     console.log("Creating new patient:", req.body);
+    console.log("Authenticated user:", req.user);
     
-    // Create user first (since patients need a user account)
-    const userData = {
-      username: req.body.username || `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`,
-      password: req.body.password || Math.random().toString(36).slice(-8),
-      email: req.body.email,
-      firstName: req.body.firstName,
-      lastName: req.body.lastName,
-      role: "patient" as const, // Use a const assertion to fix the type issue
-      phoneNumber: req.body.phoneNumber,
-      dateOfBirth: req.body.dateOfBirth,
-      insuranceProvider: req.body.insuranceProvider,
-      insuranceNumber: req.body.insuranceNumber,
-      language: req.body.language || "en"
-    };
-
-    console.log("Creating user with data:", userData);
+    // If userId is explicitly provided in the request, use that
+    let userId = req.body.userId;
     
-    // If we're creating from logged in user and not creating an account, use the current user's ID
+    // If no userId is provided but createAccount is false, use the currently logged-in user's ID
+    if (!userId && req.body.createAccount === false) {
+      if (!req.user || !req.user.id) {
+        throw new Error("User must be logged in to create a patient without an account");
+      }
+      userId = req.user.id;
+    }
+    
     let user;
-    let userId;
     
-    if (req.body.createAccount) {
+    // If createAccount is true or not specified, create a new user
+    if (req.body.createAccount !== false) {
+      // Create user first (since patients need a user account)
+      const userData = {
+        username: req.body.username || `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`,
+        password: req.body.password || Math.random().toString(36).slice(-8),
+        email: req.body.email,
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        role: "patient" as const, // Use a const assertion to fix the type issue
+        phoneNumber: req.body.phoneNumber,
+        dateOfBirth: req.body.dateOfBirth,
+        insuranceProvider: req.body.insuranceProvider,
+        insuranceNumber: req.body.insuranceNumber,
+        language: req.body.language || "en"
+      };
+
+      console.log("Creating user with data:", userData);
+      
       // Create the user
       user = await storage.createUser(userData);
       
@@ -57,12 +68,11 @@ router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (r
       console.log("User created successfully:", user);
       userId = user.id;
     } else {
-      // Use the currently logged-in user ID
-      if (!req.user || !req.user.id) {
-        throw new Error("User must be logged in to create a patient without an account");
-      }
-      userId = req.user.id;
       user = req.user;
+    }
+    
+    if (!userId) {
+      throw new Error("No user ID available for patient association");
     }
     
     console.log("Using userId:", userId);
