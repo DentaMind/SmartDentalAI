@@ -311,7 +311,6 @@ export default function PatientProfilePage() {
                         <h3 className="text-lg font-medium mb-4">Enhanced Dental Chart</h3>
                         <EnhancedDentalChart 
                           patientId={patientId}
-                          doctorId={1} 
                           readOnly={false}
                           onSave={(data) => {
                             console.log('Enhanced dental chart saved:', data);
