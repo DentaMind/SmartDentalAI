@@ -126,6 +126,8 @@ export const payments = pgTable("payments", {
   checkNumber: text("check_number"),
   paymentPlan: boolean("payment_plan").default(false),
   paymentPlanDetails: jsonb("payment_plan_details"),
+  method: text("method", { enum: ["cash", "credit_card", "check", "insurance", "other"] }),
+  description: text("description"),
 });
 
 export const insuranceClaims = pgTable("insurance_claims", {
