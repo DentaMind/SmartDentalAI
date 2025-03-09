@@ -77,9 +77,22 @@ const formSchema = z.object({
   
   // Dental History
   lastDentalVisit: z.string().optional(),
+  whenIssueStarted: z.string().optional(),
+  experiencedBefore: z.boolean().optional().default(false),
   chiefComplaint: z.string().optional(),
   currentSymptoms: z.string().optional(),
   previousDentalProcedures: z.string().optional(),
+  
+  // Dental Conditions
+  hadGumDisease: z.boolean().optional().default(false),
+  hadExtractions: z.boolean().optional().default(false),
+  hadDentalImplants: z.boolean().optional().default(false),
+  hadOrthodonticTreatment: z.boolean().optional().default(false),
+  hadRootCanal: z.boolean().optional().default(false),
+  hadJawPain: z.boolean().optional().default(false),
+  sensitivityToHotCold: z.boolean().optional().default(false),
+  grindTeeth: z.boolean().optional().default(false),
+  interestedInCosmetic: z.boolean().optional().default(false),
   
   // Consents
   hipaaConsent: z.boolean().default(false),
@@ -156,9 +169,22 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       
       // Dental History
       lastDentalVisit: "",
+      whenIssueStarted: "",
+      experiencedBefore: false,
       chiefComplaint: "",
       currentSymptoms: "",
       previousDentalProcedures: "",
+      
+      // Dental Conditions
+      hadGumDisease: false,
+      hadExtractions: false,
+      hadDentalImplants: false,
+      hadOrthodonticTreatment: false,
+      hadRootCanal: false,
+      hadJawPain: false,
+      sensitivityToHotCold: false,
+      grindTeeth: false,
+      interestedInCosmetic: false,
       
       // Consents
       hipaaConsent: false,
@@ -910,19 +936,35 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
         {/* Dental History Tab */}
         {activeTab === "dental" && (
           <div className="space-y-4">
-            <FormField
-              control={form.control}
-              name="lastDentalVisit"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Last Dental Visit</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="lastDentalVisit"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last Dental Visit</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="whenIssueStarted"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>When did the issue start?</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., 2 weeks ago" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             
             <FormField
               control={form.control}
@@ -940,6 +982,24 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
             
             <FormField
               control={form.control}
+              name="experiencedBefore"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Have you experienced this before?</FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
               name="currentSymptoms"
               render={({ field }) => (
                 <FormItem>
@@ -951,6 +1011,173 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
                 </FormItem>
               )}
             />
+            
+            <FormLabel className="text-lg font-medium mt-6 mb-2">Previous Dental Conditions</FormLabel>
+            <div className="grid grid-cols-3 gap-3">
+              <FormField
+                control={form.control}
+                name="hadGumDisease"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Gum Disease</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="hadExtractions"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Tooth Extractions</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="hadDentalImplants"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Dental Implants</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="hadOrthodonticTreatment"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Orthodontic Treatment</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="hadRootCanal"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Root Canal Therapy</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="hadJawPain"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Jaw Pain or TMJ</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <FormField
+                control={form.control}
+                name="sensitivityToHotCold"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Sensitivity to Hot/Cold</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="grindTeeth"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Grind Teeth</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="interestedInCosmetic"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Interested in Cosmetic Dentistry</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
             
             <FormField
               control={form.control}
