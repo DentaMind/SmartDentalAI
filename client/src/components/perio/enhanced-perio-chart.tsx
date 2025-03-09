@@ -14,45 +14,21 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { Info, Save, Download, Brain } from 'lucide-react';
 
-// Define adult teeth numbering (standard dental notation)
-const ADULT_TEETH_UPPER = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
-const ADULT_TEETH_LOWER = [32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17];
-
-// Define tooth specific positions
-const POSITIONS = [
-  { id: 'MB', name: 'Mesio-Buccal' },
-  { id: 'B', name: 'Buccal' },
-  { id: 'DB', name: 'Disto-Buccal' },
-  { id: 'ML', name: 'Mesio-Lingual' },
-  { id: 'L', name: 'Lingual' },
-  { id: 'DL', name: 'Disto-Lingual' }
-];
-
-// Define relevant perio measurements
-const MEASUREMENT_TYPES = [
-  { id: 'pocketDepth', name: 'Pocket Depth (mm)' },
-  { id: 'recession', name: 'Recession (mm)' },
-  { id: 'attachmentLoss', name: 'Attachment Loss (mm)' },
-  { id: 'bleeding', name: 'Bleeding on Probing' },
-  { id: 'suppuration', name: 'Suppuration' },
-  { id: 'plaque', name: 'Plaque' },
-  { id: 'mobility', name: 'Mobility' },
-  { id: 'furcation', name: 'Furcation' }
-];
-
-// Interface for tooth data
-interface ToothData {
-  id: number;
+// Types for the perio chart data
+interface PerioToothData {
   pocketDepths: {
-    facial: [number, number, number]; // [Mesial, Mid, Distal]
-    lingual: [number, number, number]; // [Mesial, Mid, Distal]
+    facial: [number, number, number];
+    lingual: [number, number, number];
   };
   recessionValues: {
     facial: [number, number, number];
     lingual: [number, number, number];
   };
-  mobilityGrade: number; // 0-3
   bleeding: {
+    facial: [boolean, boolean, boolean];
+    lingual: [boolean, boolean, boolean];
+  };
+  suppuration: {
     facial: [boolean, boolean, boolean];
     lingual: [boolean, boolean, boolean];
   };
@@ -64,71 +40,63 @@ interface ToothData {
     facial: [boolean, boolean, boolean];
     lingual: [boolean, boolean, boolean];
   };
-  suppuration: {
-    facial: [boolean, boolean, boolean];
-    lingual: [boolean, boolean, boolean];
-  };
+  mobilityGrade: number;
   furcation: {
-    facial: [number, number]; // Grade 0-3
-    lingual: [number, number]; // Grade 0-3
-  };
-  implant: boolean;
-  restoration: {
-    type: string; // "none", "crown", "implant", "bridge", etc.
-    surfaces: string[]; // "M", "D", "F", "L", "O"
+    facial: [number, number];
+    lingual: [number, number];
   };
 }
 
-// Interface for perio chart data
 interface PerioChartData {
-  patientId: number;
   chartDate: Date;
-  teeth: Record<number, ToothData>;
+  teeth: { [toothId: number]: PerioToothData };
   notes: string;
-  examinerId: number;
-  bop: number; // Bleeding on probing percentage
-  plaque: number; // Plaque index percentage
   
-  // Advanced AI-powered data
-  riskLevel: 'low' | 'moderate' | 'high';
+  // AI analysis fields
+  riskLevel?: 'low' | 'moderate' | 'high';
   riskFactors: string[];
-  recommendedRecallInterval: 3 | 4 | 6; // months
-  complianceScore: number; // 0-100
-  
-  // Treatment recommendations
-  needsSRP: boolean; // Scaling and Root Planing needed
-  needsPerioSurgery: boolean; 
-  needsLaserTherapy: boolean;
-  recommendedTreatments: string[];
-  
-  // Comparative analysis
-  previousChartId?: number;
-  improvementSites: number[];
-  deterioratingSites: number[];
-  
-  // AI notes and analysis
-  aiSummary: string;
-  worstSites: Array<{toothId: number, position: string, depth: number}>;
-  homeCarePlan: string;
-  
-  // Automated scheduling
+  bop: number; // Bleeding on probing percentage 
+  plaque: number; // Plaque score percentage
+  suppuration: number; // Suppuration percentage
+  worstSites: Array<{ toothId: number; position: string; depth: number }>;
+  recommendedRecallInterval?: number;
   nextRecallDate?: Date;
-  remindersSent: number;
-  missedAppointments: number;
+  needsSRP?: boolean;
+  needsPerioSurgery?: boolean;
+  needsLaserTherapy?: boolean;
+  recommendedTreatments: string[];
+  homeCarePlan?: string;
+  aiSummary?: string;
 }
 
-// Component props
 interface EnhancedPerioChartProps {
-  patientId: number;
-  examinerId: number;
-  existingChartData?: PerioChartData;
+  initialData?: PerioChartData;
   readOnly?: boolean;
   onSave?: (data: PerioChartData) => void;
 }
 
-// Helper function to create an empty tooth data structure
-const createEmptyToothData = (toothId: number): ToothData => ({
-  id: toothId,
+// Measurement type definitions
+const MEASUREMENT_TYPES = [
+  { id: 'pocketDepth', name: 'Pocket Depth' },
+  { id: 'recession', name: 'Recession' },
+  { id: 'attachmentLoss', name: 'Attachment Loss' },
+  { id: 'bleeding', name: 'Bleeding' },
+  { id: 'suppuration', name: 'Suppuration' },
+  { id: 'plaque', name: 'Plaque' },
+  { id: 'mobility', name: 'Mobility/Furcation' }
+];
+
+// Adult teeth numbering
+const ADULT_TEETH_UPPER = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+const ADULT_TEETH_LOWER = [32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17];
+
+// Helper function to calculate clinical attachment loss
+const calculateAttachmentLoss = (pocketDepth: number, recession: number): number => {
+  return pocketDepth + recession;
+};
+
+// Create empty tooth data
+const createEmptyToothData = (): PerioToothData => ({
   pocketDepths: {
     facial: [0, 0, 0],
     lingual: [0, 0, 0]
@@ -137,8 +105,11 @@ const createEmptyToothData = (toothId: number): ToothData => ({
     facial: [0, 0, 0],
     lingual: [0, 0, 0]
   },
-  mobilityGrade: 0,
   bleeding: {
+    facial: [false, false, false],
+    lingual: [false, false, false]
+  },
+  suppuration: {
     facial: [false, false, false],
     lingual: [false, false, false]
   },
@@ -150,114 +121,86 @@ const createEmptyToothData = (toothId: number): ToothData => ({
     facial: [false, false, false],
     lingual: [false, false, false]
   },
-  suppuration: {
-    facial: [false, false, false],
-    lingual: [false, false, false]
-  },
+  mobilityGrade: 0,
   furcation: {
     facial: [0, 0],
     lingual: [0, 0]
-  },
-  implant: false,
-  restoration: {
-    type: "none",
-    surfaces: []
   }
 });
 
-// Initialize an empty periodontal chart
-const initializeEmptyChart = (patientId: number, examinerId: number): PerioChartData => {
-  const teeth: Record<number, ToothData> = {};
+// Create empty chart data
+const createEmptyChartData = (): PerioChartData => {
+  const teeth: { [toothId: number]: PerioToothData } = {};
   
-  // Create all teeth 1-32
-  for (let i = 1; i <= 32; i++) {
-    teeth[i] = createEmptyToothData(i);
-  }
+  // Create empty data for all teeth
+  [...ADULT_TEETH_UPPER, ...ADULT_TEETH_LOWER].forEach(toothId => {
+    teeth[toothId] = createEmptyToothData();
+  });
   
   return {
-    patientId,
     chartDate: new Date(),
     teeth,
-    notes: "",
-    examinerId,
+    notes: '',
+    riskFactors: [],
     bop: 0,
     plaque: 0,
-    
-    // Initialize AI-powered data with default values
-    riskLevel: 'low',
-    riskFactors: [],
-    recommendedRecallInterval: 6, // Default to 6 months
-    complianceScore: 100, // Start with perfect compliance
-    
-    // Treatment recommendations
-    needsSRP: false,
-    needsPerioSurgery: false,
-    needsLaserTherapy: false,
-    recommendedTreatments: [],
-    
-    // Comparative analysis
-    improvementSites: [],
-    deterioratingSites: [],
-    
-    // AI notes and analysis
-    aiSummary: "No previous periodontal assessment available.",
+    suppuration: 0,
     worstSites: [],
-    homeCarePlan: "Regular brushing twice daily with fluoride toothpaste. Daily flossing recommended.",
-    
-    // Automated scheduling
-    remindersSent: 0,
-    missedAppointments: 0
+    recommendedTreatments: []
   };
 };
 
-// Calculate attachment loss (CAL = PD + Recession)
-const calculateAttachmentLoss = (pocketDepth: number, recession: number): number => {
-  return pocketDepth + recession;
-};
-
-// Main periodontal chart component
-const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
-  patientId,
-  examinerId,
-  existingChartData,
+const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({ 
+  initialData, 
   readOnly = false,
   onSave
 }) => {
-  // State
-  const [chartData, setChartData] = useState<PerioChartData>(
-    existingChartData || initializeEmptyChart(patientId, examinerId)
-  );
+  // Chart data state
+  const [chartData, setChartData] = useState<PerioChartData>(initialData || createEmptyChartData());
+  
+  // UI state
   const [selectedArch, setSelectedArch] = useState<'upper' | 'lower'>('upper');
-  const [selectedMeasurement, setSelectedMeasurement] = useState('pocketDepth');
   const [selectedSurface, setSelectedSurface] = useState<'facial' | 'lingual'>('facial');
+  const [selectedMeasurement, setSelectedMeasurement] = useState<string>('pocketDepth');
   const [activeTab, setActiveTab] = useState<'chart' | 'aiAnalysis'>('chart');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showAIInsights, setShowAIInsights] = useState(false);
-  
-  // Calculate statistics
+
+  // Calculate statistics (BOP, plaque, etc.)
   const calculateStats = () => {
-    // Count BOP sites
     let bleedingSites = 0;
-    let totalSites = 0;
     let plaqueSites = 0;
+    let suppurationSites = 0;
+    let totalSites = 0;
     
     Object.values(chartData.teeth).forEach(tooth => {
-      // Count facial sites
-      for (let i = 0; i < 3; i++) {
-        totalSites += 2; // Facial + Lingual = 2 sites per position
+      // Count sites from facial and lingual surfaces
+      ['facial', 'lingual'].forEach(surface => {
+        const surfaceKey = surface as 'facial' | 'lingual';
         
-        if (tooth.bleeding.facial[i]) bleedingSites++;
-        if (tooth.bleeding.lingual[i]) bleedingSites++;
+        // Count bleeding sites
+        tooth.bleeding[surfaceKey].forEach(site => {
+          if (site) bleedingSites++;
+          totalSites++;
+        });
         
-        if (tooth.plaque.facial[i]) plaqueSites++;
-        if (tooth.plaque.lingual[i]) plaqueSites++;
-      }
+        // Count plaque sites
+        tooth.plaque[surfaceKey].forEach(site => {
+          if (site) plaqueSites++;
+        });
+        
+        // Count suppuration sites
+        tooth.suppuration[surfaceKey].forEach(site => {
+          if (site) suppurationSites++;
+        });
+      });
     });
     
     // Update percentages
     setChartData(prev => ({
       ...prev,
       bop: totalSites > 0 ? Math.round((bleedingSites / totalSites) * 100) : 0,
+      suppuration: totalSites > 0 ? Math.round((suppurationSites / totalSites) * 100) : 0,
       plaque: totalSites > 0 ? Math.round((plaqueSites / totalSites) * 100) : 0
     }));
   };
@@ -744,9 +687,7 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
                     {[0, 1, 2].map(position => (
                       <TableCell
                         key={`tooth-${toothId}-${measurementType}-${position}`}
-                        className={`text-center p-0 cursor-pointer ${
-                          tooth[measurementType][selectedSurface][position] ? bgColorClass : 'bg-white'
-                        }`}
+                        className="text-center p-0 cursor-pointer"
                         onClick={() => toggleBooleanValue(
                           toothId, 
                           measurementType, 
@@ -754,7 +695,11 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
                           position as 0 | 1 | 2
                         )}
                       >
-                        <div className="h-10 flex items-center justify-center">
+                        <div 
+                          className={`h-10 flex items-center justify-center text-sm ${
+                            tooth[measurementType][selectedSurface][position] ? bgColorClass : ''
+                          }`}
+                        >
                           {tooth[measurementType][selectedSurface][position] ? '✓' : ''}
                         </div>
                       </TableCell>
@@ -773,18 +718,22 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
   const renderMobilityFurcationTable = () => {
     return (
       <div className="space-y-4">
-        <h3 className="text-sm font-medium">
-          Mobility & Furcation
-        </h3>
+        <div>
+          <h3 className="text-sm font-medium mb-2">Mobility and Furcation</h3>
+          <p className="text-xs text-gray-500 mb-4">
+            Mobility grades: 0 (normal), 1 (slight), 2 (moderate), 3 (severe)<br />
+            Furcation grades: 0 (none), 1 (initial), 2 (partial), 3 (through and through)
+          </p>
+        </div>
         
         <div className="border rounded-md">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-16">Tooth #</TableHead>
-                <TableHead className="text-center">Mobility Grade</TableHead>
-                <TableHead className="text-center">Furcation - Facial</TableHead>
-                <TableHead className="text-center">Furcation - Lingual</TableHead>
+                <TableHead className="text-center">Mobility</TableHead>
+                <TableHead className="text-center">Facial Furc.</TableHead>
+                <TableHead className="text-center">Lingual Furc.</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -792,16 +741,16 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
                 const tooth = chartData.teeth[toothId];
                 
                 return (
-                  <TableRow key={`tooth-${toothId}-mobility-furcation`}>
+                  <TableRow key={`tooth-${toothId}-mobility`}>
                     <TableCell className="font-medium">{toothId}</TableCell>
-                    <TableCell className="text-center p-0">
-                      <Select 
+                    <TableCell className="p-0">
+                      <Select
                         value={tooth.mobilityGrade.toString()} 
                         onValueChange={(value) => updateMobility(toothId, parseInt(value))}
                         disabled={readOnly}
                       >
-                        <SelectTrigger className="h-10 border-0 text-center bg-transparent">
-                          <SelectValue placeholder="0" />
+                        <SelectTrigger className="border-0 h-10">
+                          <SelectValue placeholder="Select" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="0">0</SelectItem>
@@ -811,37 +760,37 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell className="text-center p-0">
-                      <Select 
+                    <TableCell className="p-0">
+                      <Select
                         value={tooth.furcation.facial[0].toString()} 
                         onValueChange={(value) => updateFurcation(toothId, 'facial', 0, parseInt(value))}
                         disabled={readOnly}
                       >
-                        <SelectTrigger className="h-10 border-0 text-center bg-transparent">
-                          <SelectValue placeholder="0" />
+                        <SelectTrigger className="border-0 h-10">
+                          <SelectValue placeholder="Select" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="0">0</SelectItem>
-                          <SelectItem value="1">I</SelectItem>
-                          <SelectItem value="2">II</SelectItem>
-                          <SelectItem value="3">III</SelectItem>
+                          <SelectItem value="1">1</SelectItem>
+                          <SelectItem value="2">2</SelectItem>
+                          <SelectItem value="3">3</SelectItem>
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell className="text-center p-0">
-                      <Select 
+                    <TableCell className="p-0">
+                      <Select
                         value={tooth.furcation.lingual[0].toString()} 
                         onValueChange={(value) => updateFurcation(toothId, 'lingual', 0, parseInt(value))}
                         disabled={readOnly}
                       >
-                        <SelectTrigger className="h-10 border-0 text-center bg-transparent">
-                          <SelectValue placeholder="0" />
+                        <SelectTrigger className="border-0 h-10">
+                          <SelectValue placeholder="Select" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="0">0</SelectItem>
-                          <SelectItem value="1">I</SelectItem>
-                          <SelectItem value="2">II</SelectItem>
-                          <SelectItem value="3">III</SelectItem>
+                          <SelectItem value="1">1</SelectItem>
+                          <SelectItem value="2">2</SelectItem>
+                          <SelectItem value="3">3</SelectItem>
                         </SelectContent>
                       </Select>
                     </TableCell>
@@ -855,134 +804,123 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
     );
   };
   
-  // Define AI insights component
-  function renderAIInsights() {
-    const getRiskLevelColor = () => {
-      if (chartData.riskLevel === 'high') return 'text-red-600';
-      if (chartData.riskLevel === 'moderate') return 'text-yellow-600';
-      return 'text-green-600';
-    };
-    
+  // Get appropriate risk level color
+  const getRiskLevelColor = () => {
+    if (!chartData.riskLevel) return "";
+    return chartData.riskLevel === 'high' 
+      ? 'text-red-700'
+      : chartData.riskLevel === 'moderate'
+        ? 'text-yellow-700'
+        : 'text-green-700';
+  };
+  
+  // Render AI insights
+  const renderAIInsights = () => {
     return (
       <div className="space-y-6">
-        {/* AI Summary */}
-        <div className="p-4 border rounded-md bg-blue-50">
-          <h3 className="text-lg font-medium mb-2">AI Perio Analysis Summary</h3>
-          <p className="text-sm">{chartData.aiSummary}</p>
-        </div>
-        
-        {/* Risk Assessment */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 border rounded-md">
-            <h3 className="text-md font-medium mb-2">Risk Assessment</h3>
-            <div className="flex items-center space-x-2 mb-3">
-              <span className="font-medium">Risk Level:</span>
-              <span className={`font-bold ${getRiskLevelColor()}`}>
-                {chartData.riskLevel.charAt(0).toUpperCase() + chartData.riskLevel.slice(1)}
-              </span>
+        {/* Risk assessment */}
+        <div className="border rounded-md p-4">
+          <h3 className="text-base font-medium mb-2">Risk Assessment</h3>
+          <div className="space-y-4">
+            <div className="bg-gray-50 p-3 rounded">
+              <p className="text-sm">Overall Risk Level: 
+                <span className={`font-bold ${getRiskLevelColor()}`}>
+                  {chartData.riskLevel && chartData.riskLevel.charAt(0).toUpperCase() + chartData.riskLevel.slice(1)}
+                </span>
+              </p>
             </div>
             
-            {chartData.riskFactors.length > 0 ? (
-              <div>
-                <h4 className="text-sm font-medium mb-1">Risk Factors:</h4>
-                <ul className="list-disc list-inside text-sm">
-                  {chartData.riskFactors.map((factor, index) => (
-                    <li key={index}>{factor}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <p className="text-sm text-green-600">No significant risk factors identified.</p>
-            )}
-          </div>
-          
-          {/* Treatment Recommendations */}
-          <div className="p-4 border rounded-md">
-            <h3 className="text-md font-medium mb-2">Treatment Recommendations</h3>
-            {chartData.recommendedTreatments.length > 0 ? (
-              <ul className="list-disc list-inside text-sm">
-                {chartData.recommendedTreatments.map((treatment, index) => (
-                  <li key={index}>{treatment}</li>
+            <div>
+              <h4 className="text-sm font-medium mb-2">Risk Factors Identified:</h4>
+              <ul className="list-disc pl-5 space-y-1">
+                {chartData.riskFactors.map((factor, index) => (
+                  <li key={index} className="text-sm">{factor}</li>
                 ))}
               </ul>
-            ) : (
-              <p className="text-sm text-green-600">No interventional treatments recommended at this time.</p>
-            )}
+            </div>
             
-            <div className="mt-3">
-              <h4 className="text-sm font-medium mb-1">Recommended Recall:</h4>
-              <p className="text-sm">{chartData.recommendedRecallInterval} months</p>
-              {chartData.nextRecallDate && (
-                <p className="text-sm mt-1">
-                  Next appointment: {new Date(chartData.nextRecallDate).toLocaleDateString()}
-                </p>
-              )}
-            </div>
+            {chartData.recommendedRecallInterval && (
+              <div>
+                <h4 className="text-sm font-medium mb-1">Recommended Recall Interval:</h4>
+                <p className="text-sm">{chartData.recommendedRecallInterval} months</p>
+                {chartData.nextRecallDate && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Next appointment: {new Date(chartData.nextRecallDate).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
         
-        {/* Worst Sites */}
-        {chartData.worstSites.length > 0 && (
-          <div className="p-4 border rounded-md">
-            <h3 className="text-md font-medium mb-2">Deepest Pocket Sites</h3>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead>
-                  <tr>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tooth</th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Depth (mm)</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+        {/* Treatment recommendations */}
+        <div className="border rounded-md p-4">
+          <h3 className="text-base font-medium mb-2">Treatment Recommendations</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <h4 className="text-sm font-medium mb-2">Recommended Procedures:</h4>
+              <ul className="list-disc pl-5 space-y-1">
+                {chartData.recommendedTreatments.map((treatment, index) => (
+                  <li key={index} className="text-sm">{treatment}</li>
+                ))}
+              </ul>
+            </div>
+            
+            {chartData.homeCarePlan && (
+              <div>
+                <h4 className="text-sm font-medium mb-2">Home Care Plan:</h4>
+                <p className="text-sm">{chartData.homeCarePlan}</p>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Areas of concern */}
+        <div className="border rounded-md p-4">
+          <h3 className="text-base font-medium mb-2">Areas of Concern</h3>
+          
+          {chartData.worstSites.length > 0 ? (
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium mb-2">Worst Sites:</h4>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tooth #</TableHead>
+                    <TableHead>Position</TableHead>
+                    <TableHead>Pocket Depth</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {chartData.worstSites.map((site, index) => (
-                    <tr key={index}>
-                      <td className="px-2 py-2 whitespace-nowrap text-sm">#{site.toothId}</td>
-                      <td className="px-2 py-2 whitespace-nowrap text-sm">{site.position}</td>
-                      <td className={`px-2 py-2 whitespace-nowrap text-sm font-medium ${site.depth >= 6 ? 'text-red-600' : 'text-yellow-600'}`}>
-                        {site.depth} mm
-                      </td>
-                    </tr>
+                    <TableRow key={index}>
+                      <TableCell>{site.toothId}</TableCell>
+                      <TableCell>{site.position}</TableCell>
+                      <TableCell>{site.depth} mm</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
-          </div>
-        )}
-        
-        {/* Home Care Plan */}
-        <div className="p-4 border rounded-md">
-          <h3 className="text-md font-medium mb-2">Home Care Recommendations</h3>
-          <p className="text-sm">{chartData.homeCarePlan}</p>
+          ) : (
+            <p className="text-sm text-gray-500">No deep pockets detected.</p>
+          )}
         </div>
         
-        {/* Voice Controls */}
-        <div className="p-4 border rounded-md bg-gray-50">
-          <h3 className="text-md font-medium mb-2">Voice Control Help</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-            <div>
-              <span className="font-medium">Recording measurements:</span>
-              <ul className="list-disc list-inside ml-2 mt-1">
-                <li>"Tooth 3, distobuccal: 5mm"</li>
-                <li>"Facial pocket on 17, mesial: 4mm"</li>
-                <li>"Record mobility 2 on tooth 31"</li>
-              </ul>
-            </div>
-            <div>
-              <span className="font-medium">Commands:</span>
-              <ul className="list-disc list-inside ml-2 mt-1">
-                <li>"Record bleeding on tooth 6, lingual"</li>
-                <li>"Show upper arch"</li>
-                <li>"Generate analysis"</li>
-              </ul>
-            </div>
+        {/* AI Summary */}
+        <div className="border rounded-md p-4 bg-gray-50">
+          <h3 className="text-base font-medium mb-2">AI Summary</h3>
+          <p className="text-sm">
+            {chartData.aiSummary || "Chart analysis complete. See recommendations above."}
+          </p>
+          <div className="mt-4 text-xs text-gray-500 flex items-center">
+            <Brain className="h-3 w-3 mr-1" />
+            <p>Chart assessment generated on {new Date(chartData.chartDate).toLocaleDateString()}</p>
           </div>
         </div>
       </div>
     );
-  }
-
-
+  };
   
   return (
     <Card className="w-full">
@@ -995,49 +933,48 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
             </CardDescription>
           </div>
           
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-3">
-              <div className="text-sm font-medium">BOP: <span className="text-primary">{chartData.bop}%</span></div>
-              <div className="text-sm font-medium">PI: <span className="text-primary">{chartData.plaque}%</span></div>
-              <div className="text-sm text-muted-foreground">
-                {new Date(chartData.chartDate).toLocaleDateString()}
-              </div>
-            </div>
-            
-            {!readOnly && (
-              <Button onClick={savePerioChart}>
+          {!readOnly && (
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={savePerioChart}
+              >
                 <Save className="h-4 w-4 mr-2" />
                 Save Chart
               </Button>
-            )}
-          </div>
+              
+              <Button 
+                size="sm" 
+                onClick={generateRiskAnalysis}
+                disabled={isAnalyzing}
+              >
+                <Brain className="h-4 w-4 mr-2" />
+                {isAnalyzing ? 'Analyzing...' : 'AI Analysis'}
+              </Button>
+            </div>
+          )}
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-6">
-        {/* Add AI Analysis button */}
-        {!readOnly && (
-          <div className="flex justify-end">
-            <Button 
-              variant="outline" 
-              onClick={generateRiskAnalysis} 
-              disabled={isAnalyzing}
-              className="mb-2"
-            >
-              {isAnalyzing ? (
-                <>
-                  <div className="mr-2 animate-spin">⟳</div>
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <div className="mr-2">🧠</div>
-                  AI Analysis
-                </>
-              )}
-            </Button>
+      <CardContent>
+        {/* Current statistics */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="rounded-lg bg-blue-50 p-3">
+            <p className="text-xs text-blue-700 mb-1">Bleeding on Probing</p>
+            <p className="text-xl font-semibold">{chartData.bop}%</p>
           </div>
-        )}
+          
+          <div className="rounded-lg bg-amber-50 p-3">
+            <p className="text-xs text-amber-700 mb-1">Plaque Score</p>
+            <p className="text-xl font-semibold">{chartData.plaque}%</p>
+          </div>
+          
+          <div className="rounded-lg bg-purple-50 p-3">
+            <p className="text-xs text-purple-700 mb-1">Suppuration</p>
+            <p className="text-xl font-semibold">{chartData.suppuration}%</p>
+          </div>
+        </div>
       
         {/* Tabs for chart data and AI insights */}
         <Tabs defaultValue="chart" value={activeTab} onValueChange={(value) => setActiveTab(value as 'chart' | 'aiAnalysis')}>
