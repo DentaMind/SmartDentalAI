@@ -14,7 +14,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Appointment } from "@/shared/schema";
+import { Appointment } from "../../../shared/schema";
 
 interface Provider {
   id: number;
@@ -198,7 +198,7 @@ export function EnhancedScheduler({ initialDate = new Date(), onAppointmentSelec
     const slotEnd = new Date(slotStart);
     slotEnd.setMinutes(slotStart.getMinutes() + 14, 59, 999);
     
-    return appointments.filter(appointment => {
+    return appointments.filter((appointment: AppointmentWithMetadata) => {
       const appointmentDate = new Date(appointment.date);
       return appointment.doctorId === doctorId && 
              isSameDay(appointmentDate, date) && 
