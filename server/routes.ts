@@ -300,6 +300,25 @@ router.get('/ai/status', requireAuth, async (req, res) => {
   }
 });
 
+// AI Forecasting Endpoints
+router.post('/ai/financial-forecast', requireAuth, requireRole(['admin', 'doctor']), async (req, res) => {
+  try {
+    const { months = 12, historicalData } = req.body;
+    
+    if (!historicalData) {
+      return res.status(400).json({ message: 'Historical data is required for forecasting' });
+    }
+    
+    const forecast = await aiServiceManager.generateFinancialForecast(historicalData, months);
+    res.json(forecast);
+  } catch (error) {
+    console.error('Financial forecast error:', error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : 'Failed to generate financial forecast' 
+    });
+  }
+});
+
 // Financial routes
 router.get('/financial/summary', requireAuth, requireRole(['doctor', 'staff']), async (req, res) => {
   try {
