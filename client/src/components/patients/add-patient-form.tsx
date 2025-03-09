@@ -67,12 +67,14 @@ const formSchema = z.object({
   kidneyDisease: z.boolean().optional().default(false),
   liverDisease: z.boolean().optional().default(false),
   thyroidDisease: z.boolean().optional().default(false),
-  mentalHealth: z.boolean().optional().default(false),
+  mentalIllness: z.boolean().optional().default(false),
   seizures: z.boolean().optional().default(false),
   bleedingDisorders: z.boolean().optional().default(false),
   autoimmune: z.boolean().optional().default(false),
   hepatitis: z.boolean().optional().default(false),
-  hiv: z.boolean().optional().default(false),
+  hivAids: z.boolean().optional().default(false),
+  lungDisease: z.boolean().optional().default(false),
+  osteoporosis: z.boolean().optional().default(false),
   
   // Lifestyle
   smokesTobacco: z.boolean().optional().default(false),
@@ -144,9 +146,13 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       insuranceHolderRelation: "",
       
       // Medical History
+      underPhysicianCare: false,
+      physicianConditions: "",
       allergies: "",
+      pastSurgeries: "",
       currentMedications: "",
-      currentTreatment: "",
+      adverseAnestheticReaction: false,
+      hospitalizedRecently: false,
       
       // Medical Conditions
       hypertension: false,
@@ -159,12 +165,14 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       kidneyDisease: false,
       liverDisease: false,
       thyroidDisease: false,
-      mentalHealth: false,
+      mentalIllness: false,
       seizures: false,
       bleedingDisorders: false,
       autoimmune: false,
       hepatitis: false,
-      hiv: false,
+      hivAids: false,
+      lungDisease: false,
+      osteoporosis: false,
       
       // Lifestyle
       smokesTobacco: false,
