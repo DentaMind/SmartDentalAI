@@ -1,234 +1,221 @@
-import React, { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { useToast } from '@/hooks/use-toast'
-import { apiRequest } from '@/lib/queryClient'
-import { AlertCircle, CheckCircle, Server } from 'lucide-react'
-import { Skeleton } from '@/components/ui/skeleton'
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { RefreshCw, AlertCircle, CheckCircle, Clock } from "lucide-react";
 
-type AIServiceStatus = {
-  status: 'available' | 'limited' | 'unavailable'
-  usage: number
-  rateLimitPerMinute?: number
-  requestCount?: number
-  lastUsed?: string
-  backupAvailable?: boolean
-  primaryKey?: string
-}
-
-type AIServicesStatus = Record<string, AIServiceStatus>
-
-/**
- * AI Status Panel component displays the current status of all AI services
- * This is used in the AI dashboard to show the health of different AI components
- */
 export function AIStatusPanel() {
-  const [aiStatus, setAiStatus] = useState<AIServicesStatus | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const { toast } = useToast()
+  const [activeTab, setActiveTab] = useState("services");
 
-  const fetchAIStatus = async () => {
-    try {
-      setLoading(true)
-      const data = await apiRequest<AIServicesStatus>('/api/ai/status')
-      setAiStatus(data)
-      setError(null)
-    } catch (err) {
-      console.error('Error fetching AI status:', err)
-      setError('Failed to load AI service status')
-      toast({
-        title: 'Status Update Failed',
-        description: 'Could not retrieve current AI service status',
-        variant: 'destructive'
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { data: aiStatus, isLoading: isStatusLoading, refetch: refetchStatus } = useQuery({
+    queryKey: ['/api/ai/status'],
+    queryFn: () => apiRequest('/api/ai/status'),
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
 
-  useEffect(() => {
-    fetchAIStatus()
+  const { data: queueStatus, isLoading: isQueueLoading, refetch: refetchQueue } = useQuery({
+    queryKey: ['/api/ai/queue'],
+    queryFn: () => apiRequest('/api/ai/queue'),
+    refetchInterval: 15000, // Refresh more frequently
+  });
+
+  const handleRefresh = () => {
+    refetchStatus();
+    refetchQueue();
+  };
+
+  // Calculate overall system health
+  const getSystemHealth = () => {
+    if (!aiStatus) return { status: 'unknown', percentage: 0 };
     
-    // Poll for status updates every 60 seconds
-    const intervalId = setInterval(() => {
-      fetchAIStatus()
-    }, 60000)
+    const services = Object.keys(aiStatus);
+    if (services.length === 0) return { status: 'unknown', percentage: 0 };
     
-    return () => clearInterval(intervalId)
-  }, [])
+    const availableCount = services.filter(
+      service => aiStatus[service].status === 'available'
+    ).length;
+    
+    const limitedCount = services.filter(
+      service => aiStatus[service].status === 'limited'
+    ).length;
+    
+    const percentage = Math.round(
+      ((availableCount + (limitedCount * 0.5)) / services.length) * 100
+    );
+    
+    if (percentage > 80) return { status: 'healthy', percentage };
+    if (percentage > 50) return { status: 'limited', percentage };
+    return { status: 'degraded', percentage };
+  };
 
-  const getStatusColor = (status: 'available' | 'limited' | 'unavailable') => {
+  const systemHealth = getSystemHealth();
+
+  // Get status color
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'available':
-        return 'text-green-500'
+      case 'healthy':
+        return 'bg-green-500';
       case 'limited':
-        return 'text-amber-500'
+        return 'bg-yellow-500';
       case 'unavailable':
-        return 'text-red-500'
+      case 'degraded':
+        return 'bg-red-500';
       default:
-        return 'text-gray-500'
+        return 'bg-gray-500';
     }
-  }
+  };
 
-  const getStatusIcon = (status: 'available' | 'limited' | 'unavailable') => {
+  // Get status badge
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, any> = {
+      'available': { variant: 'outline', className: 'border-green-500 text-green-500' },
+      'healthy': { variant: 'outline', className: 'border-green-500 text-green-500' },
+      'limited': { variant: 'outline', className: 'border-yellow-500 text-yellow-500' },
+      'unavailable': { variant: 'outline', className: 'border-red-500 text-red-500' },
+      'degraded': { variant: 'outline', className: 'border-red-500 text-red-500' },
+      'unknown': { variant: 'outline', className: 'border-gray-500 text-gray-500' }
+    };
+    
+    return variants[status] || variants.unknown;
+  };
+
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'available':
-        return <CheckCircle className="h-5 w-5 text-green-500" />
+      case 'healthy':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'limited':
-        return <Server className="h-5 w-5 text-amber-500" />
+        return <Clock className="h-4 w-4 text-yellow-500" />;
       case 'unavailable':
-        return <AlertCircle className="h-5 w-5 text-red-500" />
+      case 'degraded':
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
       default:
-        return <Server className="h-5 w-5 text-gray-500" />
+        return null;
     }
-  }
+  };
 
-  // Format service name for display (e.g., "xray_analysis" -> "X-ray Analysis")
-  const formatServiceName = (serviceName: string) => {
-    return serviceName
+  // Format service name for display
+  const formatServiceName = (name: string) => {
+    return name
       .replace(/_/g, ' ')
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
-  }
-
-  const renderServiceStatus = (name: string, status: AIServiceStatus) => {
-    return (
-      <div key={name} className="mb-6 p-3 border border-gray-100 rounded-md hover:shadow-sm transition-shadow">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center">
-            {getStatusIcon(status.status)}
-            <span className="ml-2 font-medium">{formatServiceName(name)}</span>
-            {status.backupAvailable && (
-              <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">
-                Backup ready
-              </span>
-            )}
-          </div>
-          <span className={`text-sm font-medium ${getStatusColor(status.status)}`}>
-            {status.status === 'available' ? 'Active' : status.status === 'limited' ? 'High Load' : 'Unavailable'}
-          </span>
-        </div>
-        
-        <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-          <span>API Usage</span>
-          <span>{Math.round(status.usage)}%</span>
-        </div>
-        
-        <Progress 
-          value={status.usage} 
-          className={`h-2 ${
-            status.usage > 80 
-              ? 'bg-red-200' 
-              : status.usage > 50 
-                ? 'bg-amber-200' 
-                : 'bg-green-200'
-          }`} 
-        />
-        
-        <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-600">
-          {status.rateLimitPerMinute && (
-            <div className="bg-gray-50 px-2 py-1 rounded">
-              <span className="font-medium">Rate limit:</span> {status.rateLimitPerMinute}/min
-            </div>
-          )}
-          
-          {status.requestCount !== undefined && (
-            <div className="bg-gray-50 px-2 py-1 rounded">
-              <span className="font-medium">Requests:</span> {status.requestCount}
-            </div>
-          )}
-          
-          {status.lastUsed && (
-            <div className="bg-gray-50 px-2 py-1 rounded">
-              <span className="font-medium">Last used:</span> {new Date(status.lastUsed).toLocaleTimeString()}
-            </div>
-          )}
-        </div>
-        
-        {/* Show key info for administrators only */}
-        {status.primaryKey && (
-          <div className="mt-2 text-xs text-gray-400">
-            Key ending in: ...{status.primaryKey.slice(-4)}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Server className="mr-2 h-5 w-5" />
-            AI Engine Status
-          </CardTitle>
-          <CardDescription>Current status of AI services</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {Array(6).fill(0).map((_, i) => (
-            <div key={i} className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-5 w-16" />
-              </div>
-              <Skeleton className="h-2 w-full mb-1" />
-              <Skeleton className="h-3 w-24 mt-1" />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-red-500">
-            <AlertCircle className="mr-2 h-5 w-5" />
-            AI Engine Status Error
-          </CardTitle>
-          <CardDescription>Failed to load AI service status</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="p-4 bg-red-50 text-red-800 rounded-md">
-            {error}
-            <button 
-              onClick={fetchAIStatus}
-              className="mt-2 px-3 py-1 bg-red-100 hover:bg-red-200 text-red-800 rounded text-sm"
-            >
-              Retry
-            </button>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
+      .join(' ');
+  };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <Server className="mr-2 h-5 w-5" />
-          AI Engine Status
-        </CardTitle>
-        <CardDescription>Current status of AI services</CardDescription>
+    <Card className="w-full">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div>
+          <CardTitle className="text-xl">AI System Status</CardTitle>
+          <CardDescription>Real-time monitoring of AI services</CardDescription>
+        </div>
+        <button 
+          onClick={handleRefresh}
+          className="p-1 rounded hover:bg-muted"
+          title="Refresh Status"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </button>
       </CardHeader>
       <CardContent>
-        {aiStatus && Object.entries(aiStatus).map(([name, status]) => renderServiceStatus(name, status))}
-        <div className="mt-2 text-xs text-gray-500 text-right">
-          Last updated: {new Date().toLocaleTimeString()}
-          <button 
-            onClick={fetchAIStatus} 
-            className="ml-2 text-blue-500 hover:underline"
-          >
-            Refresh
-          </button>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium leading-none">
+                System Health
+              </p>
+              <div className="flex items-center pt-1">
+                {getStatusIcon(systemHealth.status)}
+                <Badge 
+                  {...getStatusBadge(systemHealth.status)}
+                  className="ml-2"
+                >
+                  {systemHealth.status.toUpperCase()}
+                </Badge>
+              </div>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {systemHealth.percentage}%
+            </div>
+          </div>
+          <Progress 
+            value={systemHealth.percentage} 
+            className={`h-2 ${getStatusColor(systemHealth.status)}`} 
+          />
+          
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="services">Services</TabsTrigger>
+              <TabsTrigger value="queue">Queue</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="services" className="space-y-4 pt-3">
+              {isStatusLoading ? (
+                <div className="text-center py-4">Loading service status...</div>
+              ) : (
+                <div className="space-y-4">
+                  {Object.entries(aiStatus || {}).map(([service, data]: [string, any]) => (
+                    <div key={service} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <div className={`h-3 w-3 rounded-full ${getStatusColor(data.status)}`} />
+                        <span className="text-sm font-medium">{formatServiceName(service)}</span>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <span className="text-xs text-muted-foreground">
+                          Usage: {data.usage.toFixed(0)}%
+                        </span>
+                        <Badge {...getStatusBadge(data.status)}>
+                          {data.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="queue" className="space-y-4 pt-3">
+              {isQueueLoading ? (
+                <div className="text-center py-4">Loading queue status...</div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex justify-between text-sm">
+                    <div>Active Requests</div>
+                    <div>{queueStatus?.activeRequests || 0}</div>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <div>Queued Requests</div>
+                    <div>{queueStatus?.queuedRequests || 0}</div>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <div>Avg. Response Time</div>
+                    <div>{queueStatus?.avgResponseTime 
+                      ? `${Math.round(queueStatus.avgResponseTime)}ms` 
+                      : '-'}</div>
+                  </div>
+                  
+                  {queueStatus?.serviceQueues && (
+                    <div className="mt-4">
+                      <p className="text-sm font-medium mb-2">Queue by Service</p>
+                      {Object.entries(queueStatus.serviceQueues).map(([service, count]: [string, any]) => (
+                        <div key={service} className="flex justify-between text-xs text-muted-foreground py-1">
+                          <div>{formatServiceName(service)}</div>
+                          <div>{count}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

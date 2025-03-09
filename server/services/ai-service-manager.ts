@@ -168,30 +168,44 @@ class AIServiceManager {
    */
   async generateTreatmentPlan(diagnosis: string, patientHistory?: string, insuranceProvider?: string): Promise<any> {
     try {
-      const client = this.getOpenAIClient(AIServiceType.TREATMENT_PLANNING);
-      const config = getOptimalAIConfig(AIServiceType.TREATMENT_PLANNING);
+      // Use request queue with medium-high priority
+      return await aiRequestQueue.enqueueRequest(
+        AIServiceType.TREATMENT_PLANNING,
+        async () => {
+          const client = this.getOpenAIClient(AIServiceType.TREATMENT_PLANNING);
+          const config = getOptimalAIConfig(AIServiceType.TREATMENT_PLANNING);
 
-      const response = await client.chat.completions.create({
-        model: config.model || 'gpt-4',
-        max_tokens: config.maxTokens,
-        temperature: config.temperature,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a dental treatment planner with expertise in creating comprehensive care plans. Consider the diagnosis, patient history, and insurance coverage to propose an optimal sequence of treatments.'
-          },
-          {
-            role: 'user',
-            content: `Diagnosis: ${diagnosis}\n${patientHistory ? `Patient history: ${patientHistory}` : ''}${insuranceProvider ? `\nInsurance: ${insuranceProvider}` : ''}`
+          // Validate input
+          if (!diagnosis || !diagnosis.trim()) {
+            throw new Error('Diagnosis is required for treatment planning');
           }
-        ]
-      });
 
-      trackAPIUsage(AIServiceType.TREATMENT_PLANNING, response.usage?.total_tokens || 0);
-      return {
-        treatmentPlan: response.choices[0].message.content,
-        usage: response.usage
-      };
+          const response = await client.chat.completions.create({
+            model: config.model || 'gpt-4',
+            max_tokens: config.maxTokens,
+            temperature: config.temperature,
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a dental treatment planner with expertise in creating comprehensive care plans. Consider the diagnosis, patient history, and insurance coverage to propose an optimal sequence of treatments. Include alternative treatment options when available.'
+              },
+              {
+                role: 'user',
+                content: `Diagnosis: ${diagnosis}\n${patientHistory ? `Patient history: ${patientHistory}` : ''}${insuranceProvider ? `\nInsurance: ${insuranceProvider}` : ''}`
+              }
+            ]
+          });
+
+          // Track API usage for monitoring
+          trackAPIUsage(AIServiceType.TREATMENT_PLANNING, response.usage?.total_tokens || 0);
+          
+          return {
+            treatmentPlan: response.choices[0].message.content,
+            usage: response.usage
+          };
+        },
+        { priority: 8 } // Treatment planning is high priority but slightly below diagnosis
+      );
     } catch (error: any) {
       console.error('Error generating treatment plan:', error.message);
       throw error;
@@ -203,34 +217,92 @@ class AIServiceManager {
    */
   async generateFinancialForecast(historicalData: any, months: number = 12): Promise<any> {
     try {
-      const client = this.getOpenAIClient(AIServiceType.FINANCIAL);
-      const config = getOptimalAIConfig(AIServiceType.FINANCIAL);
+      // Use request queue with lower priority as this is less time-sensitive
+      return await aiRequestQueue.enqueueRequest(
+        AIServiceType.FINANCIAL,
+        async () => {
+          const client = this.getOpenAIClient(AIServiceType.FINANCIAL);
+          const config = getOptimalAIConfig(AIServiceType.FINANCIAL);
 
-      const response = await client.chat.completions.create({
-        model: config.model || 'gpt-4',
-        max_tokens: config.maxTokens,
-        temperature: config.temperature,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a dental practice financial analyst with expertise in forecasting revenue, expenses, and cash flow. Analyze the historical data and generate a forecast for the specified number of months.'
-          },
-          {
-            role: 'user',
-            content: `Please generate a ${months}-month financial forecast based on this historical data: ${JSON.stringify(historicalData)}`
+          // Validate input
+          if (!historicalData) {
+            throw new Error('Historical data is required for financial forecasting');
           }
-        ]
-      });
 
-      trackAPIUsage(AIServiceType.FINANCIAL, response.usage?.total_tokens || 0);
-      return {
-        forecast: this.parseFinancialForecast(response.choices[0].message.content || ''),
-        rawResponse: response.choices[0].message.content,
-        usage: response.usage
-      };
+          // Pre-process historical data to prevent token waste (remove noise, focus on important data)
+          const processedData = typeof historicalData === 'object' 
+            ? this.preprocessFinancialData(historicalData)
+            : historicalData;
+
+          const response = await client.chat.completions.create({
+            model: config.model || 'gpt-4',
+            max_tokens: config.maxTokens,
+            temperature: config.temperature,
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a dental practice financial analyst with expertise in forecasting revenue, expenses, and cash flow. Analyze the historical data and generate a forecast for the specified number of months. Include monthly projections, growth trends, and potential optimization opportunities.'
+              },
+              {
+                role: 'user',
+                content: `Please generate a ${months}-month financial forecast based on this historical data: ${JSON.stringify(processedData)}`
+              }
+            ]
+          });
+
+          trackAPIUsage(AIServiceType.FINANCIAL, response.usage?.total_tokens || 0);
+          return {
+            forecast: this.parseFinancialForecast(response.choices[0].message.content || ''),
+            rawResponse: response.choices[0].message.content,
+            usage: response.usage
+          };
+        },
+        { priority: 3, timeout: 60000 } // Financial forecasting is lower priority and can take longer
+      );
     } catch (error: any) {
       console.error('Error generating financial forecast:', error.message);
       throw error;
+    }
+  }
+  
+  /**
+   * Preprocess financial data to focus on the most relevant information
+   * This helps reduce token usage and improve forecast quality
+   */
+  private preprocessFinancialData(data: any): any {
+    try {
+      // If data is very large, summarize or truncate it
+      if (JSON.stringify(data).length > 8000) {
+        console.log('Financial data is large, preprocessing to reduce token usage');
+        
+        // Create a simplified version focusing on recent months and key metrics
+        const simplified: any = {};
+        
+        // Extract only the most recent months (up to 6)
+        if (data.monthlyData && Array.isArray(data.monthlyData)) {
+          simplified.monthlyData = data.monthlyData.slice(-6);
+        }
+        
+        // Keep only essential financial metrics
+        const essentialMetrics = [
+          'totalRevenue', 'totalExpenses', 'netProfit', 'cashFlow',
+          'insurancePayments', 'patientPayments', 'staffCosts', 'supplies'
+        ];
+        
+        essentialMetrics.forEach(metric => {
+          if (data[metric] !== undefined) {
+            simplified[metric] = data[metric];
+          }
+        });
+        
+        return simplified;
+      }
+      
+      // Data is not too large, return as is
+      return data;
+    } catch (e) {
+      console.warn('Error preprocessing financial data:', e);
+      return data; // Return original data if preprocessing fails
     }
   }
 
@@ -240,40 +312,162 @@ class AIServiceManager {
   async generateSchedulingSuggestions(
     doctorAvailability: any,
     patientPreferences: any,
-    procedureType: string
+    procedureType: string,
+    insuranceInfo?: any // Optional insurance information for coverage verification
   ): Promise<any> {
     try {
-      const client = this.getOpenAIClient(AIServiceType.SCHEDULING);
-      const config = getOptimalAIConfig(AIServiceType.SCHEDULING);
-
-      const response = await client.chat.completions.create({
-        model: config.model || 'gpt-3.5-turbo', // Using a faster, cheaper model for scheduling
-        max_tokens: config.maxTokens,
-        temperature: config.temperature,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a dental practice scheduling assistant with expertise in optimizing appointment schedules. Consider doctor availability, patient preferences, and procedure type to suggest optimal appointment times.'
-          },
-          {
-            role: 'user',
-            content: `Please suggest optimal appointment times given:
-Doctor availability: ${JSON.stringify(doctorAvailability)}
-Patient preferences: ${JSON.stringify(patientPreferences)}
-Procedure type: ${procedureType}`
+      // Use request queue with medium priority
+      return await aiRequestQueue.enqueueRequest(
+        AIServiceType.SCHEDULING,
+        async () => {
+          const client = this.getOpenAIClient(AIServiceType.SCHEDULING);
+          const config = getOptimalAIConfig(AIServiceType.SCHEDULING);
+          
+          // Validate inputs
+          if (!doctorAvailability) {
+            throw new Error('Doctor availability is required for scheduling');
           }
-        ]
-      });
+          
+          // Format request to optimize token usage
+          const formattedRequest = {
+            doctorAvailability: this.prepareSchedulingData(doctorAvailability),
+            patientPreferences: patientPreferences || { 
+              preferredDays: ['Any'], 
+              preferredTimes: ['Any'] 
+            },
+            procedureType,
+            procedureDuration: this.getProcedureDuration(procedureType),
+            insuranceInfo: insuranceInfo || null
+          };
 
-      trackAPIUsage(AIServiceType.SCHEDULING, response.usage?.total_tokens || 0);
-      return {
-        suggestions: response.choices[0].message.content,
-        usage: response.usage
-      };
+          // Enhanced prompt that includes insurance verification if info is provided
+          const systemPrompt = insuranceInfo 
+            ? 'You are a dental practice scheduling assistant with expertise in optimizing appointment schedules. Consider doctor availability, patient preferences, procedure type, and verify insurance coverage to suggest optimal appointment times with estimated out-of-pocket costs.'
+            : 'You are a dental practice scheduling assistant with expertise in optimizing appointment schedules. Consider doctor availability, patient preferences, and procedure type to suggest optimal appointment times.';
+
+          const response = await client.chat.completions.create({
+            model: config.model || 'gpt-3.5-turbo', // Using a faster, cheaper model for scheduling
+            max_tokens: config.maxTokens,
+            temperature: config.temperature,
+            messages: [
+              {
+                role: 'system',
+                content: systemPrompt
+              },
+              {
+                role: 'user',
+                content: `Please suggest 3-5 optimal appointment times given the following information:
+Doctor availability: ${JSON.stringify(formattedRequest.doctorAvailability)}
+Patient preferences: ${JSON.stringify(formattedRequest.patientPreferences)}
+Procedure type: ${formattedRequest.procedureType}
+Estimated procedure duration: ${formattedRequest.procedureDuration} minutes
+${insuranceInfo ? `Insurance information: ${JSON.stringify(insuranceInfo)}` : ''}`
+              }
+            ]
+          });
+
+          // Process the response
+          const suggestions = response.choices[0].message.content || '';
+          
+          // Parse suggested times and combine with insurance information if available
+          const result: any = {
+            suggestions,
+            usage: response.usage
+          };
+          
+          // Add insurance verification if provided
+          if (insuranceInfo) {
+            result.insuranceVerified = true;
+            
+            // Extract cost information from AI response
+            const costMatch = suggestions.match(/estimated out-of-pocket cost:?\s*\$?([\d,.]+)/i);
+            if (costMatch && costMatch[1]) {
+              result.estimatedCost = parseFloat(costMatch[1].replace(/,/g, ''));
+            }
+          }
+
+          trackAPIUsage(AIServiceType.SCHEDULING, response.usage?.total_tokens || 0);
+          return result;
+        },
+        { priority: 5 } // Medium priority for scheduling
+      );
     } catch (error: any) {
       console.error('Error generating scheduling suggestions:', error.message);
       throw error;
     }
+  }
+  
+  /**
+   * Prepare scheduling data to minimize token usage
+   */
+  private prepareSchedulingData(availability: any): any {
+    // If availability is an array of dates/times, keep only next 14 days
+    if (Array.isArray(availability)) {
+      const twoWeeksFromNow = new Date();
+      twoWeeksFromNow.setDate(twoWeeksFromNow.getDate() + 14);
+      
+      return availability
+        .filter((slot: any) => {
+          const slotDate = new Date(slot.date || slot.startTime || slot);
+          return !isNaN(slotDate.getTime()) && slotDate <= twoWeeksFromNow;
+        })
+        .slice(0, 20); // Limit to 20 slots max to prevent token waste
+    }
+    
+    // If it's an object with complex structure, extract only what's needed
+    if (typeof availability === 'object') {
+      const simplified: any = {};
+      
+      // Extract only availability for next two weeks
+      const now = new Date();
+      for (let i = 0; i < 14; i++) {
+        const date = new Date(now);
+        date.setDate(date.getDate() + i);
+        const dateStr = date.toISOString().split('T')[0];
+        
+        if (availability[dateStr]) {
+          simplified[dateStr] = availability[dateStr];
+        }
+      }
+      
+      return simplified;
+    }
+    
+    return availability;
+  }
+  
+  /**
+   * Get the estimated duration of a procedure type
+   */
+  private getProcedureDuration(procedureType: string): number {
+    // Estimated durations for common procedure types
+    const durationMap: Record<string, number> = {
+      'cleaning': 60,
+      'checkup': 30,
+      'filling': 60,
+      'crown': 90,
+      'root canal': 120,
+      'extraction': 60,
+      'wisdom tooth extraction': 90,
+      'implant': 120,
+      'denture fitting': 90,
+      'bridge': 90,
+      'veneer': 90,
+      'whitening': 60,
+      'orthodontic adjustment': 30,
+      'periodontal treatment': 60,
+      'deep cleaning': 90
+    };
+    
+    // Search for keywords in procedure type
+    for (const [key, duration] of Object.entries(durationMap)) {
+      if (procedureType.toLowerCase().includes(key.toLowerCase())) {
+        return duration;
+      }
+    }
+    
+    // Default duration if not found
+    return 60;
   }
 
   /**
@@ -285,30 +479,90 @@ Procedure type: ${procedureType}`
     customDetails?: string
   ): Promise<any> {
     try {
-      const client = this.getOpenAIClient(AIServiceType.PATIENT_COMMUNICATION);
-      const config = getOptimalAIConfig(AIServiceType.PATIENT_COMMUNICATION);
-
-      const response = await client.chat.completions.create({
-        model: config.model || 'gpt-4',
-        max_tokens: config.maxTokens,
-        temperature: config.temperature,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a dental practice communication specialist with expertise in creating personalized messages for patients. Consider the patient information and communication type to generate an appropriate message.'
-          },
-          {
-            role: 'user',
-            content: `Please generate a ${communicationType} message for this patient: ${JSON.stringify(patientInfo)}${customDetails ? `\nAdditional details: ${customDetails}` : ''}`
+      // Use request queue with appropriate priority
+      return await aiRequestQueue.enqueueRequest(
+        AIServiceType.PATIENT_COMMUNICATION,
+        async () => {
+          const client = this.getOpenAIClient(AIServiceType.PATIENT_COMMUNICATION);
+          const config = getOptimalAIConfig(AIServiceType.PATIENT_COMMUNICATION);
+          
+          // Validate input
+          if (!patientInfo) {
+            throw new Error('Patient information is required for communication generation');
           }
-        ]
-      });
+          
+          // Enhance system prompt based on communication type
+          let systemPrompt = 'You are a dental practice communication specialist with expertise in creating personalized messages for patients.';
+          
+          // Add type-specific instructions to improve quality
+          switch (communicationType) {
+            case 'reminder':
+              systemPrompt += ' Create a friendly reminder that emphasizes the importance of the upcoming appointment without being pushy.';
+              break;
+            case 'follow-up':
+              systemPrompt += ' Create a caring follow-up message that asks about recovery and offers assistance if needed.';
+              break;
+            case 'educational':
+              systemPrompt += ' Create an informative message that educates the patient on dental health topics relevant to their condition.';
+              break;
+            case 'marketing':
+              systemPrompt += ' Create an engaging message that promotes services without being overly sales-focused.';
+              break;
+          }
+          
+          // Get appropriate model based on message complexity
+          const model = communicationType === 'educational' ? 'gpt-4' : 'gpt-3.5-turbo';
+          
+          const response = await client.chat.completions.create({
+            model: config.model || model,
+            max_tokens: config.maxTokens,
+            temperature: config.temperature,
+            messages: [
+              {
+                role: 'system',
+                content: systemPrompt
+              },
+              {
+                role: 'user',
+                content: `Please generate a ${communicationType} message for this patient: ${JSON.stringify(patientInfo)}${customDetails ? `\nAdditional details: ${customDetails}` : ''}`
+              }
+            ]
+          });
 
-      trackAPIUsage(AIServiceType.PATIENT_COMMUNICATION, response.usage?.total_tokens || 0);
-      return {
-        message: response.choices[0].message.content,
-        usage: response.usage
-      };
+          trackAPIUsage(AIServiceType.PATIENT_COMMUNICATION, response.usage?.total_tokens || 0);
+          
+          // Process response into different formats based on type
+          const content = response.choices[0].message.content || '';
+          const result: any = {
+            message: content,
+            usage: response.usage
+          };
+          
+          // Add SMS-friendly version for reminders with character limit
+          if (communicationType === 'reminder') {
+            // Create SMS-friendly version (160 chars or less if possible)
+            const smsMatch = content.match(/SMS version:(.+?)(?=\n|$)/i);
+            if (smsMatch && smsMatch[1]) {
+              result.smsVersion = smsMatch[1].trim();
+            } else if (content.length <= 160) {
+              result.smsVersion = content;
+            } else {
+              // Create shorter version by removing unnecessary parts
+              result.smsVersion = content
+                .replace(/Dear (Mr\.|Mrs\.|Ms\.|Dr\.) [^,]+,/i, '')
+                .replace(/Best regards,[\s\S]*$/i, '')
+                .replace(/Sincerely,[\s\S]*$/i, '')
+                .substring(0, 157) + '...';
+            }
+          }
+          
+          return result;
+        },
+        { 
+          priority: communicationType === 'reminder' ? 6 : 4,
+          timeout: 20000
+        }
+      );
     } catch (error: any) {
       console.error('Error generating patient communication:', error.message);
       throw error;

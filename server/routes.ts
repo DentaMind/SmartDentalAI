@@ -332,6 +332,19 @@ router.get('/ai/status', requireAuth, async (req, res) => {
   }
 });
 
+// AI Queue Status Endpoint
+router.get('/ai/queue', requireAuth, async (req, res) => {
+  try {
+    const queueStatus = aiServiceManager.getQueueStatus();
+    res.json(queueStatus);
+  } catch (error) {
+    console.error('AI Queue error:', error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : 'Failed to get AI queue status' 
+    });
+  }
+});
+
 // AI Forecasting Endpoints
 router.post('/ai/financial-forecast', requireAuth, requireRole(['admin', 'doctor']), async (req, res) => {
   try {
