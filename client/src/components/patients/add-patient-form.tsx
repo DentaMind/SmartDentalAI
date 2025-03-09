@@ -33,6 +33,7 @@ const formSchema = z.object({
   phoneNumber: z.string().min(10, { message: "Please enter a valid phone number" }),
   dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Please use YYYY-MM-DD format" }),
   homeAddress: z.string().optional(),
+  socialSecurityNumber: z.string().optional(),
   
   // Emergency Contact
   emergencyContactName: z.string().optional(),
@@ -42,18 +43,43 @@ const formSchema = z.object({
   // Insurance Information
   insuranceProvider: z.string().optional(),
   insuranceNumber: z.string().optional(),
+  insuranceGroupNumber: z.string().optional(),
+  insurancePrimaryHolder: z.string().optional(),
+  insuranceHolderRelation: z.string().optional(),
   
   // Medical History
   allergies: z.string().optional(),
-  bloodType: z.string().optional(),
+  currentMedications: z.string().optional(),
   currentTreatment: z.string().optional(),
+  
+  // Medical Conditions
+  hypertension: z.boolean().optional().default(false),
+  diabetes: z.boolean().optional().default(false),
+  heartDisease: z.boolean().optional().default(false),
+  asthma: z.boolean().optional().default(false),
+  arthritis: z.boolean().optional().default(false),
+  cancer: z.boolean().optional().default(false),
+  stroke: z.boolean().optional().default(false),
+  kidneyDisease: z.boolean().optional().default(false),
+  liverDisease: z.boolean().optional().default(false),
+  thyroidDisease: z.boolean().optional().default(false),
+  mentalHealth: z.boolean().optional().default(false),
+  seizures: z.boolean().optional().default(false),
+  bleedingDisorders: z.boolean().optional().default(false),
+  autoimmune: z.boolean().optional().default(false),
+  hepatitis: z.boolean().optional().default(false),
+  hiv: z.boolean().optional().default(false),
+  
+  // Lifestyle
   smokesTobacco: z.boolean().optional().default(false),
+  useAlcohol: z.boolean().optional().default(false),
   isPregnantOrNursing: z.boolean().optional().default(false),
   
   // Dental History
   lastDentalVisit: z.string().optional(),
   chiefComplaint: z.string().optional(),
   currentSymptoms: z.string().optional(),
+  previousDentalProcedures: z.string().optional(),
   
   // Consents
   hipaaConsent: z.boolean().default(false),
@@ -343,6 +369,23 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
                   <FormControl>
                     <Input placeholder="Enter full address" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="socialSecurityNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Social Security Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder="XXX-XX-XXXX" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Your SSN is kept secure and encrypted
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
