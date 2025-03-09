@@ -1,0 +1,80 @@
+Restorative Charting AI for DentaMind
+To create a fully interactive and AI-powered restorative charting system, we need a dedicated Restorations Tab in the patient profile. This tab will allow dentists to chart, visualize, and track all existing and new restorations with precise location mapping, animations, and AI-driven treatment suggestions.
+
+1. Core Features of the Restorations Chart
+Graphical Representation of All 32 Teeth
+
+Each tooth is shown in multiple views:
+Occlusal (top-down)
+Buccal/Labial (front-facing)
+Lingual/Palatal (back view)
+Root Structure (for endodontic treatments)
+Teeth should be clickable and interactive for easy selection.
+Comprehensive Marking of Restorations
+
+Dentists must be able to specify exact surfaces involved:
+Mesial (M)
+Distal (D)
+Buccal (B)
+Lingual (L)
+Occlusal (O)
+Cervical/Mid-buccal
+Root involvement (furcation, RCT)
+AI auto-detects common treatment patterns.
+2. AI-Driven Auto-Detection and Visualization
+A. AI-Recognized Existing Restorations
+AI will analyze past X-rays and intraoral scans to detect and mark:
+
+Existing crowns, fillings, bridges, implants.
+Previous root canal-treated teeth (RCT).
+Defective restorations (fractured, open margins, recurrent decay).
+Missing teeth and existing prosthetics.
+Once detected, AI automatically color-codes restorations:
+
+Blue: Healthy restorations.
+Yellow: Watch areas (possible microleakage, wear).
+Red: Defective or failing restorations.
+Clicking on a tooth allows the provider to adjust AI-detected findings manually.
+
+B. Animation of Treatment
+When a crown, RCT, or filling is charted, AI generates a real-time animation:
+Example: If a root canal and crown are added, the tooth will display a pulpal animation of the root canal, followed by a crown being placed on top.
+If a filling is marked, the system highlights the specific surfaces (e.g., MO, DO, etc.).
+If an implant is charted, it shows an animation of the implant placement in bone.
+3. Treatment History & Progress Tracking
+Each modification to the chart should be timestamped and linked to:
+
+The date of treatment.
+The provider who performed it.
+Notes on why the treatment was done.
+Follow-up recommendations (e.g., recall visit, re-evaluation).
+AI compares old and new charts to detect:
+
+Deterioration of restorations.
+New treatment needs.
+Patterns of wear and tear.
+Fractures, recurrent caries under restorations.
+4. AI-Suggested Treatment Planning
+AI should automatically suggest treatments based on the chart:
+
+If a filling is marked as failing → AI suggests replacement.
+If caries is detected near an existing restoration → AI suggests extending the restoration or doing an inlay/onlay instead.
+If a crown is failing → AI evaluates the possibility of re-cementation vs. full replacement.
+If multiple missing teeth are marked → AI suggests a bridge, implant, or partial denture based on occlusion.
+AI integrates with insurance eligibility to:
+
+Check coverage for suggested treatments.
+Predict patient out-of-pocket costs.
+Auto-generate CDT codes and pre-authorization forms.
+5. Seamless Integration with the Perio Chart & Scheduling
+The restorative chart syncs with the perio chart, allowing:
+
+Bone loss tracking around restorations and implants.
+Peri-implantitis alerts if inflammation is detected around an implant.
+Failure prediction for long-span bridges based on occlusal forces.
+AI auto-schedules follow-ups for:
+
+Re-evaluation of questionable restorations.
+Crown delivery after impressions.
+Implant integration checks.
+Occlusal guard fabrication for patients with bruxism.

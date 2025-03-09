@@ -46,8 +46,8 @@ export async function seedDatabase() {
       passwordHash,
       mfaSecret: "",
       mfaEnabled: false,
-      specialization: dentistData.specialization,
-      licenseNumber: dentistData.licenseNumber
+      specialization: dentistData.specialization ? dentistData.specialization : undefined,
+      licenseNumber: dentistData.licenseNumber ? dentistData.licenseNumber : undefined
     });
     
     console.log(`Created dentist user: ${dentist.username} (ID: ${dentist.id})`);

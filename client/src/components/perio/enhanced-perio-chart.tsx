@@ -654,7 +654,7 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
     const bgColorClass = {
       bleeding: 'bg-red-100',
       suppuration: 'bg-yellow-100',
-      plaque: 'bg-blue-100',
+      plaque: 'bg-green-100',
       calculus: 'bg-gray-100'
     }[measurementType];
     
@@ -984,8 +984,8 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
             <p className="text-xl font-semibold">{chartData.bop}%</p>
           </div>
           
-          <div className="rounded-lg bg-amber-50 p-3">
-            <p className="text-xs text-amber-700 mb-1">Plaque Score</p>
+          <div className="rounded-lg bg-green-50 p-3">
+            <p className="text-xs text-green-700 mb-1">Plaque Score</p>
             <p className="text-xl font-semibold">{chartData.plaque}%</p>
           </div>
           
@@ -1177,7 +1177,7 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
                       <span className="text-xs">Suppuration</span>
                     </div>
                     <div className="flex items-center">
-                      <div className="w-4 h-4 mr-1 bg-blue-100 border border-gray-300 flex items-center justify-center text-xs">✓</div>
+                      <div className="w-4 h-4 mr-1 bg-green-100 border border-gray-300 flex items-center justify-center text-xs">✓</div>
                       <span className="text-xs">Plaque</span>
                     </div>
                   </div>
