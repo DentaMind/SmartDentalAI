@@ -5,8 +5,10 @@ import { predictFromSymptoms } from "./services/ai-prediction";
 import { aiCoordinator } from "./services/ai-coordinator";
 import { requireAuth, requireRole, requireOwnership } from "./middleware/auth";
 import { analyzeMedicalHistory } from './services/medical-history-ai';
+import { financialService } from './services/financial';
 import schedulerRoutes from './routes/scheduler-routes';
 import path from 'path';
+import { PatientMedicalHistory } from '../shared/schema';
 
 const app = express();
 const router = express.Router();
@@ -283,6 +285,129 @@ router.post("/ai/medical-analysis", requireAuth, async (req, res) => {
 
 // Use scheduler routes
 router.use('/scheduler', schedulerRoutes);
+
+// Financial routes
+router.get('/financial/summary', requireAuth, requireRole(['doctor', 'staff']), async (req, res) => {
+  try {
+    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(new Date().setDate(new Date().getDate() - 30));
+    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
+    
+    const summary = await financialService.getFinancialSummary(startDate, endDate);
+    res.json(summary);
+  } catch (error) {
+    console.error('Financial summary error:', error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : 'Failed to get financial summary'
+    });
+  }
+});
+
+router.get('/financial/forecast', requireAuth, requireRole(['doctor', 'staff']), async (req, res) => {
+  try {
+    const months = req.query.months ? Number(req.query.months) : 12;
+    
+    const forecast = await financialService.generateFinancialForecast(months);
+    res.json(forecast);
+  } catch (error) {
+    console.error('Financial forecast error:', error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : 'Failed to generate financial forecast'
+    });
+  }
+});
+
+router.get('/financial/aging-report', requireAuth, requireRole(['doctor', 'staff']), async (req, res) => {
+  try {
+    const agingReport = await financialService.generateAgingReport();
+    res.json(agingReport);
+  } catch (error) {
+    console.error('Aging report error:', error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : 'Failed to generate aging report'
+    });
+  }
+});
+
+router.get('/financial/profitability/:year', requireAuth, requireRole(['doctor']), async (req, res) => {
+  try {
+    const year = Number(req.params.year);
+    if (isNaN(year)) {
+      return res.status(400).json({ message: 'Invalid year provided' });
+    }
+    
+    const profitabilityReport = await financialService.generateProfitabilityReport(year);
+    res.json(profitabilityReport);
+  } catch (error) {
+    console.error('Profitability report error:', error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : 'Failed to generate profitability report'
+    });
+  }
+});
+
+router.get('/financial/tax-report/:year', requireAuth, requireRole(['doctor', 'staff']), async (req, res) => {
+  try {
+    const year = Number(req.params.year);
+    if (isNaN(year)) {
+      return res.status(400).json({ message: 'Invalid year provided' });
+    }
+    
+    const taxReport = await financialService.generateTaxReport(year);
+    res.json(taxReport);
+  } catch (error) {
+    console.error('Tax report error:', error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : 'Failed to generate tax report'
+    });
+  }
+});
+
+router.post('/financial/payment', requireAuth, requireRole(['doctor', 'staff']), async (req, res) => {
+  try {
+    const payment = await financialService.processPayment(req.body);
+    res.status(201).json(payment);
+  } catch (error) {
+    console.error('Payment processing error:', error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : 'Failed to process payment'
+    });
+  }
+});
+
+router.post('/financial/insurance-claim', requireAuth, requireRole(['doctor', 'staff']), async (req, res) => {
+  try {
+    const claim = await financialService.submitInsuranceClaim(req.body);
+    res.status(201).json(claim);
+  } catch (error) {
+    console.error('Insurance claim submission error:', error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : 'Failed to submit insurance claim'
+    });
+  }
+});
+
+router.get('/financial/patient-cost-estimate/:treatmentPlanId', requireAuth, async (req, res) => {
+  try {
+    const treatmentPlanId = Number(req.params.treatmentPlanId);
+    const insuranceProviderId = req.query.insuranceProviderId as string;
+    
+    if (isNaN(treatmentPlanId)) {
+      return res.status(400).json({ message: 'Invalid treatment plan ID' });
+    }
+    
+    if (!insuranceProviderId) {
+      return res.status(400).json({ message: 'Insurance provider ID is required' });
+    }
+    
+    const estimate = await financialService.estimatePatientCost(treatmentPlanId, insuranceProviderId);
+    res.json(estimate);
+  } catch (error) {
+    console.error('Cost estimate error:', error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : 'Failed to generate cost estimate'
+    });
+  }
+});
 
 // Mount all routes under /api prefix
 app.use("/api", router);
