@@ -39,7 +39,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { toast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Info, Download } from 'lucide-react';
 
 // Tooth number arrays
@@ -144,6 +144,9 @@ const EnhancedPerioChart: React.FC<PerioChartProps> = ({
   readOnly = false,
   onSave
 }) => {
+  // Get toast function for notifications
+  const { toast } = useToast();
+  
   // Chart data state
   const [chartData, setChartData] = useState<PerioChartData>(initialData || createEmptyChartData());
   
