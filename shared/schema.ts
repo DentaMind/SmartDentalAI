@@ -74,12 +74,36 @@ export const patients = pgTable("patients", {
   email: text("email"),
   phoneNumber: text("phone_number"),
   dateOfBirth: text("date_of_birth"),
+  homeAddress: text("home_address"),
   insuranceProvider: text("insurance_provider"),
   insuranceNumber: text("insurance_number"),
+  
+  // Emergency contact information
+  emergencyContactName: text("emergency_contact_name"),
+  emergencyContactPhone: text("emergency_contact_phone"),
+  emergencyContactRelationship: text("emergency_contact_relationship"),
+  
+  // Medical history expanded fields
   medicalHistory: text("medical_history"),
+  currentTreatment: text("current_treatment"),
+  medications: jsonb("medications"),
   allergies: text("allergies"),
   bloodType: text("blood_type"),
-  emergencyContact: text("emergency_contact"),
+  smokesTobacco: boolean("smokes_tobacco"),
+  isPregnantOrNursing: boolean("is_pregnant_or_nursing"),
+  
+  // Dental history
+  lastDentalVisit: text("last_dental_visit"),
+  dentalHistory: jsonb("dental_history"),
+  currentSymptoms: text("current_symptoms"),
+  chiefComplaint: text("chief_complaint"),
+  
+  // Consent forms and agreements
+  hipaaConsent: boolean("hipaa_consent"),
+  treatmentConsent: boolean("treatment_consent"),
+  financialResponsibilityAgreement: boolean("financial_responsibility"),
+  assignmentOfBenefits: boolean("assignment_of_benefits"),
+  officePolicy: boolean("office_policy"),
 });
 
 export const appointments = pgTable("appointments", {

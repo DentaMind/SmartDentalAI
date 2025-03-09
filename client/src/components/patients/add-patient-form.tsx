@@ -18,14 +18,45 @@ interface AddPatientFormProps {
 }
 
 const formSchema = z.object({
+  // Personal Information
   firstName: z.string().min(2, { message: "First name must be at least 2 characters" }),
   lastName: z.string().min(2, { message: "Last name must be at least 2 characters" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
   phoneNumber: z.string().min(10, { message: "Please enter a valid phone number" }),
   dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Please use YYYY-MM-DD format" }),
+  homeAddress: z.string().optional(),
+  
+  // Emergency Contact
+  emergencyContactName: z.string().optional(),
+  emergencyContactPhone: z.string().optional(),
+  emergencyContactRelationship: z.string().optional(),
+  
+  // Insurance Information
   insuranceProvider: z.string().optional(),
   insuranceNumber: z.string().optional(),
-  createAccount: z.boolean().default(true)
+  
+  // Medical History
+  allergies: z.string().optional(),
+  bloodType: z.string().optional(),
+  currentTreatment: z.string().optional(),
+  smokesTobacco: z.boolean().optional().default(false),
+  isPregnantOrNursing: z.boolean().optional().default(false),
+  
+  // Dental History
+  lastDentalVisit: z.string().optional(),
+  chiefComplaint: z.string().optional(),
+  currentSymptoms: z.string().optional(),
+  
+  // Consents
+  hipaaConsent: z.boolean().default(false),
+  treatmentConsent: z.boolean().default(false),
+  financialResponsibilityAgreement: z.boolean().default(false),
+  assignmentOfBenefits: z.boolean().default(false),
+  officePolicy: z.boolean().default(false),
+  
+  // Account Creation
+  createAccount: z.boolean().default(true),
+  userId: z.number().optional()
 });
 
 type AddPatientFormData = z.infer<typeof formSchema>;

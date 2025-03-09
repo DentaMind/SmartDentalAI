@@ -154,12 +154,37 @@ export class MemStorage implements IStorage {
       email: insertPatient.email || null,
       phoneNumber: insertPatient.phoneNumber || null,
       dateOfBirth: insertPatient.dateOfBirth || null,
+      
+      // New fields from the extended patient form
+      homeAddress: insertPatient.homeAddress || null,
+      emergencyContactName: insertPatient.emergencyContactName || null,
+      emergencyContactPhone: insertPatient.emergencyContactPhone || null,
+      emergencyContactRelationship: insertPatient.emergencyContactRelationship || null,
+      
       insuranceProvider: insertPatient.insuranceProvider || null,
       insuranceNumber: insertPatient.insuranceNumber || null,
+      
+      // Medical history extended fields
       medicalHistory: insertPatient.medicalHistory || null,
+      currentTreatment: insertPatient.currentTreatment || null,
+      medications: insertPatient.medications || null,
       allergies: insertPatient.allergies || null,
       bloodType: insertPatient.bloodType || null,
-      emergencyContact: insertPatient.emergencyContact || null,
+      smokesTobacco: insertPatient.smokesTobacco || null,
+      isPregnantOrNursing: insertPatient.isPregnantOrNursing || null,
+      
+      // Dental history
+      lastDentalVisit: insertPatient.lastDentalVisit || null,
+      dentalHistory: insertPatient.dentalHistory || null,
+      currentSymptoms: insertPatient.currentSymptoms || null,
+      chiefComplaint: insertPatient.chiefComplaint || null,
+      
+      // Consent forms
+      hipaaConsent: insertPatient.hipaaConsent || null,
+      treatmentConsent: insertPatient.treatmentConsent || null,
+      financialResponsibilityAgreement: insertPatient.financialResponsibilityAgreement || null,
+      assignmentOfBenefits: insertPatient.assignmentOfBenefits || null,
+      officePolicy: insertPatient.officePolicy || null,
     };
     this.patients.set(id, patient);
     console.log("Patient saved to storage:", patient);
