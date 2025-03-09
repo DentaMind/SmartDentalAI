@@ -1,0 +1,759 @@
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Info, Save, Download } from 'lucide-react';
+
+// Constants for adult and primary dentition
+const ADULT_TEETH_UPPER = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
+const ADULT_TEETH_LOWER = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
+const PRIMARY_TEETH_UPPER = ['E', 'D', 'C', 'B', 'A', 'A', 'B', 'C', 'D', 'E'];
+const PRIMARY_TEETH_LOWER = ['E', 'D', 'C', 'B', 'A', 'A', 'B', 'C', 'D', 'E'];
+
+// Tooth surface options
+const TOOTH_SURFACES = [
+  { id: 'M', name: 'Mesial', className: 'bg-mesial' },
+  { id: 'D', name: 'Distal', className: 'bg-distal' },
+  { id: 'O', name: 'Occlusal', className: 'bg-occlusal' },
+  { id: 'B', name: 'Buccal', className: 'bg-buccal' },
+  { id: 'L', name: 'Lingual', className: 'bg-lingual' },
+  { id: 'MB', name: 'Mesiobuccal', className: 'bg-mesiobuccal' },
+  { id: 'DB', name: 'Distobuccal', className: 'bg-distobuccal' },
+  { id: 'ML', name: 'Mesiolingual', className: 'bg-mesiolingual' },
+  { id: 'DL', name: 'Distolingual', className: 'bg-distolingual' },
+];
+
+// Treatment types
+const TREATMENT_TYPES = [
+  { id: 'caries', name: 'Caries', color: 'bg-red-500', symbol: '●' },
+  { id: 'restoration', name: 'Restoration', color: 'bg-blue-500', symbol: '◼' },
+  { id: 'crown', name: 'Crown', color: 'bg-yellow-500', symbol: '◆' },
+  { id: 'bridge', name: 'Bridge', color: 'bg-purple-500', symbol: '⬛' },
+  { id: 'rootCanal', name: 'Root Canal', color: 'bg-green-500', symbol: '▲' },
+  { id: 'extraction', name: 'Extraction', color: 'bg-gray-500', symbol: '✕' },
+  { id: 'implant', name: 'Implant', color: 'bg-pink-500', symbol: '◉' },
+  { id: 'partial', name: 'Partial Denture', color: 'bg-indigo-500', symbol: '◐' },
+  { id: 'full', name: 'Full Denture', color: 'bg-teal-500', symbol: '◯' },
+];
+
+// Interfaces for dental chart data structure
+interface ToothSurface {
+  id: string;
+  condition: string | null;
+  notes: string;
+}
+
+interface Tooth {
+  id: number | string; // Numeric for adult, string for primary
+  missing: boolean;
+  surfaces: Record<string, ToothSurface>;
+  treatments: string[];
+  notes: string;
+  mobility: number; // 0-3
+  implant: boolean;
+}
+
+interface DentalChartData {
+  patientId: number;
+  chartDate: Date;
+  teeth: Record<string, Tooth>; // Key is tooth ID (number as string or letter)
+  notes: string;
+  isPrimaryDentition: boolean;
+}
+
+// Component props
+interface EnhancedDentalChartProps {
+  patientId: number;
+  existingChartData?: DentalChartData;
+  readOnly?: boolean;
+  onSave?: (data: DentalChartData) => void;
+}
+
+// Helper function to create empty tooth data
+const createEmptyToothData = (id: number | string): Tooth => {
+  const surfaces: Record<string, ToothSurface> = {};
+  
+  TOOTH_SURFACES.forEach(surface => {
+    surfaces[surface.id] = {
+      id: surface.id,
+      condition: null,
+      notes: ''
+    };
+  });
+  
+  return {
+    id,
+    missing: false,
+    surfaces,
+    treatments: [],
+    notes: '',
+    mobility: 0,
+    implant: false
+  };
+};
+
+// Initialize an empty dental chart
+const initializeEmptyChart = (patientId: number, isPrimary: boolean = false): DentalChartData => {
+  const teeth: Record<string, Tooth> = {};
+  
+  // Create adult teeth if not primary
+  if (!isPrimary) {
+    // Upper adult teeth (1-16)
+    for (let i = 1; i <= 4; i++) {
+      for (let j = 8; j >= 1; j--) {
+        const toothId = i === 1 ? j : (i === 2 ? j + 10 : (i === 3 ? j + 20 : j + 30));
+        teeth[toothId.toString()] = createEmptyToothData(toothId);
+      }
+    }
+  } else {
+    // Primary teeth (A-T)
+    const primaryTeeth = [...PRIMARY_TEETH_UPPER, ...PRIMARY_TEETH_LOWER];
+    primaryTeeth.forEach((id, index) => {
+      // Create unique id like "A1", "B2" etc. based on position
+      const uniqueId = `${id}${Math.floor(index / 5) + 1}`;
+      teeth[uniqueId] = createEmptyToothData(uniqueId);
+    });
+  }
+  
+  return {
+    patientId,
+    chartDate: new Date(),
+    teeth,
+    notes: '',
+    isPrimaryDentition: isPrimary
+  };
+};
+
+// Main dental chart component
+const EnhancedDentalChart: React.FC<EnhancedDentalChartProps> = ({
+  patientId,
+  existingChartData,
+  readOnly = false,
+  onSave
+}) => {
+  // State
+  const [chartData, setChartData] = useState<DentalChartData>(
+    existingChartData || initializeEmptyChart(patientId)
+  );
+  const [selectedArch, setSelectedArch] = useState<'upper' | 'lower'>('upper');
+  const [selectedTooth, setSelectedTooth] = useState<string | null>(null);
+  const [selectedTreatment, setSelectedTreatment] = useState<string>('caries');
+  const [selectedSurface, setSelectedSurface] = useState<string>('O');
+  
+  // Toggle between adult and primary dentition
+  const toggleDentitionType = () => {
+    if (readOnly) return;
+    
+    setChartData(prevData => ({
+      ...prevData,
+      isPrimaryDentition: !prevData.isPrimaryDentition,
+      teeth: initializeEmptyChart(patientId, !prevData.isPrimaryDentition).teeth
+    }));
+    
+    // Reset selections
+    setSelectedTooth(null);
+  };
+  
+  // Save the dental chart
+  const saveDentalChart = () => {
+    if (onSave) {
+      onSave(chartData);
+    }
+    console.log('Saving dental chart:', chartData);
+  };
+  
+  // Mark a tooth as missing
+  const toggleToothMissing = (toothId: string) => {
+    if (readOnly) return;
+    
+    setChartData(prevData => {
+      const updatedTeeth = { ...prevData.teeth };
+      updatedTeeth[toothId] = {
+        ...updatedTeeth[toothId],
+        missing: !updatedTeeth[toothId].missing
+      };
+      
+      return {
+        ...prevData,
+        teeth: updatedTeeth
+      };
+    });
+  };
+  
+  // Mark a tooth as implant
+  const toggleToothImplant = (toothId: string) => {
+    if (readOnly) return;
+    
+    setChartData(prevData => {
+      const updatedTeeth = { ...prevData.teeth };
+      updatedTeeth[toothId] = {
+        ...updatedTeeth[toothId],
+        implant: !updatedTeeth[toothId].implant
+      };
+      
+      return {
+        ...prevData,
+        teeth: updatedTeeth
+      };
+    });
+  };
+  
+  // Update tooth surface condition
+  const updateToothSurface = (toothId: string, surfaceId: string, conditionId: string | null) => {
+    if (readOnly) return;
+    
+    setChartData(prevData => {
+      const updatedTeeth = { ...prevData.teeth };
+      
+      // Toggle condition if it's already set
+      const currentCondition = updatedTeeth[toothId].surfaces[surfaceId].condition;
+      const newCondition = currentCondition === conditionId ? null : conditionId;
+      
+      updatedTeeth[toothId] = {
+        ...updatedTeeth[toothId],
+        surfaces: {
+          ...updatedTeeth[toothId].surfaces,
+          [surfaceId]: {
+            ...updatedTeeth[toothId].surfaces[surfaceId],
+            condition: newCondition
+          }
+        }
+      };
+      
+      return {
+        ...prevData,
+        teeth: updatedTeeth
+      };
+    });
+  };
+  
+  // Add/remove tooth treatment
+  const toggleTreatment = (toothId: string, treatmentId: string) => {
+    if (readOnly) return;
+    
+    setChartData(prevData => {
+      const updatedTeeth = { ...prevData.teeth };
+      const currentTreatments = [...updatedTeeth[toothId].treatments];
+      
+      const index = currentTreatments.indexOf(treatmentId);
+      if (index >= 0) {
+        currentTreatments.splice(index, 1);
+      } else {
+        currentTreatments.push(treatmentId);
+      }
+      
+      updatedTeeth[toothId] = {
+        ...updatedTeeth[toothId],
+        treatments: currentTreatments
+      };
+      
+      return {
+        ...prevData,
+        teeth: updatedTeeth
+      };
+    });
+  };
+  
+  // Update tooth mobility
+  const updateToothMobility = (toothId: string, value: number) => {
+    if (readOnly) return;
+    
+    setChartData(prevData => {
+      const updatedTeeth = { ...prevData.teeth };
+      updatedTeeth[toothId] = {
+        ...updatedTeeth[toothId],
+        mobility: value
+      };
+      
+      return {
+        ...prevData,
+        teeth: updatedTeeth
+      };
+    });
+  };
+  
+  // Handle tooth click
+  const handleToothClick = (toothId: string) => {
+    setSelectedTooth(selectedTooth === toothId ? null : toothId);
+  };
+  
+  // Get the current teeth array based on selected arch and dentition type
+  const getCurrentTeeth = () => {
+    if (chartData.isPrimaryDentition) {
+      return selectedArch === 'upper' ? PRIMARY_TEETH_UPPER.map((t, i) => `${t}${i < 5 ? 1 : 2}`) : PRIMARY_TEETH_LOWER.map((t, i) => `${t}${i < 5 ? 3 : 4}`);
+    } else {
+      return selectedArch === 'upper' ? ADULT_TEETH_UPPER.map(String) : ADULT_TEETH_LOWER.map(String);
+    }
+  };
+  
+  // Get color for a tooth surface based on its condition
+  const getSurfaceColor = (toothId: string, surfaceId: string) => {
+    const tooth = chartData.teeth[toothId];
+    if (!tooth) return 'bg-white';
+    
+    const surface = tooth.surfaces[surfaceId];
+    if (!surface || !surface.condition) return 'bg-white';
+    
+    const treatment = TREATMENT_TYPES.find(t => t.id === surface.condition);
+    return treatment?.color || 'bg-white';
+  };
+  
+  // Render the tooth details form
+  const renderToothDetailsForm = () => {
+    if (!selectedTooth || !chartData.teeth[selectedTooth]) return null;
+    
+    const tooth = chartData.teeth[selectedTooth];
+    
+    return (
+      <div className="space-y-4 mt-4 p-4 border rounded-md">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-medium">
+            Tooth {chartData.isPrimaryDentition ? tooth.id : `#${tooth.id}`} Details
+          </h3>
+          <div className="flex space-x-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => toggleToothMissing(selectedTooth)}
+              disabled={readOnly}
+            >
+              {tooth.missing ? 'Mark as Present' : 'Mark as Missing'}
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => toggleToothImplant(selectedTooth)}
+              disabled={readOnly || tooth.missing}
+            >
+              {tooth.implant ? 'Remove Implant' : 'Mark as Implant'}
+            </Button>
+          </div>
+        </div>
+        
+        <Separator />
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Surface selector */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium">Surfaces</h4>
+            <div className="grid grid-cols-3 gap-2">
+              {TOOTH_SURFACES.map(surface => (
+                <Button
+                  key={surface.id}
+                  size="sm"
+                  variant="outline"
+                  className={`${selectedSurface === surface.id ? 'bg-primary text-white' : ''} ${getSurfaceColor(selectedTooth, surface.id)}`}
+                  onClick={() => setSelectedSurface(surface.id)}
+                  disabled={readOnly || tooth.missing}
+                >
+                  {surface.name}
+                </Button>
+              ))}
+            </div>
+            
+            <h4 className="text-sm font-medium mt-4">Treatment</h4>
+            <div className="grid grid-cols-3 gap-2">
+              {TREATMENT_TYPES.map(treatment => (
+                <Button
+                  key={treatment.id}
+                  size="sm"
+                  variant="outline"
+                  className={`${selectedTreatment === treatment.id ? 'bg-primary text-white' : ''}`}
+                  onClick={() => setSelectedTreatment(treatment.id)}
+                  disabled={readOnly || tooth.missing}
+                >
+                  <span className="mr-1">{treatment.symbol}</span>
+                  {treatment.name}
+                </Button>
+              ))}
+            </div>
+            
+            <Button
+              className="w-full mt-2"
+              disabled={readOnly || tooth.missing || !selectedSurface || !selectedTreatment}
+              onClick={() => updateToothSurface(selectedTooth, selectedSurface, selectedTreatment)}
+            >
+              Apply to Surface
+            </Button>
+          </div>
+          
+          {/* Tooth properties */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Mobility</h4>
+              <Select
+                value={tooth.mobility.toString()}
+                onValueChange={(value) => updateToothMobility(selectedTooth, parseInt(value))}
+                disabled={readOnly || tooth.missing}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select mobility" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">0 - None</SelectItem>
+                  <SelectItem value="1">1 - Slight</SelectItem>
+                  <SelectItem value="2">2 - Moderate</SelectItem>
+                  <SelectItem value="3">3 - Severe</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Planned Treatments</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {TREATMENT_TYPES.map(treatment => (
+                  <div key={treatment.id} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={`treatment-${treatment.id}`}
+                      checked={tooth.treatments.includes(treatment.id)}
+                      onChange={() => toggleTreatment(selectedTooth, treatment.id)}
+                      disabled={readOnly || tooth.missing}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <label htmlFor={`treatment-${treatment.id}`} className="text-sm">
+                      {treatment.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Notes</h4>
+              <Textarea
+                value={tooth.notes}
+                onChange={(e) => {
+                  if (readOnly) return;
+                  
+                  setChartData(prevData => {
+                    const updatedTeeth = { ...prevData.teeth };
+                    updatedTeeth[selectedTooth] = {
+                      ...updatedTeeth[selectedTooth],
+                      notes: e.target.value
+                    };
+                    
+                    return {
+                      ...prevData,
+                      teeth: updatedTeeth
+                    };
+                  });
+                }}
+                placeholder="Add notes for this tooth"
+                disabled={readOnly}
+                className="h-20"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
+  // Render tooth diagram
+  const renderToothDiagram = (toothId: string) => {
+    const tooth = chartData.teeth[toothId];
+    if (!tooth) return null;
+    
+    if (tooth.missing) {
+      return (
+        <div 
+          className="w-16 h-20 border border-gray-300 rounded flex items-center justify-center bg-gray-100 cursor-pointer"
+          onClick={() => handleToothClick(toothId)}
+        >
+          <span className="text-gray-500 font-medium">Missing</span>
+        </div>
+      );
+    }
+    
+    if (tooth.implant) {
+      return (
+        <div 
+          className="w-16 h-20 border border-gray-300 rounded flex flex-col bg-blue-50 cursor-pointer"
+          onClick={() => handleToothClick(toothId)}
+        >
+          <div className="text-center text-xs font-medium border-b p-1">
+            {chartData.isPrimaryDentition ? tooth.id : `#${tooth.id}`}
+          </div>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-6 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+              <div className="w-4 h-8 bg-gray-400 rounded-full"></div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Shape the tooth for visualization
+    return (
+      <div 
+        className={`w-16 h-20 border border-gray-300 rounded flex flex-col cursor-pointer ${selectedTooth === toothId ? 'ring-2 ring-primary' : ''}`}
+        onClick={() => handleToothClick(toothId)}
+      >
+        <div className="text-center text-xs font-medium border-b p-1">
+          {chartData.isPrimaryDentition ? tooth.id : `#${tooth.id}`}
+        </div>
+        
+        <div className="flex-1 flex flex-col p-1">
+          {/* Top of tooth (occlusal/incisal) */}
+          <div className="flex-1 flex">
+            <div 
+              className={`flex-1 ${getSurfaceColor(toothId, 'ML')}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateToothSurface(toothId, 'ML', selectedTreatment);
+              }}
+            ></div>
+            <div 
+              className={`flex-1 ${getSurfaceColor(toothId, 'O')}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateToothSurface(toothId, 'O', selectedTreatment);
+              }}
+            ></div>
+            <div 
+              className={`flex-1 ${getSurfaceColor(toothId, 'DL')}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateToothSurface(toothId, 'DL', selectedTreatment);
+              }}
+            ></div>
+          </div>
+          
+          {/* Middle of tooth */}
+          <div className="flex-1 flex">
+            <div 
+              className={`flex-1 ${getSurfaceColor(toothId, 'L')}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateToothSurface(toothId, 'L', selectedTreatment);
+              }}
+            ></div>
+            <div className="flex-1"></div>
+            <div 
+              className={`flex-1 ${getSurfaceColor(toothId, 'B')}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateToothSurface(toothId, 'B', selectedTreatment);
+              }}
+            ></div>
+          </div>
+          
+          {/* Bottom of tooth */}
+          <div className="flex-1 flex">
+            <div 
+              className={`flex-1 ${getSurfaceColor(toothId, 'M')}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateToothSurface(toothId, 'M', selectedTreatment);
+              }}
+            ></div>
+            <div 
+              className={`flex-1 ${getSurfaceColor(toothId, 'MB')}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateToothSurface(toothId, 'MB', selectedTreatment);
+              }}
+            ></div>
+            <div 
+              className={`flex-1 ${getSurfaceColor(toothId, 'D')}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateToothSurface(toothId, 'D', selectedTreatment);
+              }}
+            ></div>
+            <div 
+              className={`flex-1 ${getSurfaceColor(toothId, 'DB')}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateToothSurface(toothId, 'DB', selectedTreatment);
+              }}
+            ></div>
+          </div>
+        </div>
+        
+        {/* Display indicators for treatments */}
+        {tooth.treatments.length > 0 && (
+          <div className="absolute top-0 right-0 bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs -mt-1 -mr-1">
+            {tooth.treatments.length}
+          </div>
+        )}
+        
+        {/* Display mobility indicator if present */}
+        {tooth.mobility > 0 && (
+          <div className="absolute bottom-0 right-0 bg-yellow-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs -mb-1 -mr-1">
+            {tooth.mobility}
+          </div>
+        )}
+      </div>
+    );
+  };
+  
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Dental Chart</CardTitle>
+            <CardDescription>
+              Interactive dental chart with surface-specific conditions
+            </CardDescription>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="dentition-type">Primary Teeth</Label>
+              <Switch 
+                id="dentition-type" 
+                checked={chartData.isPrimaryDentition}
+                onCheckedChange={toggleDentitionType}
+                disabled={readOnly}
+              />
+            </div>
+            
+            <div className="text-sm text-muted-foreground">
+              {new Date(chartData.chartDate).toLocaleDateString()}
+            </div>
+            
+            {!readOnly && (
+              <Button onClick={saveDentalChart}>
+                <Save className="h-4 w-4 mr-2" />
+                Save Chart
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-sm font-medium mb-2">Select Arch</h3>
+            <div className="flex space-x-2">
+              <Button 
+                variant={selectedArch === 'upper' ? 'default' : 'outline'} 
+                size="sm" 
+                onClick={() => setSelectedArch('upper')}
+              >
+                Upper Arch
+              </Button>
+              <Button 
+                variant={selectedArch === 'lower' ? 'default' : 'outline'} 
+                size="sm" 
+                onClick={() => setSelectedArch('lower')}
+              >
+                Lower Arch
+              </Button>
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-sm font-medium mb-2">Selected Treatment</h3>
+            <Select 
+              value={selectedTreatment} 
+              onValueChange={setSelectedTreatment}
+              disabled={readOnly}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select treatment" />
+              </SelectTrigger>
+              <SelectContent>
+                {TREATMENT_TYPES.map(treatment => (
+                  <SelectItem key={treatment.id} value={treatment.id}>
+                    <div className="flex items-center">
+                      <div className={`w-3 h-3 rounded-full ${treatment.color} mr-2`}></div>
+                      {treatment.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        
+        <Separator />
+        
+        {/* Display teeth diagram */}
+        <div className="border rounded-md p-4 bg-gray-50">
+          <div className="flex justify-center mb-8">
+            <div className="text-center">
+              <h3 className="text-sm font-medium mb-4">
+                {selectedArch === 'upper' ? 'Upper Arch' : 'Lower Arch'} - 
+                {chartData.isPrimaryDentition ? ' Primary Dentition' : ' Permanent Dentition'}
+              </h3>
+              <div className="flex justify-center gap-1 flex-wrap">
+                {getCurrentTeeth().map(toothId => (
+                  <div key={`tooth-${toothId}`} className="relative">
+                    {renderToothDiagram(toothId)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Selected tooth details */}
+        {selectedTooth && renderToothDetailsForm()}
+        
+        {/* Chart notes */}
+        <div className="border rounded-md p-4">
+          <h3 className="text-sm font-medium mb-2">Chart Notes</h3>
+          <Textarea 
+            placeholder="Enter notes about this dental examination..."
+            value={chartData.notes}
+            onChange={(e) => setChartData(prev => ({ ...prev, notes: e.target.value }))}
+            disabled={readOnly}
+            className="min-h-[100px]"
+          />
+        </div>
+        
+        {/* Legend */}
+        <div className="border rounded-md p-4">
+          <h3 className="text-sm font-medium mb-2">Legend</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            {TREATMENT_TYPES.map(treatment => (
+              <div key={treatment.id} className="flex items-center">
+                <div className={`w-4 h-4 ${treatment.color} mr-2`}></div>
+                <span className="text-sm">{treatment.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+      
+      <CardFooter className="border-t pt-4 flex justify-between">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center text-xs text-muted-foreground">
+                <Info className="h-3 w-3 mr-1" />
+                <p>Click on a tooth to view/edit details</p>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-xs text-xs">
+                Click on a tooth to select it. Then use the controls to mark conditions or treatments.
+                Click directly on a surface to mark it with the currently selected treatment.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        {!readOnly && (
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export Chart
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
+  );
+};
+
+export default EnhancedDentalChart;

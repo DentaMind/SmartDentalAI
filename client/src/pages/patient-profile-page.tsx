@@ -25,6 +25,9 @@ import { queryClient } from "@/lib/queryClient";
 // Import our dental chart components
 import DentalChart from "@/components/dental/dental-chart";
 import PerioChart from "@/components/perio/perio-chart";
+import EnhancedDentalChart from "@/components/dental/enhanced-dental-chart";
+import EnhancedPerioChart from "@/components/perio/enhanced-perio-chart";
+import { useAuth } from "@/hooks/use-auth";
 
 // Define the full patient type including user data
 type PatientWithUser = Patient & {
@@ -303,6 +306,19 @@ export default function PatientProfilePage() {
                           // In a real app, you would call an API to save this data
                         }}
                       />
+                      
+                      <div className="mt-4">
+                        <h3 className="text-lg font-medium mb-4">Enhanced Dental Chart</h3>
+                        <EnhancedDentalChart 
+                          patientId={patientId}
+                          doctorId={1} 
+                          readOnly={false}
+                          onSave={(data) => {
+                            console.log('Enhanced dental chart saved:', data);
+                            // In a real app, you would call an API to save this data
+                          }}
+                        />
+                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -325,6 +341,19 @@ export default function PatientProfilePage() {
                           // In a real app, you would call an API to save this data
                         }}
                       />
+                      
+                      <div className="mt-4">
+                        <h3 className="text-lg font-medium mb-4">Enhanced Periodontal Chart</h3>
+                        <EnhancedPerioChart 
+                          patientId={patientId}
+                          examinerId={1}
+                          readOnly={false}
+                          onSave={(data) => {
+                            console.log('Enhanced perio chart saved:', data);
+                            // In a real app, you would call an API to save this data
+                          }}
+                        />
+                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>
