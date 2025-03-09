@@ -3,6 +3,7 @@ import { Patient, User } from "@shared/schema";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
 import {
   Table,
   TableBody,
@@ -12,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Eye, User2, Calendar, AlertCircle } from "lucide-react";
+import { Plus, Eye, UserRound, Calendar, AlertCircle, ExternalLink } from "lucide-react";
 import {
   Dialog,
   DialogContent,

@@ -1,5 +1,6 @@
 import { Patient, User } from "@shared/schema";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "wouter";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +14,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ArrowUpRight } from "lucide-react";
 import { SymptomPredictor } from "@/components/ai/symptom-predictor";
 
 interface PatientDetailsProps {
@@ -23,14 +26,31 @@ interface PatientDetailsProps {
 
 export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps) {
   const { t } = useTranslation();
+  const [, setLocation] = useLocation();
+
+  const navigateToProfile = () => {
+    onClose();
+    setLocation(`/patients/${patient.id}`);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="sticky top-0 bg-background z-10 pb-4 mb-4 border-b">
-          <DialogTitle className="text-2xl">
-            {`${patient.user.firstName} ${patient.user.lastName}`}
-          </DialogTitle>
+          <div className="flex justify-between items-center">
+            <DialogTitle className="text-2xl">
+              {`${patient.user.firstName} ${patient.user.lastName}`}
+            </DialogTitle>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={navigateToProfile}
+              className="gap-2"
+            >
+              <span>Full Profile</span>
+              <ArrowUpRight className="h-4 w-4" />
+            </Button>
+          </div>
         </DialogHeader>
         <div className="space-y-6 pb-6">
           <Card>
@@ -84,7 +104,7 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
                   Emergency Contact
                 </p>
                 <p className="mt-1 whitespace-pre-wrap">
-                  {patient.emergencyContact || t("common.none")}
+                  {patient.emergencyContactName || t("common.none")}
                 </p>
               </div>
             </CardContent>
