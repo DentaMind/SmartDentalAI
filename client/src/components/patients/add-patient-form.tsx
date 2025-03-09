@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/hooks/use-auth";
 
 interface AddPatientFormProps {
   onSuccess?: () => void;
@@ -32,6 +33,7 @@ type AddPatientFormData = z.infer<typeof formSchema>;
 export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const { user } = useAuth(); // Get the authenticated user
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<AddPatientFormData>({
@@ -50,6 +52,13 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
 
   const addPatientMutation = useMutation({
     mutationFn: async (data: AddPatientFormData) => {
+      // Make sure we have a user ID if we're not creating a new account
+      if (!data.createAccount && (!user || !user.id)) {
+        throw new Error("You must be logged in to create a patient without an account");
+      }
+
+      console.log("Creating patient with user:", user?.id);
+      
       return await apiRequest({
         method: "POST",
         url: "/api/patients",
@@ -57,6 +66,8 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
           ...data,
           role: "patient",
           language: "en",
+          // Include the user ID from the logged-in user when not creating a new account
+          userId: !data.createAccount ? user?.id : undefined,
           // Generate a username and password for the patient
           username: `${data.firstName.toLowerCase()}${data.lastName.toLowerCase()}`,
           password: Math.random().toString(36).slice(-8) // Generate a random 8-character password
