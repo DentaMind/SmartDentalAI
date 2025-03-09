@@ -286,11 +286,17 @@ export default function PatientProfilePage() {
                         <h3 className="text-lg font-medium mb-4">Enhanced Periodontal Chart</h3>
                         <EnhancedPerioChart 
                           patientId={patientId}
-                          examinerId={1}
+                          examinerId={1} // Currently hardcoded, in a real app would be the current user's ID
                           readOnly={false}
-                          onSave={(data) => {
-                            console.log('Enhanced perio chart saved:', data);
+                          onSave={(enhancedData) => {
+                            console.log('Enhanced perio chart saved:', enhancedData);
+                            toast({
+                              title: "Periodontal Chart Saved",
+                              description: `Chart data saved for patient #${patientId} by examiner #${enhancedData.examinerId || 1}`,
+                              variant: "success"
+                            });
                             // In a real app, you would call an API to save this data
+                            // Example: savePeriodontalChart(enhancedData);
                           }}
                         />
                       </div>

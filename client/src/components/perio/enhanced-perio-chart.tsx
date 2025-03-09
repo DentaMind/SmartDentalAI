@@ -69,12 +69,19 @@ interface PerioChartData {
   aiSummary?: string;
 }
 
+// Define enhanced chart data type with patient and examiner info
+interface EnhancedPerioChartDataWithMeta extends PerioChartData {
+  patientId?: number;
+  examinerId?: number;
+  saveDate?: Date;
+}
+
 interface EnhancedPerioChartProps {
   initialData?: PerioChartData;
   readOnly?: boolean;
   patientId?: number;  // Added for tracking the associated patient
   examinerId?: number; // Added for tracking who performed the exam
-  onSave?: (data: PerioChartData) => void;
+  onSave?: (data: EnhancedPerioChartDataWithMeta) => void;
 }
 
 // Measurement type definitions
@@ -155,6 +162,8 @@ const createEmptyChartData = (): PerioChartData => {
 const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({ 
   initialData, 
   readOnly = false,
+  patientId,
+  examinerId,
   onSave
 }) => {
   // Chart data state
@@ -363,9 +372,16 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
   // Save the periodontal chart
   const savePerioChart = () => {
     if (onSave) {
-      onSave(chartData);
+      // Include patient and examiner information if available
+      const enhancedData = {
+        ...chartData,
+        patientId,
+        examinerId,
+        saveDate: new Date()
+      };
+      onSave(enhancedData);
     }
-    console.log('Saving perio chart:', chartData);
+    console.log('Saving perio chart:', chartData, { patientId, examinerId });
   };
   
   // Update pocket depth value
