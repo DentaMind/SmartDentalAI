@@ -264,13 +264,6 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
   
   // AI risk analysis with automatic tab switch to show insights
   const generateRiskAnalysis = () => {
-    // Show success toast when analysis is complete
-    toast({
-      title: "AI Analysis initiated",
-      description: "Analyzing periodontal chart data and generating insights...",
-      variant: "default"
-    });
-    
     // Switch to AI insights tab after analysis is complete
     setTimeout(() => setActiveTab('aiAnalysis'), 1200);
     setIsAnalyzing(true);
