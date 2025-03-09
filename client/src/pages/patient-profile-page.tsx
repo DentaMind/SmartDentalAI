@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import {
   AlertCircle,
   Calendar,
@@ -45,6 +46,7 @@ function getInitials(name: string) {
 
 export default function PatientProfilePage() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const { id } = useParams<{ id: string }>();
   const patientId = parseInt(id);
 
