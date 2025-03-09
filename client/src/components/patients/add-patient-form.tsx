@@ -33,6 +33,7 @@ const formSchema = z.object({
   phoneNumber: z.string().min(10, { message: "Please enter a valid phone number" }),
   dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Please use YYYY-MM-DD format" }),
   homeAddress: z.string().optional(),
+  occupation: z.string().optional(),
   socialSecurityNumber: z.string().optional(),
   
   // Emergency Contact
@@ -131,6 +132,7 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       phoneNumber: "",
       dateOfBirth: "",
       homeAddress: "",
+      occupation: "",
       socialSecurityNumber: "",
       
       // Emergency Contact

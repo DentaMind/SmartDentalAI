@@ -75,6 +75,7 @@ export const patients = pgTable("patients", {
   phoneNumber: text("phone_number"),
   dateOfBirth: text("date_of_birth"),
   homeAddress: text("home_address"),
+  occupation: text("occupation"),
   socialSecurityNumber: text("social_security_number"),
   
   // Insurance Information
