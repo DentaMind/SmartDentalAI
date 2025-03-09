@@ -42,19 +42,42 @@ router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (r
 
     console.log("Creating user with data:", userData);
     
-    // Create the user
-    const user = await storage.createUser(userData);
+    // If we're creating from logged in user and not creating an account, use the current user's ID
+    let user;
+    let userId;
     
-    if (!user || !user.id) {
-      throw new Error("Failed to create user account for patient");
+    if (req.body.createAccount) {
+      // Create the user
+      user = await storage.createUser(userData);
+      
+      if (!user || !user.id) {
+        throw new Error("Failed to create user account for patient");
+      }
+      
+      console.log("User created successfully:", user);
+      userId = user.id;
+    } else {
+      // Use the currently logged-in user ID
+      if (!req.user || !req.user.id) {
+        throw new Error("User must be logged in to create a patient without an account");
+      }
+      userId = req.user.id;
+      user = req.user;
     }
     
-    console.log("User created successfully:", user);
+    console.log("Using userId:", userId);
     
     // Then create patient record linked to the user
     // Only include the fields that match the Patient schema
     const patientData = {
-      userId: user.id, // This is the critical field that needs to be set correctly
+      userId: userId, // This is the critical field that needs to be set correctly
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      dateOfBirth: req.body.dateOfBirth,
+      email: req.body.email,
+      phoneNumber: req.body.phoneNumber,
+      insuranceProvider: req.body.insuranceProvider || null,
+      insuranceNumber: req.body.insuranceNumber || null,
       medicalHistory: req.body.medicalHistory || null,
       allergies: req.body.allergies || null,
       bloodType: req.body.bloodType || null,

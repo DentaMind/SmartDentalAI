@@ -149,6 +149,13 @@ export class MemStorage implements IStorage {
     const patient: Patient = {
       id,
       userId: insertPatient.userId,
+      firstName: insertPatient.firstName || null,
+      lastName: insertPatient.lastName || null,
+      email: insertPatient.email || null,
+      phoneNumber: insertPatient.phoneNumber || null,
+      dateOfBirth: insertPatient.dateOfBirth || null,
+      insuranceProvider: insertPatient.insuranceProvider || null,
+      insuranceNumber: insertPatient.insuranceNumber || null,
       medicalHistory: insertPatient.medicalHistory || null,
       allergies: insertPatient.allergies || null,
       bloodType: insertPatient.bloodType || null,

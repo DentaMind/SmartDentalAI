@@ -69,6 +69,13 @@ export const medicalNotes = pgTable("medical_notes", {
 export const patients = pgTable("patients", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  email: text("email"),
+  phoneNumber: text("phone_number"),
+  dateOfBirth: text("date_of_birth"),
+  insuranceProvider: text("insurance_provider"),
+  insuranceNumber: text("insurance_number"),
   medicalHistory: text("medical_history"),
   allergies: text("allergies"),
   bloodType: text("blood_type"),
