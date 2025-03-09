@@ -5,7 +5,16 @@ import { apiRequest } from "@/lib/queryClient";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PageHeader } from "@/components/ui/page-header";
+// Import placeholder for PageHeader if it doesn't exist
+const PageHeader = ({ title, description, actions }: any) => (
+  <div className="flex justify-between items-center mb-6">
+    <div>
+      <div>{title}</div>
+      {description && <p className="text-muted-foreground">{description}</p>}
+    </div>
+    {actions && <div>{actions}</div>}
+  </div>
+);
 import {
   Card,
   CardContent,
@@ -24,7 +33,6 @@ import {
   Calendar, 
   Activity, 
   Stethoscope, 
-  Tooth, 
   Shield, 
   AlertCircle,
   Phone,
@@ -34,6 +42,25 @@ import {
   ChevronLeft,
   Edit
 } from "lucide-react";
+
+// Tooth icon component (since it's missing from lucide-react)
+const Tooth = (props: any) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width="24" 
+    height="24" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M12 5.5c-1.5-1-4-1.5-4.5 1-1.5.5-3 6-3 10.5 0 2.5 1 4 2.5 4 2 0 3.5-2 4.5-2 1 0 2.5 2 4.5 2 1.5 0 2.5-1.5 2.5-4 0-4.5-1.5-10-3-10.5-.5-2.5-3-2-3.5-1Z" />
+    <path d="M12 5.5V3" />
+  </svg>
+);
 
 function getInitials(name: string) {
   return name
@@ -53,8 +80,7 @@ export default function PatientProfilePage() {
     queryKey: ["/api/patients", id],
     queryFn: async () => {
       try {
-        const res = await apiRequest("GET", `/api/patients/${id}`);
-        return await res.json();
+        return await apiRequest(`/api/patients/${id}`);
       } catch (error) {
         console.error("Failed to fetch patient:", error);
         throw error;
