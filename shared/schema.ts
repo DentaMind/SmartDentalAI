@@ -62,8 +62,15 @@ export const medicalNotes = pgTable("medical_notes", {
   patientId: integer("patient_id").notNull(),
   doctorId: integer("doctor_id").notNull(),
   content: text("content").notNull(),
+  noteType: text("note_type", { enum: ["soap", "procedure", "followup", "consultation", "general"] }).default("general"),
+  category: text("category", { enum: ["restorative", "periodontal", "endodontic", "surgical", "prosthodontic", "orthodontic", "pediatric", "general"] }).default("general"),
+  attachments: jsonb("attachments"), // Array of file references/URLs
+  aiGenerated: boolean("ai_generated").default(false),
+  aiSuggestions: jsonb("ai_suggestions"), // AI-suggested additions to the note
   createdAt: timestamp("created_at").defaultNow(),
   private: boolean("private").default(true), // Only visible to doctors
+  signedBy: integer("signed_by"), // Doctor who signed off on the note
+  signedAt: timestamp("signed_at"),
 });
 
 export const patients = pgTable("patients", {
@@ -183,7 +190,31 @@ export const xrays = pgTable("xrays", {
   imageUrl: text("image_url").notNull(),
   date: timestamp("date").defaultNow(),
   notes: text("notes"),
-  type: text("type").notNull(),
+  type: text("type").notNull(), // bitewing, periapical, panoramic, cbct
+  aiAnalysis: jsonb("ai_analysis"), // AI findings and recommendations
+  analysisDate: timestamp("analysis_date"),
+  pathologyDetected: boolean("pathology_detected").default(false),
+  comparisonResult: jsonb("comparison_result"), // Progression or stability compared to previous
+});
+
+// Periodontal chart data
+export const periodontalCharts = pgTable("periodontal_charts", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  doctorId: integer("doctor_id").notNull(),
+  date: timestamp("date").defaultNow(),
+  pocketDepths: jsonb("pocket_depths").notNull(), // Map of tooth number to six measurements per tooth
+  bleedingPoints: jsonb("bleeding_points"), // Map of tooth number to six boolean values
+  recession: jsonb("recession"), // Map of tooth number to gingival recession measurements
+  mobility: jsonb("mobility"), // Map of tooth number to mobility grade (0-3)
+  furcation: jsonb("furcation"), // Map of tooth number to furcation involvement
+  plaqueIndices: jsonb("plaque_indices"), // Map of tooth number to plaque index
+  calculus: jsonb("calculus"), // Map of tooth number to calculus presence
+  attachmentLoss: jsonb("attachment_loss"), // Map of tooth number to attachment loss measurements
+  diseaseStatus: text("disease_status"), // healthy, gingivitis, periodontitis
+  diseaseSeverity: text("disease_severity", { enum: ["none", "mild", "moderate", "severe"] }).default("none"),
+  notes: text("notes"),
+  aiRecommendations: jsonb("ai_recommendations"),
 });
 
 export const payments = pgTable("payments", {
@@ -343,6 +374,7 @@ export const insertAppointmentSchema = createInsertSchema(appointments);
 export const insertTreatmentPlanSchema = createInsertSchema(treatmentPlans);
 export const insertMedicalNoteSchema = createInsertSchema(medicalNotes);
 export const insertXraySchema = createInsertSchema(xrays);
+export const insertPeriodontalChartSchema = createInsertSchema(periodontalCharts);
 export const insertPaymentSchema = createInsertSchema(payments);
 export const insertInsuranceClaimSchema = createInsertSchema(insuranceClaims);
 export const insertFinancialTransactionSchema = createInsertSchema(financialTransactions);
@@ -473,6 +505,8 @@ export type MedicalNote = typeof medicalNotes.$inferSelect;
 export type InsertMedicalNote = z.infer<typeof insertMedicalNoteSchema>;
 export type Xray = typeof xrays.$inferSelect;
 export type InsertXray = z.infer<typeof insertXraySchema>;
+export type PeriodontalChart = typeof periodontalCharts.$inferSelect;
+export type InsertPeriodontalChart = z.infer<typeof insertPeriodontalChartSchema>;
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type InsuranceClaim = typeof insuranceClaims.$inferSelect;
