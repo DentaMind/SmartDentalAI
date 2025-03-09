@@ -30,6 +30,27 @@ type UserRegistrationData = {
 export default function AuthPage() {
   const { t } = useTranslation();
   const { user, login, register, isLoading, error } = useAuth();
+  
+  const staffForm = useForm<UserRegistrationData>({
+    resolver: zodResolver(
+      insertUserSchema.omit({ 
+        role: true,
+        language: true,
+        insuranceProvider: true,
+        insuranceNumber: true
+      })
+    ),
+    defaultValues: {
+      username: "",
+      password: "",
+      firstName: "",
+      lastName: "",
+      email: "",
+      phoneNumber: "",
+      specialization: "Staff",
+      licenseNumber: "",
+    },
+  });
 
   const loginForm = useForm({
     resolver: zodResolver(insertUserSchema.pick({ username: true, password: true })),
@@ -105,6 +126,18 @@ export default function AuthPage() {
       console.error("Registration failed:", err);
     }
   };
+  
+  const onStaffRegister = async (data: UserRegistrationData) => {
+    console.log("Registering staff with data:", data);
+    try {
+      await register({
+        ...data,
+        role: "staff"
+      });
+    } catch (err) {
+      console.error("Registration failed:", err);
+    }
+  };
 
   // Clear redirect flag when landing on auth page
   useEffect(() => {
@@ -157,12 +190,15 @@ export default function AuthPage() {
         <Card className="w-full self-center bg-white shadow-lg">
           <CardContent className="pt-6">
             <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="login" className="data-[state=active]:bg-primary data-[state=active]:text-white">
                   Sign In
                 </TabsTrigger>
                 <TabsTrigger value="provider" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                  Sign Up (Providers)
+                  Provider Sign Up
+                </TabsTrigger>
+                <TabsTrigger value="staff" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                  Staff Sign Up
                 </TabsTrigger>
               </TabsList>
 
@@ -348,6 +384,112 @@ export default function AuthPage() {
                 </Form>
               </TabsContent>
 
+              <TabsContent value="staff">
+                <div className="mb-4 p-4 bg-green-50 rounded-lg">
+                  <p className="text-sm text-green-700">
+                    Sign up as staff member to assist with patient management, scheduling, and administrative tasks.
+                  </p>
+                </div>
+                <Form {...staffForm}>
+                  <form onSubmit={staffForm.handleSubmit(onStaffRegister)} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={staffForm.control}
+                        name="firstName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>First Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={staffForm.control}
+                        name="lastName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Last Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={staffForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input type="email" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={staffForm.control}
+                        name="phoneNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Phone Number</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={staffForm.control}
+                        name="username"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Username</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={staffForm.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                              <Input type="password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-green-600 hover:bg-green-700" 
+                      disabled={isLoading}
+                    >
+                      {isLoading ? t("common.loading") : "Register as Staff"}
+                    </Button>
+                  </form>
+                </Form>
+              </TabsContent>
+              
               <TabsContent value="provider">
                 <div className="mb-4 p-4 bg-blue-50 rounded-lg">
                   <p className="text-sm text-blue-700">
