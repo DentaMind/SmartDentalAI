@@ -15,7 +15,15 @@ import {
   AlertCircle, 
   Phone, 
   Info, 
-  User
+  User,
+  UserPlus,
+  UserCheck,
+  AlertTriangle,
+  Timer,
+  RefreshCw,
+  BellRing,
+  Shield,
+  Activity
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -24,6 +32,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Types
 interface Doctor {
@@ -206,28 +222,89 @@ export function WeeklySchedule({ onAddAppointment, onViewAppointment }: WeeklySc
   return (
     <div className="flex flex-col">
       {/* Schedule Controls */}
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="font-medium">
-            {new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentWeek[0])}
-          </span>
-          <Button variant="outline" size="sm" onClick={() => navigateWeek('next')}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+      <div className="flex flex-col gap-2 mb-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="font-medium">
+              {new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentWeek[0])}
+            </span>
+            <Button variant="outline" size="sm" onClick={() => navigateWeek('next')}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" 
+              onClick={() => setCurrentWeek(getWeekDates(new Date()))}>
+              Today
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <Activity className="h-4 w-4 mr-2" />
+                  AI Tools
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>AI Schedule Optimization</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  <span>Fill Empty Slots</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  <span>Predict No-Shows</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  <span>Balance Provider Workload</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Shield className="h-4 w-4 mr-2" />
+                  <span>Check Insurance/Finances</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <BellRing className="h-4 w-4 mr-2" />
+                  <span>Notify Waitlisted Patients</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <Button size="sm" onClick={onAddAppointment}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Appointment
+            </Button>
+          </div>
         </div>
         
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" 
-            onClick={() => setCurrentWeek(getWeekDates(new Date()))}>
-            Today
-          </Button>
-          <Button size="sm" onClick={onAddAppointment}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Appointment
-          </Button>
+        {/* Smart Schedule Alerts */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <Card className="bg-blue-50 border-blue-200 p-2 flex items-center space-x-2">
+            <Timer className="h-4 w-4 text-blue-500" />
+            <div className="text-xs font-medium text-blue-700">
+              5 gaps detected in the schedule. <Button variant="link" className="p-0 h-auto text-xs text-blue-700">Auto-fill</Button>
+            </div>
+          </Card>
+          
+          <Card className="bg-amber-50 border-amber-200 p-2 flex items-center space-x-2">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            <div className="text-xs font-medium text-amber-700">
+              3 patients likely to no-show. <Button variant="link" className="p-0 h-auto text-xs text-amber-700">View list</Button>
+            </div>
+          </Card>
+          
+          <Card className="bg-green-50 border-green-200 p-2 flex items-center space-x-2">
+            <UserCheck className="h-4 w-4 text-green-500" />
+            <div className="text-xs font-medium text-green-700">
+              8 patients on waitlist for cancellations. <Button variant="link" className="p-0 h-auto text-xs text-green-700">Manage</Button>
+            </div>
+          </Card>
         </div>
       </div>
       
@@ -356,8 +433,21 @@ export function WeeklySchedule({ onAddAppointment, onViewAppointment }: WeeklySc
                                 </TooltipTrigger>
                                 <TooltipContent side="right" className="p-0 overflow-hidden max-w-xs">
                                   <div className="text-xs p-3 space-y-2">
-                                    <div className="font-semibold border-b pb-1">
-                                      {appointment.patientName || `Patient #${appointment.patientId}`}
+                                    <div className="font-semibold border-b pb-1 flex justify-between items-center">
+                                      <span>{appointment.patientName || `Patient #${appointment.patientId}`}</span>
+                                      <div className="flex gap-1 items-center">
+                                        {appointment.insuranceVerified ? (
+                                          <Badge className="text-[10px] bg-green-100 text-green-800 flex items-center">
+                                            <Shield className="h-2 w-2 mr-1" />
+                                            Verified
+                                          </Badge>
+                                        ) : (
+                                          <Badge className="text-[10px] bg-amber-100 text-amber-800 flex items-center">
+                                            <AlertTriangle className="h-2 w-2 mr-1" />
+                                            Check Insurance
+                                          </Badge>
+                                        )}
+                                      </div>
                                     </div>
                                     <div className="space-y-1">
                                       <div className="flex gap-2 items-center text-[11px]">
@@ -390,6 +480,47 @@ export function WeeklySchedule({ onAddAppointment, onViewAppointment }: WeeklySc
                                         </div>
                                       )}
                                     </div>
+                                    
+                                    {/* AI Insights Section */}
+                                    <div className="pt-1 border-t border-gray-100">
+                                      <div className="font-medium text-[11px] text-gray-700 mb-1 flex items-center">
+                                        <Activity className="h-3 w-3 mr-1 text-blue-500" />
+                                        AI Insights
+                                      </div>
+                                      <div className="text-[10px] space-y-1">
+                                        {appointment.isNewPatient && (
+                                          <div className="flex items-start gap-1">
+                                            <UserPlus className="h-2.5 w-2.5 text-purple-500 mt-0.5" />
+                                            <span className="text-gray-600">New patient forms should be prepared. Allot 15 min extra for onboarding.</span>
+                                          </div>
+                                        )}
+                                        {appointment.isFollowUp && (
+                                          <div className="flex items-start gap-1">
+                                            <RefreshCw className="h-2.5 w-2.5 text-blue-500 mt-0.5" />
+                                            <span className="text-gray-600">Follow-up from previous visit on 02/28. Review progress notes before appointment.</span>
+                                          </div>
+                                        )}
+                                        {appointment.needsXray && (
+                                          <div className="flex items-start gap-1">
+                                            <Activity className="h-2.5 w-2.5 text-amber-500 mt-0.5" />
+                                            <span className="text-gray-600">X-ray equipment should be prepared. Patient last had X-rays 8 months ago.</span>
+                                          </div>
+                                        )}
+                                        {appointment.isEmergency && (
+                                          <div className="flex items-start gap-1">
+                                            <AlertCircle className="h-2.5 w-2.5 text-red-500 mt-0.5" />
+                                            <span className="text-gray-600">Emergency case. Pain reported 9/10. Prepare operatory for possible extraction.</span>
+                                          </div>
+                                        )}
+                                        {!appointment.insuranceVerified && (
+                                          <div className="flex items-start gap-1">
+                                            <Shield className="h-2.5 w-2.5 text-gray-500 mt-0.5" />
+                                            <span className="text-gray-600">Insurance verification pending. Financial coordinator should verify before visit.</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    
                                     <div className="pt-1 flex flex-wrap gap-1">
                                       {appointment.isNewPatient && (
                                         <Badge className="text-[10px] bg-purple-100 text-purple-800">New Patient</Badge>
@@ -406,6 +537,18 @@ export function WeeklySchedule({ onAddAppointment, onViewAppointment }: WeeklySc
                                       {!appointment.insuranceVerified && (
                                         <Badge className="text-[10px] bg-gray-100 text-gray-800">Insurance TBD</Badge>
                                       )}
+                                      
+                                      {/* Action buttons */}
+                                      <div className="w-full mt-1 flex justify-between gap-1">
+                                        <Button variant="outline" size="sm" className="h-6 text-[10px] flex-1">
+                                          <Phone className="h-2.5 w-2.5 mr-1" />
+                                          Contact
+                                        </Button>
+                                        <Button variant="outline" size="sm" className="h-6 text-[10px] flex-1">
+                                          <RefreshCw className="h-2.5 w-2.5 mr-1" />
+                                          Reschedule
+                                        </Button>
+                                      </div>
                                     </div>
                                   </div>
                                 </TooltipContent>
