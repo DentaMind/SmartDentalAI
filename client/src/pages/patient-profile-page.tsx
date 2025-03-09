@@ -15,10 +15,16 @@ import {
   UserRound,
   BadgeAlert,
   Stethoscope,
+  Scissors,
+  LineChart,
 } from "lucide-react";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 import { PageHeader } from "@/components/layout/page-header";
 import { queryClient } from "@/lib/queryClient";
+
+// Import our dental chart components
+import DentalChart from "@/components/dental/dental-chart";
+import PerioChart from "@/components/perio/perio-chart";
 
 // Define the full patient type including user data
 type PatientWithUser = Patient & {
@@ -196,8 +202,10 @@ export default function PatientProfilePage() {
 
               {/* Tabs for different sections */}
               <Tabs defaultValue="medical-history" className="w-full">
-                <TabsList className="grid grid-cols-4 mb-6">
+                <TabsList className="grid grid-cols-6 mb-6">
                   <TabsTrigger value="medical-history">Medical History</TabsTrigger>
+                  <TabsTrigger value="dental-chart">Dental Chart</TabsTrigger>
+                  <TabsTrigger value="perio-chart">Perio Chart</TabsTrigger>
                   <TabsTrigger value="appointments">Appointments</TabsTrigger>
                   <TabsTrigger value="treatment-plans">Treatment Plans</TabsTrigger>
                   <TabsTrigger value="notes">Medical Notes</TabsTrigger>
@@ -273,6 +281,50 @@ export default function PatientProfilePage() {
                         <h3 className="text-lg font-medium">Past Surgeries</h3>
                         <p className="whitespace-pre-wrap">{patient.pastSurgeries || 'No past surgeries recorded.'}</p>
                       </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                {/* Dental Chart Tab */}
+                <TabsContent value="dental-chart">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Scissors className="h-5 w-5 text-primary" />
+                        Dental Chart
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <DentalChart 
+                        patientId={patientId}
+                        readOnly={false}
+                        onSave={(data) => {
+                          console.log('Dental chart saved:', data);
+                          // In a real app, you would call an API to save this data
+                        }}
+                      />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                {/* Perio Chart Tab */}
+                <TabsContent value="perio-chart">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <LineChart className="h-5 w-5 text-primary" />
+                        Periodontal Chart
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <PerioChart 
+                        patientId={patientId}
+                        readOnly={false}
+                        onSave={(data) => {
+                          console.log('Perio chart saved:', data);
+                          // In a real app, you would call an API to save this data
+                        }}
+                      />
                     </CardContent>
                   </Card>
                 </TabsContent>

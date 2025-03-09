@@ -152,6 +152,18 @@ const generateEmptyToothData = (id: number): ToothData => {
       buccal: SURFACE_STATUSES.HEALTHY,
       lingual: SURFACE_STATUSES.HEALTHY,
     },
+    positions: {
+      mesial_buccal: SURFACE_STATUSES.HEALTHY,
+      mid_buccal: SURFACE_STATUSES.HEALTHY,
+      distal_buccal: SURFACE_STATUSES.HEALTHY,
+      mesial_lingual: SURFACE_STATUSES.HEALTHY,
+      mid_lingual: SURFACE_STATUSES.HEALTHY,
+      distal_lingual: SURFACE_STATUSES.HEALTHY,
+      mb: SURFACE_STATUSES.HEALTHY,
+      ml: SURFACE_STATUSES.HEALTHY,
+      db: SURFACE_STATUSES.HEALTHY,
+      dl: SURFACE_STATUSES.HEALTHY
+    },
     notes: '',
     treatments: [],
     mobility: 0,
@@ -309,6 +321,7 @@ export default function DentalChart({ patientId, readOnly = false, onSave }: Den
       id: `treatment-${Date.now()}`,
       type: newTreatment.type,
       surfaces: newTreatment.surfaces,
+      positions: [], // Add empty positions array to match the interface
       date: new Date().toISOString(),
       provider: 'Current Provider', // In a real app, get the current provider
       notes: newTreatment.notes,
