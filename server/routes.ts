@@ -96,17 +96,42 @@ router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (r
     // Only include the fields that match the Patient schema
     const patientData = {
       userId: userId, // This is the critical field that needs to be set correctly
+      
+      // Personal Information
       firstName: req.body.firstName,
       lastName: req.body.lastName,
       dateOfBirth: req.body.dateOfBirth,
       email: req.body.email,
       phoneNumber: req.body.phoneNumber,
+      homeAddress: req.body.homeAddress || null,
+      
+      // Emergency Contact Information
+      emergencyContactName: req.body.emergencyContactName || null,
+      emergencyContactPhone: req.body.emergencyContactPhone || null,
+      emergencyContactRelationship: req.body.emergencyContactRelationship || null,
+      
+      // Insurance Information
       insuranceProvider: req.body.insuranceProvider || null,
       insuranceNumber: req.body.insuranceNumber || null,
-      medicalHistory: req.body.medicalHistory || null,
+      
+      // Medical History
       allergies: req.body.allergies || null,
       bloodType: req.body.bloodType || null,
-      emergencyContact: req.body.emergencyContact || null
+      currentTreatment: req.body.currentTreatment || null,
+      smokesTobacco: req.body.smokesTobacco || false,
+      isPregnantOrNursing: req.body.isPregnantOrNursing || false,
+      
+      // Dental History
+      lastDentalVisit: req.body.lastDentalVisit || null,
+      chiefComplaint: req.body.chiefComplaint || null,
+      currentSymptoms: req.body.currentSymptoms || null,
+      
+      // Consent Forms
+      hipaaConsent: req.body.hipaaConsent || false,
+      treatmentConsent: req.body.treatmentConsent || false,
+      financialResponsibilityAgreement: req.body.financialResponsibilityAgreement || false,
+      assignmentOfBenefits: req.body.assignmentOfBenefits || false,
+      officePolicy: req.body.officePolicy || false
     };
     
     console.log("Creating patient with data:", patientData);
