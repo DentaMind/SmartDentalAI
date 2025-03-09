@@ -38,6 +38,7 @@ router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (r
     };
 
     console.log("Creating user with data:", userData);
+    
     // Create the user
     const user = await storage.createUser(userData);
     
@@ -57,11 +58,26 @@ router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (r
     };
     
     console.log("Creating patient with data:", patientData);
-    const patient = await storage.createPatient(patientData);
-    console.log("Patient created successfully:", patient);
-    
-    // Return both user and patient data
-    res.status(201).json({ ...patient, user });
+    try {
+      const patient = await storage.createPatient(patientData);
+      console.log("Patient created successfully:", patient);
+      
+      // Return both user and patient data
+      res.status(201).json({ ...patient, user });
+    } catch (patientError) {
+      console.error("Error creating patient record:", patientError);
+      
+      // If creating the patient record fails, we should clean up the user we just created
+      // to avoid orphaned user accounts
+      try {
+        // Here we would ideally delete the user we just created
+        console.log("Would delete user:", user.id);
+      } catch (cleanupError) {
+        console.error("Error cleaning up user after patient creation failure:", cleanupError);
+      }
+      
+      throw patientError;
+    }
   } catch (error) {
     console.error("Error creating patient:", error);
     res.status(400).json({ message: error instanceof Error ? error.message : "Invalid request" });

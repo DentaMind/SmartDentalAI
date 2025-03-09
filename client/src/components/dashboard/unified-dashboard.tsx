@@ -151,7 +151,10 @@ interface UnifiedDashboardProps {
 export function UnifiedDashboard({ userRole = "doctor" }: UnifiedDashboardProps) {
   const [timeframe, setTimeframe] = useState<string>("month");
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
-  const [currentView, setCurrentView] = useState<string>("overview");
+  // Set the default view based on the user role
+  // For providers, we'll start with the clinical view since they already see the schedule
+  const defaultView = ["doctor", "hygienist"].includes(userRole) ? "clinical" : "overview";
+  const [currentView, setCurrentView] = useState<string>(defaultView);
   
   const { user } = useAuth();
   
