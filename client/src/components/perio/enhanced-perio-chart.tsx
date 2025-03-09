@@ -262,8 +262,10 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
     }));
   };
   
-  // AI risk analysis
+  // AI risk analysis with automatic tab switch to show insights
   const generateRiskAnalysis = () => {
+    // Switch to AI insights tab after analysis is complete
+    setTimeout(() => setActiveTab('aiAnalysis'), 1200);
     setIsAnalyzing(true);
     
     // Simulate AI analysis (in a real app, this would call an API)
@@ -1042,10 +1044,14 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
               disabled={chartData.worstSites.length === 0 && !showAIInsights}
             >
               AI Insights {chartData.riskLevel && (
-                <Badge variant={
-                  chartData.riskLevel === 'high' ? 'destructive' : 
-                  chartData.riskLevel === 'moderate' ? 'warning' : 'success'
-                } className="ml-2">
+                <Badge 
+                  variant={chartData.riskLevel === 'high' ? 'destructive' : 'outline'}
+                  className={`ml-2 ${
+                    chartData.riskLevel === 'high' ? 'bg-red-100 text-red-800' : 
+                    chartData.riskLevel === 'moderate' ? 'bg-yellow-100 text-yellow-800' : 
+                    'bg-green-100 text-green-800'
+                  }`}
+                >
                   {chartData.riskLevel}
                 </Badge>
               )}
