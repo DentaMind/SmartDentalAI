@@ -108,7 +108,7 @@ const PatientChart: React.FC<{
                 value="lab" 
                 className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none h-10 px-4"
               >
-                <Flask className="h-4 w-4 mr-2" /> Lab Results
+                <Beaker className="h-4 w-4 mr-2" /> Lab Results
               </TabsTrigger>
               <TabsTrigger 
                 value="notes" 
@@ -331,15 +331,17 @@ const PatientChart: React.FC<{
             </TabsContent>
 
             <TabsContent value="xrays" className="m-0">
-              <div className="text-center p-8 border rounded-md">
-                <AlertCircle className="mx-auto h-10 w-10 text-gray-400 mb-3" />
-                <h3 className="text-lg font-medium text-gray-900 mb-1">X-Ray Analysis</h3>
-                <p className="text-gray-500 mb-4">
-                  The X-Ray component is not yet implemented. It will include AI-powered
-                  analysis and comparison features.
-                </p>
-                <Button disabled>Coming Soon</Button>
-              </div>
+              <AdvancedXRayAnalyzer
+                patientId={patientId}
+                doctorId={user?.id || 1}
+                onXRayAdded={(xray) => {
+                  console.log("X-ray added:", xray);
+                  toast({
+                    title: "X-ray added",
+                    description: "The X-ray has been added to the patient's record."
+                  });
+                }}
+              />
             </TabsContent>
 
             <TabsContent value="appointments" className="m-0">
