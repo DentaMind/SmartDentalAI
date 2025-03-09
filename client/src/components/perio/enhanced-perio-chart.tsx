@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { Info, Save, Download } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { toast } from '@/hooks/use-toast';
+import { Info, Save, Download, Brain } from 'lucide-react';
 
 // Define adult teeth numbering (standard dental notation)
 const ADULT_TEETH_UPPER = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
@@ -228,6 +230,9 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
   const [selectedArch, setSelectedArch] = useState<'upper' | 'lower'>('upper');
   const [selectedMeasurement, setSelectedMeasurement] = useState('pocketDepth');
   const [selectedSurface, setSelectedSurface] = useState<'facial' | 'lingual'>('facial');
+  const [activeTab, setActiveTab] = useState<'chart' | 'aiAnalysis'>('chart');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showAIInsights, setShowAIInsights] = useState(false);
   
   // Calculate statistics
   const calculateStats = () => {
@@ -256,10 +261,6 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
       plaque: totalSites > 0 ? Math.round((plaqueSites / totalSites) * 100) : 0
     }));
   };
-  
-  // State for AI analysis
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [showAIInsights, setShowAIInsights] = useState(false);
   
   // AI risk analysis
   const generateRiskAnalysis = () => {
@@ -845,8 +846,8 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
     );
   };
   
-  // Render the AI insights panel
-  const renderAIInsights = () => {
+  // Define AI insights component
+  function renderAIInsights() {
     const getRiskLevelColor = () => {
       if (chartData.riskLevel === 'high') return 'text-red-600';
       if (chartData.riskLevel === 'moderate') return 'text-yellow-600';
@@ -970,8 +971,10 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
         </div>
       </div>
     );
-  };
+  }
 
+
+  
   return (
     <Card className="w-full">
       <CardHeader>
@@ -1003,167 +1006,236 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
       </CardHeader>
       
       <CardContent className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between gap-4">
-          <div>
-            <h3 className="text-sm font-medium mb-2">Select Arch</h3>
-            <div className="flex space-x-2">
-              <Button 
-                variant={selectedArch === 'upper' ? 'default' : 'outline'} 
-                size="sm" 
-                onClick={() => setSelectedArch('upper')}
-              >
-                Upper Arch (1-16)
-              </Button>
-              <Button 
-                variant={selectedArch === 'lower' ? 'default' : 'outline'} 
-                size="sm" 
-                onClick={() => setSelectedArch('lower')}
-              >
-                Lower Arch (17-32)
-              </Button>
-            </div>
+        {/* Add AI Analysis button */}
+        {!readOnly && (
+          <div className="flex justify-end">
+            <Button 
+              variant="outline" 
+              onClick={generateRiskAnalysis} 
+              disabled={isAnalyzing}
+              className="mb-2"
+            >
+              {isAnalyzing ? (
+                <>
+                  <div className="mr-2 animate-spin">⟳</div>
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <div className="mr-2">🧠</div>
+                  AI Analysis
+                </>
+              )}
+            </Button>
           </div>
+        )}
+      
+        {/* Tabs for chart data and AI insights */}
+        <Tabs defaultValue="chart" value={activeTab} onValueChange={(value) => setActiveTab(value as 'chart' | 'aiAnalysis')}>
+          <TabsList className="w-full">
+            <TabsTrigger value="chart" className="flex-1">
+              Chart Data
+            </TabsTrigger>
+            <TabsTrigger 
+              value="aiAnalysis" 
+              className="flex-1"
+              disabled={chartData.worstSites.length === 0 && !showAIInsights}
+            >
+              AI Insights {chartData.riskLevel && (
+                <Badge variant={
+                  chartData.riskLevel === 'high' ? 'destructive' : 
+                  chartData.riskLevel === 'moderate' ? 'warning' : 'success'
+                } className="ml-2">
+                  {chartData.riskLevel}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
           
-          <div>
-            <h3 className="text-sm font-medium mb-2">Select Measurement</h3>
-            <ScrollArea className="h-10 whitespace-nowrap">
-              <div className="flex space-x-1">
-                {MEASUREMENT_TYPES.map(type => (
+          {/* Chart Data Tab */}
+          <TabsContent value="chart" className="mt-4 space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-medium mb-2">Select Arch</h3>
+                <div className="flex space-x-2">
                   <Button 
-                    key={type.id} 
-                    variant={selectedMeasurement === type.id ? 'default' : 'outline'} 
+                    variant={selectedArch === 'upper' ? 'default' : 'outline'} 
                     size="sm" 
-                    onClick={() => setSelectedMeasurement(type.id)}
+                    onClick={() => setSelectedArch('upper')}
                   >
-                    {type.name}
+                    Upper Arch (1-16)
                   </Button>
-                ))}
-              </div>
-            </ScrollArea>
-          </div>
-        </div>
-        
-        <Separator />
-        
-        {/* Display teeth diagram */}
-        <div className="border rounded-md p-4 bg-gray-50">
-          <div className="flex justify-center mb-4">
-            <div className="text-center">
-              <h3 className="text-sm font-medium mb-2">
-                {selectedArch === 'upper' ? 'Upper Arch' : 'Lower Arch'}
-              </h3>
-              <div className="flex justify-center gap-1 p-2">
-                {currentTeeth.map(toothId => (
-                  <div 
-                    key={`tooth-icon-${toothId}`}
-                    className="w-8 h-12 border border-gray-300 rounded flex items-center justify-center bg-white"
+                  <Button 
+                    variant={selectedArch === 'lower' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setSelectedArch('lower')}
                   >
-                    <span className="text-sm font-medium">{toothId}</span>
+                    Lower Arch (17-32)
+                  </Button>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium mb-2">Select Measurement</h3>
+                <ScrollArea className="h-10 whitespace-nowrap">
+                  <div className="flex space-x-1">
+                    {MEASUREMENT_TYPES.map(type => (
+                      <Button 
+                        key={type.id} 
+                        variant={selectedMeasurement === type.id ? 'default' : 'outline'} 
+                        size="sm" 
+                        onClick={() => setSelectedMeasurement(type.id)}
+                      >
+                        {type.name}
+                      </Button>
+                    ))}
                   </div>
-                ))}
+                </ScrollArea>
               </div>
             </div>
-          </div>
-        </div>
-        
-        {/* Measurement tables */}
-        {selectedMeasurement === 'pocketDepth' && renderNumericMeasurementTable('pocketDepth')}
-        {selectedMeasurement === 'recession' && renderNumericMeasurementTable('recession')}
-        {selectedMeasurement === 'attachmentLoss' && renderNumericMeasurementTable('attachmentLoss')}
-        {selectedMeasurement === 'bleeding' && renderBooleanMeasurementTable('bleeding')}
-        {selectedMeasurement === 'suppuration' && renderBooleanMeasurementTable('suppuration')}
-        {selectedMeasurement === 'plaque' && renderBooleanMeasurementTable('plaque')}
-        {selectedMeasurement === 'mobility' && renderMobilityFurcationTable()}
-        
-        {/* Chart notes */}
-        <div className="border rounded-md p-4">
-          <h3 className="text-sm font-medium mb-2">Chart Notes</h3>
-          <Textarea 
-            placeholder="Enter notes about this periodontal examination..."
-            value={chartData.notes}
-            onChange={(e) => setChartData(prev => ({ ...prev, notes: e.target.value }))}
-            disabled={readOnly}
-            className="min-h-[100px]"
-          />
-        </div>
-        
-        {/* Legend */}
-        <div className="border rounded-md p-4">
-          <h3 className="text-sm font-medium mb-2">Legend</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <h4 className="text-xs font-medium mb-1">Pocket Depth</h4>
-              <div className="space-y-1">
-                <div className="flex items-center">
-                  <div className="w-4 h-4 mr-1 bg-green-100 border border-gray-300"></div>
-                  <span className="text-xs">1-3 mm (Healthy)</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-4 h-4 mr-1 bg-yellow-100 border border-gray-300"></div>
-                  <span className="text-xs">4-5 mm (Moderate)</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-4 h-4 mr-1 bg-red-100 border border-gray-300"></div>
-                  <span className="text-xs">6+ mm (Severe)</span>
+            
+            <Separator />
+            
+            {/* Display teeth diagram */}
+            <div className="border rounded-md p-4 bg-gray-50">
+              <div className="flex justify-center mb-4">
+                <div className="text-center">
+                  <h3 className="text-sm font-medium mb-2">
+                    {selectedArch === 'upper' ? 'Upper Arch' : 'Lower Arch'}
+                  </h3>
+                  <div className="flex justify-center gap-1 p-2">
+                    {currentTeeth.map(toothId => (
+                      <div 
+                        key={`tooth-icon-${toothId}`}
+                        className="w-8 h-12 border border-gray-300 rounded flex items-center justify-center bg-white"
+                      >
+                        <span className="text-sm font-medium">{toothId}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
             
-            <div>
-              <h4 className="text-xs font-medium mb-1">Recession</h4>
-              <div className="space-y-1">
-                <div className="flex items-center">
-                  <div className="w-4 h-4 mr-1 bg-green-100 border border-gray-300"></div>
-                  <span className="text-xs">0 mm (None)</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-4 h-4 mr-1 bg-yellow-100 border border-gray-300"></div>
-                  <span className="text-xs">1-2 mm (Mild)</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-4 h-4 mr-1 bg-red-100 border border-gray-300"></div>
-                  <span className="text-xs">3+ mm (Severe)</span>
-                </div>
-              </div>
+            {/* Measurement tables */}
+            {selectedMeasurement === 'pocketDepth' && renderNumericMeasurementTable('pocketDepth')}
+            {selectedMeasurement === 'recession' && renderNumericMeasurementTable('recession')}
+            {selectedMeasurement === 'attachmentLoss' && renderNumericMeasurementTable('attachmentLoss')}
+            {selectedMeasurement === 'bleeding' && renderBooleanMeasurementTable('bleeding')}
+            {selectedMeasurement === 'suppuration' && renderBooleanMeasurementTable('suppuration')}
+            {selectedMeasurement === 'plaque' && renderBooleanMeasurementTable('plaque')}
+            {selectedMeasurement === 'mobility' && renderMobilityFurcationTable()}
+            
+            {/* Chart notes */}
+            <div className="border rounded-md p-4">
+              <h3 className="text-sm font-medium mb-2">Chart Notes</h3>
+              <Textarea 
+                placeholder="Enter notes about this periodontal examination..."
+                value={chartData.notes}
+                onChange={(e) => setChartData(prev => ({ ...prev, notes: e.target.value }))}
+                disabled={readOnly}
+                className="min-h-[100px]"
+              />
             </div>
             
-            <div>
-              <h4 className="text-xs font-medium mb-1">Clinical Attachment Loss</h4>
-              <div className="space-y-1">
-                <div className="flex items-center">
-                  <div className="w-4 h-4 mr-1 bg-green-100 border border-gray-300"></div>
-                  <span className="text-xs">0-2 mm (Mild)</span>
+            {/* Legend */}
+            <div className="border rounded-md p-4">
+              <h3 className="text-sm font-medium mb-2">Legend</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <h4 className="text-xs font-medium mb-1">Pocket Depth</h4>
+                  <div className="space-y-1">
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 mr-1 bg-green-100 border border-gray-300"></div>
+                      <span className="text-xs">1-3 mm (Healthy)</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 mr-1 bg-yellow-100 border border-gray-300"></div>
+                      <span className="text-xs">4-5 mm (Moderate)</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 mr-1 bg-red-100 border border-gray-300"></div>
+                      <span className="text-xs">6+ mm (Severe)</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center">
-                  <div className="w-4 h-4 mr-1 bg-yellow-100 border border-gray-300"></div>
-                  <span className="text-xs">3-4 mm (Moderate)</span>
+                
+                <div>
+                  <h4 className="text-xs font-medium mb-1">Recession</h4>
+                  <div className="space-y-1">
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 mr-1 bg-green-100 border border-gray-300"></div>
+                      <span className="text-xs">0 mm (None)</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 mr-1 bg-yellow-100 border border-gray-300"></div>
+                      <span className="text-xs">1-2 mm (Mild)</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 mr-1 bg-red-100 border border-gray-300"></div>
+                      <span className="text-xs">3+ mm (Severe)</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center">
-                  <div className="w-4 h-4 mr-1 bg-red-100 border border-gray-300"></div>
-                  <span className="text-xs">5+ mm (Severe)</span>
+                
+                <div>
+                  <h4 className="text-xs font-medium mb-1">Clinical Attachment Loss</h4>
+                  <div className="space-y-1">
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 mr-1 bg-green-100 border border-gray-300"></div>
+                      <span className="text-xs">0-2 mm (Mild)</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 mr-1 bg-yellow-100 border border-gray-300"></div>
+                      <span className="text-xs">3-4 mm (Moderate)</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 mr-1 bg-red-100 border border-gray-300"></div>
+                      <span className="text-xs">5+ mm (Severe)</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="text-xs font-medium mb-1">Other Indicators</h4>
+                  <div className="space-y-1">
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 mr-1 bg-red-100 border border-gray-300 flex items-center justify-center text-xs">✓</div>
+                      <span className="text-xs">Bleeding on Probing (BOP)</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 mr-1 bg-yellow-100 border border-gray-300 flex items-center justify-center text-xs">✓</div>
+                      <span className="text-xs">Suppuration</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 mr-1 bg-blue-100 border border-gray-300 flex items-center justify-center text-xs">✓</div>
+                      <span className="text-xs">Plaque</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-            
-            <div>
-              <h4 className="text-xs font-medium mb-1">Other Indicators</h4>
-              <div className="space-y-1">
-                <div className="flex items-center">
-                  <div className="w-4 h-4 mr-1 bg-red-100 border border-gray-300 flex items-center justify-center text-xs">✓</div>
-                  <span className="text-xs">Bleeding on Probing (BOP)</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-4 h-4 mr-1 bg-yellow-100 border border-gray-300 flex items-center justify-center text-xs">✓</div>
-                  <span className="text-xs">Suppuration</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-4 h-4 mr-1 bg-blue-100 border border-gray-300 flex items-center justify-center text-xs">✓</div>
-                  <span className="text-xs">Plaque</span>
-                </div>
+          </TabsContent>
+          
+          {/* AI Insights Tab */}
+          <TabsContent value="aiAnalysis" className="mt-4">
+            {chartData.worstSites.length > 0 || showAIInsights ? (
+              renderAIInsights()
+            ) : (
+              <div className="flex flex-col items-center justify-center p-12 text-center">
+                <div className="text-6xl mb-4">🧠</div>
+                <h3 className="text-xl font-semibold mb-2">AI Analysis Not Generated</h3>
+                <p className="text-gray-500 mb-6 max-w-md">
+                  Use the AI Analysis button to generate intelligent insights, risk assessment, 
+                  and personalized treatment recommendations based on your periodontal measurements.
+                </p>
+                <Button onClick={generateRiskAnalysis} disabled={isAnalyzing}>
+                  {isAnalyzing ? 'Analyzing...' : 'Generate AI Analysis'}
+                </Button>
               </div>
-            </div>
-          </div>
-        </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
       
       <CardFooter className="border-t pt-4 flex justify-between">
