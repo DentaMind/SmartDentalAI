@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useToast } from '@/hooks/use-toast';
 import { Info, Save, Download } from 'lucide-react';
 
 // Constants for adult and primary dentition
@@ -174,16 +175,44 @@ const EnhancedDentalChart: React.FC<EnhancedDentalChartProps> = ({
     
     setChartData(prevData => {
       const updatedTeeth = { ...prevData.teeth };
-      updatedTeeth[toothId] = {
-        ...updatedTeeth[toothId],
-        missing: !updatedTeeth[toothId].missing
-      };
+      const newMissingState = !updatedTeeth[toothId].missing;
+      
+      // When marking a tooth as missing, clear all treatments and conditions
+      if (newMissingState) {
+        updatedTeeth[toothId] = {
+          ...updatedTeeth[toothId],
+          missing: true,
+          implant: false,  // Cannot be both missing and implant
+          treatments: [],  // Clear treatments
+          mobility: 0,     // Clear mobility
+          // Reset all surfaces
+          surfaces: Object.keys(updatedTeeth[toothId].surfaces).reduce((acc, surfaceId) => {
+            acc[surfaceId] = {
+              id: surfaceId,
+              condition: null,
+              notes: ''
+            };
+            return acc;
+          }, {} as Record<string, ToothSurface>)
+        };
+      } else {
+        // Just toggle the missing state when restoring
+        updatedTeeth[toothId] = {
+          ...updatedTeeth[toothId],
+          missing: false
+        };
+      }
       
       return {
         ...prevData,
         teeth: updatedTeeth
       };
     });
+    
+    // Auto-close tooth details panel when marking as missing
+    if (selectedTooth === toothId && chartData.teeth[toothId] && !chartData.teeth[toothId].missing) {
+      setSelectedTooth(null);
+    }
   };
   
   // Mark a tooth as implant
@@ -464,10 +493,22 @@ const EnhancedDentalChart: React.FC<EnhancedDentalChartProps> = ({
     if (tooth.missing) {
       return (
         <div 
-          className="w-16 h-20 border border-gray-300 rounded flex items-center justify-center bg-gray-100 cursor-pointer"
+          className="w-16 h-20 border border-dashed border-gray-300 rounded flex items-center justify-center bg-gray-50 cursor-pointer opacity-50 hover:opacity-80 transition-opacity"
           onClick={() => handleToothClick(toothId)}
         >
-          <span className="text-gray-500 font-medium">Missing</span>
+          <div className="flex flex-col items-center">
+            <span className="text-gray-400 font-medium text-xs">{chartData.isPrimaryDentition ? tooth.id : `#${tooth.id}`}</span>
+            <span className="text-xs text-gray-400 mt-1">(Missing)</span>
+            <button 
+              className="mt-2 text-xs text-primary hover:text-primary-dark border border-primary hover:border-primary-dark rounded px-2 py-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleToothMissing(toothId);
+              }}
+            >
+              Restore
+            </button>
+          </div>
         </div>
       );
     }
