@@ -18,12 +18,14 @@ import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { AlertTriangle, FileText, Flask, Tooth, X as XRayIcon, CalendarCheck, File, ArrowUpRight, AlertCircle } from "lucide-react";
+import { AlertTriangle, FileText, Beaker, Stethoscope, X as XRayIcon, CalendarCheck, File, ArrowUpRight, AlertCircle } from "lucide-react";
 
 // Import our custom components
 import EnhancedPerioChart from "../perio/enhanced-perio-chart";
 import LabResultsUpload from "../lab/lab-results-upload";
 import NotesSystem from "../medical/notes-system";
+import AdvancedXRayAnalyzer from "../ai/advanced-xray-analyzer";
+import HealthContraindicationAlerts from "../ai/health-contraindication-alerts";
 
 // Types (simplified versions of what's in the database schema)
 export interface Patient {
@@ -40,16 +42,6 @@ export interface Patient {
   }
 }
 
-export interface ChartContaindicationAlert {
-  id: string;
-  severity: 'low' | 'medium' | 'high';
-  title: string;
-  description: string;
-  source: 'medication' | 'condition' | 'allergy' | 'lab' | 'xray';
-  dateDetected: Date;
-  recommendedAction?: string;
-}
-
 // Patient chart component with tabs for different sections
 const PatientChart: React.FC<{
   patientId: number;
@@ -64,37 +56,6 @@ const PatientChart: React.FC<{
     queryFn: async () => await apiRequest<Patient>(`/api/patients/${patientId}`),
   });
 
-  // Mock contraindication alerts - in a real app, these would come from the backend
-  const mockContraindicationAlerts: ChartContaindicationAlert[] = [
-    {
-      id: "c1",
-      severity: "high",
-      title: "Medication Interaction Risk",
-      description: "Potential interaction between Amoxicillin and current medication Warfarin. Increased risk of bleeding.",
-      source: "medication",
-      dateDetected: new Date("2025-02-15"),
-      recommendedAction: "Consider alternative antibiotic or adjust Warfarin dosage with monitoring",
-    },
-    {
-      id: "c2",
-      severity: "medium",
-      title: "Medical Condition Alert",
-      description: "Patient with uncontrolled hypertension (160/95 mm Hg). Caution advised with vasoconstrictors.",
-      source: "condition",
-      dateDetected: new Date("2025-03-01"),
-      recommendedAction: "Limit epinephrine use; consider medical consultation prior to extensive procedures",
-    }
-  ];
-
-  // Handle dismissing a contraindication alert
-  const dismissAlert = (alertId: string) => {
-    // In a real app, this would call an API to dismiss the alert
-    toast({
-      title: "Alert dismissed",
-      description: "The alert has been marked as reviewed and dismissed."
-    });
-  };
-
   if (patientLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -105,58 +66,11 @@ const PatientChart: React.FC<{
 
   return (
     <div className="space-y-6">
-      {/* Contraindication Alerts Panel */}
-      {mockContraindicationAlerts.length > 0 && (
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg text-red-700 flex items-center">
-              <AlertTriangle className="h-5 w-5 mr-2" /> Health Alerts
-            </CardTitle>
-            <CardDescription className="text-red-600">
-              Important contraindications detected for this patient
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {mockContraindicationAlerts.map((alert) => (
-                <div 
-                  key={alert.id} 
-                  className="flex items-start justify-between p-3 bg-white rounded-md border border-red-100"
-                >
-                  <div className="flex items-start">
-                    <div className="mr-3 mt-0.5">
-                      {alert.severity === "high" ? (
-                        <div className="h-4 w-4 rounded-full bg-red-500"></div>
-                      ) : alert.severity === "medium" ? (
-                        <div className="h-4 w-4 rounded-full bg-orange-500"></div>
-                      ) : (
-                        <div className="h-4 w-4 rounded-full bg-yellow-500"></div>
-                      )}
-                    </div>
-                    <div>
-                      <div className="font-medium">{alert.title}</div>
-                      <div className="text-sm text-gray-700 mt-1">{alert.description}</div>
-                      {alert.recommendedAction && (
-                        <div className="text-sm font-medium text-red-700 mt-2">
-                          Recommendation: {alert.recommendedAction}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => dismissAlert(alert.id)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Health Contraindication Alerts Panel */}
+      <HealthContraindicationAlerts 
+        patientId={patientId} 
+        userId={user?.id || 1} 
+      />
 
       {/* Main Patient Chart */}
       <Card>
@@ -188,7 +102,7 @@ const PatientChart: React.FC<{
                 value="perio" 
                 className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none h-10 px-4"
               >
-                <Tooth className="h-4 w-4 mr-2" /> Periodontal Chart
+                <Stethoscope className="h-4 w-4 mr-2" /> Periodontal Chart
               </TabsTrigger>
               <TabsTrigger 
                 value="lab" 
