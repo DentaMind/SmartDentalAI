@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Appointment } from "@shared/schema";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -12,21 +13,42 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Video, Calendar, Bell, Settings, Clock } from "lucide-react";
+import { Plus, Video, Calendar, Bell, Settings, Clock, ListFilter, LayoutGrid } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ReminderSettings } from "@/components/appointments/reminder-settings";
 import { AppointmentScheduler } from "@/components/appointments/appointment-scheduler";
+import { WeeklySchedule } from "@/components/appointments/weekly-schedule";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export default function AppointmentsPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null);
   
   const { data: appointments } = useQuery<Appointment[]>({
     queryKey: ["/api/appointments/doctor", user?.id],
   });
+
+  const handleAddAppointment = () => {
+    setAppointmentDialogOpen(true);
+  };
+
+  const handleViewAppointment = (appointmentId: number) => {
+    setSelectedAppointmentId(appointmentId);
+    setAppointmentDialogOpen(true);
+  };
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -36,20 +58,24 @@ export default function AppointmentsPage() {
           <h1 className="text-3xl font-bold text-gray-900">
             {t("nav.appointments")}
           </h1>
-          <Button>
+          <Button onClick={handleAddAppointment}>
             <Plus className="h-4 w-4 mr-2" />
             {t("appointment.schedule")}
           </Button>
         </div>
 
-        <Tabs defaultValue="scheduler" className="space-y-4">
+        <Tabs defaultValue="weekly" className="space-y-4">
           <TabsList>
+            <TabsTrigger value="weekly" className="flex items-center">
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              Weekly Schedule
+            </TabsTrigger>
             <TabsTrigger value="scheduler" className="flex items-center">
               <Calendar className="h-4 w-4 mr-2" />
-              Scheduler
+              Calendar
             </TabsTrigger>
             <TabsTrigger value="appointments" className="flex items-center">
-              <Clock className="h-4 w-4 mr-2" />
+              <ListFilter className="h-4 w-4 mr-2" />
               List View
             </TabsTrigger>
             <TabsTrigger value="reminders" className="flex items-center">
@@ -61,6 +87,15 @@ export default function AppointmentsPage() {
               Settings
             </TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="weekly">
+            <div className="bg-white rounded-lg shadow p-4">
+              <WeeklySchedule 
+                onAddAppointment={handleAddAppointment}
+                onViewAppointment={handleViewAppointment}
+              />
+            </div>
+          </TabsContent>
           
           <TabsContent value="scheduler">
             <AppointmentScheduler />
@@ -103,12 +138,23 @@ export default function AppointmentsPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleViewAppointment(appointment.id)}
+                        >
                           View Details
                         </Button>
                       </TableCell>
                     </TableRow>
                   ))}
+                  {(!appointments || appointments.length === 0) && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-4">
+                        No appointments found
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -173,6 +219,51 @@ export default function AppointmentsPage() {
           </TabsContent>
         </Tabs>
       </main>
+      
+      {/* Appointment Dialog */}
+      <Dialog open={appointmentDialogOpen} onOpenChange={setAppointmentDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedAppointmentId 
+                ? "Appointment Details" 
+                : "Schedule New Appointment"}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedAppointmentId 
+                ? "View and manage appointment details" 
+                : "Create a new appointment by selecting a patient, provider, and time slot"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            {selectedAppointmentId ? (
+              <div className="space-y-4">
+                <p className="text-sm">Viewing details for appointment #{selectedAppointmentId}</p>
+                {/* This would be replaced with actual appointment details */}
+                <p className="text-sm text-muted-foreground">
+                  Appointment data would be loaded here based on the ID
+                </p>
+              </div>
+            ) : (
+              <AppointmentScheduler 
+                onAppointmentCreated={() => setAppointmentDialogOpen(false)} 
+              />
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAppointmentDialogOpen(false)}>
+              Cancel
+            </Button>
+            {!selectedAppointmentId && (
+              <Button type="submit">
+                Create Appointment
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
