@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -6,8 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Plus, 
+  Clock, 
+  Calendar, 
+  AlertCircle, 
+  Phone, 
+  Info, 
+  User
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Types
 interface Doctor {
@@ -17,6 +33,19 @@ interface Doctor {
   specialization: string;
   avatar?: string;
   color?: string;
+}
+
+interface Patient {
+  id: number;
+  userId: number;
+  firstName?: string;
+  lastName?: string;
+  dateOfBirth?: string;
+  email?: string;
+  phoneNumber?: string;
+  insuranceProvider?: string;
+  insuranceNumber?: string;
+  medicalHistory?: Record<string, any>;
 }
 
 interface Appointment {
@@ -29,11 +58,20 @@ interface Appointment {
   notes?: string | null;
   isOnline?: boolean | null;
   insuranceVerified?: boolean | null;
+  appointmentType?: string;
+  reasonForVisit?: string;
+  duration?: number;
+  isNewPatient?: boolean;
+  needsXray?: boolean;
+  isEmergency?: boolean;
+  isFollowUp?: boolean;
+  medicalAlerts?: string[];
 }
 
 interface WeeklyScheduleProps {
   onAddAppointment?: () => void;
   onViewAppointment?: (appointmentId: number) => void;
+  showMiniVersion?: boolean;
 }
 
 export function WeeklySchedule({ onAddAppointment, onViewAppointment }: WeeklyScheduleProps) {
@@ -249,35 +287,130 @@ export function WeeklySchedule({ onAddAppointment, onViewAppointment }: WeeklySc
                           )}
                         >
                           {appointment && (
-                            <div 
-                              className={cn(
-                                "h-full w-full rounded p-1 text-xs cursor-pointer",
-                                appointment.status === "confirmed" ? "bg-green-100" : 
-                                appointment.status === "scheduled" ? "bg-blue-100" : 
-                                appointment.status === "cancelled" ? "bg-red-100" : "bg-gray-100"
-                              )}
-                              onClick={() => onViewAppointment?.(appointment.id)}
-                            >
-                              <div className="font-medium truncate">
-                                {appointment.patientName || `Patient #${appointment.patientId}`}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Badge 
-                                  variant="outline" 
-                                  className="text-[10px] h-4 px-1 py-0"
-                                >
-                                  {appointment.status}
-                                </Badge>
-                                {appointment.isOnline && (
-                                  <Badge 
-                                    variant="secondary"
-                                    className="text-[10px] h-4 px-1 py-0"
+                            <TooltipProvider>
+                              <Tooltip delayDuration={300}>
+                                <TooltipTrigger asChild>
+                                  <div 
+                                    className={cn(
+                                      "h-full w-full rounded p-1 text-xs cursor-pointer hover:ring-2 hover:ring-offset-1 ring-primary transition-all",
+                                      appointment.status === "confirmed" ? "bg-green-100" : 
+                                      appointment.status === "scheduled" ? "bg-blue-100" : 
+                                      appointment.status === "cancelled" ? "bg-red-100" : 
+                                      appointment.isEmergency ? "bg-amber-100" : "bg-gray-100"
+                                    )}
+                                    onClick={() => onViewAppointment?.(appointment.id)}
                                   >
-                                    online
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
+                                    <div className="font-medium truncate">
+                                      {appointment.patientName || `Patient #${appointment.patientId}`}
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-1">
+                                      <Badge 
+                                        variant="outline" 
+                                        className={cn(
+                                          "text-[10px] h-4 px-1 py-0",
+                                          appointment.status === "confirmed" ? "bg-green-50 text-green-800" :
+                                          appointment.status === "scheduled" ? "bg-blue-50 text-blue-800" :
+                                          appointment.status === "cancelled" ? "bg-red-50 text-red-800" :
+                                          "bg-gray-50 text-gray-800"
+                                        )}
+                                      >
+                                        {appointment.status}
+                                      </Badge>
+                                      {appointment.isOnline && (
+                                        <Badge 
+                                          variant="secondary"
+                                          className="text-[10px] h-4 px-1 py-0 bg-indigo-50 text-indigo-800"
+                                        >
+                                          <Phone className="h-2 w-2 mr-1" />
+                                          online
+                                        </Badge>
+                                      )}
+                                      {appointment.isNewPatient && (
+                                        <Badge 
+                                          variant="secondary"
+                                          className="text-[10px] h-4 px-1 py-0 bg-purple-50 text-purple-800"
+                                        >
+                                          <User className="h-2 w-2 mr-1" />
+                                          new
+                                        </Badge>
+                                      )}
+                                      {appointment.needsXray && (
+                                        <Badge 
+                                          variant="secondary"
+                                          className="text-[10px] h-4 px-1 py-0 bg-amber-50 text-amber-800"
+                                        >
+                                          x-ray
+                                        </Badge>
+                                      )}
+                                      {appointment.isEmergency && (
+                                        <Badge 
+                                          variant="secondary"
+                                          className="text-[10px] h-4 px-1 py-0 bg-red-50 text-red-800"
+                                        >
+                                          <AlertCircle className="h-2 w-2 mr-1" />
+                                          emergency
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="p-0 overflow-hidden max-w-xs">
+                                  <div className="text-xs p-3 space-y-2">
+                                    <div className="font-semibold border-b pb-1">
+                                      {appointment.patientName || `Patient #${appointment.patientId}`}
+                                    </div>
+                                    <div className="space-y-1">
+                                      <div className="flex gap-2 items-center text-[11px]">
+                                        <Clock className="h-3 w-3 text-gray-500" />
+                                        <span>{formatTime(timeSlot)} - {appointment.duration || 30} min</span>
+                                      </div>
+                                      {appointment.appointmentType && (
+                                        <div className="flex gap-2 items-center text-[11px]">
+                                          <Calendar className="h-3 w-3 text-gray-500" />
+                                          <span>{appointment.appointmentType}</span>
+                                        </div>
+                                      )}
+                                      {appointment.reasonForVisit && (
+                                        <div className="flex gap-2 items-center text-[11px]">
+                                          <Info className="h-3 w-3 text-gray-500" />
+                                          <span>Reason: {appointment.reasonForVisit}</span>
+                                        </div>
+                                      )}
+                                      {appointment.medicalAlerts && appointment.medicalAlerts.length > 0 && (
+                                        <div className="flex gap-2 items-start text-[11px]">
+                                          <AlertCircle className="h-3 w-3 text-red-500 mt-0.5" />
+                                          <div className="flex flex-col">
+                                            <span className="font-medium">Alerts:</span>
+                                            <ul className="list-disc list-inside pl-1">
+                                              {appointment.medicalAlerts.map((alert, i) => (
+                                                <li key={i} className="text-red-600">{alert}</li>
+                                              ))}
+                                            </ul>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="pt-1 flex flex-wrap gap-1">
+                                      {appointment.isNewPatient && (
+                                        <Badge className="text-[10px] bg-purple-100 text-purple-800">New Patient</Badge>
+                                      )}
+                                      {appointment.isFollowUp && (
+                                        <Badge className="text-[10px] bg-blue-100 text-blue-800">Follow-up</Badge>
+                                      )}
+                                      {appointment.needsXray && (
+                                        <Badge className="text-[10px] bg-amber-100 text-amber-800">X-ray Needed</Badge>
+                                      )}
+                                      {appointment.isEmergency && (
+                                        <Badge className="text-[10px] bg-red-100 text-red-800">Emergency</Badge>
+                                      )}
+                                      {!appointment.insuranceVerified && (
+                                        <Badge className="text-[10px] bg-gray-100 text-gray-800">Insurance TBD</Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           )}
                         </div>
                       );
