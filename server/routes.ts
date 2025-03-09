@@ -6,6 +6,7 @@ import { aiCoordinator } from "./services/ai-coordinator";
 import { requireAuth, requireRole, requireOwnership } from "./middleware/auth";
 import { analyzeMedicalHistory } from './services/medical-history-ai';
 import { financialService } from './services/financial';
+import { aiServiceManager } from './services/ai-service-manager';
 import schedulerRoutes from './routes/scheduler-routes';
 import path from 'path';
 import { PatientMedicalHistory } from '../shared/schema';
@@ -285,6 +286,19 @@ router.post("/ai/medical-analysis", requireAuth, async (req, res) => {
 
 // Use scheduler routes
 router.use('/scheduler', schedulerRoutes);
+
+// AI Services Status Endpoint
+router.get('/ai/status', requireAuth, async (req, res) => {
+  try {
+    const aiStatus = aiServiceManager.getAIStatus();
+    res.json(aiStatus);
+  } catch (error) {
+    console.error('AI Status error:', error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : 'Failed to get AI service status' 
+    });
+  }
+});
 
 // Financial routes
 router.get('/financial/summary', requireAuth, requireRole(['doctor', 'staff']), async (req, res) => {
