@@ -54,6 +54,13 @@ router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (r
     // Then create patient record linked to the user
     const patientData = {
       userId: user.id, // This is the critical field that needs to be set correctly
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      email: req.body.email,
+      phoneNumber: req.body.phoneNumber,
+      dateOfBirth: req.body.dateOfBirth,
+      insuranceProvider: req.body.insuranceProvider || null,
+      insuranceNumber: req.body.insuranceNumber || null,
       medicalHistory: req.body.medicalHistory || null,
       allergies: req.body.allergies || null,
       bloodType: req.body.bloodType || null,
