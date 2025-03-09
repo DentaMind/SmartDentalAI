@@ -21,6 +21,8 @@ import { Switch } from "@/components/ui/switch";
 import { ReminderSettings } from "@/components/appointments/reminder-settings";
 import { AppointmentScheduler } from "@/components/appointments/appointment-scheduler";
 import { WeeklySchedule } from "@/components/appointments/weekly-schedule";
+import { AppointmentForm } from "@/components/appointments/appointment-form";
+import { AppointmentDetails } from "@/components/appointments/appointment-details";
 import {
   Dialog,
   DialogContent,
@@ -238,30 +240,17 @@ export default function AppointmentsPage() {
           
           <div className="py-4">
             {selectedAppointmentId ? (
-              <div className="space-y-4">
-                <p className="text-sm">Viewing details for appointment #{selectedAppointmentId}</p>
-                {/* This would be replaced with actual appointment details */}
-                <p className="text-sm text-muted-foreground">
-                  Appointment data would be loaded here based on the ID
-                </p>
-              </div>
+              <AppointmentDetails 
+                appointmentId={selectedAppointmentId} 
+                onClose={() => setAppointmentDialogOpen(false)}
+              />
             ) : (
-              <AppointmentScheduler 
-                onAppointmentCreated={() => setAppointmentDialogOpen(false)} 
+              <AppointmentForm 
+                onSuccess={() => setAppointmentDialogOpen(false)}
+                onCancel={() => setAppointmentDialogOpen(false)}
               />
             )}
           </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAppointmentDialogOpen(false)}>
-              Cancel
-            </Button>
-            {!selectedAppointmentId && (
-              <Button type="submit">
-                Create Appointment
-              </Button>
-            )}
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
