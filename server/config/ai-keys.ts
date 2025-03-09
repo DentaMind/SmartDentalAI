@@ -17,6 +17,26 @@ export enum AIServiceType {
   PATIENT_COMMUNICATION = 'patient_communication'
 }
 
+// Group related services to optimize API key usage
+// This mapping allows us to share keys between similar services
+export const SERVICE_GROUPS = {
+  CLINICAL_GROUP: [AIServiceType.DIAGNOSIS, AIServiceType.TREATMENT_PLANNING],
+  OPERATIONS_GROUP: [AIServiceType.SCHEDULING, AIServiceType.FINANCIAL],
+  PATIENT_GROUP: [AIServiceType.PATIENT_COMMUNICATION],
+  IMAGING_GROUP: [AIServiceType.XRAY_ANALYSIS]
+}
+
+// Define service priorities (higher number = higher priority)
+// This helps with request queuing and load balancing
+export const SERVICE_PRIORITIES: Record<AIServiceType, number> = {
+  [AIServiceType.DIAGNOSIS]: 10,         // Critical patient services get highest priority
+  [AIServiceType.TREATMENT_PLANNING]: 8, 
+  [AIServiceType.XRAY_ANALYSIS]: 9,      // Imaging is time-sensitive
+  [AIServiceType.SCHEDULING]: 5,         // Operational services can be delayed if needed
+  [AIServiceType.FINANCIAL]: 3,
+  [AIServiceType.PATIENT_COMMUNICATION]: 6
+}
+
 // Configuration type for AI keys
 export interface AIKeyConfig {
   provider: string;

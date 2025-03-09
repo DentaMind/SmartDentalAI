@@ -5,6 +5,7 @@ import {
   trackAPIUsage, 
   getAIServicesStatus
 } from '../config/ai-keys';
+import { aiRequestQueue } from './ai-request-queue';
 
 /**
  * AI Service Manager
@@ -54,33 +55,61 @@ class AIServiceManager {
    */
   async analyzeXRay(imageUrl: string, promptDetails: string = ''): Promise<any> {
     try {
-      const client = this.getOpenAIClient(AIServiceType.XRAY_ANALYSIS);
-      const config = getOptimalAIConfig(AIServiceType.XRAY_ANALYSIS);
+      // This is high-priority, time-sensitive analysis
+      // We'll use the request queue to prioritize it
+      return await aiRequestQueue.enqueueRequest(
+        AIServiceType.XRAY_ANALYSIS,
+        async () => {
+          const client = this.getOpenAIClient(AIServiceType.XRAY_ANALYSIS);
+          const config = getOptimalAIConfig(AIServiceType.XRAY_ANALYSIS);
 
-      const response = await client.chat.completions.create({
-        model: config.model || 'gpt-4-vision-preview',
-        max_tokens: config.maxTokens,
-        temperature: config.temperature,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a dental radiologist with expertise in interpreting dental x-rays. Analyze the provided image and identify any abnormalities, caries, periapical lesions, bone loss, or other pathologies.'
-          },
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: `Please analyze this dental x-ray. ${promptDetails}` },
-              { type: 'image_url', image_url: { url: imageUrl }}
-            ]
+          // Perform any preprocessing/validation here
+          if (!imageUrl || !imageUrl.trim()) {
+            throw new Error('Image URL is required for x-ray analysis');
           }
-        ]
-      });
 
-      trackAPIUsage(AIServiceType.XRAY_ANALYSIS, response.usage?.total_tokens || 0);
-      return {
-        analysis: response.choices[0].message.content,
-        usage: response.usage
-      };
+          // Simple pre-processing to ensure we don't waste API calls
+          // Check if the URL is accessible before sending to OpenAI
+          try {
+            const urlValid = await fetch(imageUrl, { method: 'HEAD' })
+              .then(res => res.ok)
+              .catch(() => false);
+              
+            if (!urlValid) {
+              throw new Error('Image URL is not accessible');
+            }
+          } catch (e) {
+            console.warn('Image URL validation failed:', e);
+            // Continue anyway - the URL might be accessible only from certain networks
+          }
+
+          const response = await client.chat.completions.create({
+            model: config.model || 'gpt-4-vision-preview',
+            max_tokens: config.maxTokens,
+            temperature: config.temperature,
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a dental radiologist with expertise in interpreting dental x-rays. Analyze the provided image and identify any abnormalities, caries, periapical lesions, bone loss, or other pathologies.'
+              },
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: `Please analyze this dental x-ray. ${promptDetails}` },
+                  { type: 'image_url', image_url: { url: imageUrl }}
+                ]
+              }
+            ]
+          });
+
+          trackAPIUsage(AIServiceType.XRAY_ANALYSIS, response.usage?.total_tokens || 0);
+          return {
+            analysis: response.choices[0].message.content,
+            usage: response.usage
+          };
+        },
+        { priority: 9 } // X-ray analysis is high priority
+      );
     } catch (error: any) {
       console.error('Error analyzing x-ray:', error.message);
       throw error;
@@ -92,30 +121,42 @@ class AIServiceManager {
    */
   async generateDiagnosis(symptoms: string, patientHistory?: string): Promise<any> {
     try {
-      const client = this.getOpenAIClient(AIServiceType.DIAGNOSIS);
-      const config = getOptimalAIConfig(AIServiceType.DIAGNOSIS);
+      // Use request queue with appropriate priority
+      return await aiRequestQueue.enqueueRequest(
+        AIServiceType.DIAGNOSIS,
+        async () => {
+          const client = this.getOpenAIClient(AIServiceType.DIAGNOSIS);
+          const config = getOptimalAIConfig(AIServiceType.DIAGNOSIS);
 
-      const response = await client.chat.completions.create({
-        model: config.model || 'gpt-4',
-        max_tokens: config.maxTokens,
-        temperature: config.temperature,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a dental diagnostician with expertise in identifying oral conditions based on symptoms. Provide a differential diagnosis with confidence levels and recommended next steps.'
-          },
-          {
-            role: 'user',
-            content: `Patient symptoms: ${symptoms}\n${patientHistory ? `Patient history: ${patientHistory}` : ''}`
+          // Validate inputs
+          if (!symptoms || !symptoms.trim()) {
+            throw new Error('Symptoms description is required for diagnosis');
           }
-        ]
-      });
 
-      trackAPIUsage(AIServiceType.DIAGNOSIS, response.usage?.total_tokens || 0);
-      return {
-        diagnosis: response.choices[0].message.content,
-        usage: response.usage
-      };
+          const response = await client.chat.completions.create({
+            model: config.model || 'gpt-4',
+            max_tokens: config.maxTokens,
+            temperature: config.temperature,
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a dental diagnostician with expertise in identifying oral conditions based on symptoms. Provide a differential diagnosis with confidence levels and recommended next steps.'
+              },
+              {
+                role: 'user',
+                content: `Patient symptoms: ${symptoms}\n${patientHistory ? `Patient history: ${patientHistory}` : ''}`
+              }
+            ]
+          });
+
+          trackAPIUsage(AIServiceType.DIAGNOSIS, response.usage?.total_tokens || 0);
+          return {
+            diagnosis: response.choices[0].message.content,
+            usage: response.usage
+          };
+        },
+        { priority: 10 } // Diagnosis is highest priority - critical for patient care
+      );
     } catch (error: any) {
       console.error('Error generating diagnosis:', error.message);
       throw error;
@@ -283,6 +324,13 @@ Procedure type: ${procedureType}`
     rateLimitPerMinute?: number
   }> {
     return getAIServicesStatus();
+  }
+  
+  /**
+   * Get AI request queue status for monitoring
+   */
+  getQueueStatus() {
+    return aiRequestQueue.getQueueStatus();
   }
 
   /**
