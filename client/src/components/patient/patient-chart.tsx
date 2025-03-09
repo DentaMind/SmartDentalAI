@@ -21,7 +21,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { AlertTriangle, FileText, Beaker, Stethoscope, X as XRayIcon, CalendarCheck, File, ArrowUpRight, AlertCircle } from "lucide-react";
 
 // Import our custom components
-import EnhancedPerioChart from "../perio/enhanced-perio-chart";
+import { EnhancedPerioChart } from "../perio";
 import LabResultsUpload from "../lab/lab-results-upload";
 import NotesSystem from "../medical/notes-system";
 import AdvancedXRayAnalyzer from "../ai/advanced-xray-analyzer";

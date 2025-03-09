@@ -1,90 +1,52 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from '@/components/ui/tabs';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { toast } from '@/hooks/use-toast';
-import { Info, Save, Download, Brain } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { toast } from '@/components/ui/use-toast';
+import { Info, Download } from 'lucide-react';
 
-// Types for the perio chart data
-interface PerioToothData {
-  pocketDepths: {
-    facial: [number, number, number];
-    lingual: [number, number, number];
-  };
-  recessionValues: {
-    facial: [number, number, number];
-    lingual: [number, number, number];
-  };
-  bleeding: {
-    facial: [boolean, boolean, boolean];
-    lingual: [boolean, boolean, boolean];
-  };
-  suppuration: {
-    facial: [boolean, boolean, boolean];
-    lingual: [boolean, boolean, boolean];
-  };
-  plaque: {
-    facial: [boolean, boolean, boolean];
-    lingual: [boolean, boolean, boolean];
-  };
-  calculus: {
-    facial: [boolean, boolean, boolean];
-    lingual: [boolean, boolean, boolean];
-  };
-  mobilityGrade: number;
-  furcation: {
-    facial: [number, number];
-    lingual: [number, number];
-  };
-}
+// Tooth number arrays
+const ADULT_TEETH_UPPER = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+const ADULT_TEETH_LOWER = [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32];
 
-interface PerioChartData {
-  chartDate: Date;
-  teeth: { [toothId: number]: PerioToothData };
-  notes: string;
-  
-  // AI analysis fields
-  riskLevel?: 'low' | 'moderate' | 'high';
-  riskFactors: string[];
-  bop: number; // Bleeding on probing percentage 
-  plaque: number; // Plaque score percentage
-  suppuration: number; // Suppuration percentage
-  worstSites: Array<{ toothId: number; position: string; depth: number }>;
-  recommendedRecallInterval?: number;
-  nextRecallDate?: Date;
-  needsSRP?: boolean;
-  needsPerioSurgery?: boolean;
-  needsLaserTherapy?: boolean;
-  recommendedTreatments: string[];
-  homeCarePlan?: string;
-  aiSummary?: string;
-}
-
-// Define enhanced chart data type with patient and examiner info
-interface EnhancedPerioChartDataWithMeta extends PerioChartData {
-  patientId?: number;
-  examinerId?: number;
-  saveDate?: Date;
-}
-
-interface EnhancedPerioChartProps {
-  initialData?: PerioChartData;
-  readOnly?: boolean;
-  patientId?: number;  // Added for tracking the associated patient
-  examinerId?: number; // Added for tracking who performed the exam
-  onSave?: (data: EnhancedPerioChartDataWithMeta) => void;
-}
-
-// Measurement type definitions
+// Measurement type definitions for the UI
 const MEASUREMENT_TYPES = [
   { id: 'pocketDepth', name: 'Pocket Depth' },
   { id: 'recession', name: 'Recession' },
@@ -92,96 +54,94 @@ const MEASUREMENT_TYPES = [
   { id: 'bleeding', name: 'Bleeding' },
   { id: 'suppuration', name: 'Suppuration' },
   { id: 'plaque', name: 'Plaque' },
-  { id: 'mobility', name: 'Mobility/Furcation' }
+  { id: 'mobility', name: 'Mobility & Furcation' }
 ];
 
-// Adult teeth numbering
-const ADULT_TEETH_UPPER = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
-const ADULT_TEETH_LOWER = [32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17];
-
-// Helper function to calculate clinical attachment loss
-const calculateAttachmentLoss = (pocketDepth: number, recession: number): number => {
-  return pocketDepth + recession;
-};
-
-// Create empty tooth data
-const createEmptyToothData = (): PerioToothData => ({
-  pocketDepths: {
-    facial: [0, 0, 0],
-    lingual: [0, 0, 0]
-  },
-  recessionValues: {
-    facial: [0, 0, 0],
-    lingual: [0, 0, 0]
-  },
-  bleeding: {
-    facial: [false, false, false],
-    lingual: [false, false, false]
-  },
-  suppuration: {
-    facial: [false, false, false],
-    lingual: [false, false, false]
-  },
-  plaque: {
-    facial: [false, false, false],
-    lingual: [false, false, false]
-  },
-  calculus: {
-    facial: [false, false, false],
-    lingual: [false, false, false]
-  },
-  mobilityGrade: 0,
-  furcation: {
-    facial: [0, 0],
-    lingual: [0, 0]
-  }
-});
-
-// Helper function to determine tooth type
-const getToothType = (toothId: number): 'molar' | 'premolar' | 'canine' | 'incisor' => {
-  // Adult teeth numbering: 1-32
-  // 1-2, 15-16, 17-18, 31-32 are molars
-  // 3-5, 12-14, 19-21, 28-30 are premolars
-  // 6, 11, 22, 27 are canines
-  // 7-10, 23-26 are incisors
-  if ([1, 2, 15, 16, 17, 18, 31, 32].includes(toothId)) {
-    return 'molar';
-  } else if ([3, 4, 5, 12, 13, 14, 19, 20, 21, 28, 29, 30].includes(toothId)) {
-    return 'premolar';
-  } else if ([6, 11, 22, 27].includes(toothId)) {
-    return 'canine';
-  } else {
-    return 'incisor';
-  }
-};
-
-// Create empty chart data
-const createEmptyChartData = (): PerioChartData => {
-  const teeth: { [toothId: number]: PerioToothData } = {};
+// Function to create empty chart data
+const createEmptyChartData = () => {
+  const teeth: Record<number, any> = {};
   
   // Create empty data for all teeth
   [...ADULT_TEETH_UPPER, ...ADULT_TEETH_LOWER].forEach(toothId => {
-    teeth[toothId] = createEmptyToothData();
+    teeth[toothId] = {
+      pocketDepths: {
+        facial: [2, 2, 2] as [number, number, number], // Mesial, Middle, Distal
+        lingual: [2, 2, 2] as [number, number, number]
+      },
+      recessionValues: {
+        facial: [0, 0, 0] as [number, number, number],
+        lingual: [0, 0, 0] as [number, number, number]
+      },
+      bleeding: {
+        facial: [false, false, false] as [boolean, boolean, boolean],
+        lingual: [false, false, false] as [boolean, boolean, boolean]
+      },
+      suppuration: {
+        facial: [false, false, false] as [boolean, boolean, boolean],
+        lingual: [false, false, false] as [boolean, boolean, boolean]
+      },
+      plaque: {
+        facial: [false, false, false] as [boolean, boolean, boolean],
+        lingual: [false, false, false] as [boolean, boolean, boolean]
+      },
+      calculus: {
+        facial: [false, false, false] as [boolean, boolean, boolean],
+        lingual: [false, false, false] as [boolean, boolean, boolean]
+      },
+      mobilityGrade: 0, // 0-3 scale
+      furcation: {
+        facial: [0, 0] as [number, number], // 0-3 scale
+        lingual: [0, 0] as [number, number]
+      }
+    };
   });
   
   return {
-    chartDate: new Date(),
     teeth,
+    bop: 0, // Bleeding on probing percentage
+    plaque: 0, // Plaque score percentage
+    suppuration: 0, // Suppuration percentage
     notes: '',
-    riskFactors: [],
-    bop: 0,
-    plaque: 0,
-    suppuration: 0,
-    worstSites: [],
-    recommendedTreatments: []
+    examinerId: 0,
+    patientId: 0,
+    examDate: new Date(),
+    riskLevel: null as 'low' | 'moderate' | 'high' | null,
+    riskFactors: [] as string[],
+    recommendedRecallInterval: null as number | null,
+    recommendedTreatments: [] as string[],
+    worstSites: [] as Array<{toothId: number, position: string, depth: number}>,
+    needsSRP: false,
+    needsPerioSurgery: false,
+    needsLaserTherapy: false,
+    homeCarePlan: null as string | null,
+    aiSummary: null as string | null,
+    nextRecallDate: null as Date | null
   };
 };
 
-const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({ 
-  initialData, 
+// Calculate clinical attachment loss
+const calculateAttachmentLoss = (pocketDepth: number, recession: number) => {
+  return pocketDepth + recession;
+};
+
+// Component props
+interface PerioChartProps {
+  initialData?: any;
+  patientId?: number;
+  examinerId?: number;
+  readOnly?: boolean;
+  onSave?: (data: any) => void;
+}
+
+// Type for periodontal chart data
+type PerioChartData = ReturnType<typeof createEmptyChartData>;
+
+// Enhanced Periodontal Chart Component
+const EnhancedPerioChart: React.FC<PerioChartProps> = ({
+  initialData,
+  patientId = 0,
+  examinerId = 0,
   readOnly = false,
-  patientId,
-  examinerId,
   onSave
 }) => {
   // Chart data state
@@ -267,6 +227,7 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
         return null;
     }
   };
+  
   const [selectedMeasurement, setSelectedMeasurement] = useState<string>('pocketDepth');
   const [activeTab, setActiveTab] = useState<'chart' | 'aiAnalysis'>('chart');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -1018,106 +979,46 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
                   ))}
                 </TableBody>
               </Table>
+              
+              {chartData.aiSummary && (
+                <div className="mt-4 p-3 bg-blue-50 rounded">
+                  <h4 className="text-sm font-medium mb-1">AI Summary:</h4>
+                  <p className="text-sm">{chartData.aiSummary}</p>
+                </div>
+              )}
             </div>
           ) : (
-            <p className="text-sm text-gray-500">No deep pockets detected.</p>
+            <div className="p-3 bg-green-50 rounded">
+              <p className="text-sm">No significant areas of concern were identified!</p>
+            </div>
           )}
-        </div>
-        
-        {/* AI Summary */}
-        <div className="border rounded-md p-4 bg-gray-50">
-          <h3 className="text-base font-medium mb-2">AI Summary</h3>
-          <p className="text-sm">
-            {chartData.aiSummary || "Chart analysis complete. See recommendations above."}
-          </p>
-          <div className="mt-4 text-xs text-gray-500 flex items-center">
-            <Brain className="h-3 w-3 mr-1" />
-            <p>Chart assessment generated on {new Date(chartData.chartDate).toLocaleDateString()}</p>
-          </div>
         </div>
       </div>
     );
   };
-  
+
   return (
-    <Card className="w-full max-h-[calc(100vh-80px)]">
+    <Card className="w-full shadow-sm">
       <CardHeader>
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle>Periodontal Chart</CardTitle>
-            <CardDescription>
-              AI-powered periodontal assessment and analysis
-            </CardDescription>
-          </div>
-          
+        <CardTitle className="text-xl flex justify-between items-center">
+          <span>Periodontal Chart</span>
           {!readOnly && (
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={savePerioChart}
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Save Chart
-              </Button>
-              
-              <Button 
-                size="sm" 
-                onClick={generateRiskAnalysis}
-                disabled={isAnalyzing}
-              >
-                <Brain className="h-4 w-4 mr-2" />
-                {isAnalyzing ? 'Analyzing...' : 'AI Analysis'}
-              </Button>
-            </div>
+            <Button onClick={savePerioChart}>Save Chart</Button>
           )}
-        </div>
+        </CardTitle>
+        <CardDescription>
+          {readOnly 
+            ? 'View detailed periodontal measurements' 
+            : 'Record and analyze periodontal measurements with AI-powered insights'}
+        </CardDescription>
       </CardHeader>
       
-      <CardContent className="max-h-[calc(100vh-220px)] overflow-hidden">
-        <ScrollArea className="h-[calc(100vh-240px)] pr-4">
-        {/* Current statistics */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="rounded-lg bg-blue-50 p-3">
-            <p className="text-xs text-blue-700 mb-1">Bleeding on Probing</p>
-            <p className="text-xl font-semibold">{chartData.bop}%</p>
-          </div>
-          
-          <div className="rounded-lg bg-green-50 p-3">
-            <p className="text-xs text-green-700 mb-1">Plaque Score</p>
-            <p className="text-xl font-semibold">{chartData.plaque}%</p>
-          </div>
-          
-          <div className="rounded-lg bg-purple-50 p-3">
-            <p className="text-xs text-purple-700 mb-1">Suppuration</p>
-            <p className="text-xl font-semibold">{chartData.suppuration}%</p>
-          </div>
-        </div>
-      
-        {/* Tabs for chart data and AI insights */}
+      <CardContent>
+        <ScrollArea className="h-[65vh]">
         <Tabs defaultValue="chart" value={activeTab} onValueChange={(value) => setActiveTab(value as 'chart' | 'aiAnalysis')}>
-          <TabsList className="w-full">
-            <TabsTrigger value="chart" className="flex-1">
-              Chart Data
-            </TabsTrigger>
-            <TabsTrigger 
-              value="aiAnalysis" 
-              className="flex-1"
-              disabled={chartData.worstSites.length === 0 && !showAIInsights}
-            >
-              AI Insights {chartData.riskLevel && (
-                <Badge 
-                  variant={chartData.riskLevel === 'high' ? 'destructive' : 'outline'}
-                  className={`ml-2 ${
-                    chartData.riskLevel === 'high' ? 'bg-red-100 text-red-800' : 
-                    chartData.riskLevel === 'moderate' ? 'bg-yellow-100 text-yellow-800' : 
-                    'bg-green-100 text-green-800'
-                  }`}
-                >
-                  {chartData.riskLevel}
-                </Badge>
-              )}
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="chart">Chart</TabsTrigger>
+            <TabsTrigger value="aiAnalysis">AI Analysis</TabsTrigger>
           </TabsList>
           
           {/* Chart Data Tab */}
@@ -1261,29 +1162,31 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
                               key={`tooth-icon-${toothId}`}
                               className={`relative w-10 h-16 border border-gray-300 rounded-md flex flex-col ${toothColor} overflow-hidden`}
                             >
-                          {/* Tooth Number */}
-                          <div className="absolute top-0 left-0 right-0 text-center text-xs font-bold bg-blue-50 border-b border-gray-300">
-                            {toothId}
-                          </div>
-                          
-                          {/* Tooth Shape based on type */}
-                          <div className="flex-1 flex items-center justify-center pt-4">
-                            {renderToothShape(toothType)}
-                          </div>
-                          
-                          {/* Color coded markers for pocket depths */}
-                          <div className="absolute bottom-0 left-0 right-0 flex justify-around">
-                            {[0, 1, 2].map(i => {
-                              const facialDepth = chartData.teeth[toothId].pocketDepths.facial[i];
-                              const colorClass = facialDepth <= 3 ? 'bg-green-300' : facialDepth <= 5 ? 'bg-yellow-300' : 'bg-red-300';
-                              return (
-                                <div key={`depth-${toothId}-${i}`} className={`w-2 h-2 rounded-full ${colorClass}`}></div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
+                              {/* Tooth Number */}
+                              <div className="absolute top-0 left-0 right-0 text-center text-xs font-bold bg-blue-50 border-b border-gray-300">
+                                {toothId}
+                              </div>
+                              
+                              {/* Tooth Shape based on type */}
+                              <div className="flex-1 flex items-center justify-center pt-4">
+                                {renderToothShape(toothType)}
+                              </div>
+                              
+                              {/* Color coded markers for pocket depths */}
+                              <div className="absolute bottom-0 left-0 right-0 flex justify-around">
+                                {[0, 1, 2].map(i => {
+                                  const facialDepth = chartData.teeth[toothId].pocketDepths.facial[i];
+                                  const colorClass = facialDepth <= 3 ? 'bg-green-300' : facialDepth <= 5 ? 'bg-yellow-300' : 'bg-red-300';
+                                  return (
+                                    <div key={`depth-${toothId}-${i}`} className={`w-2 h-2 rounded-full ${colorClass}`}></div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
