@@ -112,6 +112,7 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       phoneNumber: "",
       dateOfBirth: "",
       homeAddress: "",
+      socialSecurityNumber: "",
       
       // Emergency Contact
       emergencyContactName: "",
@@ -121,18 +122,43 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       // Insurance Information
       insuranceProvider: "",
       insuranceNumber: "",
+      insuranceGroupNumber: "",
+      insurancePrimaryHolder: "",
+      insuranceHolderRelation: "",
       
       // Medical History
       allergies: "",
-      bloodType: "",
+      currentMedications: "",
       currentTreatment: "",
+      
+      // Medical Conditions
+      hypertension: false,
+      diabetes: false,
+      heartDisease: false,
+      asthma: false,
+      arthritis: false,
+      cancer: false,
+      stroke: false,
+      kidneyDisease: false,
+      liverDisease: false,
+      thyroidDisease: false,
+      mentalHealth: false,
+      seizures: false,
+      bleedingDisorders: false,
+      autoimmune: false,
+      hepatitis: false,
+      hiv: false,
+      
+      // Lifestyle
       smokesTobacco: false,
+      useAlcohol: false,
       isPregnantOrNursing: false,
       
       // Dental History
       lastDentalVisit: "",
       chiefComplaint: "",
       currentSymptoms: "",
+      previousDentalProcedures: "",
       
       // Consents
       hipaaConsent: false,
@@ -495,6 +521,64 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
                 )}
               />
             </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="insuranceGroupNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Group Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Insurance group number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="insurancePrimaryHolder"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Primary Insurance Holder</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Name of primary insurance holder" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <FormField
+              control={form.control}
+              name="insuranceHolderRelation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Relationship to Primary Holder</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select relationship" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="self">Self</SelectItem>
+                      <SelectItem value="spouse">Spouse</SelectItem>
+                      <SelectItem value="child">Child</SelectItem>
+                      <SelectItem value="parent">Parent</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         )}
         
@@ -518,31 +602,13 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="bloodType"
+                name="currentMedications"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Blood Type</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select blood type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="A+">A+</SelectItem>
-                        <SelectItem value="A-">A-</SelectItem>
-                        <SelectItem value="B+">B+</SelectItem>
-                        <SelectItem value="B-">B-</SelectItem>
-                        <SelectItem value="AB+">AB+</SelectItem>
-                        <SelectItem value="AB-">AB-</SelectItem>
-                        <SelectItem value="O+">O+</SelectItem>
-                        <SelectItem value="O-">O-</SelectItem>
-                        <SelectItem value="Unknown">Unknown</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Current Medications</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="List current medications and dosages" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -553,9 +619,9 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
                 name="currentTreatment"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Current Treatments/Medications</FormLabel>
+                    <FormLabel>Current Treatments</FormLabel>
                     <FormControl>
-                      <Input placeholder="List current medications" {...field} />
+                      <Textarea placeholder="List any ongoing medical treatments" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -563,12 +629,232 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <FormLabel className="text-lg font-medium mt-6 mb-2">Medical Conditions</FormLabel>
+            <div className="grid grid-cols-3 gap-3">
+              <FormField
+                control={form.control}
+                name="hypertension"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Hypertension</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="diabetes"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Diabetes</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="heartDisease"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Heart Disease</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="asthma"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Asthma</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="arthritis"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Arthritis</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="cancer"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Cancer</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="thyroidDisease"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Thyroid Disease</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="kidneyDisease"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Kidney Disease</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="liverDisease"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Liver Disease</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="seizures"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Seizures</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="bleedingDisorders"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Bleeding Disorders</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="hepatitis"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Hepatitis</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <FormLabel className="text-lg font-medium mt-6 mb-2">Lifestyle</FormLabel>
+            <div className="grid grid-cols-3 gap-3">
               <FormField
                 control={form.control}
                 name="smokesTobacco"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
                     <FormControl>
                       <Checkbox
                         checked={field.value}
@@ -584,9 +870,27 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
               
               <FormField
                 control={form.control}
+                name="useAlcohol"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Alcohol Use</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
                 name="isPregnantOrNursing"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
                     <FormControl>
                       <Checkbox
                         checked={field.value}
@@ -642,6 +946,20 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
                   <FormLabel>Current Symptoms</FormLabel>
                   <FormControl>
                     <Textarea placeholder="Describe any current dental symptoms" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="previousDentalProcedures"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Previous Dental Procedures</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="List any previous dental work (fillings, crowns, root canals, etc.)" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
