@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PatientEducation } from '@/components/education/patient-education';
 import { AdvancedXRayAnalyzer } from '@/components/ai/advanced-xray-analyzer';
+import { AITreatmentPlanner } from '@/components/treatment/ai-treatment-planner';
 import { Loader, Brain, BookOpen, Zap, Lightbulb, PanelLeft, ImagePlus, AlertTriangle } from 'lucide-react';
 import { DashboardHeader } from '@/components/dashboard/header';
 import { DashboardShell } from '@/components/dashboard/shell';
@@ -25,6 +26,10 @@ export default function DentalAIHub() {
           <TabsTrigger value="xray">
             <ImagePlus className="h-4 w-4 mr-2" />
             X-Ray Analysis
+          </TabsTrigger>
+          <TabsTrigger value="treatment">
+            <Zap className="h-4 w-4 mr-2" />
+            Treatment Planner
           </TabsTrigger>
           <TabsTrigger value="education">
             <BookOpen className="h-4 w-4 mr-2" />

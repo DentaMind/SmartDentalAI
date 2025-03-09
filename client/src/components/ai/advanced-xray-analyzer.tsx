@@ -82,48 +82,26 @@ export function AdvancedXRayAnalyzer() {
     setError(null);
 
     try {
-      // In a real implementation, this would be an API call to the AI service
-      // For now, we'll simulate a response after a delay
-      setTimeout(() => {
-        // Mock analysis result
-        const mockResult: AnalysisResult = {
-          findings: [
-            {
-              type: "Caries",
-              location: "Tooth 36, distal surface",
-              severity: "medium",
-              description: "Radiolucency consistent with carious lesion on distal surface of lower left first molar",
-              confidence: 0.89,
-            },
-            {
-              type: "Periodontal Bone Loss",
-              location: "Teeth 31-33, buccal aspect",
-              severity: "high",
-              description: "Significant horizontal bone loss visible in the anterior mandibular region",
-              confidence: 0.94,
-            },
-            {
-              type: "Periapical Radiolucency",
-              location: "Tooth 46, root apex",
-              severity: "medium",
-              description: "Small radiolucent area at the apex of lower right first molar, suggesting possible periapical inflammation",
-              confidence: 0.78,
-            },
-          ],
-          recommendations: [
-            "Restorative treatment for carious lesion on tooth 36",
-            "Periodontal evaluation and possible deep cleaning for areas 31-33",
-            "Consider endodontic evaluation for tooth 46",
-            "Follow-up radiograph in 6 months to assess treatment outcomes",
-          ],
-          overallAssessment: "Multiple dental pathologies detected requiring prompt attention. Periodontal status shows signs of moderate disease progression. Restorative needs include attention to carious lesions. Potential endodontic involvement in one tooth.",
-        };
-        
-        setAnalysisResult(mockResult);
-        setIsAnalyzing(false);
-      }, 2500);
+      // Create form data to send the image file
+      const formData = new FormData();
+      formData.append('xray', selectedFile);
+      
+      // Send the image to the server for AI analysis
+      const response = await fetch('/api/ai/analyze-xray', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Analysis failed: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      setAnalysisResult(result);
+      setIsAnalyzing(false);
     } catch (err) {
-      setError("An error occurred during analysis. Please try again.");
+      console.error("Error during X-ray analysis:", err);
+      setError(err instanceof Error ? err.message : "An error occurred during analysis. Please try again.");
       setIsAnalyzing(false);
     }
   };

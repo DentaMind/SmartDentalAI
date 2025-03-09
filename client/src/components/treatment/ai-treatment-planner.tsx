@@ -27,9 +27,16 @@ export function AITreatmentPlanner() {
       const response = await fetch("/api/ai/generate-treatment-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          diagnosis: data.diagnosis,
+          patientHistory: data.patientHistory,
+          aiKey: "TREATMENT_AI_KEY" // This will be replaced by the correct environment variable on the server
+        }),
       });
-      if (!response.ok) throw new Error("Failed to generate treatment plan");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to generate treatment plan");
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -52,10 +59,29 @@ export function AITreatmentPlanner() {
       const response = await fetch("/api/ai/cost-comparison", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(treatmentPlan),
+        body: JSON.stringify({
+          treatmentPlan,
+          aiKey: "FINANCIAL_AI_KEY" // This will be replaced by the correct environment variable on the server
+        }),
       });
-      if (!response.ok) throw new Error("Failed to generate cost comparison");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to generate cost comparison");
+      }
       return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Cost Analysis Complete",
+        description: "Financial breakdown and insurance coverage estimates generated",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Cost Analysis Failed",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
