@@ -26,21 +26,18 @@ router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (r
     console.log("Creating new patient:", req.body);
     console.log("Authenticated user:", req.user);
     
-    // If userId is explicitly provided in the request, use that
-    let userId = req.body.userId;
+    // Log the auth user and user from request body for debugging
+    console.log("Creating patient. Auth user:", req.user, "Request user ID:", req.body.userId, "Create account flag:", req.body.createAccount);
     
-    // If no userId is provided but createAccount is false, use the currently logged-in user's ID
-    if (!userId && req.body.createAccount === false) {
-      if (!req.user || !req.user.id) {
-        throw new Error("User must be logged in to create a patient without an account");
-      }
-      userId = req.user.id;
-    }
-    
+    let userId;
     let user;
     
-    // If createAccount is true or not specified, create a new user
-    if (req.body.createAccount !== false) {
+    // STEP 1: Determine the userId for the patient record
+    
+    // If createAccount is true, we need to create a new user account first
+    if (req.body.createAccount === true) {
+      console.log("Creating new user account for patient");
+      
       // Create user first (since patients need a user account)
       const userData = {
         username: req.body.username || `${req.body.firstName.toLowerCase()}${req.body.lastName.toLowerCase()}`,
@@ -48,7 +45,7 @@ router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (r
         email: req.body.email,
         firstName: req.body.firstName,
         lastName: req.body.lastName,
-        role: "patient" as const, // Use a const assertion to fix the type issue
+        role: "patient" as const,
         phoneNumber: req.body.phoneNumber,
         dateOfBirth: req.body.dateOfBirth,
         insuranceProvider: req.body.insuranceProvider,
@@ -67,12 +64,30 @@ router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (r
       
       console.log("User created successfully:", user);
       userId = user.id;
-    } else {
+    } 
+    // If the request includes a userId, use that (most likely the creating user's ID)
+    else if (req.body.userId) {
+      console.log("Using provided userId from request:", req.body.userId);
+      userId = req.body.userId;
+      
+      // Get the user to include in the response
+      try {
+        user = await storage.getUser(userId);
+        console.log("Found user for provided userId:", user);
+      } catch (error) {
+        console.error("Error finding user for provided userId:", error);
+      }
+    } 
+    // If no userId is provided and createAccount is false, use the authenticated user's ID
+    else if (req.user && req.user.id) {
+      console.log("Using authenticated user's ID:", req.user.id);
+      userId = req.user.id;
       user = req.user;
-    }
-    
-    if (!userId) {
-      throw new Error("No user ID available for patient association");
+    } 
+    // Last resort - if we're here, we have no valid user ID
+    else {
+      console.error("No valid user ID found for patient association");
+      throw new Error("Patient must be associated with a user account");
     }
     
     console.log("Using userId:", userId);

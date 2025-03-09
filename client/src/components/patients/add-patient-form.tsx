@@ -59,6 +59,10 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
 
       console.log("Creating patient with user:", user?.id);
       
+      // Make sure the user ID is always included in the request
+      const userId = user?.id;
+      console.log("Current user ID:", userId);
+      
       return await apiRequest({
         method: "POST",
         url: "/api/patients",
@@ -66,8 +70,11 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
           ...data,
           role: "patient",
           language: "en",
-          // Include the user ID from the logged-in user when not creating a new account
-          userId: !data.createAccount ? user?.id : undefined,
+          // Always include the user ID in the request for patient creation
+          // When createAccount is true, the server will create a new user and link it
+          // When createAccount is false, we'll use the current user's ID
+          userId: userId,
+          creatingUserType: user?.role || "doctor", // Pass current user's role to server
           // Generate a username and password for the patient
           username: `${data.firstName.toLowerCase()}${data.lastName.toLowerCase()}`,
           password: Math.random().toString(36).slice(-8) // Generate a random 8-character password
