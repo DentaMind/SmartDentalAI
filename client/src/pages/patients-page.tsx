@@ -37,6 +37,7 @@ export default function PatientsPage() {
   const { user } = useAuth();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<PatientWithUser | null>(null);
+  const [_, navigate] = useLocation();
 
   const { data: patients, isLoading } = useQuery<PatientWithUser[]>({
     queryKey: ["/api/patients"],
@@ -68,7 +69,7 @@ export default function PatientsPage() {
                 <CardTitle className="text-sm font-medium">
                   Active Patients
                 </CardTitle>
-                <User2 className="h-4 w-4 text-primary" />
+                <UserRound className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{patients?.length || 0}</div>
@@ -163,15 +164,26 @@ export default function PatientsPage() {
                         {patient.medicalHistory}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setSelectedPatient(patient)}
-                          className="w-full gap-2"
-                        >
-                          <Eye className="h-4 w-4" />
-                          {t("common.view")}
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setSelectedPatient(patient)}
+                            className="gap-2"
+                          >
+                            <Eye className="h-4 w-4" />
+                            {t("common.view")}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/patients/${patient.id}`)}
+                            className="gap-2"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Profile
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

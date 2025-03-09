@@ -291,7 +291,7 @@ export default function PatientProfilePage() {
                         <div className="flex justify-center py-8">
                           <LoadingAnimation />
                         </div>
-                      ) : appointments && appointments.length > 0 ? (
+                      ) : appointments && Array.isArray(appointments) && appointments.length > 0 ? (
                         <div className="space-y-4">
                           {appointments.map((appointment: any) => (
                             <div key={appointment.id} className="border rounded-md p-4">
@@ -350,7 +350,7 @@ export default function PatientProfilePage() {
                         <div className="flex justify-center py-8">
                           <LoadingAnimation />
                         </div>
-                      ) : treatmentPlans && treatmentPlans.length > 0 ? (
+                      ) : treatmentPlans && Array.isArray(treatmentPlans) && treatmentPlans.length > 0 ? (
                         <div className="space-y-4">
                           {treatmentPlans.map((plan: any) => (
                             <div key={plan.id} className="border rounded-md p-4">
@@ -421,7 +421,7 @@ export default function PatientProfilePage() {
                         <div className="flex justify-center py-8">
                           <LoadingAnimation />
                         </div>
-                      ) : medicalNotes && medicalNotes.length > 0 ? (
+                      ) : medicalNotes && Array.isArray(medicalNotes) && medicalNotes.length > 0 ? (
                         <div className="space-y-4">
                           {medicalNotes.map((note: any) => (
                             <div key={note.id} className="border rounded-md p-4">
