@@ -16,6 +16,7 @@ import TimeClockPage from "@/pages/time-clock-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import FinancialDashboardPage from "./pages/financial-dashboard";
 import DashboardPage from "@/pages/dashboard-page";
+import PatientProfilePage from "@/pages/patient-profile-page";
 import { WebSocketProvider } from "./hooks/use-websocket";
 import { AIAssistant } from "@/components/ui/ai-assistant";
 
