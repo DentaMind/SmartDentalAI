@@ -27,6 +27,7 @@ import DentalChart from "@/components/dental/dental-chart";
 import PerioChart from "@/components/perio/perio-chart";
 import EnhancedDentalChart from "@/components/dental/enhanced-dental-chart";
 import EnhancedPerioChart from "@/components/perio/enhanced-perio-chart";
+import { PatientMedicalHistory } from "@/components/patients/patient-medical-history";
 import { useAuth } from "@/hooks/use-auth";
 
 // Define the full patient type including user data
@@ -216,76 +217,16 @@ export default function PatientProfilePage() {
 
                 {/* Medical History Tab */}
                 <TabsContent value="medical-history">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-primary" />
-                        Medical History
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Medical conditions */}
-                        <div className="space-y-3">
-                          <h3 className="text-lg font-medium">Medical Conditions</h3>
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <div className={`w-4 h-4 rounded-full ${patient.hypertension ? 'bg-destructive' : 'bg-muted'}`}></div>
-                              <p>Hypertension</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className={`w-4 h-4 rounded-full ${patient.diabetes ? 'bg-destructive' : 'bg-muted'}`}></div>
-                              <p>Diabetes</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className={`w-4 h-4 rounded-full ${patient.heartDisease ? 'bg-destructive' : 'bg-muted'}`}></div>
-                              <p>Heart Disease</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className={`w-4 h-4 rounded-full ${patient.asthma ? 'bg-destructive' : 'bg-muted'}`}></div>
-                              <p>Asthma</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Additional medical information */}
-                        <div className="space-y-3">
-                          <h3 className="text-lg font-medium">Additional Information</h3>
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <div className={`w-4 h-4 rounded-full ${patient.underPhysicianCare ? 'bg-primary' : 'bg-muted'}`}></div>
-                              <p>Under Physician Care</p>
-                            </div>
-                            {patient.underPhysicianCare && patient.physicianConditions && (
-                              <p className="text-sm text-muted-foreground ml-6">For: {patient.physicianConditions}</p>
-                            )}
-                            <div className="flex items-center gap-2">
-                              <div className={`w-4 h-4 rounded-full ${patient.hospitalizedRecently ? 'bg-primary' : 'bg-muted'}`}></div>
-                              <p>Hospitalized Recently</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Free form medical history */}
-                      <div className="space-y-3">
-                        <h3 className="text-lg font-medium">Detailed Medical History</h3>
-                        <p className="whitespace-pre-wrap">{patient.medicalHistory || 'No detailed medical history provided.'}</p>
-                      </div>
-                      
-                      {/* Current medications */}
-                      <div className="space-y-3">
-                        <h3 className="text-lg font-medium">Current Medications</h3>
-                        <p className="whitespace-pre-wrap">{patient.currentMedications || 'No medications listed.'}</p>
-                      </div>
-                      
-                      {/* Past surgeries */}
-                      <div className="space-y-3">
-                        <h3 className="text-lg font-medium">Past Surgeries</h3>
-                        <p className="whitespace-pre-wrap">{patient.pastSurgeries || 'No past surgeries recorded.'}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <PatientMedicalHistory 
+                    patientId={patientId}
+                    patientName={`${patient.user.firstName} ${patient.user.lastName}`}
+                    readOnly={false}
+                    onSave={(data) => {
+                      console.log("Medical history saved:", data);
+                      // In a real app, this would save the data to the API
+                      // For now, we'll just log it to the console
+                    }}
+                  />
                 </TabsContent>
                 
                 {/* Dental Chart Tab */}

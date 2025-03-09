@@ -72,6 +72,8 @@ interface PerioChartData {
 interface EnhancedPerioChartProps {
   initialData?: PerioChartData;
   readOnly?: boolean;
+  patientId?: number;  // Added for tracking the associated patient
+  examinerId?: number; // Added for tracking who performed the exam
   onSave?: (data: PerioChartData) => void;
 }
 
@@ -923,7 +925,7 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
   };
   
   return (
-    <Card className="w-full">
+    <Card className="w-full max-h-[calc(100vh-80px)]">
       <CardHeader>
         <div className="flex justify-between items-center">
           <div>
@@ -957,7 +959,8 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
         </div>
       </CardHeader>
       
-      <CardContent>
+      <CardContent className="max-h-[calc(100vh-220px)] overflow-hidden">
+        <ScrollArea className="h-[calc(100vh-240px)] pr-4">
         {/* Current statistics */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="rounded-lg bg-blue-50 p-3">
@@ -1186,6 +1189,7 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
             )}
           </TabsContent>
         </Tabs>
+        </ScrollArea>
       </CardContent>
       
       <CardFooter className="border-t pt-4 flex justify-between">
