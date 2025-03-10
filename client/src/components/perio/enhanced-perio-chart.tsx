@@ -1078,8 +1078,8 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
         <ScrollArea className="h-[calc(100vh-240px)] pr-4">
         {/* Current statistics */}
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="rounded-lg bg-blue-50 p-3">
-            <p className="text-xs text-blue-700 mb-1">Bleeding on Probing</p>
+          <div className="rounded-lg bg-gray-100 p-3">
+            <p className="text-xs text-gray-700 mb-1">Bleeding on Probing</p>
             <p className="text-xl font-semibold">{chartData.bop}%</p>
           </div>
           
@@ -1208,7 +1208,7 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
                     {/* Display upper teeth first in "both" view */}
                     {selectedArch === 'both' && (
                       <div className="w-full">
-                        <h4 className="text-xs font-medium mb-2 text-blue-600">Upper Arch (1-16)</h4>
+                        <h4 className="text-xs font-medium mb-2 text-gray-600">Upper Arch (1-16)</h4>
                         <div className="flex justify-center flex-wrap gap-1">
                           {ADULT_TEETH_UPPER.map(toothId => {
                             const toothType = getToothType(toothId);
@@ -1221,7 +1221,7 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
                                 className={`relative w-10 h-16 border border-gray-300 rounded-md flex flex-col ${toothColor} overflow-hidden`}
                               >
                                 {/* Tooth content */}
-                                <div className="absolute top-0 left-0 right-0 text-center text-xs font-bold bg-blue-50 border-b border-gray-300">
+                                <div className="absolute top-0 left-0 right-0 text-center text-xs font-bold bg-gray-100 border-b border-gray-300">
                                   {toothId}
                                 </div>
                                 
@@ -1249,7 +1249,7 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
                     
                     {/* Display lower teeth in "both" view, or just current teeth in single arch view */}
                     <div className="w-full">
-                      {selectedArch === 'both' && <h4 className="text-xs font-medium mb-2 text-emerald-600">Lower Arch (17-32)</h4>}
+                      {selectedArch === 'both' && <h4 className="text-xs font-medium mb-2 text-gray-600">Lower Arch (17-32)</h4>}
                       <div className="flex justify-center flex-wrap gap-1">
                         {(selectedArch === 'both' ? ADULT_TEETH_LOWER : currentTeeth).map(toothId => {
                           const toothType = getToothType(toothId);
@@ -1262,7 +1262,7 @@ const EnhancedPerioChart: React.FC<EnhancedPerioChartProps> = ({
                               className={`relative w-10 h-16 border border-gray-300 rounded-md flex flex-col ${toothColor} overflow-hidden`}
                             >
                           {/* Tooth Number */}
-                          <div className="absolute top-0 left-0 right-0 text-center text-xs font-bold bg-blue-50 border-b border-gray-300">
+                          <div className="absolute top-0 left-0 right-0 text-center text-xs font-bold bg-gray-100 border-b border-gray-300">
                             {toothId}
                           </div>
                           
