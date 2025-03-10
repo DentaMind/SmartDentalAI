@@ -249,18 +249,18 @@ const EnhancedPerioChart: React.FC<PerioChartProps> = ({
         const surfaceKey = surface as 'facial' | 'lingual';
         
         // Count bleeding sites
-        tooth.bleeding[surfaceKey].forEach(site => {
+        tooth.bleeding[surfaceKey].forEach((site: boolean) => {
           if (site) bleedingSites++;
           totalSites++;
         });
         
         // Count plaque sites
-        tooth.plaque[surfaceKey].forEach(site => {
+        tooth.plaque[surfaceKey].forEach((site: boolean) => {
           if (site) plaqueSites++;
         });
         
         // Count suppuration sites
-        tooth.suppuration[surfaceKey].forEach(site => {
+        tooth.suppuration[surfaceKey].forEach((site: boolean) => {
           if (site) suppurationSites++;
         });
       });
@@ -308,7 +308,7 @@ const EnhancedPerioChart: React.FC<PerioChartProps> = ({
           const surfaceKey = surface as 'facial' | 'lingual';
           
           // Check pocket depths
-          tooth.pocketDepths[surfaceKey].forEach((depth, index) => {
+          tooth.pocketDepths[surfaceKey].forEach((depth: number, index: number) => {
             totalSites++;
             
             // Track deep pockets
@@ -1337,7 +1337,36 @@ const EnhancedPerioChart: React.FC<PerioChartProps> = ({
         </TooltipProvider>
         
         {!readOnly && (
-          <Button variant="outline" size="sm">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              // Create a blob with the chart data
+              const chartDataBlob = new Blob(
+                [JSON.stringify(chartData, null, 2)], 
+                { type: 'application/json' }
+              );
+              
+              // Create download link
+              const url = URL.createObjectURL(chartDataBlob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `periodontal-chart-${chartData.patientId}-${new Date().toISOString().split('T')[0]}.json`;
+              document.body.appendChild(a);
+              a.click();
+              
+              // Cleanup
+              URL.revokeObjectURL(url);
+              document.body.removeChild(a);
+              
+              // Show toast notification
+              toast({
+                title: "Chart Exported",
+                description: "The periodontal chart has been exported as a JSON file.",
+                variant: "success"
+              });
+            }}
+          >
             <Download className="h-4 w-4 mr-2" />
             Export Chart
           </Button>

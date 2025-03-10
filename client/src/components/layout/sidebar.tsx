@@ -39,7 +39,6 @@ export function Sidebar() {
   // Define navigation items based on user role
   const getNavigationItems = (): NavigationItem[] => {
     const baseItems: NavigationItem[] = [
-      { name: t("nav.home"), href: "/", icon: Home },
       { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, highlight: true },
     ];
 

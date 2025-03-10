@@ -42,7 +42,7 @@ function Router() {
         <Route path="/auth" component={AuthPage} />
         <Route path="/auth/signup" component={AuthPage} />
         <Route path="/auth/subscription" component={SubscriptionPageWrapper} />
-        <ProtectedRoute path="/" component={HomePage} />
+        <ProtectedRoute path="/" component={DashboardPage} />
         <ProtectedRoute path="/dashboard" component={DashboardPage} />
         <ProtectedRoute path="/patients" component={PatientsPage} />
         <ProtectedRoute path="/patients/:id" component={PatientProfilePage} />
