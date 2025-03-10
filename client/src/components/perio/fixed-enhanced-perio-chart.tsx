@@ -1001,8 +1001,8 @@ const EnhancedPerioChart: React.FC<PerioChartProps> = ({
   };
 
   return (
-    <Card className="w-full shadow-sm">
-      <CardHeader>
+    <Card className="w-full shadow-sm bg-white">
+      <CardHeader className="bg-white">
         <CardTitle className="text-xl flex justify-between items-center">
           <span>Periodontal Chart</span>
           {!readOnly && (
@@ -1016,7 +1016,7 @@ const EnhancedPerioChart: React.FC<PerioChartProps> = ({
         </CardDescription>
       </CardHeader>
       
-      <CardContent>
+      <CardContent className="bg-white">
         <ScrollArea className="h-[65vh]">
         <Tabs defaultValue="chart" value={activeTab} onValueChange={(value) => setActiveTab(value as 'chart' | 'aiAnalysis')}>
           <TabsList className="grid w-full grid-cols-2">
