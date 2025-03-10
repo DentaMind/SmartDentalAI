@@ -1116,7 +1116,7 @@ const EnhancedPerioChart: React.FC<PerioChartProps> = ({
                         <div className="flex justify-center flex-wrap gap-1">
                           {ADULT_TEETH_UPPER.map(toothId => {
                             const toothType = getToothType(toothId);
-                            const toothColor = chartData.teeth[toothId].pocketDepths.facial.some(depth => depth > 3) ? 
+                            const toothColor = chartData.teeth[toothId].pocketDepths.facial.some((depth: number) => depth > 3) ? 
                               'bg-yellow-50' : 'bg-white';
                             
                             return (
@@ -1157,7 +1157,7 @@ const EnhancedPerioChart: React.FC<PerioChartProps> = ({
                       <div className="flex justify-center flex-wrap gap-1">
                         {(selectedArch === 'both' ? ADULT_TEETH_LOWER : currentTeeth).map(toothId => {
                           const toothType = getToothType(toothId);
-                          const toothColor = chartData.teeth[toothId].pocketDepths.facial.some(depth => depth > 3) ? 
+                          const toothColor = chartData.teeth[toothId].pocketDepths.facial.some((depth: number) => depth > 3) ? 
                             'bg-yellow-50' : 'bg-white';
                           
                           return (
@@ -1363,7 +1363,7 @@ const EnhancedPerioChart: React.FC<PerioChartProps> = ({
               toast({
                 title: "Chart Exported",
                 description: "The periodontal chart has been exported as a JSON file.",
-                variant: "success"
+                variant: "default"
               });
             }}
           >
