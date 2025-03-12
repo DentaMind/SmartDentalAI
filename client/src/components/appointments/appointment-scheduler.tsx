@@ -714,7 +714,7 @@ export function AppointmentScheduler({
               <SelectValue placeholder="Select Doctor" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Doctors</SelectItem>
+              <SelectItem value="all">All Doctors</SelectItem>
               {availableDoctors?.map((doctor) => (
                 <SelectItem key={doctor.id} value={doctor.id.toString()}>
                   {doctor.name}

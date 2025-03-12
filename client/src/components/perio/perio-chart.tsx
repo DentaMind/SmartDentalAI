@@ -487,7 +487,7 @@ export default function PerioChart({ patientId, readOnly = false, onSave }: Peri
                         <SelectValue placeholder="" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="0">None</SelectItem>
                         <SelectItem value="1">1</SelectItem>
                         <SelectItem value="2">2</SelectItem>
                         <SelectItem value="3">3</SelectItem>
@@ -508,7 +508,7 @@ export default function PerioChart({ patientId, readOnly = false, onSave }: Peri
                           <SelectValue placeholder="" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="0">None</SelectItem>
                           <SelectItem value="1">I</SelectItem>
                           <SelectItem value="2">II</SelectItem>
                           <SelectItem value="3">III</SelectItem>

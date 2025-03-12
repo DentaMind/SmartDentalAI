@@ -334,7 +334,7 @@ export function TimeClockComponent({ userId, supervisorView = false }: TimeClock
                       <SelectValue placeholder="Select employee..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All employees</SelectItem>
+                      <SelectItem value="all">All employees</SelectItem>
                       {users && users.map((user: UserWithDetails) => (
                         <SelectItem key={user.id} value={user.id.toString()}>
                           {user.firstName} {user.lastName}
