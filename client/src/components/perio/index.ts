@@ -1,2 +1,9 @@
-// Export the fixed enhanced periodontal chart component
-export { default as EnhancedPerioChart } from './fixed-enhanced-perio-chart';
+import EnhancedPerioChart from './enhanced-perio-chart';
+import FixedEnhancedPerioChart from './fixed-enhanced-perio-chart';
+import PerioChart from './perio-chart';
+
+export {
+  PerioChart,
+  EnhancedPerioChart,
+  FixedEnhancedPerioChart
+};
