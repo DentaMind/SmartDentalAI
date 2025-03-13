@@ -52,6 +52,72 @@ export async function seedDatabase() {
     
     console.log(`Created dentist user: ${dentist.username} (ID: ${dentist.id})`);
     
+    // Create Dr. Abdin provider
+    const drAbdinData: Omit<InsertUser, "passwordHash"> & { password: string } = {
+      username: "drabdin",
+      password: "password123", // Plain text for seeding
+      email: "drabdin@example.com",
+      firstName: "Ahmed",
+      lastName: "Abdin",
+      role: "doctor",
+      phoneNumber: "555-987-1234",
+      dateOfBirth: "1978-06-15",
+      specialization: "Periodontist",
+      licenseNumber: "DDS98765"
+    };
+    
+    // Hash the password for Dr. Abdin
+    const abdinPasswordHash = await hashPassword(drAbdinData.password);
+    
+    // Create the Dr. Abdin user
+    const drAbdin = await storage.createUserDb({
+      username: drAbdinData.username,
+      email: drAbdinData.email,
+      firstName: drAbdinData.firstName,
+      lastName: drAbdinData.lastName,
+      role: drAbdinData.role,
+      passwordHash: abdinPasswordHash,
+      mfaSecret: "",
+      mfaEnabled: false,
+      specialization: drAbdinData.specialization ? drAbdinData.specialization : undefined,
+      licenseNumber: drAbdinData.licenseNumber ? drAbdinData.licenseNumber : undefined
+    });
+    
+    console.log(`Created Dr. Abdin user: ${drAbdin.username} (ID: ${drAbdin.id})`);
+    
+    // Create Mary RDH (hygienist) user
+    const maryRdhData: Omit<InsertUser, "passwordHash"> & { password: string } = {
+      username: "maryrdh",
+      password: "password123", // Plain text for seeding
+      email: "mary.rdh@example.com",
+      firstName: "Mary",
+      lastName: "Johnson",
+      role: "staff",
+      phoneNumber: "555-456-7890",
+      dateOfBirth: "1985-09-22",
+      specialization: "Dental Hygienist",
+      licenseNumber: "RDH54321"
+    };
+    
+    // Hash the password for Mary RDH
+    const maryPasswordHash = await hashPassword(maryRdhData.password);
+    
+    // Create the Mary RDH user
+    const maryRdh = await storage.createUserDb({
+      username: maryRdhData.username,
+      email: maryRdhData.email,
+      firstName: maryRdhData.firstName,
+      lastName: maryRdhData.lastName,
+      role: maryRdhData.role,
+      passwordHash: maryPasswordHash,
+      mfaSecret: "",
+      mfaEnabled: false,
+      specialization: maryRdhData.specialization ? maryRdhData.specialization : undefined,
+      licenseNumber: maryRdhData.licenseNumber ? maryRdhData.licenseNumber : undefined
+    });
+    
+    console.log(`Created Mary RDH user: ${maryRdh.username} (ID: ${maryRdh.id})`);
+    
     // Create some test patients
     const patientData: Partial<InsertPatient>[] = [
       {
@@ -144,6 +210,14 @@ export async function seedDatabase() {
       dentist: {
         username: dentistData.username,
         password: dentistData.password
+      },
+      drAbdin: {
+        username: drAbdinData.username,
+        password: drAbdinData.password
+      },
+      maryRdh: {
+        username: maryRdhData.username,
+        password: maryRdhData.password
       },
       patients: [
         { username: "patient1", password: "patient123" },

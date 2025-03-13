@@ -10,6 +10,7 @@ import { aiServiceManager } from './services/ai-service-manager';
 import schedulerRoutes from './routes/scheduler-routes';
 import path from 'path';
 import { PatientMedicalHistory } from '../shared/schema';
+import { seedDatabase } from './seed-data';
 
 const app = express();
 const router = express.Router();

@@ -78,6 +78,8 @@ const startServer = async () => {
         const seedData = await seedDatabase();
         console.log('Database seeding completed. Test credentials:');
         console.log('Dentist:', seedData.dentist);
+        console.log('Dr. Abdin:', seedData.drAbdin);
+        console.log('Mary RDH:', seedData.maryRdh);
         console.log('Patients:', seedData.patients);
       } catch (error) {
         console.error('Failed to seed database:', error);

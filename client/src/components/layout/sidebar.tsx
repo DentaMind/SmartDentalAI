@@ -4,6 +4,12 @@ import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "./language-switcher";
 import { useAuth } from "@/hooks/use-auth";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Users,
   Calendar,
   FileText,
@@ -26,7 +32,6 @@ import {
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Define the navigation item interface with optional highlight property
 interface NavigationItem {
