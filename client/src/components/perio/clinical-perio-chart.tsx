@@ -120,6 +120,16 @@ export function ClinicalPerioChart({
     return shape;
   };
 
+  // Get color for measurement based on depth
+  const getMeasurementColor = (value: string | number | null | undefined): string => {
+    if (value === null || value === undefined || value === '') return '';
+    const numValue = typeof value === 'string' ? Number(value) : value;
+    if (isNaN(numValue)) return '';
+    if (numValue <= 3) return 'bg-green-100 text-green-800 border-green-300'; // Healthy
+    if (numValue <= 5) return 'bg-yellow-100 text-yellow-800 border-yellow-300'; // Warning
+    return 'bg-red-100 text-red-800 border-red-300'; // Danger
+  };
+
   const handleMeasurementInput = (
     toothNumber: number,
     surface: 'buccal' | 'lingual',
@@ -281,15 +291,15 @@ export function ClinicalPerioChart({
               </span>
             </div>
             
-            <div className="grid grid-cols-16 gap-1">
+            <div className="grid grid-cols-8 md:grid-cols-16 gap-1">
               {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
                 <div key={tooth} className="flex flex-col items-center">
-                  <div className="text-xs font-medium mb-1">#{tooth}</div>
+                  <div className="text-xs font-medium">#{tooth}</div>
                   <svg
-                    width="20"
-                    height="20"
+                    width="16"
+                    height="16"
                     viewBox="0 0 16 16"
-                    className="mb-1"
+                    className="mb-0"
                   >
                     <path
                       d={getToothShape(tooth)}
@@ -298,7 +308,7 @@ export function ClinicalPerioChart({
                       strokeWidth="1"
                     />
                   </svg>
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-row md:flex-col gap-0.5">
                     {[0, 1, 2].map(pos => (
                       <Input
                         key={`${tooth}-${currentSurface}-${pos}`}
@@ -310,7 +320,7 @@ export function ClinicalPerioChart({
                         type="number"
                         min="0"
                         max="15"
-                        className="w-8 h-6 text-center p-0"
+                        className="w-6 h-5 text-center p-0 text-xs"
                         value={measurements[tooth]?.pocketDepth[currentSurface][pos] ?? ''}
                         onChange={(e) => handleMeasurementInput(tooth, currentSurface, pos, e.target.value)}
                         disabled={readOnly}
@@ -328,15 +338,15 @@ export function ClinicalPerioChart({
               <span className="text-sm font-medium">Lower Arch (17-32)</span>
             </div>
             
-            <div className="grid grid-cols-16 gap-1">
+            <div className="grid grid-cols-8 md:grid-cols-16 gap-1">
               {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
                 <div key={tooth} className="flex flex-col items-center">
-                  <div className="text-xs font-medium mb-1">#{tooth}</div>
+                  <div className="text-xs font-medium">#{tooth}</div>
                   <svg
-                    width="20"
-                    height="20"
+                    width="16"
+                    height="16"
                     viewBox="0 0 16 16"
-                    className="mb-1"
+                    className="mb-0"
                   >
                     <path
                       d={getToothShape(tooth)}
@@ -345,7 +355,7 @@ export function ClinicalPerioChart({
                       strokeWidth="1"
                     />
                   </svg>
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-row md:flex-col gap-0.5">
                     {[0, 1, 2].map(pos => (
                       <Input
                         key={`${tooth}-${currentSurface}-${pos}`}
@@ -357,7 +367,7 @@ export function ClinicalPerioChart({
                         type="number"
                         min="0"
                         max="15"
-                        className="w-8 h-6 text-center p-0"
+                        className="w-6 h-5 text-center p-0 text-xs"
                         value={measurements[tooth]?.pocketDepth[currentSurface][pos] ?? ''}
                         onChange={(e) => handleMeasurementInput(tooth, currentSurface, pos, e.target.value)}
                         disabled={readOnly}
