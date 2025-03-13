@@ -253,6 +253,23 @@ export default function PatientProfilePage() {
                       />
                       
                       <div className="mt-4">
+                        <h3 className="text-lg font-medium mb-4">Restorative Chart (Occlusal View)</h3>
+                        <RestorativeChart 
+                          patientId={patientId}
+                          patientName={`${patient.user.firstName} ${patient.user.lastName}`}
+                          readOnly={false}
+                          onSave={(data) => {
+                            console.log('Restorative chart saved:', data);
+                            toast({
+                              title: "Restorative Chart Saved",
+                              description: "Chart data has been saved successfully",
+                              variant: "default"
+                            });
+                          }}
+                        />
+                      </div>
+                      
+                      <div className="mt-4">
                         <h3 className="text-lg font-medium mb-4">Enhanced Dental Chart</h3>
                         <EnhancedDentalChart 
                           patientId={patientId}
