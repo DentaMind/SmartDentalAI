@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Dental Chart</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .chart-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .tooth {
+            width: 50px;
+            height: 50px;
+            border: 2px solid black;
+            margin: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            border-radius: 10px;
+        }
+        .tooltip {
+            display: none;
+            position: absolute;
+            top: -30px;
+            background-color: black;
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        .tooth:hover .tooltip {
+            display: block;
+        }
+        .legend {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .legend div {
+            margin: 0 10px;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        .amalgam { background-color: black; color: white; }
+        .composite { background-color: white; border: 1px solid black; }
+        .crown { background-color: gold; }
+        .implant { background-color: purple; color: white; }
+        .bridge { background-color: blue; color: white; }
+        .root-canal { background-color: red; color: white; }
+    </style>
+</head>
+<body>
+    <h1>Interactive Dental Chart</h1>
+    <p>Click on a tooth to record existing restorations.</p>
+    
+    <div class="chart-container">
+        <div class="tooth" onclick="toggleRestoration(this, 'amalgam')">
+            <span class="tooltip">Tooth #1</span>
+        </div>
+        <div class="tooth" onclick="toggleRestoration(this, 'composite')">
+            <span class="tooltip">Tooth #2</span>
+        </div>
+        <div class="tooth" onclick="toggleRestoration(this, 'crown')">
+            <span class="tooltip">Tooth #3</span>
+        </div>
+        <div class="tooth" onclick="toggleRestoration(this, 'implant')">
+            <span class="tooltip">Tooth #4</span>
+        </div>
+        <div class="tooth" onclick="toggleRestoration(this, 'root-canal')">
+            <span class="tooltip">Tooth #5</span>
+        </div>
+    </div>
+    
+    <div class="legend">
+        <div class="amalgam">Amalgam Filling</div>
+        <div class="composite">Composite Filling</div>
+        <div class="crown">Crown</div>
+        <div class="implant">Implant</div>
+        <div class="root-canal">Root Canal</div>
+    </div>
+    
+    <script>
+        function toggleRestoration(element, type) {
+            element.className = "tooth " + type;
+        }
+    </script>
+</body>
+</html>

@@ -4,6 +4,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { Maximize2, Save, Mic } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface ToothMeasurements {
   pocketDepth: {
@@ -248,56 +254,77 @@ export function ClinicalPerioChart({
 
   return (
     <Card className={`w-full ${fullScreen ? 'fixed inset-0 z-50 overflow-auto' : ''}`}>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between p-2 sm:p-4">
         <div>
-          <CardTitle>Clinical Periodontal Chart</CardTitle>
-          <div className="text-sm text-muted-foreground mt-1">
+          <CardTitle className="text-base sm:text-lg">Clinical Periodontal Chart</CardTitle>
+          <div className="text-xs sm:text-sm text-muted-foreground">
             Patient: {patientName}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={toggleVoiceInput}
-            className={isRecording ? 'bg-red-100' : ''}
-          >
-            <Mic className={`h-4 w-4 ${isRecording ? 'text-red-500' : ''}`} />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setFullScreen(!fullScreen)}
-          >
-            <Maximize2 className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center gap-1">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={toggleVoiceInput}
+                  className={`h-7 w-7 ${isRecording ? 'bg-red-100' : ''}`}
+                >
+                  <Mic className={`h-3 w-3 ${isRecording ? 'text-red-500' : ''}`} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{isRecording ? 'Stop Voice Input' : 'Start Voice Input'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setFullScreen(!fullScreen)}
+                  className="h-7 w-7"
+                >
+                  <Maximize2 className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{fullScreen ? 'Exit Fullscreen' : 'Fullscreen Mode'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
           {!readOnly && (
-            <Button onClick={handleSave}>
-              <Save className="h-4 w-4 mr-2" />
-              Save Chart
+            <Button onClick={handleSave} size="sm" className="h-7 text-xs">
+              <Save className="h-3 w-3 mr-1" />
+              Save
             </Button>
           )}
         </div>
       </CardHeader>
 
-      <CardContent>
-        <div className="space-y-8">
+      <CardContent className="p-2 sm:p-4">
+        <div className="space-y-4">
           {/* Upper Arch */}
           <div className="relative">
-            <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium">Upper Arch (1-16)</span>
-              <span className="text-sm text-muted-foreground">
+            <div className="flex justify-between mb-1">
+              <span className="text-xs sm:text-sm font-medium">Upper Arch (1-16)</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">
                 {currentSurface === 'buccal' ? 'Buccal View' : 'Lingual View'}
               </span>
             </div>
             
-            <div className="grid grid-cols-8 md:grid-cols-16 gap-1">
+            <div className="grid grid-cols-8 sm:grid-cols-16 gap-0.5">
               {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
                 <div key={tooth} className="flex flex-col items-center">
-                  <div className="text-xs font-medium">#{tooth}</div>
+                  <div className="text-[10px] font-medium">#{tooth}</div>
                   <svg
-                    width="16"
-                    height="16"
+                    width="12"
+                    height="12"
                     viewBox="0 0 16 16"
                     className="mb-0"
                   >
@@ -308,7 +335,7 @@ export function ClinicalPerioChart({
                       strokeWidth="1"
                     />
                   </svg>
-                  <div className="flex flex-row md:flex-col gap-0.5">
+                  <div className="flex flex-row sm:flex-col gap-0.5">
                     {[0, 1, 2].map(pos => (
                       <Input
                         key={`${tooth}-${currentSurface}-${pos}`}
@@ -320,7 +347,7 @@ export function ClinicalPerioChart({
                         type="number"
                         min="0"
                         max="15"
-                        className="w-6 h-5 text-center p-0 text-xs"
+                        className={`w-5 h-5 text-center p-0 text-[10px] ${getMeasurementColor(measurements[tooth]?.pocketDepth[currentSurface][pos])}`}
                         value={measurements[tooth]?.pocketDepth[currentSurface][pos] ?? ''}
                         onChange={(e) => handleMeasurementInput(tooth, currentSurface, pos, e.target.value)}
                         disabled={readOnly}
@@ -334,17 +361,17 @@ export function ClinicalPerioChart({
 
           {/* Lower Arch */}
           <div className="relative">
-            <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium">Lower Arch (17-32)</span>
+            <div className="flex justify-between mb-1">
+              <span className="text-xs sm:text-sm font-medium">Lower Arch (17-32)</span>
             </div>
             
-            <div className="grid grid-cols-8 md:grid-cols-16 gap-1">
+            <div className="grid grid-cols-8 sm:grid-cols-16 gap-0.5">
               {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
                 <div key={tooth} className="flex flex-col items-center">
-                  <div className="text-xs font-medium">#{tooth}</div>
+                  <div className="text-[10px] font-medium">#{tooth}</div>
                   <svg
-                    width="16"
-                    height="16"
+                    width="12"
+                    height="12"
                     viewBox="0 0 16 16"
                     className="mb-0"
                   >
@@ -355,7 +382,7 @@ export function ClinicalPerioChart({
                       strokeWidth="1"
                     />
                   </svg>
-                  <div className="flex flex-row md:flex-col gap-0.5">
+                  <div className="flex flex-row sm:flex-col gap-0.5">
                     {[0, 1, 2].map(pos => (
                       <Input
                         key={`${tooth}-${currentSurface}-${pos}`}
@@ -367,7 +394,7 @@ export function ClinicalPerioChart({
                         type="number"
                         min="0"
                         max="15"
-                        className="w-6 h-5 text-center p-0 text-xs"
+                        className={`w-5 h-5 text-center p-0 text-[10px] ${getMeasurementColor(measurements[tooth]?.pocketDepth[currentSurface][pos])}`}
                         value={measurements[tooth]?.pocketDepth[currentSurface][pos] ?? ''}
                         onChange={(e) => handleMeasurementInput(tooth, currentSurface, pos, e.target.value)}
                         disabled={readOnly}
@@ -380,18 +407,22 @@ export function ClinicalPerioChart({
           </div>
 
           {/* Surface Toggle */}
-          <div className="flex justify-center gap-4">
+          <div className="flex justify-center gap-2">
             <Button
               variant={currentSurface === 'buccal' ? 'default' : 'outline'}
               onClick={() => setCurrentSurface('buccal')}
+              size="sm"
+              className="text-xs h-8"
             >
-              Buccal Measurements
+              Buccal
             </Button>
             <Button
               variant={currentSurface === 'lingual' ? 'default' : 'outline'}
               onClick={() => setCurrentSurface('lingual')}
+              size="sm"
+              className="text-xs h-8"
             >
-              Lingual Measurements
+              Lingual
             </Button>
           </div>
         </div>

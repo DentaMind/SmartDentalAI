@@ -28,7 +28,7 @@ import DentalChart from "@/components/dental/dental-chart";
 import PerioChart from "@/components/perio/perio-chart";
 import EnhancedDentalChart from "@/components/dental/enhanced-dental-chart";
 import { ClinicalPerioChart } from "@/components/perio/clinical-perio-chart";
-import { EnhancedPerioChart } from "@/components/perio/enhanced-perio-chart";
+import EnhancedPerioChart from "@/components/perio/enhanced-perio-chart";
 import { PatientMedicalHistory } from "@/components/patients/patient-medical-history";
 import { useAuth } from "@/hooks/use-auth";
 
