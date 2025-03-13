@@ -54,6 +54,8 @@ export default function PatientProfilePage() {
   const { toast } = useToast();
   const { id } = useParams<{ id: string }>();
   const patientId = parseInt(id);
+  const [asaClass, setAsaClass] = useState<ASAClassification>('II');
+  const [emergencyStatus, setEmergencyStatus] = useState(false);
 
   // Fetch the patient's data
   const { data: patient, isLoading } = useQuery<PatientWithUser>({
@@ -124,6 +126,9 @@ export default function PatientProfilePage() {
             icon={<Stethoscope className="h-10 w-10" />}
           />
           
+          {/* Chat Helper */}
+          <ChatHelper />
+          
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
             {/* Patient Info Card */}
             <Card className="md:col-span-1 bg-card shadow-sm">
@@ -176,17 +181,47 @@ export default function PatientProfilePage() {
             {/* Main Content Area */}
             <div className="md:col-span-3 space-y-6">
               {/* Medical Alerts */}
-              {(patient.allergies || patient.adverseAnestheticReaction) && (
-                <Card className="bg-card border-destructive/20 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center gap-2 text-destructive">
-                      <BadgeAlert className="h-5 w-5" />
-                      Medical Alerts
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {patient.allergies && (
+              <Card className="bg-card border-destructive/20 shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+                    <BadgeAlert className="h-5 w-5" />
+                    Medical Alerts
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* ASA Classification */}
+                    <div className="mb-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Heart className="h-5 w-5 text-rose-500" />
+                        <h3 className="font-medium">ASA Physical Status Classification</h3>
+                      </div>
+                      <div className="flex gap-2 mb-2">
+                        {['I', 'II', 'III', 'IV', 'V'].map((cls) => (
+                          <Button 
+                            key={cls}
+                            variant={asaClass === cls ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setAsaClass(cls as ASAClassification)}
+                            className="min-w-12"
+                          >
+                            {cls}
+                          </Button>
+                        ))}
+                        <Button 
+                          variant={emergencyStatus ? "destructive" : "outline"} 
+                          size="sm"
+                          onClick={() => setEmergencyStatus(!emergencyStatus)}
+                          className="ml-2"
+                        >
+                          E
+                        </Button>
+                      </div>
+                      <ASAClassificationCard asaClass={asaClass} emergencyStatus={emergencyStatus} />
+                    </div>
+                    
+                    <div className="space-y-2 mt-4 pt-4 border-t">
+                      {patient?.allergies && (
                         <div className="flex items-start gap-2">
                           <AlertCircle className="h-5 w-5 mt-0.5 text-destructive" />
                           <div>
@@ -195,7 +230,7 @@ export default function PatientProfilePage() {
                           </div>
                         </div>
                       )}
-                      {patient.adverseAnestheticReaction && (
+                      {patient?.adverseAnestheticReaction && (
                         <div className="flex items-start gap-2">
                           <AlertCircle className="h-5 w-5 mt-0.5 text-destructive" />
                           <div>
@@ -207,9 +242,9 @@ export default function PatientProfilePage() {
                         </div>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Tabs for different sections */}
               <Tabs defaultValue="medical-history" className="w-full">

@@ -36,7 +36,7 @@ export function ChatHelper() {
       timestamp: new Date()
     }
   ]);
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
 
   const toggleChat = () => {
     setIsOpen(!isOpen);
@@ -134,7 +134,7 @@ export function ChatHelper() {
     const options = [
       { icon: <Users size={14} />, text: 'Patients', path: '/patients' },
       { icon: <Calendar size={14} />, text: 'Appointments', path: '/appointments' },
-      { icon: <Tooth size={14} />, text: 'Dental Charts', path: '/patients' },
+      { icon: <Stethoscope size={14} />, text: 'Dental Charts', path: '/patients' },
       { icon: <ClipboardList size={14} />, text: 'Treatment Plans', path: '/treatment-plans' },
       { icon: <CreditCard size={14} />, text: 'Billing', path: '/billing' },
       { icon: <FileText size={14} />, text: 'Reports', path: '/reports' },
