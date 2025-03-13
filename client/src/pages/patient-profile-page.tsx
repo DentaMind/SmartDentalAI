@@ -18,6 +18,7 @@ import {
   Stethoscope,
   Scissors,
   LineChart,
+  Heart,
 } from "lucide-react";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 import { PageHeader } from "@/components/layout/page-header";
@@ -31,6 +32,8 @@ import { ClinicalPerioChart } from "@/components/perio/clinical-perio-chart";
 import { RestorativeChart } from "@/components/dental/restorative-chart";
 import EnhancedPerioChart from "@/components/perio/enhanced-perio-chart";
 import { PatientMedicalHistory } from "@/components/patients/patient-medical-history";
+import { ASAClassificationCard, type ASAClassification } from "@/components/medical/asa-classification";
+import { ChatHelper } from "@/components/ui/chat-helper";
 import { useAuth } from "@/hooks/use-auth";
 
 // Define the full patient type including user data
