@@ -170,41 +170,54 @@ export function ClinicalPerioChart({
     }
   };
 
+  // Using any type for browser compatibility
+  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
   const toggleVoiceInput = () => {
     if (!isRecording) {
-      // Request microphone access and start recording
-      if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
-        
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        
-        recognition.onresult = (event) => {
-          const transcript = Array.from(event.results)
-            .map(result => result[0])
-            .map(result => result.transcript)
-            .join('');
+      try {
+        if (SpeechRecognition) {
+          const recognition = new SpeechRecognition();
           
-          // Parse the voice input and update measurements
-          const number = parseInt(transcript);
-          if (!isNaN(number)) {
-            // Update the currently focused input with the spoken number
-            // Implementation needed based on current focus
-          }
-        };
-        
-        recognition.start();
-        setIsRecording(true);
-      } else {
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          
+          recognition.onresult = (event: any) => {
+            const results = event.results;
+            const transcript = Array.from({ length: results.length }, (_, i) => 
+              results[i][0].transcript
+            ).join('');
+            
+            // Parse the voice input and update measurements
+            const number = parseInt(transcript);
+            if (!isNaN(number) && number >= 0 && number <= 15) {
+              // Find the currently focused input and update its value
+              const activeElement = document.activeElement as HTMLInputElement;
+              if (activeElement?.tagName === 'INPUT' && activeElement.type === 'number') {
+                activeElement.value = number.toString();
+                activeElement.dispatchEvent(new Event('change', { bubbles: true }));
+              }
+            }
+          };
+          
+          recognition.onend = () => {
+            setIsRecording(false);
+          };
+          
+          recognition.start();
+          setIsRecording(true);
+        } else {
+          throw new Error('Speech recognition not supported');
+        }
+      } catch (error) {
         toast({
           title: "Voice Input Not Available",
           description: "Your browser doesn't support voice input. Please use keyboard input instead.",
           variant: "destructive"
         });
+        setIsRecording(false);
       }
     } else {
-      // Stop recording
       setIsRecording(false);
     }
   };

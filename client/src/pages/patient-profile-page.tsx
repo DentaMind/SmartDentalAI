@@ -28,6 +28,7 @@ import DentalChart from "@/components/dental/dental-chart";
 import PerioChart from "@/components/perio/perio-chart";
 import EnhancedDentalChart from "@/components/dental/enhanced-dental-chart";
 import { ClinicalPerioChart } from "@/components/perio/clinical-perio-chart";
+import { EnhancedPerioChart } from "@/components/perio/enhanced-perio-chart";
 import { PatientMedicalHistory } from "@/components/patients/patient-medical-history";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -285,20 +286,18 @@ export default function PatientProfilePage() {
                       />
                       
                       <div className="mt-4">
-                        <h3 className="text-lg font-medium mb-4">Enhanced Periodontal Chart</h3>
-                        <EnhancedPerioChart 
+                        <h3 className="text-lg font-medium mb-4">Clinical Periodontal Chart</h3>
+                        <ClinicalPerioChart 
                           patientId={patientId}
-                          examinerId={1} // Currently hardcoded, in a real app would be the current user's ID
+                          patientName={`${patient.user.firstName} ${patient.user.lastName}`}
                           readOnly={false}
-                          onSave={(enhancedData) => {
-                            console.log('Enhanced perio chart saved:', enhancedData);
+                          onSave={(data) => {
+                            console.log('Clinical perio chart saved:', data);
                             toast({
                               title: "Periodontal Chart Saved",
-                              description: `Chart data saved for patient #${patientId} by examiner #${enhancedData.examinerId || 1}`,
+                              description: "Chart data has been saved successfully",
                               variant: "default"
                             });
-                            // In a real app, you would call an API to save this data
-                            // Example: savePeriodontalChart(enhancedData);
                           }}
                         />
                       </div>
