@@ -600,25 +600,59 @@ export function RestorativeChart({
               </div>
             )}
 
-            {/* Upper and Lower Arch Grid View */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Upper and Lower Arch View - Full width */}
+            <div className="space-y-4">
               {/* Upper Arch */}
               <div className="relative">
                 <div className="flex justify-between mb-1">
                   <span className="text-xs sm:text-sm font-medium">Upper Arch (1-16)</span>
                 </div>
                 
-                <div className="grid grid-cols-8 gap-1 pb-2">
-                  {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
-                    <div 
-                      key={tooth} 
-                      className={`flex flex-col items-center ${selectedTooth === tooth ? 'bg-blue-100 rounded p-1' : 'p-1'}`}
-                      onClick={() => !readOnly && handleToothClick(tooth)}
-                    >
-                      <div className="text-[10px] font-medium">#{tooth}</div>
-                      {renderToothView(tooth, 30)}
-                    </div>
-                  ))}
+                <div className="border rounded-md p-2 bg-gray-50">
+                  {/* Buccal View */}
+                  <div className="mb-1 text-xs text-center font-medium">Buccal View</div>
+                  <div className="flex justify-between mb-3">
+                    {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
+                      <div 
+                        key={`buccal-${tooth}`} 
+                        className={`flex flex-col items-center ${selectedTooth === tooth ? 'bg-blue-100 rounded p-1' : 'p-1'}`}
+                        onClick={() => !readOnly && handleToothClick(tooth)}
+                      >
+                        <div className="text-[10px] font-medium">#{tooth}</div>
+                        <ToothSvgBuccal
+                          toothNumber={tooth}
+                          width={28}
+                          height={28}
+                          fill={getToothFill(tooth)}
+                          stroke={getToothStroke(tooth)}
+                          strokeWidth={1}
+                          className="cursor-pointer"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Occlusal View */}
+                  <div className="mb-1 text-xs text-center font-medium">Occlusal View</div>
+                  <div className="flex justify-between">
+                    {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
+                      <div 
+                        key={`occlusal-${tooth}`} 
+                        className={`flex flex-col items-center ${selectedTooth === tooth ? 'bg-blue-100 rounded p-1' : 'p-1'}`}
+                        onClick={() => !readOnly && handleToothClick(tooth)}
+                      >
+                        <ToothSvgOcclusal
+                          toothNumber={tooth}
+                          width={28}
+                          height={28}
+                          fill={getToothFill(tooth)}
+                          stroke={getToothStroke(tooth)}
+                          strokeWidth={1}
+                          className="cursor-pointer"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -628,17 +662,51 @@ export function RestorativeChart({
                   <span className="text-xs sm:text-sm font-medium">Lower Arch (17-32)</span>
                 </div>
                 
-                <div className="grid grid-cols-8 gap-1">
-                  {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
-                    <div 
-                      key={tooth} 
-                      className={`flex flex-col items-center ${selectedTooth === tooth ? 'bg-blue-100 rounded p-1' : 'p-1'}`}
-                      onClick={() => !readOnly && handleToothClick(tooth)}
-                    >
-                      {renderToothView(tooth, 30)}
-                      <div className="text-[10px] font-medium">#{tooth}</div>
-                    </div>
-                  ))}
+                <div className="border rounded-md p-2 bg-gray-50">
+                  {/* Occlusal View */}
+                  <div className="mb-1 text-xs text-center font-medium">Occlusal View</div>
+                  <div className="flex justify-between mb-3">
+                    {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
+                      <div 
+                        key={`occlusal-${tooth}`} 
+                        className={`flex flex-col items-center ${selectedTooth === tooth ? 'bg-blue-100 rounded p-1' : 'p-1'}`}
+                        onClick={() => !readOnly && handleToothClick(tooth)}
+                      >
+                        <ToothSvgOcclusal
+                          toothNumber={tooth}
+                          width={28}
+                          height={28}
+                          fill={getToothFill(tooth)}
+                          stroke={getToothStroke(tooth)}
+                          strokeWidth={1}
+                          className="cursor-pointer"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Buccal View */}
+                  <div className="mb-1 text-xs text-center font-medium">Buccal View</div>
+                  <div className="flex justify-between">
+                    {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
+                      <div 
+                        key={`buccal-${tooth}`} 
+                        className={`flex flex-col items-center ${selectedTooth === tooth ? 'bg-blue-100 rounded p-1' : 'p-1'}`}
+                        onClick={() => !readOnly && handleToothClick(tooth)}
+                      >
+                        <ToothSvgBuccal
+                          toothNumber={tooth}
+                          width={28}
+                          height={28}
+                          fill={getToothFill(tooth)}
+                          stroke={getToothStroke(tooth)}
+                          strokeWidth={1}
+                          className="cursor-pointer"
+                        />
+                        <div className="text-[10px] font-medium">#{tooth}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
