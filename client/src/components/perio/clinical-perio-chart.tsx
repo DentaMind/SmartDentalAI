@@ -1,37 +1,37 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
-import { Maximize2, Save, Mic } from 'lucide-react';
+import { Maximize2, Save } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Input } from '@/components/ui/input';
+import { ToothSvgBuccal, ToothSvgLingual } from '../dental/tooth-illustrations';
 
-interface ToothMeasurements {
-  pocketDepth: {
-    buccal: [number | null, number | null, number | null];
-    lingual: [number | null, number | null, number | null];
-  };
-  bleeding: {
-    buccal: [boolean, boolean, boolean];
-    lingual: [boolean, boolean, boolean];
-  };
-  suppuration: {
-    buccal: [boolean, boolean, boolean];
-    lingual: [boolean, boolean, boolean];
-  };
-  mobility: number | null;
-  furcation: {
-    buccal: number | null;
-    lingual: number | null;
-  };
+interface PocketDepthMeasurement {
+  mesial: number | null;
+  mid: number | null;
+  distal: number | null;
 }
 
-interface ClinicalPerioChartProps {
+interface ToothMeasurements {
+  mobility: 0 | 1 | 2 | 3 | null;
+  bleeding: boolean;
+  suppuration: boolean;
+  plaque: boolean;
+  calculus: boolean;
+  buccal: PocketDepthMeasurement;
+  lingual: PocketDepthMeasurement;
+  furcation: 0 | 1 | 2 | 3 | null;
+  recession: PocketDepthMeasurement;
+  attachmentLoss: PocketDepthMeasurement;
+}
+
+interface PerioChartProps {
   patientId: number;
   patientName: string;
   readOnly?: boolean;
@@ -43,207 +43,142 @@ export function ClinicalPerioChart({
   patientName,
   readOnly = false,
   onSave
-}: ClinicalPerioChartProps) {
+}: PerioChartProps) {
   const [fullScreen, setFullScreen] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [currentSurface, setCurrentSurface] = useState<'buccal' | 'lingual'>('buccal');
-  const [currentArch, setCurrentArch] = useState<'upper' | 'lower'>('upper');
+  const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
+  const [selectedPosition, setSelectedPosition] = useState<'mesial' | 'mid' | 'distal' | null>(null);
+  const [selectedSurface, setSelectedSurface] = useState<'buccal' | 'lingual' | null>(null);
+  const [selectedMeasurementType, setSelectedMeasurementType] = useState<'pocket' | 'recession' | 'attachment'>('pocket');
   const [measurements, setMeasurements] = useState<Record<number, ToothMeasurements>>({});
-  const inputRefs = useRef<Record<string, HTMLInputElement>>({});
+  
+  const [pretreatment, setPretreatment] = useState(true);
+  const [reevaluation, setReevaluation] = useState(false);
+  const [recall, setRecall] = useState(false);
 
-  // Initialize measurements for all teeth
-  useEffect(() => {
+  // Initialize measurements for all teeth (1-32)
+  React.useEffect(() => {
     const initialMeasurements: Record<number, ToothMeasurements> = {};
-    // Initialize upper arch (1-16)
-    for (let i = 1; i <= 16; i++) {
+    
+    // Upper and lower teeth (1-32)
+    for (let i = 1; i <= 32; i++) {
       initialMeasurements[i] = {
-        pocketDepth: {
-          buccal: [null, null, null],
-          lingual: [null, null, null]
-        },
-        bleeding: {
-          buccal: [false, false, false],
-          lingual: [false, false, false]
-        },
-        suppuration: {
-          buccal: [false, false, false],
-          lingual: [false, false, false]
-        },
         mobility: null,
-        furcation: {
-          buccal: null,
-          lingual: null
-        }
+        bleeding: false,
+        suppuration: false,
+        plaque: false,
+        calculus: false,
+        buccal: { mesial: null, mid: null, distal: null },
+        lingual: { mesial: null, mid: null, distal: null },
+        furcation: null,
+        recession: { mesial: null, mid: null, distal: null },
+        attachmentLoss: { mesial: null, mid: null, distal: null }
       };
     }
-    // Initialize lower arch (17-32)
-    for (let i = 17; i <= 32; i++) {
-      initialMeasurements[i] = {
-        pocketDepth: {
-          buccal: [null, null, null],
-          lingual: [null, null, null]
-        },
-        bleeding: {
-          buccal: [false, false, false],
-          lingual: [false, false, false]
-        },
-        suppuration: {
-          buccal: [false, false, false],
-          lingual: [false, false, false]
-        },
-        mobility: null,
-        furcation: {
-          buccal: null,
-          lingual: null
-        }
-      };
-    }
+    
     setMeasurements(initialMeasurements);
   }, []);
 
-  // Function to get tooth shape SVG path based on tooth number
-  const getToothShape = (toothNumber: number) => {
-    // Define tooth shapes based on tooth type
-    const shapes = {
-      molar: "M4,0 L12,0 C14,0 16,2 16,4 L16,12 C16,14 14,16 12,16 L4,16 C2,16 0,14 0,12 L0,4 C0,2 2,0 4,0 Z",
-      premolar: "M4,0 L12,0 C14,0 16,2 16,4 L16,10 C16,13 13,16 10,16 L6,16 C3,16 0,13 0,10 L0,4 C0,2 2,0 4,0 Z",
-      canine: "M8,0 C12,0 16,4 16,8 L16,12 C16,14 14,16 12,16 L4,16 C2,16 0,14 0,12 L0,8 C0,4 4,0 8,0 Z",
-      incisor: "M6,0 L10,0 C13,0 16,3 16,6 L16,10 C16,13 13,16 10,16 L6,16 C3,16 0,13 0,10 L0,6 C0,3 3,0 6,0 Z"
-    };
-
-    // Determine tooth type based on number
-    let shape;
-    if ([1,2,3,16,15,14,17,18,19,30,31,32].includes(toothNumber)) {
-      shape = shapes.molar;
-    } else if ([4,5,12,13,20,21,28,29].includes(toothNumber)) {
-      shape = shapes.premolar;
-    } else if ([6,11,22,27].includes(toothNumber)) {
-      shape = shapes.canine;
-    } else {
-      shape = shapes.incisor;
-    }
-
-    return shape;
+  // Function to handle tooth click
+  const handleToothClick = (toothNumber: number) => {
+    setSelectedTooth(toothNumber);
+    setSelectedPosition(null);
+    setSelectedSurface(null);
   };
 
-  // Get color for measurement based on depth
-  const getMeasurementColor = (value: string | number | null | undefined): string => {
-    if (value === null || value === undefined || value === '') return '';
-    const numValue = typeof value === 'string' ? Number(value) : value;
-    if (isNaN(numValue)) return '';
-    if (numValue <= 3) return 'bg-green-100 text-green-800 border-green-300'; // Healthy
-    if (numValue <= 5) return 'bg-yellow-100 text-yellow-800 border-yellow-300'; // Warning
-    return 'bg-red-100 text-red-800 border-red-300'; // Danger
-  };
-
-  const handleMeasurementInput = (
-    toothNumber: number,
-    surface: 'buccal' | 'lingual',
-    position: number,
-    value: string
+  // Function to handle position click (mesial, mid, distal)
+  const handlePositionClick = (
+    tooth: number, 
+    surface: 'buccal' | 'lingual', 
+    position: 'mesial' | 'mid' | 'distal'
   ) => {
-    const numValue = value === '' ? null : Number(value);
-    if (numValue !== null && (numValue < 0 || numValue > 15)) {
-      return; // Invalid measurement
-    }
+    setSelectedTooth(tooth);
+    setSelectedSurface(surface);
+    setSelectedPosition(position);
+  };
 
-    setMeasurements(prev => ({
-      ...prev,
-      [toothNumber]: {
-        ...prev[toothNumber],
-        pocketDepth: {
-          ...prev[toothNumber].pocketDepth,
-          [surface]: prev[toothNumber].pocketDepth[surface].map(
-            (v, i) => i === position ? numValue : v
-          ) as [number | null, number | null, number | null]
+  // Function to update measurement value
+  const updateMeasurementValue = (value: number) => {
+    if (selectedTooth === null || selectedSurface === null || selectedPosition === null) return;
+    
+    setMeasurements(prev => {
+      const updatedMeasurements = { ...prev };
+      
+      switch (selectedMeasurementType) {
+        case 'pocket':
+          updatedMeasurements[selectedTooth][selectedSurface][selectedPosition] = value;
+          break;
+        case 'recession':
+          updatedMeasurements[selectedTooth].recession[selectedPosition] = value;
+          break;
+        case 'attachment':
+          updatedMeasurements[selectedTooth].attachmentLoss[selectedPosition] = value;
+          break;
+      }
+      
+      return updatedMeasurements;
+    });
+    
+    // Auto-advance to next position or tooth for better workflow
+    if (selectedPosition === 'mesial') {
+      setSelectedPosition('mid');
+    } else if (selectedPosition === 'mid') {
+      setSelectedPosition('distal');
+    } else if (selectedPosition === 'distal') {
+      // Logic to move to next tooth or site
+      if (selectedSurface === 'buccal') {
+        setSelectedSurface('lingual');
+        setSelectedPosition('mesial');
+      } else {
+        // Move to next tooth
+        const nextTooth = getNextTooth(selectedTooth);
+        if (nextTooth) {
+          setSelectedTooth(nextTooth);
+          setSelectedSurface('buccal');
+          setSelectedPosition('mesial');
         }
       }
-    }));
-
-    // Auto-advance logic
-    if (value !== '') {
-      const nextToothNumber = getNextToothNumber(toothNumber);
-      const nextInputRef = inputRefs.current[`${nextToothNumber}-${surface}-${position}`];
-      if (nextInputRef) {
-        nextInputRef.focus();
-      }
     }
   };
 
-  const getNextToothNumber = (current: number): number => {
-    if (currentSurface === 'buccal') {
-      if (currentArch === 'upper') {
-        return current < 16 ? current + 1 : 17;
-      } else {
-        return current < 32 ? current + 1 : 1;
-      }
-    } else { // lingual
-      if (currentArch === 'lower') {
-        return current > 17 ? current - 1 : 32;
-      } else {
-        return current > 1 ? current - 1 : 16;
-      }
-    }
+  // Function to determine next tooth in sequence
+  const getNextTooth = (currentTooth: number) => {
+    // Upper arch (1-16) then lower arch (17-32)
+    if (currentTooth < 16) return currentTooth + 1;
+    if (currentTooth === 16) return 17;
+    if (currentTooth < 32) return currentTooth + 1;
+    return null; // No next tooth after 32
   };
 
-  // Using any type for browser compatibility
-  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-  const toggleVoiceInput = () => {
-    if (!isRecording) {
-      try {
-        if (SpeechRecognition) {
-          const recognition = new SpeechRecognition();
-          
-          recognition.continuous = true;
-          recognition.interimResults = true;
-          
-          recognition.onresult = (event: any) => {
-            const results = event.results;
-            const transcript = Array.from({ length: results.length }, (_, i) => 
-              results[i][0].transcript
-            ).join('');
-            
-            // Parse the voice input and update measurements
-            const number = parseInt(transcript);
-            if (!isNaN(number) && number >= 0 && number <= 15) {
-              // Find the currently focused input and update its value
-              const activeElement = document.activeElement as HTMLInputElement;
-              if (activeElement?.tagName === 'INPUT' && activeElement.type === 'number') {
-                activeElement.value = number.toString();
-                activeElement.dispatchEvent(new Event('change', { bubbles: true }));
-              }
-            }
-          };
-          
-          recognition.onend = () => {
-            setIsRecording(false);
-          };
-          
-          recognition.start();
-          setIsRecording(true);
-        } else {
-          throw new Error('Speech recognition not supported');
-        }
-      } catch (error) {
-        toast({
-          title: "Voice Input Not Available",
-          description: "Your browser doesn't support voice input. Please use keyboard input instead.",
-          variant: "destructive"
-        });
-        setIsRecording(false);
-      }
-    } else {
-      setIsRecording(false);
-    }
+  // Function to toggle bleeding
+  const toggleBleeding = () => {
+    if (selectedTooth === null) return;
+    
+    setMeasurements(prev => {
+      const updatedMeasurements = { ...prev };
+      updatedMeasurements[selectedTooth].bleeding = !updatedMeasurements[selectedTooth].bleeding;
+      return updatedMeasurements;
+    });
   };
 
+  // Function to set mobility
+  const setMobility = (value: 0 | 1 | 2 | 3) => {
+    if (selectedTooth === null) return;
+    
+    setMeasurements(prev => {
+      const updatedMeasurements = { ...prev };
+      updatedMeasurements[selectedTooth].mobility = value;
+      return updatedMeasurements;
+    });
+  };
+
+  // Function to save the chart
   const handleSave = () => {
     if (onSave) {
       onSave({
         patientId,
         measurements,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        chartType: pretreatment ? 'pretreatment' : (reevaluation ? 'reevaluation' : 'recall')
       });
     }
     toast({
@@ -252,34 +187,24 @@ export function ClinicalPerioChart({
     });
   };
 
+  // Helper function to get cell background based on pocket depth
+  const getPocketDepthColor = (depth: number | null) => {
+    if (depth === null) return 'bg-white';
+    if (depth <= 3) return 'bg-green-100';
+    if (depth <= 5) return 'bg-yellow-100';
+    return 'bg-red-100';
+  };
+
   return (
     <Card className={`w-full ${fullScreen ? 'fixed inset-0 z-50 overflow-auto' : ''}`}>
       <CardHeader className="flex flex-row items-center justify-between p-2 sm:p-4">
         <div>
-          <CardTitle className="text-base sm:text-lg">Clinical Periodontal Chart</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Periodontal Chart</CardTitle>
           <div className="text-xs sm:text-sm text-muted-foreground">
             Patient: {patientName}
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={toggleVoiceInput}
-                  className={`h-7 w-7 ${isRecording ? 'bg-red-100' : ''}`}
-                >
-                  <Mic className={`h-3 w-3 ${isRecording ? 'text-red-500' : ''}`} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{isRecording ? 'Stop Voice Input' : 'Start Voice Input'}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -309,121 +234,449 @@ export function ClinicalPerioChart({
 
       <CardContent className="p-2 sm:p-4">
         <div className="space-y-4">
-          {/* Upper Arch */}
-          <div className="relative">
-            <div className="flex justify-between mb-1">
-              <span className="text-xs sm:text-sm font-medium">Upper Arch (1-16)</span>
-              <span className="text-xs sm:text-sm text-muted-foreground">
-                {currentSurface === 'buccal' ? 'Buccal View' : 'Lingual View'}
-              </span>
+          {/* Chart Type Selection */}
+          <div className="flex gap-4 justify-start">
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={pretreatment}
+                onChange={() => {
+                  setPretreatment(true);
+                  setReevaluation(false);
+                  setRecall(false);
+                }}
+                className="form-checkbox h-3 w-3"
+              />
+              <span className="text-xs">Pre-treatment</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={reevaluation}
+                onChange={() => {
+                  setPretreatment(false);
+                  setReevaluation(true);
+                  setRecall(false);
+                }}
+                className="form-checkbox h-3 w-3"
+              />
+              <span className="text-xs">Re-evaluation</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={recall}
+                onChange={() => {
+                  setPretreatment(false);
+                  setReevaluation(false);
+                  setRecall(true);
+                }}
+                className="form-checkbox h-3 w-3"
+              />
+              <span className="text-xs">Recall maintenance</span>
+            </label>
+          </div>
+
+          {/* Measurement Type Selection */}
+          {!readOnly && (
+            <div className="flex flex-wrap gap-2 justify-start">
+              <Button 
+                size="sm" 
+                variant={selectedMeasurementType === 'pocket' ? 'default' : 'outline'}
+                onClick={() => setSelectedMeasurementType('pocket')}
+              >
+                Pocket Depth
+              </Button>
+              <Button 
+                size="sm" 
+                variant={selectedMeasurementType === 'recession' ? 'default' : 'outline'}
+                onClick={() => setSelectedMeasurementType('recession')}
+              >
+                Recession
+              </Button>
+              <Button 
+                size="sm" 
+                variant={selectedMeasurementType === 'attachment' ? 'default' : 'outline'}
+                onClick={() => setSelectedMeasurementType('attachment')}
+              >
+                Attachment Loss
+              </Button>
             </div>
-            
-            <div className="grid grid-cols-8 sm:grid-cols-16 gap-0.5">
-              {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
-                <div key={tooth} className="flex flex-col items-center">
-                  <div className="text-[10px] font-medium">#{tooth}</div>
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 16 16"
-                    className="mb-0"
+          )}
+
+          {/* Selected Position Actions */}
+          {selectedTooth !== null && selectedSurface !== null && selectedPosition !== null && !readOnly && (
+            <div className="flex flex-wrap gap-2 items-center">
+              <div className="text-xs font-medium">
+                Tooth #{selectedTooth}, {selectedSurface.charAt(0).toUpperCase() + selectedSurface.slice(1)} {selectedPosition.charAt(0).toUpperCase() + selectedPosition.slice(1)} {selectedMeasurementType.charAt(0).toUpperCase() + selectedMeasurementType.slice(1)}:
+              </div>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(value => (
+                  <Button 
+                    key={value}
+                    size="sm"
+                    variant="outline"
+                    className="h-6 w-6 p-0"
+                    onClick={() => updateMeasurementValue(value)}
                   >
-                    <path
-                      d={getToothShape(tooth)}
-                      fill="white"
-                      stroke="currentColor"
-                      strokeWidth="1"
-                    />
-                  </svg>
-                  <div className="flex flex-row sm:flex-col gap-0.5">
-                    {[0, 1, 2].map(pos => (
-                      <Input
-                        key={`${tooth}-${currentSurface}-${pos}`}
-                        ref={el => {
-                          if (el) {
-                            inputRefs.current[`${tooth}-${currentSurface}-${pos}`] = el;
-                          }
-                        }}
-                        type="number"
-                        min="0"
-                        max="15"
-                        className={`w-5 h-5 text-center p-0 text-[10px] ${getMeasurementColor(measurements[tooth]?.pocketDepth[currentSurface][pos])}`}
-                        value={measurements[tooth]?.pocketDepth[currentSurface][pos] ?? ''}
-                        onChange={(e) => handleMeasurementInput(tooth, currentSurface, pos, e.target.value)}
-                        disabled={readOnly}
-                      />
-                    ))}
+                    {value}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Upper Arch */}
+          <div className="relative border rounded-md p-2">
+            <div className="flex justify-between mb-1 border-b pb-1">
+              <span className="text-xs font-medium">Upper Arch (1-16)</span>
+            </div>
+
+            {/* Diagnosis Rows */}
+            <div className="grid grid-cols-[8rem_repeat(16,minmax(2rem,1fr))] gap-px text-xs">
+              <div className="font-medium">CAL, BOP</div>
+              {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
+                <div key={`cal-${tooth}`} className="h-6 flex justify-center items-center border">
+                  {measurements[tooth]?.bleeding ? '✓' : ''}
+                </div>
+              ))}
+              
+              <div className="font-medium">PD, PL, Calc</div>
+              {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
+                <div key={`pd-${tooth}`} className="h-6 flex justify-center items-center border">
+                  {measurements[tooth]?.plaque || measurements[tooth]?.calculus ? '✓' : ''}
+                </div>
+              ))}
+              
+              <div className="font-medium">CEJ-GM</div>
+              {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
+                <div key={`cej-${tooth}`} className="h-6 flex justify-center items-center border"></div>
+              ))}
+            </div>
+
+            {/* Tooth Numbers */}
+            <div className="grid grid-cols-[8rem_repeat(16,minmax(2rem,1fr))] gap-px text-xs mt-2">
+              <div></div>
+              {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
+                <div key={`tooth-num-${tooth}`} className="text-center font-medium">
+                  {tooth}
+                </div>
+              ))}
+            </div>
+
+            {/* Facial View */}
+            <div className="grid grid-cols-[8rem_repeat(16,minmax(2rem,1fr))] gap-px text-xs mt-1">
+              <div className="font-medium flex items-center">FACIAL</div>
+              {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
+                <div 
+                  key={`facial-${tooth}`} 
+                  className={`flex justify-center ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                  onClick={() => !readOnly && handleToothClick(tooth)}
+                >
+                  <ToothSvgBuccal
+                    toothNumber={tooth}
+                    width={24}
+                    height={40}
+                    className="cursor-pointer"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Mobility */}
+            <div className="grid grid-cols-[8rem_repeat(16,minmax(2rem,1fr))] gap-px text-xs mt-1">
+              <div className="font-medium flex items-center">Mobility</div>
+              {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
+                <div 
+                  key={`mobility-${tooth}`} 
+                  className="flex justify-center items-center h-8 border"
+                >
+                  {measurements[tooth]?.mobility !== null ? measurements[tooth]?.mobility : ''}
+                </div>
+              ))}
+            </div>
+
+            {/* Facial Pocket Depths */}
+            <div className="grid grid-cols-[8rem_repeat(16,minmax(2rem,1fr))] gap-px text-xs">
+              <div></div>
+              {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
+                <div key={`facial-pd-${tooth}`} className="grid grid-cols-3 gap-px">
+                  <div 
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.buccal.distal)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'distal' ? 'bg-blue-200' : ''}`}
+                    onClick={() => !readOnly && handlePositionClick(tooth, 'buccal', 'distal')}
+                  >
+                    {measurements[tooth]?.buccal.distal}
+                  </div>
+                  <div 
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.buccal.mid)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mid' ? 'bg-blue-200' : ''}`}
+                    onClick={() => !readOnly && handlePositionClick(tooth, 'buccal', 'mid')}
+                  >
+                    {measurements[tooth]?.buccal.mid}
+                  </div>
+                  <div 
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.buccal.mesial)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mesial' ? 'bg-blue-200' : ''}`}
+                    onClick={() => !readOnly && handlePositionClick(tooth, 'buccal', 'mesial')}
+                  >
+                    {measurements[tooth]?.buccal.mesial}
                   </div>
                 </div>
+              ))}
+            </div>
+
+            {/* Lingual View */}
+            <div className="grid grid-cols-[8rem_repeat(16,minmax(2rem,1fr))] gap-px text-xs mt-4">
+              <div className="font-medium flex items-center">LINGUAL</div>
+              {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
+                <div 
+                  key={`lingual-${tooth}`} 
+                  className={`flex justify-center ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                  onClick={() => !readOnly && handleToothClick(tooth)}
+                >
+                  <ToothSvgLingual
+                    toothNumber={tooth}
+                    width={24}
+                    height={40}
+                    className="cursor-pointer"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Lingual Pocket Depths */}
+            <div className="grid grid-cols-[8rem_repeat(16,minmax(2rem,1fr))] gap-px text-xs">
+              <div></div>
+              {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
+                <div key={`lingual-pd-${tooth}`} className="grid grid-cols-3 gap-px">
+                  <div 
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.lingual.mesial)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mesial' ? 'bg-blue-200' : ''}`}
+                    onClick={() => !readOnly && handlePositionClick(tooth, 'lingual', 'mesial')}
+                  >
+                    {measurements[tooth]?.lingual.mesial}
+                  </div>
+                  <div 
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.lingual.mid)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mid' ? 'bg-blue-200' : ''}`}
+                    onClick={() => !readOnly && handlePositionClick(tooth, 'lingual', 'mid')}
+                  >
+                    {measurements[tooth]?.lingual.mid}
+                  </div>
+                  <div 
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.lingual.distal)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'distal' ? 'bg-blue-200' : ''}`}
+                    onClick={() => !readOnly && handlePositionClick(tooth, 'lingual', 'distal')}
+                  >
+                    {measurements[tooth]?.lingual.distal}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Diagnosis Rows Continued */}
+            <div className="grid grid-cols-[8rem_repeat(16,minmax(2rem,1fr))] gap-px text-xs mt-2">
+              <div className="font-medium">CEJ-GM</div>
+              {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
+                <div key={`cej-b-${tooth}`} className="h-6 flex justify-center items-center border"></div>
+              ))}
+              
+              <div className="font-medium">PD, PL, Calc</div>
+              {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
+                <div key={`pd-b-${tooth}`} className="h-6 flex justify-center items-center border"></div>
+              ))}
+              
+              <div className="font-medium">CAL, BOP</div>
+              {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
+                <div key={`cal-b-${tooth}`} className="h-6 flex justify-center items-center border"></div>
               ))}
             </div>
           </div>
 
           {/* Lower Arch */}
-          <div className="relative">
-            <div className="flex justify-between mb-1">
-              <span className="text-xs sm:text-sm font-medium">Lower Arch (17-32)</span>
+          <div className="relative border rounded-md p-2">
+            <div className="flex justify-between mb-1 border-b pb-1">
+              <span className="text-xs font-medium">Lower Arch (17-32)</span>
             </div>
-            
-            <div className="grid grid-cols-8 sm:grid-cols-16 gap-0.5">
+
+            {/* Diagnosis Rows */}
+            <div className="grid grid-cols-[8rem_repeat(16,minmax(2rem,1fr))] gap-px text-xs">
+              <div className="font-medium">CAL, BOP</div>
               {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
-                <div key={tooth} className="flex flex-col items-center">
-                  <div className="text-[10px] font-medium">#{tooth}</div>
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 16 16"
-                    className="mb-0"
+                <div key={`cal-${tooth}`} className="h-6 flex justify-center items-center border">
+                  {measurements[tooth]?.bleeding ? '✓' : ''}
+                </div>
+              ))}
+              
+              <div className="font-medium">PD, PL, Calc</div>
+              {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
+                <div key={`pd-${tooth}`} className="h-6 flex justify-center items-center border">
+                  {measurements[tooth]?.plaque || measurements[tooth]?.calculus ? '✓' : ''}
+                </div>
+              ))}
+              
+              <div className="font-medium">CEJ-GM</div>
+              {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
+                <div key={`cej-${tooth}`} className="h-6 flex justify-center items-center border"></div>
+              ))}
+            </div>
+
+            {/* Tooth Numbers */}
+            <div className="grid grid-cols-[8rem_repeat(16,minmax(2rem,1fr))] gap-px text-xs mt-2">
+              <div></div>
+              {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
+                <div key={`tooth-num-${tooth}`} className="text-center font-medium">
+                  {tooth}
+                </div>
+              ))}
+            </div>
+
+            {/* Facial View */}
+            <div className="grid grid-cols-[8rem_repeat(16,minmax(2rem,1fr))] gap-px text-xs mt-1">
+              <div className="font-medium flex items-center">FACIAL</div>
+              {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
+                <div 
+                  key={`facial-${tooth}`} 
+                  className={`flex justify-center ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                  onClick={() => !readOnly && handleToothClick(tooth)}
+                >
+                  <ToothSvgBuccal
+                    toothNumber={tooth}
+                    width={24}
+                    height={40}
+                    className="cursor-pointer"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Mobility */}
+            <div className="grid grid-cols-[8rem_repeat(16,minmax(2rem,1fr))] gap-px text-xs mt-1">
+              <div className="font-medium flex items-center">Mobility</div>
+              {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
+                <div 
+                  key={`mobility-${tooth}`} 
+                  className="flex justify-center items-center h-8 border"
+                >
+                  {measurements[tooth]?.mobility !== null ? measurements[tooth]?.mobility : ''}
+                </div>
+              ))}
+            </div>
+
+            {/* Facial Pocket Depths */}
+            <div className="grid grid-cols-[8rem_repeat(16,minmax(2rem,1fr))] gap-px text-xs">
+              <div></div>
+              {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
+                <div key={`facial-pd-${tooth}`} className="grid grid-cols-3 gap-px">
+                  <div 
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.buccal.distal)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'distal' ? 'bg-blue-200' : ''}`}
+                    onClick={() => !readOnly && handlePositionClick(tooth, 'buccal', 'distal')}
                   >
-                    <path
-                      d={getToothShape(tooth)}
-                      fill="white"
-                      stroke="currentColor"
-                      strokeWidth="1"
-                    />
-                  </svg>
-                  <div className="flex flex-row sm:flex-col gap-0.5">
-                    {[0, 1, 2].map(pos => (
-                      <Input
-                        key={`${tooth}-${currentSurface}-${pos}`}
-                        ref={el => {
-                          if (el) {
-                            inputRefs.current[`${tooth}-${currentSurface}-${pos}`] = el;
-                          }
-                        }}
-                        type="number"
-                        min="0"
-                        max="15"
-                        className={`w-5 h-5 text-center p-0 text-[10px] ${getMeasurementColor(measurements[tooth]?.pocketDepth[currentSurface][pos])}`}
-                        value={measurements[tooth]?.pocketDepth[currentSurface][pos] ?? ''}
-                        onChange={(e) => handleMeasurementInput(tooth, currentSurface, pos, e.target.value)}
-                        disabled={readOnly}
-                      />
-                    ))}
+                    {measurements[tooth]?.buccal.distal}
+                  </div>
+                  <div 
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.buccal.mid)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mid' ? 'bg-blue-200' : ''}`}
+                    onClick={() => !readOnly && handlePositionClick(tooth, 'buccal', 'mid')}
+                  >
+                    {measurements[tooth]?.buccal.mid}
+                  </div>
+                  <div 
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.buccal.mesial)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mesial' ? 'bg-blue-200' : ''}`}
+                    onClick={() => !readOnly && handlePositionClick(tooth, 'buccal', 'mesial')}
+                  >
+                    {measurements[tooth]?.buccal.mesial}
                   </div>
                 </div>
               ))}
             </div>
+
+            {/* Lingual View */}
+            <div className="grid grid-cols-[8rem_repeat(16,minmax(2rem,1fr))] gap-px text-xs mt-4">
+              <div className="font-medium flex items-center">LINGUAL</div>
+              {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
+                <div 
+                  key={`lingual-${tooth}`} 
+                  className={`flex justify-center ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                  onClick={() => !readOnly && handleToothClick(tooth)}
+                >
+                  <ToothSvgLingual
+                    toothNumber={tooth}
+                    width={24}
+                    height={40}
+                    className="cursor-pointer"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Lingual Pocket Depths */}
+            <div className="grid grid-cols-[8rem_repeat(16,minmax(2rem,1fr))] gap-px text-xs">
+              <div></div>
+              {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
+                <div key={`lingual-pd-${tooth}`} className="grid grid-cols-3 gap-px">
+                  <div 
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.lingual.mesial)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mesial' ? 'bg-blue-200' : ''}`}
+                    onClick={() => !readOnly && handlePositionClick(tooth, 'lingual', 'mesial')}
+                  >
+                    {measurements[tooth]?.lingual.mesial}
+                  </div>
+                  <div 
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.lingual.mid)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mid' ? 'bg-blue-200' : ''}`}
+                    onClick={() => !readOnly && handlePositionClick(tooth, 'lingual', 'mid')}
+                  >
+                    {measurements[tooth]?.lingual.mid}
+                  </div>
+                  <div 
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.lingual.distal)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'distal' ? 'bg-blue-200' : ''}`}
+                    onClick={() => !readOnly && handlePositionClick(tooth, 'lingual', 'distal')}
+                  >
+                    {measurements[tooth]?.lingual.distal}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Diagnosis Rows Continued */}
+            <div className="grid grid-cols-[8rem_repeat(16,minmax(2rem,1fr))] gap-px text-xs mt-2">
+              <div className="font-medium">CEJ-GM</div>
+              {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
+                <div key={`cej-b-${tooth}`} className="h-6 flex justify-center items-center border"></div>
+              ))}
+              
+              <div className="font-medium">PD, PL, Calc</div>
+              {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
+                <div key={`pd-b-${tooth}`} className="h-6 flex justify-center items-center border"></div>
+              ))}
+              
+              <div className="font-medium">CAL, BOP</div>
+              {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
+                <div key={`cal-b-${tooth}`} className="h-6 flex justify-center items-center border"></div>
+              ))}
+            </div>
           </div>
 
-          {/* Surface Toggle */}
-          <div className="flex justify-center gap-2">
-            <Button
-              variant={currentSurface === 'buccal' ? 'default' : 'outline'}
-              onClick={() => setCurrentSurface('buccal')}
-              size="sm"
-              className="text-xs h-8"
-            >
-              Buccal
-            </Button>
-            <Button
-              variant={currentSurface === 'lingual' ? 'default' : 'outline'}
-              onClick={() => setCurrentSurface('lingual')}
-              size="sm"
-              className="text-xs h-8"
-            >
-              Lingual
-            </Button>
+          {/* Legend */}
+          <div className="border rounded-md p-2 mt-4">
+            <div className="text-xs font-medium mb-2">Legend:</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+              <div>GM- Gingival Margin</div>
+              <div>CAL- Clinical Attachment Loss</div>
+              <div>CEJ- Cementoenamel Junction</div>
+              <div>PD- Probing Depth</div>
+              <div>PL- Plaque, if present put '+'</div>
+              <div>Calc- Calculus, if present put '+'</div>
+              <div>BOP- Bleeding on probing, if present put '+'</div>
+            </div>
+            
+            <div className="flex flex-wrap gap-4 mt-4">
+              <div className="flex items-center">
+                <div className="w-5 h-5 bg-green-100 border mr-1"></div>
+                <span className="text-xs">1-3mm (Healthy)</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-5 h-5 bg-yellow-100 border mr-1"></div>
+                <span className="text-xs">4-5mm (Moderate)</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-5 h-5 bg-red-100 border mr-1"></div>
+                <span className="text-xs">6mm+ (Severe)</span>
+              </div>
+            </div>
           </div>
         </div>
       </CardContent>
