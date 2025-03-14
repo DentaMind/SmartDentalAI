@@ -6,7 +6,20 @@ import { securityService } from '../services/security';
 
 export function setupSecurityMiddleware(app: express.Express) {
   // Set security headers with Helmet
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:", "blob:"],
+          connectSrc: ["'self'", "wss:", "ws:"],
+          fontSrc: ["'self'", "data:"],
+        },
+      },
+    })
+  );
   
   // Rate limiting for all API requests
   const apiLimiter = rateLimit({

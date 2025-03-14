@@ -58,6 +58,7 @@ function Router() {
         <ProtectedRoute path="/orthodontic-dashboard" component={OrthodonticDashboardWrapper} />
         <ProtectedRoute path="/dental-ai-hub" component={DentalAIHubWrapper} />
         <ProtectedRoute path="/financial" component={FinancialDashboardPage} />
+        <ProtectedRoute path="/financial-dashboard" component={FinancialDashboardPage} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
