@@ -142,9 +142,11 @@ export function ClinicalPerioChart({
 
   // Function to determine next tooth in sequence
   const getNextTooth = (currentTooth: number) => {
-    // Upper arch (1-16) then lower arch (17-32)
+    // Upper arch (1-16) from left to right
     if (currentTooth < 16) return currentTooth + 1;
     if (currentTooth === 16) return 17;
+    // Lower arch (17-32) from right to left
+    if (currentTooth === 17) return 18;
     if (currentTooth < 32) return currentTooth + 1;
     return null; // No next tooth after 32
   };
@@ -497,14 +499,14 @@ export function ClinicalPerioChart({
             {/* Diagnosis Rows */}
             <div className="grid grid-cols-[8rem_repeat(16,minmax(2rem,1fr))] gap-px text-xs">
               <div className="font-medium">CAL, BOP</div>
-              {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
+              {Array.from({length: 16}, (_, i) => 32 - i).map(tooth => (
                 <div key={`cal-${tooth}`} className="h-6 flex justify-center items-center border">
                   {measurements[tooth]?.bleeding ? '✓' : ''}
                 </div>
               ))}
               
               <div className="font-medium">PD, PL, Calc</div>
-              {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
+              {Array.from({length: 16}, (_, i) => 32 - i).map(tooth => (
                 <div key={`pd-${tooth}`} className="h-6 flex justify-center items-center border">
                   {measurements[tooth]?.plaque || measurements[tooth]?.calculus ? '✓' : ''}
                 </div>
