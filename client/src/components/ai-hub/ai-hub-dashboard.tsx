@@ -130,7 +130,42 @@ export function AIHubDashboard({
       });
       
       if (insuranceResponse.planDetails) {
-        setInsuranceInfo(insuranceResponse.planDetails as InsuranceCoverage);
+        // Convert InsurancePlanDetails to InsuranceCoverage format
+        const planDetails = insuranceResponse.planDetails;
+        const insuranceCoverage: InsuranceCoverage = {
+          provider: planDetails.provider,
+          planName: planDetails.planName,
+          memberID: planDetails.memberId,
+          annualMaximum: planDetails.maximums.annual,
+          remainingBenefit: planDetails.maximums.remaining.annual,
+          deductible: {
+            amount: planDetails.deductible.individual,
+            remaining: planDetails.deductible.remaining,
+            familyDeductible: planDetails.deductible.family
+          },
+          coveragePercentages: {
+            preventive: planDetails.coveragePercentages.preventive,
+            basic: planDetails.coveragePercentages.basic,
+            major: planDetails.coveragePercentages.major,
+            orthodontic: planDetails.coveragePercentages.orthodontic
+          },
+          exclusions: [],
+          waitingPeriods: {
+            basic: '0 days',
+            major: '0 days',
+            orthodontic: '0 days'
+          },
+          frequencyLimitations: {
+            exams: '2 per 12 months',
+            cleanings: '2 per 12 months',
+            xrays: '1 set per 12 months',
+            fluoride: '1 per 12 months',
+            sealants: '1 per tooth per 36 months',
+            crowns: '1 per tooth per 5 years',
+            dentures: '1 per 5 years'
+          }
+        };
+        setInsuranceInfo(insuranceCoverage);
       }
       setInsuranceLoading(false);
     }, 2000);
@@ -809,7 +844,36 @@ export function AIHubDashboard({
               disabled={!insuranceInfo || !selectedPlan}
               onClick={() => {
                 if (insuranceInfo && selectedPlan) {
-                  const optimizedPlan = optimizeTreatmentPlan(selectedPlan, insuranceInfo, {});
+                  // Convert InsuranceCoverage to InsurancePlanDetails format required by optimizeTreatmentPlan
+                  const planDetails = {
+                    provider: insuranceInfo.provider,
+                    planName: insuranceInfo.planName,
+                    planType: 'PPO',
+                    memberId: insuranceInfo.memberID,
+                    groupNumber: '',
+                    coveragePercentages: insuranceInfo.coveragePercentages,
+                    deductible: {
+                      individual: insuranceInfo.deductible.amount,
+                      remaining: insuranceInfo.deductible.remaining,
+                      family: insuranceInfo.deductible.familyDeductible
+                    },
+                    maximums: {
+                      annual: insuranceInfo.annualMaximum,
+                      remaining: {
+                        annual: insuranceInfo.remainingBenefit
+                      }
+                    },
+                    effectiveDate: new Date().toISOString(),
+                    verificationStatus: 'verified' as const,
+                    lastVerified: new Date().toISOString(),
+                    primarySubscriber: {
+                      name: 'Patient',
+                      relationship: 'self' as const,
+                      dateOfBirth: '1980-01-01'
+                    }
+                  };
+                  
+                  const optimizedPlan = optimizeTreatmentPlan(selectedPlan, planDetails, {});
                   setSelectedPlan(optimizedPlan);
                   setActiveTab("treatment-plans");
                 }

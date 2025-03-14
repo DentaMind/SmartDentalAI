@@ -24,7 +24,7 @@ export default function AIHubPage() {
   // 2. Fetch provider details from user context
   // This is mocked for demonstration
   
-  const selectedPatientId = patientId ? parseInt(patientId) : undefined;
+  const selectedPatientId = patientId ? parseInt(patientId) : 0;
   
   // Mock patient data
   const mockPatients = [
@@ -167,7 +167,7 @@ export default function AIHubPage() {
     <div className="container py-6 space-y-6">
       <AIHubDashboard
         patientId={selectedPatient.id}
-        doctorId={user?.id}
+        doctorId={user?.id || 0}
         patientName={selectedPatient.name}
         doctorName={user?.firstName ? `Dr. ${user.firstName} ${user.lastName}` : "Dr. Smith"}
         onGenerateTreatmentPlan={handleGenerateTreatmentPlan}

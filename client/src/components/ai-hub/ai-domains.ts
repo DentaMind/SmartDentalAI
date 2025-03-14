@@ -5,7 +5,22 @@
  * handles for comprehensive dental diagnosis and treatment planning.
  */
 
-import { PatientMedicalHistory } from '../../../shared/schema';
+// Import the PatientMedicalHistory interface
+interface PatientMedicalHistory {
+  systemicConditions?: string[];
+  medications?: string[];
+  allergies?: string[];
+  surgicalHistory?: string[];
+  familyHistory?: string[];
+  smoking?: boolean;
+  alcohol?: boolean;
+  pregnancyStatus?: string;
+  vitalSigns?: {
+    bloodPressure?: string;
+    heartRate?: number;
+    respiratoryRate?: number;
+  };
+}
 
 // AI Domain Types (the specialized areas of the AI system)
 export type AIDomain = 
