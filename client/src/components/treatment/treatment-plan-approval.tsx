@@ -1,45 +1,19 @@
-import { useState, useRef, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useLocation } from 'wouter';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
-import { useNavigate } from 'wouter';
+import { TreatmentPlan } from '@shared/schema';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle, Info, AlertCircle, Calendar, DollarSign, BadgeCheck } from 'lucide-react';
-import type { TreatmentPlan } from '@shared/schema';
-
-interface ProcedureItem {
-  code: string;
-  description: string;
-  fee: number;
-  insuranceCoverage: number;
-  patientResponsibility: number;
-  sequenceOrder: number;
-  appointmentDate?: string;
-  insuranceCoverageVerified: boolean;
-  insuranceCategory: 'preventive' | 'basic' | 'major' | 'orthodontic' | 'not-covered';
-  limitationsAndNotes?: string;
-}
-
-interface InsuranceBenefit {
-  category: string;
-  coveragePercentage: number;
-  annualMaximum: number;
-  usedAmount: number;
-  remainingAmount: number;
-  limitations: string[];
-  waitingPeriod?: string;
-  deductible: {
-    individual: number;
-    family: number;
-    remaining: number;
-  };
-}
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertCircle, Calendar, Check, FileText, Info } from 'lucide-react';
+import { SignaturePad } from './signature-pad';
 
 interface TreatmentPlanApprovalProps {
   plan: TreatmentPlan;
@@ -48,150 +22,75 @@ interface TreatmentPlanApprovalProps {
   onCancel: () => void;
 }
 
-export function TreatmentPlanApproval({ plan, patientId, onApproved, onCancel }: TreatmentPlanApprovalProps) {
-  const [selectedTab, setSelectedTab] = useState('plan');
-  const [signature, setSignature] = useState<string | null>(null);
-  const [isVerifyingInsurance, setIsVerifyingInsurance] = useState(false);
-  const [verificationComplete, setVerificationComplete] = useState(false);
-  const [insuranceBenefits, setInsuranceBenefits] = useState<InsuranceBenefit[]>([]);
-  const [procedures, setProcedures] = useState<ProcedureItem[]>([]);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const signaturePadRef = useRef<any>(null);
+// Treatment agreement options
+interface TreatmentAgreement {
+  id: string;
+  title: string;
+  content: string;
+  required: boolean;
+}
+
+export function TreatmentPlanApproval({
+  plan,
+  patientId,
+  onApproved,
+  onCancel
+}: TreatmentPlanApprovalProps) {
+  const [location, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
-
-  // Set up procedures from the plan
-  useEffect(() => {
-    if (plan && plan.procedures) {
-      const proceduresData = Array.isArray(plan.procedures) 
-        ? plan.procedures 
-        : typeof plan.procedures === 'object' 
-          ? Object.values(plan.procedures) 
-          : [];
-      
-      setProcedures(proceduresData as ProcedureItem[]);
-      
-      // If there's a stored patient signature, use it
-      if (plan.patientSignatureImage) {
-        setSignature(plan.patientSignatureImage);
-      }
+  
+  // State
+  const [activeTab, setActiveTab] = useState('plan');
+  const [agreements, setAgreements] = useState<Record<string, boolean>>({});
+  const [signaturePadOpen, setSignaturePadOpen] = useState(false);
+  const [signature, setSignature] = useState<string | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  
+  // Fetch patient details
+  const { data: patientData, isLoading: patientLoading } = useQuery({
+    queryKey: [`/api/patients/${patientId}`],
+    queryFn: async () => {
+      return await apiRequest(`/api/patients/${patientId}`);
     }
-  }, [plan]);
-
-  // Initialize signature pad when canvas is ready
-  useEffect(() => {
-    const initSignaturePad = async () => {
-      if (canvasRef.current && !signaturePadRef.current) {
-        const SignaturePad = (await import('signature_pad')).default;
-        const signaturePad = new SignaturePad(canvasRef.current, {
-          backgroundColor: 'rgb(255, 255, 255)',
-          penColor: 'rgb(0, 0, 0)'
-        });
-        signaturePadRef.current = signaturePad;
-      }
-    };
-
-    initSignaturePad();
-
-    return () => {
-      if (signaturePadRef.current) {
-        signaturePadRef.current.off();
-        signaturePadRef.current = null;
-      }
-    };
-  }, [canvasRef]);
-
-  // Clear signature method
-  const clearSignature = () => {
-    if (signaturePadRef.current) {
-      signaturePadRef.current.clear();
-      setSignature(null);
-    }
-  };
-
-  // Save signature method
-  const saveSignature = () => {
-    if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
-      const signatureData = signaturePadRef.current.toDataURL();
-      setSignature(signatureData);
-    } else {
-      toast({
-        title: "Signature Required",
-        description: "Please sign before submitting.",
-        variant: "destructive"
+  });
+  
+  // Fetch available treatment agreements
+  const { data: agreementsData, isLoading: agreementsLoading } = useQuery({
+    queryKey: ['/api/legal/treatment-agreements'],
+    queryFn: async () => {
+      return await apiRequest('/api/legal/treatment-agreements') as TreatmentAgreement[];
+    },
+    onSuccess: (data) => {
+      // Initialize agreements state
+      const initialAgreements: Record<string, boolean> = {};
+      data.forEach(agreement => {
+        initialAgreements[agreement.id] = false;
       });
+      setAgreements(initialAgreements);
     }
-  };
-
-  // Verify insurance coverage for all procedures
-  const verifyInsurance = async () => {
-    try {
-      setIsVerifyingInsurance(true);
-      
-      // Call the API to verify insurance coverage
-      const response = await apiRequest(`/api/insurance-verification/${patientId}`, {
-        method: 'POST',
-        data: { procedures: procedures.map(p => ({ code: p.code, fee: p.fee })) }
-      });
-      
-      if (response.verified) {
-        // Update procedures with verified coverage information
-        const updatedProcedures = procedures.map(proc => {
-          const verified = response.proceduresVerification.find(v => v.code === proc.code);
-          return {
-            ...proc,
-            insuranceCoverage: verified?.coverageAmount || 0,
-            patientResponsibility: verified?.patientAmount || proc.fee,
-            insuranceCoverageVerified: !!verified,
-            insuranceCategory: verified?.category || 'not-covered',
-            limitationsAndNotes: verified?.limitations || 'Not covered by insurance'
-          };
-        });
-        
-        setProcedures(updatedProcedures);
-        setInsuranceBenefits(response.benefits);
-        setVerificationComplete(true);
-        
-        toast({
-          title: "Insurance Verification Complete",
-          description: "Coverage information has been updated.",
-          variant: "default"
-        });
-      }
-    } catch (error) {
-      console.error("Insurance verification error:", error);
-      toast({
-        title: "Verification Failed",
-        description: "Could not verify insurance coverage. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsVerifyingInsurance(false);
-    }
-  };
-
+  });
+  
   // Approve treatment plan mutation
-  const approveMutation = useMutation({
+  const approvePlanMutation = useMutation({
     mutationFn: async () => {
-      if (!signature) {
-        throw new Error("Signature is required");
-      }
-      
-      return apiRequest(`/api/treatment-plans/${plan.id}/approve`, {
+      return await apiRequest(`/api/treatment-plans/${plan.id}/approve`, {
         method: 'POST',
-        data: {
-          patientSignature: signature,
-          approvedProcedures: procedures,
-          verifiedInsuranceBenefits: insuranceBenefits
-        }
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          signature,
+          agreements: Object.keys(agreements).filter(id => agreements[id]),
+          termsAccepted
+        })
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/patients/${patientId}/treatment-plans`] });
       queryClient.invalidateQueries({ queryKey: [`/api/treatment-plans/${plan.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/patients/${patientId}/treatment-plans`] });
       toast({
         title: "Treatment Plan Approved",
-        description: "The treatment plan has been approved and scheduled.",
+        description: "The treatment plan has been successfully approved.",
         variant: "default"
       });
       onApproved(plan.id);
@@ -199,397 +98,435 @@ export function TreatmentPlanApproval({ plan, patientId, onApproved, onCancel }:
     onError: (error: Error) => {
       toast({
         title: "Approval Failed",
-        description: error.message || "Could not approve treatment plan. Please try again.",
+        description: error.message || "Failed to approve treatment plan. Please try again.",
         variant: "destructive"
       });
     }
   });
-
-  // Calculate totals
-  const calculateTotals = () => {
-    return procedures.reduce(
-      (acc, curr) => {
-        acc.totalFee += curr.fee;
-        acc.totalInsurance += curr.insuranceCoverage;
-        acc.totalPatient += curr.patientResponsibility;
-        return acc;
-      },
-      { totalFee: 0, totalInsurance: 0, totalPatient: 0 }
-    );
+  
+  // Schedule treatment plan mutation
+  const schedulePlanMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest(`/api/treatment-plans/${plan.id}/schedule`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          autoSchedule: true
+        })
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/treatment-plans/${plan.id}`] });
+      toast({
+        title: "Treatment Plan Scheduled",
+        description: "The appointments have been automatically scheduled.",
+        variant: "default"
+      });
+      setLocation(`/appointments?treatment=${plan.id}`);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Scheduling Failed",
+        description: error.message || "Failed to schedule appointments. Please try again.",
+        variant: "warning"
+      });
+    }
+  });
+  
+  // Handle signature save
+  const handleSaveSignature = (signatureData: string) => {
+    setSignature(signatureData);
+    setSignaturePadOpen(false);
   };
-
-  const { totalFee, totalInsurance, totalPatient } = calculateTotals();
-
-  // Handle approval submission
-  const handleApprove = () => {
+  
+  // Handle agreement toggle
+  const handleAgreementToggle = (id: string, checked: boolean) => {
+    setAgreements(prev => ({
+      ...prev,
+      [id]: checked
+    }));
+  };
+  
+  // Handle approve plan
+  const handleApprovePlan = () => {
+    // Validate required inputs
+    const requiredAgreements = agreementsData?.filter(a => a.required) || [];
+    const allRequiredAgreed = requiredAgreements.every(a => agreements[a.id]);
+    
     if (!signature) {
       toast({
         title: "Signature Required",
-        description: "Please sign the treatment plan before approving.",
+        description: "Please provide your signature to approve the treatment plan.",
         variant: "destructive"
       });
-      setSelectedTab('signature');
       return;
     }
     
-    if (!verificationComplete) {
+    if (!allRequiredAgreed) {
       toast({
-        title: "Insurance Verification Required",
-        description: "Please verify insurance coverage before approving the treatment plan.",
+        title: "Agreements Required",
+        description: "Please accept all required agreements before proceeding.",
         variant: "destructive"
       });
       return;
     }
     
-    approveMutation.mutate();
+    if (!termsAccepted) {
+      toast({
+        title: "Terms Acceptance Required",
+        description: "Please accept the terms and conditions before proceeding.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    approvePlanMutation.mutate();
   };
-
+  
+  // Extract procedures
+  const procedures = Array.isArray(plan.procedures) 
+    ? plan.procedures 
+    : typeof plan.procedures === 'object' 
+      ? Object.values(plan.procedures) 
+      : [];
+  
+  // Calculate financial summary
+  const totalCost = procedures.reduce((sum, proc: any) => sum + (proc.fee || 0), 0);
+  const totalInsurance = procedures.reduce((sum, proc: any) => sum + (proc.insuranceCoverage || 0), 0);
+  const totalPatient = procedures.reduce((sum, proc: any) => sum + (proc.patientResponsibility || 0), 0);
+  
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl">Treatment Plan Approval</CardTitle>
-        <CardDescription>
-          Review and approve your customized treatment plan
-        </CardDescription>
-      </CardHeader>
-      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-        <TabsList className="grid grid-cols-4 w-full">
+    <div className="flex flex-col">
+      {/* Tabs for different sections */}
+      <Tabs defaultValue="plan" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-3">
           <TabsTrigger value="plan">Treatment Plan</TabsTrigger>
-          <TabsTrigger value="insurance">Insurance</TabsTrigger>
-          <TabsTrigger value="schedule">Schedule</TabsTrigger>
-          <TabsTrigger value="signature">Signature</TabsTrigger>
+          <TabsTrigger value="agreements">Agreements</TabsTrigger>
+          <TabsTrigger value="signature">Signature & Approval</TabsTrigger>
         </TabsList>
         
         {/* Treatment Plan Tab */}
-        <TabsContent value="plan">
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-xl font-semibold flex items-center">
-                  {plan.planName || "Treatment Plan"} 
-                  {plan.planType && (
-                    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary text-primary-foreground">
-                      {plan.planType.charAt(0).toUpperCase() + plan.planType.slice(1)}
-                    </span>
-                  )}
-                </h3>
-                <p className="text-muted-foreground">{plan.diagnosis}</p>
-              </div>
-              
-              <Separator />
-              
-              <ScrollArea className="h-[300px]">
+        <TabsContent value="plan" className="py-4">
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-medium mb-2">Treatment Plan Details</h3>
+              <Card>
+                <CardHeader>
+                  <CardTitle>{plan.planName || `Treatment Plan #${plan.id}`}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-medium mb-2">Diagnosis</h4>
+                      <p className="text-muted-foreground">{plan.diagnosis}</p>
+                      
+                      <h4 className="font-medium mt-4 mb-2">Treatment Goals</h4>
+                      <p className="text-muted-foreground">{plan.goals || "No specific goals provided"}</p>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-medium mb-2">Financial Summary</h4>
+                      <div className="space-y-1">
+                        <div className="flex justify-between">
+                          <span>Total Treatment Cost:</span>
+                          <span className="font-medium">${totalCost.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Insurance Coverage:</span>
+                          <span>${totalInsurance.toFixed(2)}</span>
+                        </div>
+                        <Separator className="my-2" />
+                        <div className="flex justify-between">
+                          <span className="font-medium">Your Responsibility:</span>
+                          <span className="font-medium">${totalPatient.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-medium mb-2">Treatment Procedures</h3>
+              <div className="border rounded-md overflow-hidden">
                 <table className="w-full">
-                  <thead>
-                    <tr className="text-left border-b">
-                      <th className="pb-2">Procedure</th>
-                      <th className="pb-2">Fee</th>
-                      <th className="pb-2">Insurance</th>
-                      <th className="pb-2">Your Cost</th>
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="p-3 text-left">Procedure</th>
+                      <th className="p-3 text-right">Fee</th>
+                      <th className="p-3 text-right">Insurance</th>
+                      <th className="p-3 text-right">Your Cost</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {procedures.map((procedure, index) => (
-                      <tr key={index} className="border-b">
-                        <td className="py-3">
+                    {procedures.map((procedure: any, index: number) => (
+                      <tr key={index} className="border-t">
+                        <td className="p-3">
                           <div className="font-medium">{procedure.description}</div>
                           <div className="text-xs text-muted-foreground">{procedure.code}</div>
-                        </td>
-                        <td className="py-3">${procedure.fee.toFixed(2)}</td>
-                        <td className="py-3">
-                          {procedure.insuranceCoverageVerified ? (
-                            <span className="flex items-center text-green-600">
-                              <CheckCircle className="w-4 h-4 mr-1" />
-                              ${procedure.insuranceCoverage.toFixed(2)}
-                            </span>
-                          ) : (
-                            <span className="text-yellow-600 flex items-center">
-                              <Info className="w-4 h-4 mr-1" />
-                              Unverified
-                            </span>
+                          {procedure.tooth && (
+                            <Badge variant="outline" className="text-xs mt-1">
+                              Tooth {procedure.tooth}
+                            </Badge>
                           )}
                         </td>
-                        <td className="py-3">${procedure.patientResponsibility.toFixed(2)}</td>
+                        <td className="p-3 text-right">${procedure.fee?.toFixed(2) || '0.00'}</td>
+                        <td className="p-3 text-right">${procedure.insuranceCoverage?.toFixed(2) || '0.00'}</td>
+                        <td className="p-3 text-right">${procedure.patientResponsibility?.toFixed(2) || '0.00'}</td>
                       </tr>
                     ))}
                   </tbody>
-                  <tfoot>
-                    <tr className="font-bold">
-                      <td className="pt-3">Total</td>
-                      <td className="pt-3">${totalFee.toFixed(2)}</td>
-                      <td className="pt-3">${totalInsurance.toFixed(2)}</td>
-                      <td className="pt-3">${totalPatient.toFixed(2)}</td>
+                  <tfoot className="bg-muted/50">
+                    <tr>
+                      <td className="p-3 font-medium">Total</td>
+                      <td className="p-3 text-right font-medium">${totalCost.toFixed(2)}</td>
+                      <td className="p-3 text-right font-medium">${totalInsurance.toFixed(2)}</td>
+                      <td className="p-3 text-right font-medium">${totalPatient.toFixed(2)}</td>
                     </tr>
                   </tfoot>
                 </table>
-              </ScrollArea>
-              
-              <Alert variant="default" className="bg-muted">
-                <Info className="h-4 w-4" />
-                <AlertTitle>Important Note</AlertTitle>
-                <AlertDescription>
-                  Insurance benefits shown are based on the information provided by your insurance company.
-                  Actual coverage may vary. Final patient responsibility will be determined after insurance claim processing.
-                </AlertDescription>
-              </Alert>
-              
-              <div className="flex justify-end space-x-2 pt-2">
-                <Button variant="outline" onClick={verifyInsurance} disabled={isVerifyingInsurance}>
-                  {isVerifyingInsurance ? "Verifying..." : "Verify Insurance"}
-                </Button>
-                <Button onClick={() => setSelectedTab('insurance')}>
-                  Insurance Details
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </TabsContent>
-        
-        {/* Insurance Tab */}
-        <TabsContent value="insurance">
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-xl font-semibold">Insurance Benefits</h3>
-                <p className="text-muted-foreground">Current status of your insurance coverage</p>
               </div>
               
-              <Separator />
-              
-              {insuranceBenefits.length > 0 ? (
-                <ScrollArea className="h-[300px]">
-                  <div className="space-y-4">
-                    {insuranceBenefits.map((benefit, index) => (
-                      <Card key={index}>
-                        <CardHeader className="py-4">
-                          <CardTitle className="text-lg">{benefit.category} Coverage</CardTitle>
-                        </CardHeader>
-                        <CardContent className="py-2">
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="text-sm">Coverage Percentage:</div>
-                            <div className="text-sm font-medium">{benefit.coveragePercentage}%</div>
-                            
-                            <div className="text-sm">Annual Maximum:</div>
-                            <div className="text-sm font-medium">${benefit.annualMaximum.toFixed(2)}</div>
-                            
-                            <div className="text-sm">Used Amount:</div>
-                            <div className="text-sm font-medium">${benefit.usedAmount.toFixed(2)}</div>
-                            
-                            <div className="text-sm">Remaining Amount:</div>
-                            <div className="text-sm font-medium">${benefit.remainingAmount.toFixed(2)}</div>
-                            
-                            <div className="text-sm">Individual Deductible:</div>
-                            <div className="text-sm font-medium">${benefit.deductible.individual.toFixed(2)}</div>
-                            
-                            <div className="text-sm">Remaining Deductible:</div>
-                            <div className="text-sm font-medium">${benefit.deductible.remaining.toFixed(2)}</div>
-                          </div>
-                          
-                          {benefit.limitations.length > 0 && (
-                            <div className="mt-2">
-                              <p className="text-sm font-medium">Limitations:</p>
-                              <ul className="text-sm list-disc pl-5">
-                                {benefit.limitations.map((limitation, idx) => (
-                                  <li key={idx}>{limitation}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </ScrollArea>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-10">
-                  <AlertCircle className="h-10 w-10 text-muted-foreground mb-2" />
-                  <p className="text-muted-foreground">No insurance information available</p>
-                  <Button 
-                    variant="default" 
-                    className="mt-4" 
-                    onClick={verifyInsurance}
-                    disabled={isVerifyingInsurance}
-                  >
-                    {isVerifyingInsurance ? "Verifying..." : "Verify Insurance Now"}
-                  </Button>
+              <div className="mt-4 p-4 border rounded-md bg-muted/30">
+                <div className="flex mb-2">
+                  <Info className="h-5 w-5 mr-2 text-blue-500" />
+                  <h4 className="font-medium">Insurance Information</h4>
                 </div>
-              )}
-              
-              <Alert variant={verificationComplete ? "default" : "destructive"} className={verificationComplete ? "bg-green-50" : ""}>
-                {verificationComplete ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                <AlertTitle>{verificationComplete ? "Verification Complete" : "Verification Required"}</AlertTitle>
-                <AlertDescription>
-                  {verificationComplete 
-                    ? "Insurance benefits have been verified in real-time. Coverage information is up to date."
-                    : "Please verify your insurance coverage before approving the treatment plan."}
-                </AlertDescription>
-              </Alert>
-              
-              <div className="flex justify-end space-x-2 pt-2">
-                <Button onClick={() => setSelectedTab('plan')}>
-                  Back to Plan
-                </Button>
-                <Button onClick={() => setSelectedTab('schedule')}>
-                  View Schedule
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </TabsContent>
-        
-        {/* Schedule Tab */}
-        <TabsContent value="schedule">
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-xl font-semibold flex items-center">
-                  <Calendar className="mr-2 h-5 w-5" /> Treatment Schedule
-                </h3>
-                <p className="text-muted-foreground">Recommended sequence of appointments</p>
-              </div>
-              
-              <Separator />
-              
-              <ScrollArea className="h-[300px]">
-                <div className="space-y-4">
-                  {procedures
-                    .sort((a, b) => a.sequenceOrder - b.sequenceOrder)
-                    .map((procedure, index) => (
-                      <div key={index} className="flex items-start p-3 border rounded-md">
-                        <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground mr-3">
-                          {procedure.sequenceOrder}
-                        </div>
-                        <div className="flex-grow">
-                          <h4 className="font-medium">{procedure.description}</h4>
-                          <div className="text-sm text-muted-foreground">{procedure.code}</div>
-                          {procedure.appointmentDate ? (
-                            <div className="text-sm mt-1 flex items-center text-green-600">
-                              <Calendar className="w-3 h-3 mr-1" />
-                              Scheduled: {new Date(procedure.appointmentDate).toLocaleDateString()}
-                            </div>
-                          ) : (
-                            <div className="text-sm mt-1 text-yellow-600">
-                              Not yet scheduled
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-shrink-0 text-right">
-                          <div className="text-primary font-medium">${procedure.fee.toFixed(2)}</div>
-                          <div className="text-xs text-muted-foreground">
-                            Insurance: ${procedure.insuranceCoverage.toFixed(2)}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </ScrollArea>
-              
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>Sequential Treatment</AlertTitle>
-                <AlertDescription>
-                  Your treatments will be sequenced in the optimal order for clinical success. After approving this plan,
-                  you'll be able to schedule appointments for each procedure.
-                </AlertDescription>
-              </Alert>
-              
-              <div className="flex justify-end space-x-2 pt-2">
-                <Button onClick={() => setSelectedTab('insurance')}>
-                  Back to Insurance
-                </Button>
-                <Button onClick={() => setSelectedTab('signature')}>
-                  Continue to Signature
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </TabsContent>
-        
-        {/* Signature Tab */}
-        <TabsContent value="signature">
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-xl font-semibold">Approve Treatment Plan</h3>
-                <p className="text-muted-foreground">
-                  Please sign below to approve this treatment plan
+                <p className="text-sm mb-2">
+                  Insurance coverage amounts are estimates based on the information available at
+                  the time of treatment planning. Actual coverage may vary based on your plan's
+                  specific provisions, annual maximums, and remaining benefits.
                 </p>
-              </div>
-              
-              <Separator />
-              
-              <div className="space-y-2">
-                <Label htmlFor="signature-canvas">Your Signature</Label>
-                {signature ? (
-                  <div className="border rounded-md p-4 bg-white">
-                    <img src={signature} alt="Your signature" className="max-h-40 mx-auto" />
-                    <Button variant="outline" size="sm" className="mt-2" onClick={() => setSignature(null)}>
-                      Clear Signature
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="border rounded-md p-4 bg-white">
-                    <canvas 
-                      ref={canvasRef}
-                      id="signature-canvas"
-                      className="w-full h-40 border rounded-md touch-none"
-                    />
-                    <div className="flex justify-end space-x-2 mt-2">
-                      <Button variant="outline" size="sm" onClick={clearSignature}>
-                        Clear
-                      </Button>
-                      <Button size="sm" onClick={saveSignature}>
-                        Save Signature
-                      </Button>
-                    </div>
-                  </div>
+                {patientData?.patient?.insuranceProvider && (
+                  <p className="text-sm">
+                    <span className="font-medium">Insurance Provider:</span> {patientData.patient.insuranceProvider}
+                  </p>
                 )}
               </div>
+            </div>
+            
+            <div className="flex justify-end pt-4">
+              <Button 
+                onClick={() => setActiveTab('agreements')}
+                className="flex items-center"
+              >
+                Next: Agreements
+                <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
+        
+        {/* Agreements Tab */}
+        <TabsContent value="agreements" className="py-4">
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-medium mb-4">Treatment Agreements</h3>
               
-              <div className="space-y-2">
-                <Label>Acknowledgment</Label>
-                <div className="text-sm space-y-2 p-4 border rounded-md bg-muted/50">
-                  <p>
-                    By signing this form, I acknowledge that I have reviewed and understood the proposed treatment plan.
-                    I authorize the dental providers to perform the procedures outlined in this plan.
-                  </p>
-                  <p>
-                    I understand that this is an estimate based on information provided by my insurance company, and actual
-                    coverage may vary. I agree to be financially responsible for any services not covered by my insurance.
-                  </p>
-                  <p>
-                    I understand that multiple appointments may be required to complete my treatment, and I will work with
-                    the office staff to schedule these appointments.
-                  </p>
+              {agreementsLoading ? (
+                <div className="text-center p-8">
+                  <p className="text-muted-foreground">Loading agreements...</p>
                 </div>
-              </div>
-              
-              {!verificationComplete && (
-                <Alert variant="warning">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Insurance Verification Required</AlertTitle>
-                  <AlertDescription>
-                    Please verify your insurance coverage before approving the treatment plan to ensure accurate cost estimates.
-                  </AlertDescription>
-                </Alert>
+              ) : (
+                <div className="space-y-4">
+                  {agreementsData && agreementsData.map(agreement => (
+                    <Card key={agreement.id}>
+                      <CardHeader className="pb-2">
+                        <div className="flex items-start justify-between">
+                          <CardTitle className="text-base">{agreement.title}</CardTitle>
+                          {agreement.required && (
+                            <Badge className="ml-2" variant="outline">Required</Badge>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pb-4">
+                        <div className="text-sm text-muted-foreground mb-4 max-h-32 overflow-y-auto border rounded-md p-3 bg-muted/10">
+                          {agreement.content}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`agreement-${agreement.id}`}
+                            checked={agreements[agreement.id] || false}
+                            onCheckedChange={(checked) => 
+                              handleAgreementToggle(agreement.id, checked === true)
+                            }
+                          />
+                          <Label htmlFor={`agreement-${agreement.id}`} className="text-sm font-medium">
+                            I have read and agree to the terms in this document
+                          </Label>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  
+                  {(!agreementsData || agreementsData.length === 0) && (
+                    <Card>
+                      <CardContent className="p-6 text-center">
+                        <AlertCircle className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                        <p>No treatment agreements found.</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               )}
             </div>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={onCancel}>
-              Cancel
-            </Button>
-            <div className="flex space-x-2">
-              <Button variant="outline" onClick={() => setSelectedTab('schedule')}>
-                Back
+            
+            <div className="flex justify-between pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setActiveTab('plan')}
+                className="flex items-center"
+              >
+                <svg className="mr-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to Plan
               </Button>
-              <Button onClick={handleApprove} disabled={approveMutation.isPending || !signature || !verificationComplete}>
-                {approveMutation.isPending ? "Processing..." : "Approve Treatment Plan"}
+              
+              <Button 
+                onClick={() => setActiveTab('signature')}
+                className="flex items-center"
+              >
+                Next: Signature
+                <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
               </Button>
             </div>
-          </CardFooter>
+          </div>
+        </TabsContent>
+        
+        {/* Signature & Approval Tab */}
+        <TabsContent value="signature" className="py-4">
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-medium mb-4">Signature & Approval</h3>
+              
+              {signaturePadOpen ? (
+                <Card>
+                  <CardContent className="p-6">
+                    <h4 className="font-medium mb-4">Please sign below to approve the treatment plan</h4>
+                    <SignaturePad
+                      onSave={handleSaveSignature}
+                      onCancel={() => setSignaturePadOpen(false)}
+                    />
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-medium mb-2">Your Signature</h4>
+                        {signature ? (
+                          <div className="p-4 border rounded-md bg-white">
+                            <img 
+                              src={signature} 
+                              alt="Signature" 
+                              className="max-h-24 mx-auto"
+                            />
+                          </div>
+                        ) : (
+                          <div className="p-6 border rounded-md bg-muted/10 text-center">
+                            <p className="text-muted-foreground">No signature provided</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <Button 
+                        variant={signature ? "outline" : "default"}
+                        onClick={() => setSignaturePadOpen(true)}
+                        className="mt-1"
+                      >
+                        {signature ? "Edit Signature" : "Add Signature"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-2 mb-4">
+                  <Checkbox
+                    id="terms"
+                    checked={termsAccepted}
+                    onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+                  />
+                  <Label htmlFor="terms" className="text-sm">
+                    I confirm that I understand and agree to the treatment plan, associated costs, and all
+                    the agreements I have signed. I authorize the dental practice to proceed with the treatment
+                    as outlined above.
+                  </Label>
+                </div>
+                
+                <div className="p-4 border rounded-md bg-muted/10">
+                  <div className="flex items-start">
+                    <Info className="h-5 w-5 mr-2 text-blue-500 mt-0.5" />
+                    <div className="text-sm text-muted-foreground">
+                      <p className="mb-2">
+                        By approving this treatment plan, you are giving consent to proceed with the 
+                        recommended procedures outlined in this document. This is not a contract and 
+                        you have the right to ask questions or withdraw consent at any time.
+                      </p>
+                      <p>
+                        The estimated insurance coverage is based on the information available at this time
+                        and may change based on your insurance provider's final determination.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <div className="flex justify-between pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setActiveTab('agreements')}
+                className="flex items-center"
+              >
+                <svg className="mr-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to Agreements
+              </Button>
+              
+              <div className="space-x-2">
+                <Button variant="outline" onClick={onCancel}>
+                  Cancel
+                </Button>
+                
+                <Button 
+                  onClick={handleApprovePlan}
+                  disabled={!signature || !termsAccepted || approvePlanMutation.isPending}
+                  className="min-w-32"
+                >
+                  {approvePlanMutation.isPending ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </span>
+                  ) : (
+                    <span className="flex items-center">
+                      <Check className="mr-2 h-4 w-4" />
+                      Approve Plan
+                    </span>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
-    </Card>
+    </div>
   );
 }

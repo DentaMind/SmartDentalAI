@@ -59,6 +59,7 @@ router.post('/insurance-verification/:patientId', requireAuth, async (req: Reque
       userId: req.user!.id,
       action: 'insurance_verification',
       resource: `patient/${patientId}`,
+      result: 'success',
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'] || 'unknown',
       details: {
@@ -176,36 +177,43 @@ router.post('/insurance-verification/:patientId', requireAuth, async (req: Reque
       
       if (limitation) {
         category = limitation.category;
-        coveragePercentage = planDetails[limitation.category as keyof typeof planDetails].percentage;
         
-        // Check if the benefit maximum is reached
-        const usedAmount = planDetails[limitation.category as keyof typeof planDetails].used;
-        const annualMax = planDetails[limitation.category as keyof typeof planDetails].annual_max;
-        const remainingBenefit = annualMax - usedAmount;
+        // Make sure we're accessing only coverage categories (not deductible or limitations)
+        const categoryData = planDetails[limitation.category as keyof typeof planDetails];
         
-        // Check frequency limitations
-        if (limitation.type === 'frequency') {
-          const usedCount = usedProcedureCounts.get(procedure.code) || 0;
-          if (usedCount >= limitation.limit) {
-            isExceeded = true;
-            limitations = `Frequency limit exceeded (${usedCount}/${limitation.limit} per ${limitation.period})`;
-            coveragePercentage = 0;
-          }
-        }
-        
-        // Calculate coverage amount
-        if (!isExceeded) {
-          // Calculate the potential coverage amount
-          coverageAmount = (procedure.fee * coveragePercentage) / 100;
+        // Type guard to ensure we're working with a category object that has the right properties
+        if (categoryData && 'percentage' in categoryData && 'annual_max' in categoryData && 'used' in categoryData) {
+          coveragePercentage = categoryData.percentage;
           
-          // Ensure we don't exceed the remaining benefit
-          if (coverageAmount > remainingBenefit) {
-            coverageAmount = remainingBenefit;
-            limitations = `Annual maximum of $${annualMax} for ${category} services has been reached`;
+          // Check if the benefit maximum is reached
+          const usedAmount = categoryData.used;
+          const annualMax = categoryData.annual_max;
+          const remainingBenefit = annualMax - usedAmount;
+          
+          // Check frequency limitations
+          if (limitation.type === 'frequency') {
+            const usedCount = usedProcedureCounts.get(procedure.code) || 0;
+            if (usedCount >= limitation.limit) {
+              isExceeded = true;
+              limitations = `Frequency limit exceeded (${usedCount}/${limitation.limit} per ${limitation.period})`;
+              coveragePercentage = 0;
+            }
           }
           
-          // Calculate patient responsibility
-          patientAmount = procedure.fee - coverageAmount;
+          // Calculate coverage amount
+          if (!isExceeded) {
+            // Calculate the potential coverage amount
+            coverageAmount = (procedure.fee * coveragePercentage) / 100;
+            
+            // Ensure we don't exceed the remaining benefit
+            if (coverageAmount > remainingBenefit) {
+              coverageAmount = remainingBenefit;
+              limitations = `Annual maximum of $${annualMax} for ${category} services has been reached`;
+            }
+            
+            // Calculate patient responsibility
+            patientAmount = procedure.fee - coverageAmount;
+          }
         }
       } else {
         limitations = 'Not a covered procedure';
@@ -269,6 +277,7 @@ router.post('/insurance-eligibility', requireAuth, async (req: Request, res: Res
       userId: req.user!.id,
       action: 'insurance_eligibility_check',
       resource: `patient/${patientId}`,
+      result: 'success',
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'] || 'unknown',
       details: {

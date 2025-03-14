@@ -10,6 +10,7 @@ import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import { securityService } from "./services/security";
 import { financialService } from "./services/financial";
 import insuranceRoutes from './routes/insurance-routes';
+import treatmentRoutes from './routes/treatment-routes';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -150,6 +151,8 @@ router.get('/docs', (req, res) => {
 
 // Mount all routes under /api prefix
 app.use("/api", router);
+app.use("/api", insuranceRoutes);
+app.use("/api", treatmentRoutes);
 
 // Add a route for static demo version
 app.get('/static', (req, res) => {
