@@ -1,6 +1,5 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { TaxReport } from "@/components/financial/tax-report";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,7 +14,8 @@ import {
   Clock,
   Calculator,
   BadgeDollarSign,
-  Scale
+  Scale,
+  CircleDollarSign
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -23,9 +23,9 @@ import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { BarChart, LineChart, PieChart as PieChartComponent } from "@/components/ui/visualizations";
 import { TaxReporting } from '@/components/financial/tax-reporting';
 import { InsuranceClaimTracker } from '@/components/financial/insurance-claim-tracker';
-import { RevenueCalculator } from '@/components/financial/revenue-calculator';
-import { TaxOptimization } from '@/components/financial/tax-optimization';
+import { FinancialDashboard } from '../components/financial/financial-dashboard';
 import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
 
 export default function FinancialDashboardPage() {
   const today = new Date();
@@ -185,9 +185,47 @@ export default function FinancialDashboardPage() {
     setDateRange({ start, end });
   };
   
+  // Get current user ID (would normally come from auth context)
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const userId = user?.id || 1; // Fallback to a default ID if not logged in
+  
+  // Determine if we should show the enhanced financial dashboard or the original one
+  const [useNewDashboard, setUseNewDashboard] = useState<boolean>(true);
+  
+  // Toggle between old and new dashboard
+  const toggleDashboard = () => {
+    setUseNewDashboard(!useNewDashboard);
+    toast({
+      title: useNewDashboard ? "Switched to Classic Dashboard" : "Switched to Enhanced AI Dashboard",
+      description: useNewDashboard ? "Using the classic financial dashboard view." : "Using the enhanced AI-powered financial dashboard.",
+    });
+  };
+  
+  if (useNewDashboard) {
+    return (
+      <div className="container mx-auto p-4 py-6 max-w-[1500px]">
+        <div className="flex justify-end mb-4">
+          <Button variant="outline" size="sm" onClick={toggleDashboard}>
+            <Calculator className="h-4 w-4 mr-2" />
+            Switch to Classic View
+          </Button>
+        </div>
+        <FinancialDashboard userId={userId} initialTab="tax" />
+      </div>
+    );
+  }
+  
+  // Original dashboard as fallback
   return (
     <div className="container mx-auto p-4 py-6 max-w-7xl">
-      <h1 className="text-3xl font-bold mb-6">Financial Dashboard</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Financial Dashboard</h1>
+        <Button variant="outline" size="sm" onClick={toggleDashboard}>
+          <CircleDollarSign className="h-4 w-4 mr-2" />
+          Switch to Enhanced AI View
+        </Button>
+      </div>
       
       <div className="mb-6 flex justify-between items-center">
         <div className="text-sm text-muted-foreground">
