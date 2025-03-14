@@ -40,6 +40,8 @@ import { RestorativeChart } from "@/components/dental/restorative-chart";
 import EnhancedPerioChart from "@/components/perio/enhanced-perio-chart";
 import { PatientMedicalHistory } from "@/components/patients/patient-medical-history";
 import { ASAClassificationCard, type ASAClassification } from "@/components/medical/asa-classification";
+import { AutoASAClassification } from "@/components/medical/auto-asa-classification";
+import { Contraindications } from "@/components/medical/contraindications";
 import { ChatHelper } from "@/components/ui/chat-helper";
 import { useAuth } from "@/hooks/use-auth";
 

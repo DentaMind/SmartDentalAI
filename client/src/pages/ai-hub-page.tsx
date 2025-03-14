@@ -165,6 +165,18 @@ export default function AIHubPage() {
   // Render AI Hub dashboard for selected patient
   return (
     <div className="container py-6 space-y-6">
+      <div className="flex justify-between items-center mb-4">
+        <Button 
+          variant="outline" 
+          onClick={() => setLocation('/dashboard')}
+          className="flex items-center gap-2"
+        >
+          <ArrowRight className="h-4 w-4 rotate-180" />
+          Back to Dashboard
+        </Button>
+        <h2 className="text-2xl font-bold">{selectedPatient.name}'s AI Hub</h2>
+      </div>
+      
       <AIHubDashboard
         patientId={selectedPatient.id}
         doctorId={user?.id || 0}
