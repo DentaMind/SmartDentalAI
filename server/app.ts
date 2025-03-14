@@ -189,8 +189,16 @@ app.get('/', (req, res, next) => {
   }
 });
 
-// IMPORTANT: Error handlers should be last, after Vite middleware is set up in index.ts
-// We'll only use them for API routes here
+// Global error handling middleware
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Global error:', err);
+  res.status(err.status || 500).json({
+    message: err.message || 'Internal server error',
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
+});
+
+// Not found handler should be last
 app.use('/api', notFoundHandler);
 app.use('/api', errorHandler);
 

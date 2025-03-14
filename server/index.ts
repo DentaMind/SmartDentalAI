@@ -95,6 +95,11 @@ const startServer = async () => {
   }
 };
 
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 startServer().catch(error => {
   console.error('Unhandled startup error:', error);
   console.error('Full error details:', error instanceof Error ? error.stack : error);
