@@ -42,6 +42,7 @@ import { PatientMedicalHistory } from "@/components/patients/patient-medical-his
 import { ASAClassificationCard, type ASAClassification } from "@/components/medical/asa-classification";
 import { AutoASAClassification } from "@/components/medical/auto-asa-classification";
 import { Contraindications } from "@/components/medical/contraindications";
+import { DiseaseInformation } from "@/components/medical/disease-information";
 import { ChatHelper } from "@/components/ui/chat-helper";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -260,16 +261,33 @@ export default function PatientProfilePage() {
 
                 {/* Medical History Tab */}
                 <TabsContent value="medical-history">
-                  <PatientMedicalHistory 
-                    patientId={patientId}
-                    patientName={`${patient.user.firstName} ${patient.user.lastName}`}
-                    readOnly={false}
-                    onSave={(data) => {
-                      console.log("Medical history saved:", data);
-                      // In a real app, this would save the data to the API
-                      // For now, we'll just log it to the console
-                    }}
-                  />
+                  <div className="space-y-6">
+                    <PatientMedicalHistory 
+                      patientId={patientId}
+                      patientName={`${patient.user.firstName} ${patient.user.lastName}`}
+                      readOnly={false}
+                      onSave={(data) => {
+                        console.log("Medical history saved:", data);
+                        // In a real app, this would save the data to the API
+                        // For now, we'll just log it to the console
+                      }}
+                    />
+                    
+                    {/* Disease Information Component */}
+                    <DiseaseInformation 
+                      patientId={patientId}
+                      conditions={patient.medicalHistory ? (() => {
+                        try {
+                          const parsedHistory = JSON.parse(patient.medicalHistory);
+                          return parsedHistory.systemicConditions || [];
+                        } catch (e) {
+                          console.error("Error parsing medical history:", e);
+                          return [];
+                        }
+                      })() : []}
+                      medications={patient.currentMedications ? patient.currentMedications.split(',').map(med => med.trim()) : []}
+                    />
+                  </div>
                 </TabsContent>
                 
                 {/* Dental Chart Tab */}
