@@ -21,7 +21,9 @@ import {
   CreditCard,
   BellRing,
   UserPlus,
-  Settings
+  Settings,
+  Globe,
+  Edit
 } from 'lucide-react';
 
 // Import components
@@ -32,6 +34,7 @@ import { VoiceDictation } from '@/components/dictation/voice-dictation';
 import { PaymentProcessing } from '@/components/financial/payment-processing';
 import { AIMarketingSystem } from '@/components/marketing/ai-marketing-system';
 import { MultilingualReferralSettings } from '@/components/settings/multilingual-referral-settings';
+import { MultilingualPatientCommunication } from '@/components/communication/multilingual-patient-communication';
 
 export default function DentalAIHub() {
   const [activeTab, setActiveTab] = useState('overview');
