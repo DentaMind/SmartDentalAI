@@ -215,6 +215,25 @@ export const periodontalCharts = pgTable("periodontal_charts", {
   diseaseSeverity: text("disease_severity", { enum: ["none", "mild", "moderate", "severe"] }).default("none"),
   notes: text("notes"),
   aiRecommendations: jsonb("ai_recommendations"),
+  comparisonWithPrevious: jsonb("comparison_with_previous"), // Compare with previous chart to track progress
+  riskAssessment: text("risk_assessment", { enum: ["low", "moderate", "high"] }), // Periodontal risk assessment
+  treatmentRecommendations: jsonb("treatment_recommendations"), // AI-generated treatment recommendations
+  lastUpdatedBy: integer("last_updated_by"), // User who last updated the chart
+});
+
+// Restorative chart data
+export const restorativeCharts = pgTable("restorative_charts", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  doctorId: integer("doctor_id").notNull(),
+  date: timestamp("date").defaultNow(),
+  teethData: jsonb("teeth_data").notNull(), // Map of tooth number to restoration data
+  missingTeeth: jsonb("missing_teeth"), // Array of tooth numbers that are missing
+  modifications: jsonb("modifications"), // Track changes to the chart over time
+  notes: text("notes"),
+  aiRecommendations: jsonb("ai_recommendations"),
+  lastUpdatedBy: integer("last_updated_by"),
+  status: text("status", { enum: ["proposed", "in_progress", "completed"] }).default("proposed"),
 });
 
 export const payments = pgTable("payments", {
@@ -276,6 +295,54 @@ export const financialTransactions = pgTable("financial_transactions", {
   categoryCode: text("category_code"),
   fiscalYear: integer("fiscal_year").notNull(),
   fiscalQuarter: integer("fiscal_quarter").notNull(),
+  auditTrail: jsonb("audit_trail"), // Track changes for financial compliance
+  complianceVerified: boolean("compliance_verified").default(false),
+  complianceNotes: text("compliance_notes"),
+});
+
+// Legal documents table
+export const legalDocuments = pgTable("legal_documents", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  title: text("title").notNull(),
+  documentType: text("document_type", {
+    enum: ["consent", "hipaa", "treatment_agreement", "financial_agreement", "release", "other"]
+  }).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at"),
+  status: text("status", {
+    enum: ["draft", "active", "expired", "revoked"]
+  }).notNull().default("draft"),
+  signedByPatient: boolean("signed_by_patient").default(false),
+  patientSignatureDate: timestamp("patient_signature_date"),
+  signedByDoctor: boolean("signed_by_doctor").default(false), 
+  doctorId: integer("doctor_id"),
+  doctorSignatureDate: timestamp("doctor_signature_date"),
+  version: text("version").notNull().default("1.0"),
+  metadata: jsonb("metadata"),
+});
+
+// Compliance tracking table
+export const complianceRecords = pgTable("compliance_records", {
+  id: serial("id").primaryKey(),
+  entityType: text("entity_type", {
+    enum: ["patient", "practice", "user", "financial", "treatment", "document"]
+  }).notNull(),
+  entityId: integer("entity_id").notNull(),
+  regulationType: text("regulation_type", {
+    enum: ["hipaa", "osha", "ada", "state_board", "insurance", "tax", "other"]
+  }).notNull(),
+  complianceDate: timestamp("compliance_date").defaultNow(),
+  expirationDate: timestamp("expiration_date"),
+  status: text("status", {
+    enum: ["compliant", "non_compliant", "pending_review", "exempted"]
+  }).notNull().default("pending_review"),
+  verifiedBy: integer("verified_by"),
+  verificationDate: timestamp("verification_date"),
+  notes: text("notes"),
+  attachments: jsonb("attachments"),
+  aiRiskAssessment: jsonb("ai_risk_assessment"),
 });
 
 // Time clock system
@@ -378,6 +445,9 @@ export const insertPeriodontalChartSchema = createInsertSchema(periodontalCharts
 export const insertPaymentSchema = createInsertSchema(payments);
 export const insertInsuranceClaimSchema = createInsertSchema(insuranceClaims);
 export const insertFinancialTransactionSchema = createInsertSchema(financialTransactions);
+export const insertRestorativeChartSchema = createInsertSchema(restorativeCharts);
+export const insertLegalDocumentSchema = createInsertSchema(legalDocuments);
+export const insertComplianceRecordSchema = createInsertSchema(complianceRecords);
 
 // Insert schemas for new tables
 export const insertTimeClockSchema = createInsertSchema(timeClock).extend({
