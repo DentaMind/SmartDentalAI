@@ -35,6 +35,7 @@ import DentalChart from "@/components/dental/dental-chart";
 import PerioChart from "@/components/perio/perio-chart";
 import EnhancedDentalChart from "@/components/dental/enhanced-dental-chart";
 import { ClinicalPerioChart } from "@/components/perio/clinical-perio-chart";
+import { ImprovedPerioChart } from "@/components/perio/improved-perio-chart";
 import { RestorativeChart } from "@/components/dental/restorative-chart";
 import EnhancedPerioChart from "@/components/perio/enhanced-perio-chart";
 import { PatientMedicalHistory } from "@/components/patients/patient-medical-history";
@@ -338,6 +339,23 @@ export default function PatientProfilePage() {
                             console.log('Clinical perio chart saved:', data);
                             toast({
                               title: "Periodontal Chart Saved",
+                              description: "Chart data has been saved successfully",
+                              variant: "default"
+                            });
+                          }}
+                        />
+                      </div>
+                      
+                      <div className="mt-8">
+                        <h3 className="text-lg font-medium mb-4">Improved Periodontal Chart (With Anatomical Teeth)</h3>
+                        <ImprovedPerioChart 
+                          patientId={patientId}
+                          patientName={`${patient.user.firstName} ${patient.user.lastName}`}
+                          readOnly={false}
+                          onSave={(data) => {
+                            console.log('Improved perio chart saved:', data);
+                            toast({
+                              title: "Improved Periodontal Chart Saved",
                               description: "Chart data has been saved successfully",
                               variant: "default"
                             });
