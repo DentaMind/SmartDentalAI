@@ -471,9 +471,16 @@ export function DiseaseInformation({
   // Find matching diseases for patient conditions
   const patientDiseases = conditions.length > 0 
     ? diseases.filter(disease => 
-        conditions.some(condition => 
-          condition.toLowerCase().includes(disease.name.toLowerCase())
-        )
+        conditions.some(condition => {
+          // Check if condition is a string
+          if (typeof condition === 'string') {
+            return condition.toLowerCase().includes(disease.name.toLowerCase());
+          } else if (condition && typeof condition === 'object') {
+            // If it's an object (like a DiseaseInfo), try to use its name property
+            return condition.name?.toLowerCase().includes(disease.name.toLowerCase());
+          }
+          return false;
+        })
       )
     : [];
 
@@ -481,9 +488,14 @@ export function DiseaseInformation({
   const relevantMedications = medications.length > 0
     ? diseases.flatMap(disease => 
         disease.medications.filter(med => 
-          medications.some(m => 
-            m.toLowerCase().includes(med.name.toLowerCase())
-          )
+          medications.some(m => {
+            if (typeof m === 'string') {
+              return m.toLowerCase().includes(med.name.toLowerCase());
+            } else if (m && typeof m === 'object') {
+              return m.name?.toLowerCase().includes(med.name.toLowerCase());
+            }
+            return false;
+          })
         ).map(med => ({
           ...med,
           relatedCondition: disease.name
