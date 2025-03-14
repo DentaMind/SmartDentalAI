@@ -7,7 +7,7 @@ import {
   Activity, 
   Heart, 
   Thermometer, 
-  Lungs, 
+  Stethoscope,
   CalendarClock, 
   Scale, 
   CircleDashed,
@@ -268,7 +268,7 @@ export function VitalsTracker({
           <div className="space-y-1">
             <div className="flex justify-between items-center">
               <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                <Lungs className="h-3 w-3" />
+                <Stethoscope className="h-3 w-3" />
                 Respiratory Rate
               </Label>
             </div>
