@@ -1,260 +1,416 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { 
-  MessageSquare, 
-  X, 
-  Send, 
-  User, 
-  MoveUpRight,
-  Calendar,
-  FileText,
-  Users,
-  ClipboardList,
-  CreditCard,
-  Stethoscope
-} from 'lucide-react';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useLocation } from 'wouter';
+import { Textarea } from '@/components/ui/textarea';
+import { Bot, SendHorizontal, User, X, CornerDownLeft, Loader2, FileText } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-interface ChatMessage {
+// Define message types
+interface Message {
   id: string;
-  text: string;
-  sender: 'user' | 'assistant';
+  content: string;
+  role: 'user' | 'assistant';
   timestamp: Date;
+  needsReview?: boolean;
 }
 
-export function ChatHelper() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([
+interface SuggestedPrompt {
+  id: string;
+  text: string;
+  category: 'diagnosis' | 'treatment' | 'general';
+}
+
+interface ChatHelperProps {
+  patientId?: number;
+  patientName?: string;
+  providerId?: number;
+  providerName?: string;
+  context?: string;
+  onInsertToNotes?: (text: string) => void;
+  onClose?: () => void;
+  position?: 'bottom-right' | 'floating' | 'full';
+  initialPrompts?: SuggestedPrompt[];
+  useOpenAI?: boolean;
+  apiKeyName?: string;
+}
+
+export function ChatHelper({
+  patientId,
+  patientName = '',
+  providerId,
+  providerName = '',
+  context = '',
+  onInsertToNotes,
+  onClose,
+  position = 'bottom-right',
+  initialPrompts = [],
+  useOpenAI = true,
+  apiKeyName = 'CHAT_AI_KEY'
+}: ChatHelperProps) {
+  const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: 'Hello! I\'m your SmartDentalAI assistant. How can I help you with DentaMind today?',
-      sender: 'assistant',
-      timestamp: new Date()
-    }
+      content: `Hello Dr. ${providerName}! I'm your dental assistant AI. How can I help you with ${patientName || 'this patient'} today?`,
+      role: 'assistant',
+      timestamp: new Date(),
+    },
   ]);
-  const [, navigate] = useLocation();
-
-  const toggleChat = () => {
-    setIsOpen(!isOpen);
-  };
-
-  const handleSend = () => {
-    if (!input.trim()) return;
-
-    // Add user message
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      text: input,
-      sender: 'user',
-      timestamp: new Date()
+  
+  const [inputValue, setInputValue] = useState('');
+  const [suggestedPrompts, setSuggestedPrompts] = useState<SuggestedPrompt[]>(initialPrompts);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(position === 'full');
+  const [selectedText, setSelectedText] = useState('');
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Scroll to bottom whenever messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+  
+  // Default suggested prompts if none provided
+  useEffect(() => {
+    if (initialPrompts.length === 0 && patientName) {
+      setSuggestedPrompts([
+        { id: '1', text: `What are common risk factors for ${patientName}'s condition?`, category: 'diagnosis' },
+        { id: '2', text: 'Can you suggest a treatment plan for periodontal disease?', category: 'treatment' },
+        { id: '3', text: 'What should I document for insurance reimbursement?', category: 'general' },
+      ]);
+    } else {
+      setSuggestedPrompts(initialPrompts);
+    }
+  }, [initialPrompts, patientName]);
+  
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    
+    if (inputValue.trim() === '') return;
+    
+    const newUserMessage: Message = {
+      id: `user-${Date.now()}`,
+      content: inputValue,
+      role: 'user',
+      timestamp: new Date(),
     };
     
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-
-    // Process the message and generate a response
-    setTimeout(() => {
-      const response = generateResponse(input);
-      const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        text: response.text,
-        sender: 'assistant',
-        timestamp: new Date()
-      };
+    setMessages((prev) => [...prev, newUserMessage]);
+    setInputValue('');
+    setIsLoading(true);
+    
+    try {
+      // In a production environment, this would call an actual API
+      // with proper validation and error handling
+      let responseText: string;
       
-      setMessages(prev => [...prev, assistantMessage]);
+      // Simulate API call / response delay
+      await new Promise((resolve) => setTimeout(resolve, 1500));
       
-      // If there's a navigation action, perform it
-      if (response.action === 'navigate' && response.path) {
-        navigate(response.path);
+      // Generate AI response based on the context and question
+      if (useOpenAI) {
+        // This would be an actual OpenAI API call in production
+        responseText = await simulateAIResponse(inputValue, {
+          patientName,
+          providerName,
+          context,
+          patientHistory: 'Sample patient history would be here in production',
+        });
+      } else {
+        responseText = generateMockResponse(inputValue, patientName);
       }
-    }, 800);
-  };
-
-  const generateResponse = (message: string): { text: string; action?: string; path?: string } => {
-    const lowerMessage = message.toLowerCase();
-    
-    // Check for navigation intents
-    if (lowerMessage.includes('patient') || lowerMessage.includes('patients')) {
-      return {
-        text: 'I can help you with patients. Would you like to view the patients list or add a new patient?',
-        action: 'navigate',
-        path: '/patients'
+      
+      const newAIMessage: Message = {
+        id: `assistant-${Date.now()}`,
+        content: responseText,
+        role: 'assistant',
+        timestamp: new Date(),
       };
-    } else if (lowerMessage.includes('appointment') || lowerMessage.includes('schedule')) {
-      return {
-        text: 'Let me take you to the appointments page where you can view or manage appointments.',
-        action: 'navigate',
-        path: '/appointments'
+      
+      setMessages((prev) => [...prev, newAIMessage]);
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      
+      // Add error message
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        content: "I'm sorry, I'm having trouble responding right now. Please try again in a moment.",
+        role: 'assistant',
+        timestamp: new Date(),
       };
-    } else if (lowerMessage.includes('chart') || lowerMessage.includes('dental chart') || lowerMessage.includes('perio')) {
-      return {
-        text: 'The patient profile page contains the dental charts, including periodontal and restorative charts. Would you like to view a specific patient?',
-        action: 'navigate',
-        path: '/patients'
-      };
-    } else if (lowerMessage.includes('treatment') || lowerMessage.includes('plan')) {
-      return {
-        text: 'You can view and manage treatment plans on the treatment plans page.',
-        action: 'navigate',
-        path: '/treatment-plans'
-      };
-    } else if (lowerMessage.includes('billing') || lowerMessage.includes('payment')) {
-      return {
-        text: 'I can help you with billing and payments. Let me take you to the billing page.',
-        action: 'navigate',
-        path: '/billing'
-      };
-    }
-    
-    // Default responses if no specific intent was recognized
-    const defaultResponses = [
-      'I can help you navigate through DentaMind. What specific area are you interested in?',
-      'Would you like assistance with patients, appointments, charts, treatments, or billing?',
-      'Feel free to ask me about specific features or how to perform certain tasks in DentaMind.',
-      'I can help you find information or navigate to different parts of the application. What are you looking for?'
-    ];
-    
-    return {
-      text: defaultResponses[Math.floor(Math.random() * defaultResponses.length)]
-    };
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSend();
+      
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
     }
   };
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+  
+  const handlePromptClick = (promptText: string) => {
+    setInputValue(promptText);
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+  
+  const handleInsertToNotes = (text: string) => {
+    if (onInsertToNotes) {
+      onInsertToNotes(text);
+    }
+  };
+  
+  const toggleExpand = () => {
+    setIsExpanded(!isExpanded);
+  };
+  
+  // Function to simulate AI responses in development
+  const simulateAIResponse = async (
+    query: string,
+    context: { patientName: string; providerName: string; context: string; patientHistory: string }
+  ): Promise<string> => {
+    // In production, this would make an actual API call to OpenAI or another AI service
+    // with the api key from environment variables (process.env[apiKeyName])
+    
+    // For development purposes, generate a mock response
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(generateMockResponse(query, context.patientName));
+      }, 1000);
+    });
+  };
+  
+  // Function to generate mock responses for development
+  const generateMockResponse = (query: string, patientName: string): string => {
+    const lowerQuery = query.toLowerCase();
+    
+    if (lowerQuery.includes('risk factor') || lowerQuery.includes('risk assessment')) {
+      return `Based on the assessment, ${patientName || 'the patient'} shows the following risk factors for periodontal disease:
+- Moderate plaque accumulation
+- Family history of periodontitis
+- Smoking history (5 pack-years)
 
-  const QuickOptions = () => {
-    const options = [
-      { icon: <Users size={14} />, text: 'Patients', path: '/patients' },
-      { icon: <Calendar size={14} />, text: 'Appointments', path: '/appointments' },
-      { icon: <Stethoscope size={14} />, text: 'Dental Charts', path: '/patients' },
-      { icon: <ClipboardList size={14} />, text: 'Treatment Plans', path: '/treatment-plans' },
-      { icon: <CreditCard size={14} />, text: 'Billing', path: '/billing' },
-      { icon: <FileText size={14} />, text: 'Reports', path: '/reports' },
-    ];
+I recommend documenting these in the risk assessment section and scheduling more frequent recalls for periodontal maintenance.`;
+    }
+    
+    if (lowerQuery.includes('treatment plan') || lowerQuery.includes('treatment options')) {
+      return `For ${patientName || 'this patient'}'s condition, I would recommend considering:
 
+1. Initial therapy: Scaling and root planing all quadrants
+2. Re-evaluation at 4-6 weeks
+3. Maintenance: 3-month recall interval initially
+4. Adjunctive therapy: Consider local antimicrobial delivery in sites with PD ≥ 5mm that didn't respond to initial therapy
+
+Does this align with your treatment approach?`;
+    }
+    
+    if (lowerQuery.includes('document') || lowerQuery.includes('insurance') || lowerQuery.includes('reimbursement')) {
+      return `For optimal insurance reimbursement, ensure you document:
+
+1. Clinical findings (pocket depths, BOP, etc.)
+2. Radiographic evidence of bone loss
+3. Risk factors contributing to the condition
+4. Medical necessity of the treatment
+5. Treatment plan and expected outcomes
+
+This documentation will support the medical necessity of the proposed treatment.`;
+    }
+    
+    if (lowerQuery.includes('diagnosis') || lowerQuery.includes('condition')) {
+      return `Based on the data in the chart, ${patientName || 'the patient'} presents with signs consistent with Stage II, Grade B Periodontitis (2017 Classification System).
+
+Key findings:
+- Interproximal CAL: 3-4mm
+- Radiographic bone loss: 15-33%
+- No tooth loss due to periodontitis
+- Max PPD: 5mm
+- Mostly horizontal bone loss
+
+This should be documented with the appropriate diagnostic code for insurance purposes.`;
+    }
+    
+    // Default response
+    return `I understand you're asking about ${query.substring(0, 30)}... Let me assist with that based on ${patientName || 'the patient'}'s records.
+
+For more specific guidance, could you provide more details about what you're looking for? I can help with treatment recommendations, documentation requirements, or clinical considerations.`;
+  };
+  
+  const renderChatLayout = () => {
     return (
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        {options.map((option, index) => (
-          <Button 
-            key={index} 
-            variant="outline" 
-            size="sm" 
-            className="justify-start text-xs h-8"
-            onClick={() => {
-              setMessages(prev => [...prev, {
-                id: Date.now().toString(),
-                text: `Show me ${option.text}`,
-                sender: 'user',
-                timestamp: new Date()
-              }, {
-                id: (Date.now() + 1).toString(),
-                text: `Taking you to ${option.text}...`,
-                sender: 'assistant',
-                timestamp: new Date()
-              }]);
+      <div className="flex flex-col h-full">
+        <CardHeader className="px-4 py-3 border-b flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-lg font-medium flex items-center gap-2">
+            <Bot className="h-5 w-5 text-primary" />
+            DentaMind AI Assistant
+          </CardTitle>
+          <div className="flex gap-2">
+            {position !== 'full' && (
+              <Button variant="ghost" size="icon" onClick={toggleExpand}>
+                {isExpanded ? <X className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+              </Button>
+            )}
+            {onClose && (
+              <Button variant="ghost" size="icon" onClick={onClose}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        
+        {isExpanded && (
+          <>
+            <CardContent className="p-0 flex-grow overflow-hidden">
+              <ScrollArea className="h-[400px] p-4">
+                <div className="space-y-4">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={cn(
+                        "flex items-start gap-3 group",
+                        message.role === 'user' ? "justify-end" : ""
+                      )}
+                    >
+                      {message.role === 'assistant' && (
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-primary/20 text-primary">AI</AvatarFallback>
+                          <AvatarImage src="/ai-assistant.png" />
+                        </Avatar>
+                      )}
+                      
+                      <div
+                        className={cn(
+                          "rounded-lg px-3 py-2 max-w-[80%] text-sm relative group",
+                          message.role === 'user'
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted"
+                        )}
+                      >
+                        <div className="whitespace-pre-wrap break-words">{message.content}</div>
+                        <div className="text-xs mt-1 opacity-60">
+                          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                        
+                        {message.role === 'assistant' && onInsertToNotes && (
+                          <div className="absolute -right-10 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleInsertToNotes(message.content)}
+                              title="Insert to notes"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {message.role === 'user' && (
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-secondary text-secondary-foreground">
+                            {providerName ? providerName.charAt(0) : 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {isLoading && (
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-primary/20 text-primary">AI</AvatarFallback>
+                        <AvatarImage src="/ai-assistant.png" />
+                      </Avatar>
+                      <div className="rounded-lg px-3 py-2 max-w-[80%] text-sm bg-muted flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>AI is thinking...</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div ref={messagesEndRef} />
+                </div>
+              </ScrollArea>
+            </CardContent>
+            
+            <CardFooter className="p-4 pt-2 border-t flex flex-col gap-3">
+              {suggestedPrompts.length > 0 && (
+                <div className="flex flex-wrap gap-2 w-full">
+                  {suggestedPrompts.map((prompt) => (
+                    <button
+                      key={prompt.id}
+                      className="px-3 py-1 bg-muted rounded-full text-xs hover:bg-primary/10 transition-colors"
+                      onClick={() => handlePromptClick(prompt.text)}
+                    >
+                      {prompt.text.length > 30 ? prompt.text.substring(0, 30) + '...' : prompt.text}
+                    </button>
+                  ))}
+                </div>
+              )}
               
-              setTimeout(() => {
-                navigate(option.path);
-              }, 500);
-            }}
-          >
-            <span className="mr-1.5">{option.icon}</span> {option.text}
-          </Button>
-        ))}
+              <form onSubmit={handleSubmit} className="flex w-full gap-2 items-end">
+                <Textarea
+                  ref={inputRef}
+                  placeholder="Type your question here..."
+                  className="flex-1 min-h-[60px] resize-none"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={isLoading}
+                />
+                <Button type="submit" size="icon" disabled={isLoading || !inputValue.trim()}>
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <SendHorizontal className="h-4 w-4" />
+                  )}
+                </Button>
+              </form>
+              
+              <div className="text-xs text-muted-foreground w-full text-center">
+                Press <kbd className="px-1 py-0.5 rounded border text-xs">Enter</kbd> to send,{' '}
+                <kbd className="px-1 py-0.5 rounded border text-xs">Shift+Enter</kbd> for new line
+              </div>
+            </CardFooter>
+          </>
+        )}
       </div>
     );
   };
-
+  
+  // Render based on position
+  if (position === 'full') {
+    return <Card className="w-full h-full">{renderChatLayout()}</Card>;
+  }
+  
+  if (position === 'floating') {
+    return (
+      <Card className={cn(
+        "fixed transition-all duration-200 ease-in-out shadow-lg",
+        isExpanded ? "w-[380px] h-[550px]" : "w-12 h-12",
+        "right-4 bottom-4 z-50"
+      )}>
+        {renderChatLayout()}
+      </Card>
+    );
+  }
+  
+  // Default bottom-right position
   return (
-    <div className="fixed bottom-4 right-4 z-50">
-      {isOpen ? (
-        <Card className="w-80 shadow-lg">
-          <CardHeader className="p-3 flex flex-row items-center justify-between bg-primary text-primary-foreground">
-            <div className="flex items-center">
-              <MessageSquare className="h-5 w-5 mr-2" />
-              <span className="font-medium">DentaMind Assistant</span>
-            </div>
-            <Button variant="ghost" size="icon" onClick={toggleChat} className="h-6 w-6 rounded-full text-primary-foreground hover:bg-primary/90">
-              <X className="h-4 w-4" />
-            </Button>
-          </CardHeader>
-          <CardContent className="p-3 pt-4">
-            <QuickOptions />
-            <ScrollArea className="h-60 pr-4">
-              <div className="space-y-4">
-                {messages.map(message => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-lg p-2 ${
-                        message.sender === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                      }`}
-                    >
-                      <div className="flex items-start">
-                        {message.sender === 'assistant' && (
-                          <span className="mr-2 rounded-full bg-primary p-1 h-5 w-5 flex items-center justify-center">
-                            <MessageSquare className="h-3 w-3 text-primary-foreground" />
-                          </span>
-                        )}
-                        <p className="text-sm">{message.text}</p>
-                        {message.sender === 'user' && (
-                          <span className="ml-2 rounded-full bg-primary-foreground p-1 h-5 w-5 flex items-center justify-center">
-                            <User className="h-3 w-3 text-primary" />
-                          </span>
-                        )}
-                      </div>
-                      <div
-                        className={`text-[10px] mt-1 ${
-                          message.sender === 'user'
-                            ? 'text-primary-foreground/70 text-right'
-                            : 'text-muted-foreground'
-                        }`}
-                      >
-                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-          <CardFooter className="p-3 pt-0">
-            <div className="flex w-full items-center space-x-2">
-              <Input
-                placeholder="Type your question..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="text-sm"
-              />
-              <Button size="icon" onClick={handleSend} disabled={!input.trim()}>
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardFooter>
-        </Card>
-      ) : (
-        <Button
-          variant="default"
-          size="icon"
-          onClick={toggleChat}
-          className="h-12 w-12 rounded-full shadow-lg"
-        >
-          <MessageSquare className="h-6 w-6" />
-        </Button>
-      )}
-    </div>
+    <Card className={cn(
+      "w-full transition-all duration-200 ease-in-out",
+      isExpanded ? "h-[500px]" : "h-12"
+    )}>
+      {renderChatLayout()}
+    </Card>
   );
 }

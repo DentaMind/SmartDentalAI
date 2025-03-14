@@ -19,6 +19,7 @@ import DashboardPage from "@/pages/dashboard-page";
 import PatientProfilePage from "@/pages/patient-profile-page";
 import { WebSocketProvider } from "./hooks/use-websocket";
 import { AIAssistant } from "@/components/ui/ai-assistant";
+import AIHubPage from "@/pages/ai-hub-page";
 
 // Lazy-loaded components
 const AIHub = lazy(() => import('./pages/ai-hub'));
@@ -51,7 +52,9 @@ function Router() {
         <ProtectedRoute path="/ai-diagnostics" component={AIDiagnosticsPage} />
         <ProtectedRoute path="/billing" component={BillingPage} />
         <ProtectedRoute path="/time-clock" component={TimeClockPage} />
-        <ProtectedRoute path="/ai-hub" component={AIHubWrapper} />
+        <ProtectedRoute path="/ai-hub" component={AIHubPage} />
+        <ProtectedRoute path="/ai-hub/:patientId" component={AIHubPage} />
+        <ProtectedRoute path="/ai-hub-old" component={AIHubWrapper} />
         <ProtectedRoute path="/orthodontic-dashboard" component={OrthodonticDashboardWrapper} />
         <ProtectedRoute path="/dental-ai-hub" component={DentalAIHubWrapper} />
         <ProtectedRoute path="/financial" component={FinancialDashboardPage} />
