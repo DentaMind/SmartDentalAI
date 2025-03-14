@@ -16,13 +16,22 @@ import {
   Microscope,
   FileCheck, 
   Layers, 
-  MoveRight
+  MoveRight,
+  MessageSquare,
+  CreditCard,
+  BellRing,
+  UserPlus,
+  Settings
 } from 'lucide-react';
 
 // Import components
 import { AdvancedXRayAnalyzer } from '@/components/ai/advanced-xray-analyzer';
 import { AITreatmentPlanner } from '@/components/treatment/ai-treatment-planner';
 import { PatientEducation } from '@/components/education/patient-education';
+import { VoiceDictation } from '@/components/dictation/voice-dictation';
+import { PaymentProcessing } from '@/components/financial/payment-processing';
+import { AIMarketingSystem } from '@/components/marketing/ai-marketing-system';
+import { MultilingualReferralSettings } from '@/components/settings/multilingual-referral-settings';
 
 export default function DentalAIHub() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -54,6 +63,38 @@ export default function DentalAIHub() {
       badgeClass: 'bg-green-50 text-green-700 border-green-200'
     },
     {
+      id: 'voice-dictation',
+      name: 'Voice Dictation',
+      description: 'AI-powered real-time transcription of clinical notes and SOAP format',
+      icon: <MessageSquare className="h-8 w-8 text-cyan-500" />,
+      badge: 'Active',
+      badgeClass: 'bg-green-50 text-green-700 border-green-200'
+    },
+    {
+      id: 'payment-processing',
+      name: 'Payment Processing',
+      description: 'Integrated payment and insurance claim processing',
+      icon: <CreditCard className="h-8 w-8 text-emerald-500" />,
+      badge: 'Active',
+      badgeClass: 'bg-green-50 text-green-700 border-green-200'
+    },
+    {
+      id: 'marketing',
+      name: 'AI Marketing',
+      description: 'AI-driven marketing system for patient retention and engagement',
+      icon: <BellRing className="h-8 w-8 text-orange-500" />,
+      badge: 'Active',
+      badgeClass: 'bg-green-50 text-green-700 border-green-200'
+    },
+    {
+      id: 'referrals',
+      name: 'Referrals & Languages',
+      description: 'Multilingual support and advanced referral management',
+      icon: <UserPlus className="h-8 w-8 text-indigo-500" />,
+      badge: 'Active',
+      badgeClass: 'bg-green-50 text-green-700 border-green-200'
+    },
+    {
       id: 'perio-charting',
       name: 'Periodontal Charting',
       description: 'Automated periodontal assessments with AI-guided diagnosis',
@@ -68,14 +109,6 @@ export default function DentalAIHub() {
       icon: <Microscope className="h-8 w-8 text-green-500" />,
       badge: 'Coming Soon',
       badgeClass: 'bg-blue-50 text-blue-700 border-blue-200'
-    },
-    {
-      id: 'voice-dictation',
-      name: 'Voice Dictation',
-      description: 'AI-powered real-time transcription of clinical notes and SOAP format',
-      icon: <FileCheck className="h-8 w-8 text-cyan-500" />,
-      badge: 'Coming Soon',
-      badgeClass: 'bg-blue-50 text-blue-700 border-blue-200'
     }
   ];
 
@@ -88,6 +121,14 @@ export default function DentalAIHub() {
         return <AITreatmentPlanner />;
       case 'patient-education':
         return <PatientEducation />;
+      case 'voice-dictation':
+        return <VoiceDictation />;
+      case 'payment-processing':
+        return <PaymentProcessing />;
+      case 'marketing':
+        return <AIMarketingSystem />;
+      case 'referrals':
+        return <MultilingualReferralSettings />;
       case 'overview':
         return (
           <div className="space-y-6">
@@ -198,7 +239,7 @@ export default function DentalAIHub() {
       <div>
         <h1 className="text-3xl font-bold">DentaMind AI Hub</h1>
         <p className="text-muted-foreground">
-          Advanced AI-powered tools to enhance diagnostic accuracy and treatment planning
+          Advanced AI-powered tools to enhance dental practice management
         </p>
       </div>
 
@@ -221,6 +262,22 @@ export default function DentalAIHub() {
               <BookOpen className="h-4 w-4 mr-2" />
               Patient Education
             </TabsTrigger>
+            <TabsTrigger value="voice-dictation" className="px-4">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Voice Dictation
+            </TabsTrigger>
+            <TabsTrigger value="payment-processing" className="px-4">
+              <CreditCard className="h-4 w-4 mr-2" />
+              Payment Processing
+            </TabsTrigger>
+            <TabsTrigger value="marketing" className="px-4">
+              <BellRing className="h-4 w-4 mr-2" />
+              Marketing
+            </TabsTrigger>
+            <TabsTrigger value="referrals" className="px-4">
+              <UserPlus className="h-4 w-4 mr-2" />
+              Referrals
+            </TabsTrigger>
             <TabsTrigger value="perio-charting" className="px-4">
               <Layers className="h-4 w-4 mr-2" />
               Perio Charting
@@ -228,10 +285,6 @@ export default function DentalAIHub() {
             <TabsTrigger value="intraoral-imaging" className="px-4">
               <Microscope className="h-4 w-4 mr-2" />
               Intraoral Imaging
-            </TabsTrigger>
-            <TabsTrigger value="voice-dictation" className="px-4">
-              <FileCheck className="h-4 w-4 mr-2" />
-              Voice Dictation
             </TabsTrigger>
           </TabsList>
         </div>
