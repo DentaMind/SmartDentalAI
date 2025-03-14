@@ -120,63 +120,43 @@ export default function PatientProfilePage() {
       <Sidebar />
       <main className="flex-1 overflow-y-auto">
         <div className="container mx-auto py-6 max-w-7xl">
-          <PageHeader 
-            title={`${patient.user.firstName} ${patient.user.lastName}`} 
-            description="Patient Profile"
-            icon={<Stethoscope className="h-10 w-10" />}
-          />
+          <div className="flex justify-between items-center">
+            <PageHeader 
+              title="DentaMind" 
+              description="Advanced Dental AI"
+              icon={<Stethoscope className="h-10 w-10" />}
+            />
+            
+            {/* Patient Info Card - Compact version at the top */}
+            <Card className="w-auto shadow-sm">
+              <CardHeader className="p-4 pb-2">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-xl font-bold text-primary-foreground">
+                    {getInitials(`${patient.user.firstName} ${patient.user.lastName}`)}
+                  </div>
+                  <div>
+                    <CardTitle>{`${patient.user.firstName} ${patient.user.lastName}`}</CardTitle>
+                    <div className="flex gap-4 text-sm text-muted-foreground">
+                      <span>{patient.user.dateOfBirth || 'No DOB'}</span>
+                      <span>•</span>
+                      <span>{patient.insuranceProvider || 'No insurance'}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className="flex gap-4 text-sm">
+                  {patient.user.phoneNumber && <span>{patient.user.phoneNumber}</span>}
+                  {patient.user.email && <span>{patient.user.email}</span>}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
           
           {/* Chat Helper */}
           <ChatHelper />
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
-            {/* Patient Info Card */}
-            <Card className="md:col-span-1 bg-card shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <UserRound className="h-5 w-5 text-primary" />
-                  Personal Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="w-24 h-24 mx-auto rounded-full bg-primary flex items-center justify-center text-3xl font-bold text-primary-foreground">
-                  {getInitials(`${patient.user.firstName} ${patient.user.lastName}`)}
-                </div>
-                
-                <div className="space-y-3 pt-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Date of Birth</p>
-                    <p>{patient.user.dateOfBirth || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Phone</p>
-                    <p>{patient.user.phoneNumber || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Email</p>
-                    <p>{patient.user.email || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Address</p>
-                    <p className="break-words">{patient.homeAddress || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Insurance</p>
-                    <p>{patient.insuranceProvider || 'Not provided'}</p>
-                    {patient.insuranceNumber && <p className="text-sm text-muted-foreground">Policy: {patient.insuranceNumber}</p>}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Emergency Contact</p>
-                    <p>{patient.emergencyContactName || 'Not provided'}</p>
-                    {patient.emergencyContactPhone && (
-                      <p className="text-sm text-muted-foreground">
-                        {patient.emergencyContactPhone} ({patient.emergencyContactRelationship || 'Contact'})
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">{/* Patient detailed info will now be in a dropdown or expandable section */}
 
             {/* Main Content Area */}
             <div className="md:col-span-3 space-y-6">
@@ -248,13 +228,14 @@ export default function PatientProfilePage() {
 
               {/* Tabs for different sections */}
               <Tabs defaultValue="medical-history" className="w-full">
-                <TabsList className="grid grid-cols-6 mb-6">
+                <TabsList className="grid grid-cols-7 mb-6">
                   <TabsTrigger value="medical-history">Medical History</TabsTrigger>
                   <TabsTrigger value="dental-chart">Dental Chart</TabsTrigger>
                   <TabsTrigger value="perio-chart">Perio Chart</TabsTrigger>
+                  <TabsTrigger value="xray">X-rays</TabsTrigger>
                   <TabsTrigger value="appointments">Appointments</TabsTrigger>
                   <TabsTrigger value="treatment-plans">Treatment Plans</TabsTrigger>
-                  <TabsTrigger value="notes">Medical Notes</TabsTrigger>
+                  <TabsTrigger value="notes">Clinical Notes</TabsTrigger>
                 </TabsList>
 
                 {/* Medical History Tab */}
@@ -356,6 +337,91 @@ export default function PatientProfilePage() {
                             });
                           }}
                         />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                {/* X-Ray Tab */}
+                <TabsContent value="xray">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <AlertCircle className="h-5 w-5 text-primary" />
+                        X-ray Images
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-6">
+                        {/* AI X-ray Analysis Section */}
+                        <div className="mb-6 border rounded-lg p-4 bg-card">
+                          <h3 className="text-lg font-medium mb-4">AI X-ray Analysis</h3>
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                              <div className="aspect-video bg-muted rounded-md relative overflow-hidden flex items-center justify-center">
+                                {/* Placeholder for X-ray image */}
+                                <p className="text-muted-foreground">No x-ray selected</p>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <Button variant="outline" size="sm">Upload New X-ray</Button>
+                                <Button variant="outline" size="sm">Capture from Sensor</Button>
+                                <Button variant="outline" size="sm">Import from PACS</Button>
+                              </div>
+                            </div>
+                            <div className="space-y-4">
+                              <div className="p-4 border rounded-md bg-background">
+                                <h4 className="font-medium text-sm mb-2">AI Diagnostic Findings</h4>
+                                <div className="space-y-2">
+                                  <p className="text-sm text-muted-foreground">Select an x-ray image to analyze or upload a new one.</p>
+                                </div>
+                              </div>
+                              <div className="p-4 border rounded-md bg-background">
+                                <h4 className="font-medium text-sm mb-2">AI Recommendations</h4>
+                                <div className="space-y-2">
+                                  <p className="text-sm text-muted-foreground">AI will provide treatment recommendations based on x-ray analysis.</p>
+                                </div>
+                              </div>
+                              <Button className="w-full">
+                                Analyze with AI
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* X-ray History */}
+                        <div>
+                          <h3 className="text-lg font-medium mb-4">X-ray History</h3>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            {/* Sample x-ray cards */}
+                            <Card className="overflow-hidden">
+                              <div className="aspect-video bg-muted relative">
+                                {/* X-ray image would go here */}
+                              </div>
+                              <CardContent className="p-3">
+                                <div className="text-sm font-medium">Full Mouth Series</div>
+                                <div className="text-xs text-muted-foreground">Taken: 12/15/2024</div>
+                              </CardContent>
+                            </Card>
+                            <Card className="overflow-hidden">
+                              <div className="aspect-video bg-muted relative">
+                                {/* X-ray image would go here */}
+                              </div>
+                              <CardContent className="p-3">
+                                <div className="text-sm font-medium">Panoramic</div>
+                                <div className="text-xs text-muted-foreground">Taken: 11/03/2024</div>
+                              </CardContent>
+                            </Card>
+                            <Card className="overflow-hidden">
+                              <div className="aspect-video bg-muted relative">
+                                {/* X-ray image would go here */}
+                              </div>
+                              <CardContent className="p-3">
+                                <div className="text-sm font-medium">Bitewings</div>
+                                <div className="text-xs text-muted-foreground">Taken: 09/22/2024</div>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

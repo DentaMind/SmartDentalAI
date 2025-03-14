@@ -60,10 +60,96 @@ export default function AppointmentsPage() {
           <h1 className="text-3xl font-bold text-gray-900">
             {t("nav.appointments")}
           </h1>
-          <Button onClick={handleAddAppointment}>
-            <Plus className="h-4 w-4 mr-2" />
-            {t("appointment.schedule")}
-          </Button>
+          <div className="flex space-x-2">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Patient
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Send New Patient Form</DialogTitle>
+                  <DialogDescription>
+                    Send a registration form to the new patient. They will receive a link to complete their information and schedule an appointment.
+                  </DialogDescription>
+                </DialogHeader>
+                <form className="space-y-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right">
+                      Patient Name
+                    </Label>
+                    <input
+                      id="name"
+                      className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2"
+                      placeholder="Full name"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="email" className="text-right">
+                      Email
+                    </Label>
+                    <input
+                      id="email"
+                      type="email"
+                      className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2"
+                      placeholder="patient@example.com"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="phone" className="text-right">
+                      Phone
+                    </Label>
+                    <input
+                      id="phone"
+                      type="tel"
+                      className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2"
+                      placeholder="(555) 555-5555"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="appointment-date" className="text-right">
+                      Proposed Date
+                    </Label>
+                    <input
+                      id="appointment-date"
+                      type="date"
+                      className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="appointment-time" className="text-right">
+                      Proposed Time
+                    </Label>
+                    <input
+                      id="appointment-time"
+                      type="time"
+                      className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="reason" className="text-right">
+                      Reason for Visit
+                    </Label>
+                    <textarea
+                      id="reason"
+                      className="col-span-3 flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2"
+                      placeholder="Brief description of reason for visit"
+                    />
+                  </div>
+                </form>
+                <DialogFooter>
+                  <Button type="submit">Send Invitation</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            
+            <Button onClick={handleAddAppointment}>
+              <Plus className="h-4 w-4 mr-2" />
+              {t("appointment.schedule")}
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="weekly" className="space-y-4">

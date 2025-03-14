@@ -64,51 +64,51 @@ export function Sidebar() {
   // Define navigation items based on user role
   const getNavigationItems = (): NavigationItem[] => {
     const baseItems: NavigationItem[] = [
-      { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, highlight: true },
+      { name: "Practice Dashboard", href: "/dashboard", icon: LayoutDashboard },
     ];
 
     const doctorItems: NavigationItem[] = [
       { 
-        name: t("nav.aiDiagnostics"), 
-        href: "/ai-diagnostics", 
-        icon: Brain,
+        name: "AI Hub", 
+        href: "/ai-hub", 
+        icon: Bot,
         highlight: true 
       },
-      { name: t("nav.patients"), href: "/patients", icon: Users },
-      { name: t("nav.appointments"), href: "/appointments", icon: Calendar },
-      { name: t("nav.treatmentPlans"), href: "/treatment-plans", icon: FileText },
-      { name: t("nav.xrays"), href: "/xrays", icon: Image },
-      { name: t("nav.billing"), href: "/billing", icon: DollarSign },
-      { name: t("nav.timeClock"), href: "/time-clock", icon: Clock },
-      { name: t("nav.orthodonticAI"), href: "/orthodontic-dashboard", icon: Ruler, highlight: true }, // Added Orthodontic AI
-      { name: t("nav.dentalAISuite"), href: "/dental-ai-hub", icon: Bot, highlight: true } //Added Dental AI Suite
+      { name: "Patients", href: "/patients", icon: Users },
+      { name: "Schedule", href: "/appointments", icon: Calendar },
+      { name: "Treatment Planning", href: "/treatment-plans", icon: FileText },
+      { name: "Clinical Tools", href: "/dental-ai-hub", icon: Stethoscope },
+      { name: "Financial", href: "/billing", icon: DollarSign },
+      { name: "Staff Management", href: "/time-clock", icon: Clock },
+      { name: "Perio Analysis", href: "/perio-dashboard", icon: ActivitySquare, highlight: true },
+      { name: "Intraoral Scanner", href: "/orthodontic-dashboard", icon: Image, highlight: true }
     ];
 
     const staffItems: NavigationItem[] = [
       { 
-        name: t("nav.aiDiagnostics"), 
-        href: "/ai-diagnostics", 
-        icon: Brain,
+        name: "AI Hub", 
+        href: "/ai-hub", 
+        icon: Bot,
         highlight: true 
       },
-      { name: t("nav.patients"), href: "/patients", icon: Users },
-      { name: t("nav.appointments"), href: "/appointments", icon: Calendar },
-      { name: t("nav.billing"), href: "/billing", icon: DollarSign },
-      { name: t("nav.timeClock"), href: "/time-clock", icon: Clock },
-      { name: t("nav.orthodonticAI"), href: "/orthodontic-dashboard", icon: Ruler, highlight: true }, // Added Orthodontic AI
-      { name: t("nav.dentalAISuite"), href: "/dental-ai-hub", icon: Bot, highlight: true } //Added Dental AI Suite
+      { name: "Patients", href: "/patients", icon: Users },
+      { name: "Schedule", href: "/appointments", icon: Calendar },
+      { name: "Financial", href: "/billing", icon: DollarSign },
+      { name: "Time Management", href: "/time-clock", icon: Clock },
+      { name: "Clinical Tools", href: "/dental-ai-hub", icon: Stethoscope },
+      { name: "Intraoral Scanner", href: "/orthodontic-dashboard", icon: Image, highlight: true }
     ];
 
     const patientItems: NavigationItem[] = [
-      { name: t("nav.appointments"), href: "/appointments", icon: Calendar },
-      { name: t("nav.treatmentPlans"), href: "/treatment-plans", icon: FileText },
-      { name: t("nav.xrays"), href: "/xrays", icon: Image },
-      { name: t("nav.medicalHistory"), href: "/medical-history", icon: ClipboardList },
-      { name: t("nav.billing"), href: "/billing", icon: DollarSign },
+      { name: "My Appointments", href: "/appointments", icon: Calendar },
+      { name: "Treatment Plans", href: "/treatment-plans", icon: FileText },
+      { name: "My Records", href: "/xrays", icon: ClipboardList },
+      { name: "Medical History", href: "/medical-history", icon: FileText },
+      { name: "Billing & Payments", href: "/billing", icon: DollarSign },
     ];
 
     const financialItems: NavigationItem[] = [
-      { name: t("nav.financial"), href: "/financial", icon: DollarSign },
+      { name: "Financial Dashboard", href: "/financial-dashboard", icon: DollarSign },
     ];
 
     switch (user?.role) {
@@ -146,10 +146,10 @@ export function Sidebar() {
             {!collapsed && (
               <div className="flex flex-col">
                 <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary-600 bg-clip-text text-transparent">
-                  SmartDental AI
+                  DentaMind
                 </span>
                 <span className="text-xs text-gray-500 font-medium">
-                  AI-Powered Care
+                  AI-Powered Dental Excellence
                 </span>
               </div>
             )}
