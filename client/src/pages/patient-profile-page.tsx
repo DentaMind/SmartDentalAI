@@ -179,34 +179,22 @@ export default function PatientProfilePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {/* ASA Classification */}
+                    {/* AI-Assisted ASA Classification */}
                     <div className="mb-4">
                       <div className="flex items-center gap-2 mb-2">
                         <Heart className="h-5 w-5 text-rose-500" />
-                        <h3 className="font-medium">ASA Physical Status Classification</h3>
+                        <h3 className="font-medium">AI-Assisted ASA Classification</h3>
                       </div>
-                      <div className="flex gap-2 mb-2">
-                        {['I', 'II', 'III', 'IV', 'V'].map((cls) => (
-                          <Button 
-                            key={cls}
-                            variant={asaClass === cls ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setAsaClass(cls as ASAClassification)}
-                            className="min-w-12"
-                          >
-                            {cls}
-                          </Button>
-                        ))}
-                        <Button 
-                          variant={emergencyStatus ? "destructive" : "outline"} 
-                          size="sm"
-                          onClick={() => setEmergencyStatus(!emergencyStatus)}
-                          className="ml-2"
-                        >
-                          E
-                        </Button>
-                      </div>
-                      <ASAClassificationCard asaClass={asaClass} emergencyStatus={emergencyStatus} />
+                      <AutoASAClassification 
+                        patientId={patientId}
+                        initialClass={asaClass}
+                        initialEmergencyStatus={emergencyStatus === true ? 'emergency' : 'routine'}
+                      />
+                    </div>
+                    
+                    {/* Contraindications to Treatment */}
+                    <div className="mt-6 mb-4">
+                      <Contraindications patientId={patientId} />
                     </div>
                     
                     <div className="space-y-2 mt-4 pt-4 border-t">

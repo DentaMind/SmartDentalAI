@@ -12,7 +12,10 @@ import {
   Calendar,
   BarChart as BarChartIcon,
   PieChart,
-  Clock
+  Clock,
+  Calculator,
+  BadgeDollarSign,
+  Scale
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -20,6 +23,9 @@ import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { BarChart, LineChart, PieChart as PieChartComponent } from "@/components/ui/visualizations";
 import { TaxReporting } from '@/components/financial/tax-reporting';
 import { InsuranceClaimTracker } from '@/components/financial/insurance-claim-tracker';
+import { RevenueCalculator } from '@/components/financial/revenue-calculator';
+import { TaxOptimization } from '@/components/financial/tax-optimization';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function FinancialDashboardPage() {
   const today = new Date();
