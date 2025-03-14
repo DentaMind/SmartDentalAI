@@ -29,6 +29,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
 import {
   Select,
   SelectContent,
@@ -453,17 +454,20 @@ export function PaymentProcessing() {
               </div>
             </div>
             
-            {getSelectedPatient()?.balance > 0 && (
+            {getSelectedPatient() && getSelectedPatient()?.balance > 0 && (
               <div className="flex gap-2 mt-4 justify-end">
                 <Button 
                   size="sm" 
                   variant="outline"
                   onClick={() => {
-                    setPaymentFormData({
-                      ...paymentFormData,
-                      amount: getSelectedPatient()?.balance.toFixed(2) || '0.00'
-                    });
-                    setNewPaymentOpen(true);
+                    const patient = getSelectedPatient();
+                    if (patient) {
+                      setPaymentFormData({
+                        ...paymentFormData,
+                        amount: patient.balance.toFixed(2)
+                      });
+                      setNewPaymentOpen(true);
+                    }
                   }}
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
@@ -474,13 +478,16 @@ export function PaymentProcessing() {
                     size="sm" 
                     variant="outline"
                     onClick={() => {
-                      setClaimFormData({
-                        ...claimFormData,
-                        provider: getSelectedPatient()?.insuranceProvider || '',
-                        subscriberId: getSelectedPatient()?.insuranceId || '',
-                        totalAmount: getSelectedPatient()?.balance.toFixed(2) || '0.00'
-                      });
-                      setNewClaimOpen(true);
+                      const patient = getSelectedPatient();
+                      if (patient) {
+                        setClaimFormData({
+                          ...claimFormData,
+                          provider: patient.insuranceProvider || '',
+                          subscriberId: patient.insuranceId || '',
+                          totalAmount: patient.balance.toFixed(2)
+                        });
+                        setNewClaimOpen(true);
+                      }
                     }}
                   >
                     <FileCheck className="h-4 w-4 mr-2" />

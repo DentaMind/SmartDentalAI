@@ -22,7 +22,8 @@ import {
   Filter,
   Instagram,
   Facebook,
-  Linkedin
+  Linkedin,
+  Search
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -653,11 +654,13 @@ export function AIMarketingSystem() {
               </Select>
             </div>
             
-            <Input 
-              placeholder="Search campaigns..." 
-              className="max-w-xs"
-              startAdornment={<Search className="h-4 w-4 text-muted-foreground" />}
-            />
+            <div className="relative max-w-xs">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search campaigns..." 
+                className="pl-8 max-w-xs"
+              />
+            </div>
           </div>
           
           <Card>
@@ -981,11 +984,13 @@ export function AIMarketingSystem() {
         
         <TabsContent value="automations" className="space-y-4">
           <div className="flex items-center justify-between">
-            <Input 
-              placeholder="Search automations..." 
-              className="max-w-xs"
-              startAdornment={<Search className="h-4 w-4 text-muted-foreground" />}
-            />
+            <div className="relative max-w-xs">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search automations..." 
+                className="pl-8 max-w-xs"
+              />
+            </div>
             
             <Button>
               <PlusCircle className="h-4 w-4 mr-2" />

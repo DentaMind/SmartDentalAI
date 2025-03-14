@@ -21,7 +21,8 @@ import {
   ListChecks,
   MessageSquare,
   Stethoscope,
-  ClipboardList
+  ClipboardList,
+  Plus
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
