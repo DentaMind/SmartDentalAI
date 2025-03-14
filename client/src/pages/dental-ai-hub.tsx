@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Brain, 
   Wand2, 
-  Flask, 
+  Beaker, 
   BookOpen, 
   FileText, 
   Camera, 
@@ -90,9 +90,17 @@ export default function DentalAIHub() {
       badgeClass: 'bg-green-50 text-green-700 border-green-200'
     },
     {
+      id: 'multilingual',
+      name: 'Multilingual Communication',
+      description: 'Communicate with patients in their preferred language with AI translation',
+      icon: <Globe className="h-8 w-8 text-blue-600" />,
+      badge: 'Active',
+      badgeClass: 'bg-green-50 text-green-700 border-green-200'
+    },
+    {
       id: 'referrals',
-      name: 'Referrals & Languages',
-      description: 'Multilingual support and advanced referral management',
+      name: 'Referral Management',
+      description: 'Advanced referral tracking and management',
       icon: <UserPlus className="h-8 w-8 text-indigo-500" />,
       badge: 'Active',
       badgeClass: 'bg-green-50 text-green-700 border-green-200'
@@ -130,6 +138,8 @@ export default function DentalAIHub() {
         return <PaymentProcessing />;
       case 'marketing':
         return <AIMarketingSystem />;
+      case 'multilingual':
+        return <MultilingualPatientCommunication />;
       case 'referrals':
         return <MultilingualReferralSettings />;
       case 'overview':
@@ -198,7 +208,7 @@ export default function DentalAIHub() {
 
                   <div className="flex items-start space-x-3">
                     <div className="bg-primary/10 p-2 rounded-lg mt-1">
-                      <Flask className="h-5 w-5 text-primary" />
+                      <Beaker className="h-5 w-5 text-primary" />
                     </div>
                     <div>
                       <h3 className="font-medium">Continuous Learning System</h3>
@@ -276,6 +286,10 @@ export default function DentalAIHub() {
             <TabsTrigger value="marketing" className="px-4">
               <BellRing className="h-4 w-4 mr-2" />
               Marketing
+            </TabsTrigger>
+            <TabsTrigger value="multilingual" className="px-4">
+              <Globe className="h-4 w-4 mr-2" />
+              Multilingual
             </TabsTrigger>
             <TabsTrigger value="referrals" className="px-4">
               <UserPlus className="h-4 w-4 mr-2" />
