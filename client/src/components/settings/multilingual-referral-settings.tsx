@@ -1427,15 +1427,15 @@ Dr. {{CURRENT_PROVIDER}}"
                   <div className="bg-muted p-3 rounded-md">
                     <h4 className="text-sm font-medium mb-2">Available Variables</h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      <Badge variant="outline">{{PROVIDER_NAME}}</Badge>
-                      <Badge variant="outline">{{PATIENT_NAME}}</Badge>
-                      <Badge variant="outline">{{PATIENT_DOB}}</Badge>
-                      <Badge variant="outline">{{CURRENT_PROVIDER}}</Badge>
-                      <Badge variant="outline">{{CLINICAL_FINDINGS}}</Badge>
-                      <Badge variant="outline">{{TOOTH_NUMBERS}}</Badge>
-                      <Badge variant="outline">{{ATTACHMENTS}}</Badge>
-                      <Badge variant="outline">{{CONDITION}}</Badge>
-                      <Badge variant="outline">{{RADIOGRAPHIC_FINDINGS}}</Badge>
+                      <Badge variant="outline">{"{{PROVIDER_NAME}}"}</Badge>
+                      <Badge variant="outline">{"{{PATIENT_NAME}}"}</Badge>
+                      <Badge variant="outline">{"{{PATIENT_DOB}}"}</Badge>
+                      <Badge variant="outline">{"{{CURRENT_PROVIDER}}"}</Badge>
+                      <Badge variant="outline">{"{{CLINICAL_FINDINGS}}"}</Badge>
+                      <Badge variant="outline">{"{{TOOTH_NUMBERS}}"}</Badge>
+                      <Badge variant="outline">{"{{ATTACHMENTS}}"}</Badge>
+                      <Badge variant="outline">{"{{CONDITION}}"}</Badge>
+                      <Badge variant="outline">{"{{RADIOGRAPHIC_FINDINGS}}"}</Badge>
                     </div>
                   </div>
                 </div>
@@ -1584,17 +1584,17 @@ Dr. {{CURRENT_PROVIDER}}"
                           <h4 className="text-sm font-medium mb-2">English Version</h4>
                           <div className="p-4 border rounded-md bg-muted/30 whitespace-pre-line">
                             {/* This would be the English version in a real implementation */}
-                            Dear Dr. {{PROVIDER_NAME}},
+                            Dear Dr. {"{{PROVIDER_NAME}}"},
 
-                            I am referring {{PATIENT_NAME}}, DOB: {{PATIENT_DOB}}, for evaluation.
+                            I am referring {"{{PATIENT_NAME}}"}, DOB: {"{{PATIENT_DOB}}"}, for evaluation.
 
                             Clinical findings:
-                            {{CLINICAL_FINDINGS}}
+                            {"{{CLINICAL_FINDINGS}}"}
 
                             Thank you for your expertise.
 
                             Sincerely,
-                            Dr. {{CURRENT_PROVIDER}}
+                            Dr. {"{{CURRENT_PROVIDER}}"}
                           </div>
                         </div>
                       )}
