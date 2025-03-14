@@ -23,7 +23,7 @@ import {
   Brain,
   Bot,
   Activity,
-  Image,
+  FileImage,
 } from "lucide-react";
 import { IntraoralScanner } from "@/components/imaging/intraoral-scanner";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
@@ -495,7 +495,7 @@ export default function PatientProfilePage() {
                               <div className="rounded-lg border p-4">
                                 <div className="mb-3 flex items-center gap-2">
                                   <div className="bg-primary/10 p-2 rounded-full">
-                                    <Image className="h-5 w-5 text-primary" />
+                                    <ImageIcon className="h-5 w-5 text-primary" />
                                   </div>
                                   <h4 className="font-medium">X-ray Analysis</h4>
                                 </div>
