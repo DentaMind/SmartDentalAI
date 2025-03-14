@@ -5,7 +5,7 @@ import { Patient, User } from "@shared/schema";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useTranslation } from "react-i18next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -19,7 +19,13 @@ import {
   Scissors,
   LineChart,
   Heart,
+  Camera,
+  Brain,
+  Bot,
+  Activity,
+  Image,
 } from "lucide-react";
+import { IntraoralScanner } from "@/components/imaging/intraoral-scanner";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 import { PageHeader } from "@/components/layout/page-header";
 import { queryClient } from "@/lib/queryClient";
@@ -344,87 +350,189 @@ export default function PatientProfilePage() {
                 
                 {/* X-Ray Tab */}
                 <TabsContent value="xray">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <AlertCircle className="h-5 w-5 text-primary" />
-                        X-ray Images
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-6">
-                        {/* AI X-ray Analysis Section */}
-                        <div className="mb-6 border rounded-lg p-4 bg-card">
-                          <h3 className="text-lg font-medium mb-4">AI X-ray Analysis</h3>
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                              <div className="aspect-video bg-muted rounded-md relative overflow-hidden flex items-center justify-center">
-                                {/* Placeholder for X-ray image */}
-                                <p className="text-muted-foreground">No x-ray selected</p>
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                <Button variant="outline" size="sm">Upload New X-ray</Button>
-                                <Button variant="outline" size="sm">Capture from Sensor</Button>
-                                <Button variant="outline" size="sm">Import from PACS</Button>
+                  <Tabs defaultValue="xray-analysis">
+                    <TabsList className="w-full mb-4">
+                      <TabsTrigger value="xray-analysis">X-ray Analysis</TabsTrigger>
+                      <TabsTrigger value="intraoral-scanner">Intraoral Scanner</TabsTrigger>
+                      <TabsTrigger value="multi-modal">Multi-Modal AI Diagnosis</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="xray-analysis">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <AlertCircle className="h-5 w-5 text-primary" />
+                            X-ray Images
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-6">
+                            {/* AI X-ray Analysis Section */}
+                            <div className="mb-6 border rounded-lg p-4 bg-card">
+                              <h3 className="text-lg font-medium mb-4">AI X-ray Analysis</h3>
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                  <div className="aspect-video bg-muted rounded-md relative overflow-hidden flex items-center justify-center">
+                                    {/* Placeholder for X-ray image */}
+                                    <p className="text-muted-foreground">No x-ray selected</p>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    <Button variant="outline" size="sm">Upload New X-ray</Button>
+                                    <Button variant="outline" size="sm">Capture from Sensor</Button>
+                                    <Button variant="outline" size="sm">Import from PACS</Button>
+                                  </div>
+                                </div>
+                                <div className="space-y-4">
+                                  <div className="p-4 border rounded-md bg-background">
+                                    <h4 className="font-medium text-sm mb-2">AI Diagnostic Findings</h4>
+                                    <div className="space-y-2">
+                                      <p className="text-sm text-muted-foreground">Select an x-ray image to analyze or upload a new one.</p>
+                                    </div>
+                                  </div>
+                                  <div className="p-4 border rounded-md bg-background">
+                                    <h4 className="font-medium text-sm mb-2">AI Recommendations</h4>
+                                    <div className="space-y-2">
+                                      <p className="text-sm text-muted-foreground">AI will provide treatment recommendations based on x-ray analysis.</p>
+                                    </div>
+                                  </div>
+                                  <Button className="w-full">
+                                    Analyze with AI
+                                  </Button>
+                                </div>
                               </div>
                             </div>
-                            <div className="space-y-4">
-                              <div className="p-4 border rounded-md bg-background">
-                                <h4 className="font-medium text-sm mb-2">AI Diagnostic Findings</h4>
-                                <div className="space-y-2">
-                                  <p className="text-sm text-muted-foreground">Select an x-ray image to analyze or upload a new one.</p>
-                                </div>
+                            
+                            {/* X-ray History */}
+                            <div>
+                              <h3 className="text-lg font-medium mb-4">X-ray History</h3>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                {/* Sample x-ray cards */}
+                                <Card className="overflow-hidden">
+                                  <div className="aspect-video bg-muted relative">
+                                    {/* X-ray image would go here */}
+                                  </div>
+                                  <CardContent className="p-3">
+                                    <div className="text-sm font-medium">Full Mouth Series</div>
+                                    <div className="text-xs text-muted-foreground">Taken: 12/15/2024</div>
+                                  </CardContent>
+                                </Card>
+                                <Card className="overflow-hidden">
+                                  <div className="aspect-video bg-muted relative">
+                                    {/* X-ray image would go here */}
+                                  </div>
+                                  <CardContent className="p-3">
+                                    <div className="text-sm font-medium">Panoramic</div>
+                                    <div className="text-xs text-muted-foreground">Taken: 11/03/2024</div>
+                                  </CardContent>
+                                </Card>
+                                <Card className="overflow-hidden">
+                                  <div className="aspect-video bg-muted relative">
+                                    {/* X-ray image would go here */}
+                                  </div>
+                                  <CardContent className="p-3">
+                                    <div className="text-sm font-medium">Bitewings</div>
+                                    <div className="text-xs text-muted-foreground">Taken: 09/22/2024</div>
+                                  </CardContent>
+                                </Card>
                               </div>
-                              <div className="p-4 border rounded-md bg-background">
-                                <h4 className="font-medium text-sm mb-2">AI Recommendations</h4>
-                                <div className="space-y-2">
-                                  <p className="text-sm text-muted-foreground">AI will provide treatment recommendations based on x-ray analysis.</p>
-                                </div>
-                              </div>
-                              <Button className="w-full">
-                                Analyze with AI
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                    
+                    <TabsContent value="intraoral-scanner">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Camera className="h-5 w-5 text-primary" />
+                            Intraoral Scanner
+                          </CardTitle>
+                          <CardDescription>
+                            Analyze intraoral images to detect soft tissue abnormalities, bone loss, and occlusal relationships
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {/* Import the IntraoralScanner component */}
+                          <IntraoralScanner
+                            patientId={patientId}
+                            patientName={`${patient.user.firstName} ${patient.user.lastName}`}
+                          />
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                    
+                    <TabsContent value="multi-modal">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Brain className="h-5 w-5 text-primary" />
+                            Multi-Modal AI Diagnosis
+                          </CardTitle>
+                          <CardDescription>
+                            Comprehensive analysis combining X-rays, intraoral images, and clinical data
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="p-8 text-center space-y-4">
+                            <div className="rounded-full mx-auto bg-primary/10 p-3 w-12 h-12 flex items-center justify-center">
+                              <Bot className="h-6 w-6 text-primary" />
+                            </div>
+                            <h3 className="text-lg font-medium">Multi-Modal AI Diagnosis</h3>
+                            <p className="text-muted-foreground max-w-md mx-auto">
+                              Our advanced AI system combines data from X-rays, intraoral images, and clinical findings to provide the most comprehensive and accurate diagnosis.
+                            </p>
+                            <div className="flex justify-center mt-4">
+                              <Button className="mt-2">
+                                Generate Comprehensive AI Diagnosis
                               </Button>
                             </div>
                           </div>
-                        </div>
-                        
-                        {/* X-ray History */}
-                        <div>
-                          <h3 className="text-lg font-medium mb-4">X-ray History</h3>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                            {/* Sample x-ray cards */}
-                            <Card className="overflow-hidden">
-                              <div className="aspect-video bg-muted relative">
-                                {/* X-ray image would go here */}
+                          
+                          <div className="mt-8 border-t pt-6">
+                            <h3 className="text-lg font-medium mb-4">How Multi-Modal AI Works</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                              <div className="rounded-lg border p-4">
+                                <div className="mb-3 flex items-center gap-2">
+                                  <div className="bg-primary/10 p-2 rounded-full">
+                                    <Image className="h-5 w-5 text-primary" />
+                                  </div>
+                                  <h4 className="font-medium">X-ray Analysis</h4>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  AI analyzes radiographs to detect cavities, bone loss, abscesses, and other hidden conditions.
+                                </p>
                               </div>
-                              <CardContent className="p-3">
-                                <div className="text-sm font-medium">Full Mouth Series</div>
-                                <div className="text-xs text-muted-foreground">Taken: 12/15/2024</div>
-                              </CardContent>
-                            </Card>
-                            <Card className="overflow-hidden">
-                              <div className="aspect-video bg-muted relative">
-                                {/* X-ray image would go here */}
+                              
+                              <div className="rounded-lg border p-4">
+                                <div className="mb-3 flex items-center gap-2">
+                                  <div className="bg-primary/10 p-2 rounded-full">
+                                    <Camera className="h-5 w-5 text-primary" />
+                                  </div>
+                                  <h4 className="font-medium">Intraoral Imaging</h4>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  Advanced computer vision detects soft tissue abnormalities, lesions, and occlusal wear patterns.
+                                </p>
                               </div>
-                              <CardContent className="p-3">
-                                <div className="text-sm font-medium">Panoramic</div>
-                                <div className="text-xs text-muted-foreground">Taken: 11/03/2024</div>
-                              </CardContent>
-                            </Card>
-                            <Card className="overflow-hidden">
-                              <div className="aspect-video bg-muted relative">
-                                {/* X-ray image would go here */}
+                              
+                              <div className="rounded-lg border p-4">
+                                <div className="mb-3 flex items-center gap-2">
+                                  <div className="bg-primary/10 p-2 rounded-full">
+                                    <Activity className="h-5 w-5 text-primary" />
+                                  </div>
+                                  <h4 className="font-medium">Clinical Data</h4>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  Integrates patient history, symptoms, and clinical findings for a complete diagnostic picture.
+                                </p>
                               </div>
-                              <CardContent className="p-3">
-                                <div className="text-sm font-medium">Bitewings</div>
-                                <div className="text-xs text-muted-foreground">Taken: 09/22/2024</div>
-                              </CardContent>
-                            </Card>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
                 </TabsContent>
 
                 {/* Appointments Tab */}
