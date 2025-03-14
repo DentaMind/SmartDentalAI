@@ -175,12 +175,27 @@ export const treatmentPlans = pgTable("treatment_plans", {
   patientId: integer("patient_id").notNull(),
   doctorId: integer("doctor_id").notNull(),
   diagnosis: text("diagnosis").notNull(),
-  procedures: jsonb("procedures").notNull(),
+  procedures: jsonb("procedures").notNull(), // Enhanced to include sequencing information
   cost: integer("cost").notNull(),
   insuranceCoverage: integer("insurance_coverage"),
   patientResponsibility: integer("patient_responsibility"),
   status: text("status", { enum: ["proposed", "accepted", "in_progress", "completed", "cancelled"] }).notNull().default("proposed"),
   createdAt: timestamp("created_at").defaultNow(),
+  planName: text("plan_name"), // For multiple treatment plan options (Gold, Standard, etc.)
+  planType: text("plan_type", { enum: ["standard", "premium", "insurance_only", "custom"] }),
+  signatureRequired: boolean("signature_required").default(true),
+  signedByPatient: boolean("signed_by_patient").default(false),
+  patientSignatureDate: timestamp("patient_signature_date"),
+  patientSignatureImage: text("patient_signature_image"), // Base64 encoded signature
+  alternativePlans: jsonb("alternative_plans"), // Store alternative treatment options
+  appointmentSequence: jsonb("appointment_sequence"), // Ordered sequence of appointments
+  estimatedCompletionDate: timestamp("estimated_completion_date"),
+  insuranceVerification: jsonb("insurance_verification"), // Store verification details
+  remainingInsuranceBenefits: jsonb("remaining_insurance_benefits"), // Track remaining benefits
+  usedInsuranceBenefits: jsonb("used_insurance_benefits"), // Track used benefits
+  notes: text("notes"),
+  aiRecommendations: jsonb("ai_recommendations"), // AI-generated recommendations
+  lastUpdatedBy: integer("last_updated_by"),
 });
 
 export const xrays = pgTable("xrays", {

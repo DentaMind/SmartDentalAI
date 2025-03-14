@@ -9,6 +9,7 @@ import { generateDiagnosticReport } from './services/report-generator';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import { securityService } from "./services/security";
 import { financialService } from "./services/financial";
+import insuranceRoutes from './routes/insurance-routes';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
