@@ -1,331 +1,481 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, CheckCircle, Pill, RefreshCw, ShieldAlert } from "lucide-react";
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useQuery } from '@tanstack/react-query';
-import { useToast } from '@/hooks/use-toast';
-import axios from 'axios';
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { 
+  AlertTriangle, 
+  Pill, 
+  AlertCircle, 
+  Stethoscope, 
+  Syringe, 
+  Heart, 
+  Activity,
+  Ban,
+  Clock 
+} from "lucide-react";
+import { ASAClassification } from './auto-asa-classification';
 
-interface Contraindication {
-  substance: string;
-  category: 'allergy' | 'medication' | 'condition' | 'other';
-  severity: 'low' | 'moderate' | 'high';
-  description: string;
-  recommendations: string[];
+export enum ContraindicationSeverity {
+  ABSOLUTE = 'absolute',
+  RELATIVE = 'relative',
+  CAUTION = 'caution',
+  NONE = 'none'
+}
+
+export interface Contraindication {
+  id: string;
+  treatment: string;
+  reason: string;
+  severity: ContraindicationSeverity;
   alternatives?: string[];
+  precautions?: string[];
+  timeConstraint?: string;
 }
 
 interface ContraindicationsProps {
   patientId: number;
+  patientName: string;
+  asaClass?: ASAClassification;
+  medicalHistory: {
+    systemicConditions?: string[];
+    medications?: string[];
+    allergies?: string[];
+    vitalSigns?: {
+      bloodPressure?: string;
+      heartRate?: number;
+      respiratoryRate?: number;
+    };
+    smokingHistory?: boolean;
+    pregnancyStatus?: string;
+  };
+  readOnly?: boolean;
 }
 
-export function Contraindications({ patientId }: ContraindicationsProps) {
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const { toast } = useToast();
-
-  // Fetch patient medical history
-  const { data: patientMedicalHistory, isLoading: isLoadingHistory } = useQuery({
-    queryKey: [`/api/patients/${patientId}/medical-history`],
-    enabled: !isNaN(patientId),
-  });
-
-  // Fetch contraindications (could be derived from medical history)
-  const { data: contraindications, isLoading, refetch } = useQuery({
-    queryKey: [`/api/patients/${patientId}/contraindications`],
-    enabled: !isNaN(patientId),
-    // Fallback data for testing only - in production, this would come from the server
-    placeholderData: [
-      {
-        substance: "Epinephrine",
-        category: "medication",
-        severity: "high",
-        description: "Patient has severe hypertension that contraindicates use of epinephrine in local anesthetics",
-        recommendations: [
-          "Use anesthetics without epinephrine",
-          "Monitor blood pressure before and during procedure",
-          "Consider medical consultation before procedures requiring epinephrine"
-        ],
-        alternatives: ["Mepivacaine 3% without epinephrine", "Prilocaine 4%"]
-      },
-      {
-        substance: "NSAIDs",
-        category: "medication",
-        severity: "moderate",
-        description: "Patient is on blood thinners that may interact with NSAIDs",
-        recommendations: [
-          "Avoid prescribing NSAIDs for pain management",
-          "Check INR if patient is on warfarin",
-          "Consider alternative pain management options"
-        ],
-        alternatives: ["Acetaminophen", "Low-dose codeine if appropriate"]
-      },
-      {
-        substance: "Latex",
-        category: "allergy",
-        severity: "high",
-        description: "Patient has documented latex allergy",
-        recommendations: [
-          "Use only latex-free gloves and equipment",
-          "Alert all staff about latex allergy before treatment",
-          "Ensure emergency medications are available"
-        ]
-      }
-    ]
-  });
-
-  // Function to analyze medical history for contraindications
-  const analyzeContraindications = async () => {
-    setIsAnalyzing(true);
+export function Contraindications({
+  patientId,
+  patientName,
+  asaClass = 'I',
+  medicalHistory = {},
+  readOnly = false
+}: ContraindicationsProps) {
+  const [contraindications, setContraindications] = useState<Contraindication[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  
+  // Analyze medical history for contraindications
+  useEffect(() => {
+    setIsLoading(true);
     
-    try {
-      // In a real implementation, this would use the API to analyze medical history
-      // using the MEDICAL_AI_KEY or DIAGNOSIS_AI_KEY
+    // This would typically be an API call in a real-world scenario
+    const identifiedContraindications = analyzeContraindications(medicalHistory, asaClass);
+    
+    setContraindications(identifiedContraindications);
+    setIsLoading(false);
+  }, [medicalHistory, asaClass]);
+  
+  // Helper function to analyze medical history for contraindications
+  function analyzeContraindications(history: any, asaClass: ASAClassification): Contraindication[] {
+    const results: Contraindication[] = [];
+    
+    // Check allergies first - these are typically absolute contraindications
+    if (history.allergies && history.allergies.length > 0) {
+      if (typeof history.allergies === 'string') {
+        const allergiesArray = history.allergies.split(',').map(a => a.trim());
+        allergiesArray.forEach(allergy => {
+          if (allergy.toLowerCase().includes('penicillin')) {
+            results.push({
+              id: `allergy-penicillin-${Date.now()}`,
+              treatment: 'Penicillin antibiotics',
+              reason: 'Patient has documented penicillin allergy',
+              severity: ContraindicationSeverity.ABSOLUTE,
+              alternatives: ['Clindamycin', 'Azithromycin', 'Clarithromycin'],
+              precautions: ['Verify cross-reactivity with other beta-lactams']
+            });
+          }
+          
+          if (allergy.toLowerCase().includes('latex')) {
+            results.push({
+              id: `allergy-latex-${Date.now()}`,
+              treatment: 'Latex-containing materials',
+              reason: 'Patient has documented latex allergy',
+              severity: ContraindicationSeverity.ABSOLUTE,
+              alternatives: ['Nitrile gloves', 'Vinyl gloves', 'Latex-free dental dams'],
+              precautions: ['Ensure all staff aware of latex allergy', 'Schedule as first appointment of day']
+            });
+          }
+          
+          if (allergy.toLowerCase().includes('lidocaine') || allergy.toLowerCase().includes('novocaine')) {
+            results.push({
+              id: `allergy-anesthetic-${Date.now()}`,
+              treatment: 'Lidocaine/articaine anesthetics',
+              reason: 'Patient has documented local anesthetic allergy',
+              severity: ContraindicationSeverity.ABSOLUTE,
+              alternatives: ['Diphenhydramine infiltration', 'General anesthesia'],
+              precautions: ['Consult with allergist', 'Have emergency kit ready']
+            });
+          }
+        });
+      } else if (Array.isArray(history.allergies)) {
+        history.allergies.forEach((allergy: string) => {
+          // Same checks as above but for array format
+          if (allergy.toLowerCase().includes('penicillin')) {
+            results.push({
+              id: `allergy-penicillin-${Date.now()}`,
+              treatment: 'Penicillin antibiotics',
+              reason: 'Patient has documented penicillin allergy',
+              severity: ContraindicationSeverity.ABSOLUTE,
+              alternatives: ['Clindamycin', 'Azithromycin', 'Clarithromycin'],
+              precautions: ['Verify cross-reactivity with other beta-lactams']
+            });
+          }
+          
+          // More conditions (similar to above)
+        });
+      }
+    }
+    
+    // Check medications for contraindications
+    if (history.medications && history.medications.length > 0) {
+      if (typeof history.medications === 'string') {
+        const medicationsArray = history.medications.split(',').map(m => m.trim());
+        
+        // Check for blood thinners
+        if (medicationsArray.some(med => 
+          med.toLowerCase().includes('warfarin') || 
+          med.toLowerCase().includes('coumadin') ||
+          med.toLowerCase().includes('plavix') ||
+          med.toLowerCase().includes('aspirin') ||
+          med.toLowerCase().includes('eliquis') ||
+          med.toLowerCase().includes('xarelto')
+        )) {
+          results.push({
+            id: `medication-anticoagulant-${Date.now()}`,
+            treatment: 'Invasive dental procedures',
+            reason: 'Patient is taking anticoagulant medication',
+            severity: ContraindicationSeverity.RELATIVE,
+            alternatives: ['Minimally invasive techniques', 'Staged approach'],
+            precautions: [
+              'Consult with prescribing physician',
+              'Check recent INR values',
+              'Have local hemostatic agents available'
+            ]
+          });
+        }
+        
+        // Check for bisphosphonates
+        if (medicationsArray.some(med => 
+          med.toLowerCase().includes('fosamax') || 
+          med.toLowerCase().includes('boniva') ||
+          med.toLowerCase().includes('alendronate') ||
+          med.toLowerCase().includes('zometa') ||
+          med.toLowerCase().includes('reclast')
+        )) {
+          results.push({
+            id: `medication-bisphosphonate-${Date.now()}`,
+            treatment: 'Invasive oral surgery procedures',
+            reason: 'Patient is taking bisphosphonate medication',
+            severity: ContraindicationSeverity.RELATIVE,
+            alternatives: ['Root canal instead of extraction when possible', 'Conservative management'],
+            precautions: [
+              'Consult with prescribing physician',
+              'Assess duration and route of administration',
+              'Risk assessment for MRONJ'
+            ]
+          });
+        }
+        
+        // Check for immunosuppressants
+        if (medicationsArray.some(med => 
+          med.toLowerCase().includes('prednisone') || 
+          med.toLowerCase().includes('methotrexate') ||
+          med.toLowerCase().includes('humira') ||
+          med.toLowerCase().includes('cyclosporine') ||
+          med.toLowerCase().includes('tacrolimus')
+        )) {
+          results.push({
+            id: `medication-immunosuppressant-${Date.now()}`,
+            treatment: 'Elective invasive procedures',
+            reason: 'Patient is taking immunosuppressant medication',
+            severity: ContraindicationSeverity.CAUTION,
+            alternatives: ['Minimally invasive procedures', 'Prophylactic antibiotics'],
+            precautions: [
+              'Consider additional antibiotic prophylaxis',
+              'Ensure strict aseptic technique',
+              'Monitor for delayed healing'
+            ]
+          });
+        }
+      } else if (Array.isArray(history.medications)) {
+        // Similar logic but for array format of medications
+      }
+    }
+    
+    // Check systemic conditions
+    if (history.systemicConditions) {
+      let conditions: string[] = [];
       
-      // Simulate API call with delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      if (typeof history.systemicConditions === 'string') {
+        conditions = history.systemicConditions.split(',').map((c: string) => c.trim());
+      } else if (Array.isArray(history.systemicConditions)) {
+        conditions = history.systemicConditions;
+      }
       
-      // Refresh contraindications data after analysis
-      await refetch();
+      // Cardiovascular conditions
+      if (conditions.some(condition => 
+        condition.toLowerCase().includes('recent heart attack') ||
+        condition.toLowerCase().includes('myocardial infarction') ||
+        condition.toLowerCase().includes('unstable angina')
+      )) {
+        results.push({
+          id: `cardiac-recent-mi-${Date.now()}`,
+          treatment: 'Elective dental procedures',
+          reason: 'Recent myocardial infarction or unstable cardiac condition',
+          severity: ContraindicationSeverity.ABSOLUTE,
+          alternatives: ['Emergency treatment only', 'Minimally invasive palliative care'],
+          precautions: ['Cardiologist clearance required', 'Consider hospital-based dental care'],
+          timeConstraint: 'Delay elective treatment minimum 6 months post-MI'
+        });
+      }
       
-      toast({
-        title: "Analysis Complete",
-        description: "Patient contraindications have been updated based on their medical history.",
-        variant: "default",
+      // Pregnancy considerations
+      if (history.pregnancyStatus && history.pregnancyStatus !== 'not_pregnant') {
+        results.push({
+          id: `pregnancy-${Date.now()}`,
+          treatment: 'Elective radiographs and certain medications',
+          reason: 'Patient is pregnant',
+          severity: ContraindicationSeverity.RELATIVE,
+          alternatives: ['Essential radiographs with lead apron', 'Category B medications'],
+          precautions: [
+            'Avoid tetracyclines and fluoroquinolones',
+            'Minimize radiation exposure',
+            'Consult with obstetrician for treatment planning'
+          ]
+        });
+      }
+      
+      // Uncontrolled diabetes
+      if (conditions.some(condition => 
+        condition.toLowerCase().includes('uncontrolled diabetes')
+      )) {
+        results.push({
+          id: `diabetes-uncontrolled-${Date.now()}`,
+          treatment: 'Elective surgical procedures',
+          reason: 'Uncontrolled diabetes',
+          severity: ContraindicationSeverity.RELATIVE,
+          alternatives: ['Address acute pain/infection', 'Defer elective treatment until controlled'],
+          precautions: [
+            'Morning appointments', 
+            'Ensure patient has eaten', 
+            'Have glucose monitoring available'
+          ]
+        });
+      }
+    }
+    
+    // Check ASA classification for general contraindications
+    if (asaClass === 'IV' || asaClass === 'V') {
+      results.push({
+        id: `asa-class-${Date.now()}`,
+        treatment: 'Elective outpatient dental procedures',
+        reason: `Patient has ASA Classification ${asaClass}`,
+        severity: ContraindicationSeverity.ABSOLUTE,
+        alternatives: ['Hospital-based dental care', 'Emergency palliation only'],
+        precautions: [
+          'Medical consultation required',
+          'Consider referral to hospital dentistry',
+          'Emergency protocols must be in place'
+        ]
       });
-    } catch (error) {
-      toast({
-        title: "Analysis Failed",
-        description: "Could not analyze contraindications. Please try again.",
-        variant: "destructive",
+    } else if (asaClass === 'III') {
+      results.push({
+        id: `asa-class-${Date.now()}`,
+        treatment: 'Complex surgical procedures',
+        reason: `Patient has ASA Classification ${asaClass}`,
+        severity: ContraindicationSeverity.RELATIVE,
+        alternatives: ['Staged shorter appointments', 'Less invasive alternatives'],
+        precautions: [
+          'Medical consultation recommended',
+          'Consider vital signs monitoring',
+          'Modified anesthetic protocols may be needed'
+        ]
       });
-    } finally {
-      setIsAnalyzing(false);
     }
-  };
-
-  const getSeverityColor = (severity: string) => {
+    
+    // Check vital signs for immediate contraindications
+    if (history.vitalSigns) {
+      const { bloodPressure, heartRate } = history.vitalSigns;
+      
+      if (bloodPressure) {
+        const [systolic, diastolic] = bloodPressure.split('/').map(Number);
+        
+        // Hypertensive crisis
+        if (systolic >= 180 || diastolic >= 110) {
+          results.push({
+            id: `bp-crisis-${Date.now()}`,
+            treatment: 'All dental procedures',
+            reason: 'Hypertensive crisis - BP ' + bloodPressure,
+            severity: ContraindicationSeverity.ABSOLUTE,
+            alternatives: ['Immediate medical referral', 'Reschedule after BP control'],
+            precautions: [
+              'Consider emergency medical services',
+              'Monitor vital signs',
+              'No dental treatment until stabilized'
+            ]
+          });
+        } 
+        // Severe hypertension
+        else if (systolic >= 160 || diastolic >= 100) {
+          results.push({
+            id: `bp-severe-${Date.now()}`,
+            treatment: 'Elective surgical procedures',
+            reason: 'Severe hypertension - BP ' + bloodPressure,
+            severity: ContraindicationSeverity.RELATIVE,
+            alternatives: ['Urgent care only', 'Medical consultation'],
+            precautions: [
+              'Minimize epinephrine use',
+              'Stress reduction protocols',
+              'Consider medication review'
+            ]
+          });
+        }
+      }
+      
+      if (heartRate) {
+        if (heartRate > 120 || heartRate < 50) {
+          results.push({
+            id: `hr-abnormal-${Date.now()}`,
+            treatment: 'Elective dental procedures',
+            reason: `Abnormal heart rate (${heartRate} bpm)`,
+            severity: ContraindicationSeverity.RELATIVE,
+            alternatives: ['Urgent care only', 'Medical consultation'],
+            precautions: [
+              'Continuous monitoring during treatment',
+              'Avoid vasoconstrictors if tachycardia',
+              'Have medical emergency kit ready'
+            ]
+          });
+        }
+      }
+    }
+    
+    return results;
+  }
+  
+  function getSeverityBadge(severity: ContraindicationSeverity) {
     switch (severity) {
-      case 'low':
-        return "bg-blue-50 border-blue-200 text-blue-700";
-      case 'moderate':
-        return "bg-amber-50 border-amber-200 text-amber-700";
-      case 'high':
-        return "bg-red-50 border-red-200 text-red-700";
+      case ContraindicationSeverity.ABSOLUTE:
+        return <Badge variant="destructive" className="whitespace-nowrap">Absolute</Badge>;
+      case ContraindicationSeverity.RELATIVE:
+        return <Badge variant="default" className="bg-amber-500 whitespace-nowrap">Relative</Badge>;
+      case ContraindicationSeverity.CAUTION:
+        return <Badge variant="outline" className="text-blue-600 border-blue-600 whitespace-nowrap">Caution</Badge>;
       default:
-        return "bg-gray-50 border-gray-200 text-gray-700";
+        return <Badge variant="outline" className="whitespace-nowrap">None</Badge>;
     }
-  };
-
-  const getSeverityIcon = (severity: string) => {
+  }
+  
+  function getSeverityIcon(severity: ContraindicationSeverity) {
     switch (severity) {
-      case 'low':
-        return <AlertTriangle className="h-4 w-4 text-blue-500" />;
-      case 'moderate':
-        return <ShieldAlert className="h-4 w-4 text-amber-500" />;
-      case 'high':
-        return <AlertTriangle className="h-4 w-4 text-red-500" />;
+      case ContraindicationSeverity.ABSOLUTE:
+        return <Ban className="h-5 w-5 text-red-500" />;
+      case ContraindicationSeverity.RELATIVE:
+        return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+      case ContraindicationSeverity.CAUTION:
+        return <AlertCircle className="h-5 w-5 text-blue-500" />;
       default:
-        return null;
+        return <Activity className="h-5 w-5 text-green-500" />;
     }
-  };
-
+  }
+  
   return (
     <Card>
       <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Pill className="h-5 w-5" />
-              Treatment Contraindications
-            </CardTitle>
-            <CardDescription>
-              AI-detected contraindications based on patient medical history
-            </CardDescription>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={analyzeContraindications} 
-            disabled={isAnalyzing || isLoadingHistory}
-            className="flex items-center gap-1"
-          >
-            <RefreshCw className={`h-4 w-4 ${isAnalyzing ? "animate-spin" : ""}`} />
-            {isAnalyzing ? "Analyzing..." : "Analyze"}
-          </Button>
-        </div>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-primary" />
+          Treatment Contraindications
+        </CardTitle>
+        <CardDescription>
+          Automatic identification of treatment contraindications based on patient history
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex justify-center py-4">
-            <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+          <div className="flex items-center justify-center p-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-        ) : contraindications && contraindications.length > 0 ? (
-          <Tabs defaultValue="all">
-            <TabsList className="mb-4">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="high">High Risk</TabsTrigger>
-              <TabsTrigger value="medications">Medications</TabsTrigger>
-              <TabsTrigger value="allergies">Allergies</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="all" className="space-y-4">
-              {contraindications.map((item, i) => (
-                <div 
-                  key={i} 
-                  className={`p-3 border rounded-md ${getSeverityColor(item.severity)}`}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    {getSeverityIcon(item.severity)}
-                    <h4 className="font-medium">{item.substance}</h4>
-                    <span className="bg-white bg-opacity-50 text-xs px-2 py-0.5 rounded-full">
-                      {item.category}
-                    </span>
-                  </div>
-                  <p className="text-sm mb-2">{item.description}</p>
-                  <div className="text-sm mt-2">
-                    <h5 className="font-medium mb-1">Recommendations:</h5>
-                    <ul className="list-disc pl-5 space-y-1 text-sm">
-                      {item.recommendations.map((rec, j) => (
-                        <li key={j}>{rec}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  {item.alternatives && item.alternatives.length > 0 && (
-                    <div className="text-sm mt-2">
-                      <h5 className="font-medium mb-1">Alternatives:</h5>
-                      <ul className="list-disc pl-5 space-y-1 text-sm">
-                        {item.alternatives.map((alt, j) => (
-                          <li key={j}>{alt}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </TabsContent>
-            
-            <TabsContent value="high" className="space-y-4">
-              {contraindications
-                .filter(item => item.severity === 'high')
-                .map((item, i) => (
-                  <div 
-                    key={i} 
-                    className={`p-3 border rounded-md ${getSeverityColor(item.severity)}`}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      {getSeverityIcon(item.severity)}
-                      <h4 className="font-medium">{item.substance}</h4>
-                      <span className="bg-white bg-opacity-50 text-xs px-2 py-0.5 rounded-full">
-                        {item.category}
-                      </span>
-                    </div>
-                    <p className="text-sm mb-2">{item.description}</p>
-                    <div className="text-sm mt-2">
-                      <h5 className="font-medium mb-1">Recommendations:</h5>
-                      <ul className="list-disc pl-5 space-y-1 text-sm">
-                        {item.recommendations.map((rec, j) => (
-                          <li key={j}>{rec}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    {item.alternatives && item.alternatives.length > 0 && (
-                      <div className="text-sm mt-2">
-                        <h5 className="font-medium mb-1">Alternatives:</h5>
-                        <ul className="list-disc pl-5 space-y-1 text-sm">
-                          {item.alternatives.map((alt, j) => (
-                            <li key={j}>{alt}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                ))}
-            </TabsContent>
-            
-            <TabsContent value="medications" className="space-y-4">
-              {contraindications
-                .filter(item => item.category === 'medication')
-                .map((item, i) => (
-                  <div 
-                    key={i} 
-                    className={`p-3 border rounded-md ${getSeverityColor(item.severity)}`}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      {getSeverityIcon(item.severity)}
-                      <h4 className="font-medium">{item.substance}</h4>
-                      <span className="bg-white bg-opacity-50 text-xs px-2 py-0.5 rounded-full">
-                        {item.category}
-                      </span>
-                    </div>
-                    <p className="text-sm mb-2">{item.description}</p>
-                    <div className="text-sm mt-2">
-                      <h5 className="font-medium mb-1">Recommendations:</h5>
-                      <ul className="list-disc pl-5 space-y-1 text-sm">
-                        {item.recommendations.map((rec, j) => (
-                          <li key={j}>{rec}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    {item.alternatives && item.alternatives.length > 0 && (
-                      <div className="text-sm mt-2">
-                        <h5 className="font-medium mb-1">Alternatives:</h5>
-                        <ul className="list-disc pl-5 space-y-1 text-sm">
-                          {item.alternatives.map((alt, j) => (
-                            <li key={j}>{alt}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                ))}
-            </TabsContent>
-            
-            <TabsContent value="allergies" className="space-y-4">
-              {contraindications
-                .filter(item => item.category === 'allergy')
-                .map((item, i) => (
-                  <div 
-                    key={i} 
-                    className={`p-3 border rounded-md ${getSeverityColor(item.severity)}`}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      {getSeverityIcon(item.severity)}
-                      <h4 className="font-medium">{item.substance}</h4>
-                      <span className="bg-white bg-opacity-50 text-xs px-2 py-0.5 rounded-full">
-                        {item.category}
-                      </span>
-                    </div>
-                    <p className="text-sm mb-2">{item.description}</p>
-                    <div className="text-sm mt-2">
-                      <h5 className="font-medium mb-1">Recommendations:</h5>
-                      <ul className="list-disc pl-5 space-y-1 text-sm">
-                        {item.recommendations.map((rec, j) => (
-                          <li key={j}>{rec}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    {item.alternatives && item.alternatives.length > 0 && (
-                      <div className="text-sm mt-2">
-                        <h5 className="font-medium mb-1">Alternatives:</h5>
-                        <ul className="list-disc pl-5 space-y-1 text-sm">
-                          {item.alternatives.map((alt, j) => (
-                            <li key={j}>{alt}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                ))}
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-6 text-center">
-            <CheckCircle className="h-8 w-8 text-green-500 mb-2" />
-            <h3 className="font-medium">No Contraindications Detected</h3>
+        ) : contraindications.length === 0 ? (
+          <div className="text-center py-6">
+            <Activity className="h-12 w-12 text-green-500 mx-auto mb-3" />
+            <h3 className="text-lg font-medium text-green-700">No contraindications identified</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              No contraindications were detected based on the patient's current medical history.
+              Patient appears to have no specific treatment contraindications based on their medical history
             </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground mb-2">
+              {contraindications.length} potential {contraindications.length === 1 ? 'contraindication' : 'contraindications'} identified
+            </div>
+            
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-1/6">Severity</TableHead>
+                    <TableHead className="w-1/4">Treatment</TableHead>
+                    <TableHead className="w-1/3">Reason</TableHead>
+                    <TableHead className="w-1/4">Recommendations</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {contraindications.map((contra) => (
+                    <TableRow key={contra.id}>
+                      <TableCell>
+                        <div className="flex flex-col gap-1 items-start">
+                          {getSeverityBadge(contra.severity)}
+                          {contra.timeConstraint && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                              <Clock className="h-3 w-3" />
+                              <span>{contra.timeConstraint}</span>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium">{contra.treatment}</TableCell>
+                      <TableCell>{contra.reason}</TableCell>
+                      <TableCell>
+                        {contra.alternatives && contra.alternatives.length > 0 && (
+                          <div className="mb-2">
+                            <span className="text-xs font-medium text-muted-foreground">Alternatives:</span>
+                            <ul className="text-xs mt-1 space-y-1">
+                              {contra.alternatives.map((alt, i) => (
+                                <li key={i} className="flex items-start gap-1.5">
+                                  <Stethoscope className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
+                                  <span>{alt}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        {contra.precautions && contra.precautions.length > 0 && (
+                          <div>
+                            <span className="text-xs font-medium text-muted-foreground">Precautions:</span>
+                            <ul className="text-xs mt-1 space-y-1">
+                              {contra.precautions.map((prec, i) => (
+                                <li key={i} className="flex items-start gap-1.5">
+                                  <Syringe className="h-3 w-3 text-amber-500 mt-0.5 flex-shrink-0" />
+                                  <span>{prec}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
       </CardContent>

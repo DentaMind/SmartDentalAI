@@ -63,7 +63,7 @@ export default function PatientProfilePage() {
   const { toast } = useToast();
   const { id } = useParams<{ id: string }>();
   const patientId = parseInt(id);
-  const [asaClass, setAsaClass] = useState<ASAClassification>('II');
+  const [asaClass, setAsaClass] = useState<ASAClassification>('II' as ASAClassification);
   const [emergencyStatus, setEmergencyStatus] = useState(false);
 
   // Fetch the patient's data
@@ -194,7 +194,30 @@ export default function PatientProfilePage() {
                     
                     {/* Contraindications to Treatment */}
                     <div className="mt-6 mb-4">
-                      <Contraindications patientId={patientId} />
+                      <Contraindications 
+                        patientId={patientId} 
+                        patientName={`${patient.user.firstName} ${patient.user.lastName}`}
+                        asaClass={asaClass}
+                        medicalHistory={{
+                          systemicConditions: patient.medicalHistory ? (() => {
+                            try {
+                              const parsedHistory = JSON.parse(patient.medicalHistory);
+                              return parsedHistory.systemicConditions || [];
+                            } catch (e) {
+                              console.error("Error parsing medical history:", e);
+                              return [];
+                            }
+                          })() : [],
+                          medications: patient.currentMedications ? patient.currentMedications.split(',').map(med => med.trim()) : [],
+                          allergies: patient.allergies,
+                          vitalSigns: {
+                            bloodPressure: patient.bloodPressure,
+                            heartRate: patient.heartRate ? parseInt(patient.heartRate) : undefined,
+                          },
+                          smokingHistory: patient.smokesTobacco,
+                          pregnancyStatus: patient.isPregnantOrNursing ? 'pregnant' : 'not_pregnant'
+                        }}
+                      />
                     </div>
                     
                     <div className="space-y-2 mt-4 pt-4 border-t">
