@@ -79,8 +79,8 @@ export function Contraindications({
     // Check allergies first - these are typically absolute contraindications
     if (history.allergies && history.allergies.length > 0) {
       if (typeof history.allergies === 'string') {
-        const allergiesArray = history.allergies.split(',').map(a => a.trim());
-        allergiesArray.forEach(allergy => {
+        const allergiesArray = history.allergies.split(',').map((a: string) => a.trim());
+        allergiesArray.forEach((allergy: string) => {
           if (allergy.toLowerCase().includes('penicillin')) {
             results.push({
               id: `allergy-penicillin-${Date.now()}`,
@@ -128,7 +128,27 @@ export function Contraindications({
             });
           }
           
-          // More conditions (similar to above)
+          if (allergy.toLowerCase().includes('latex')) {
+            results.push({
+              id: `allergy-latex-${Date.now()}`,
+              treatment: 'Latex-containing materials',
+              reason: 'Patient has documented latex allergy',
+              severity: ContraindicationSeverity.ABSOLUTE,
+              alternatives: ['Nitrile gloves', 'Vinyl gloves', 'Latex-free dental dams'],
+              precautions: ['Ensure all staff aware of latex allergy', 'Schedule as first appointment of day']
+            });
+          }
+          
+          if (allergy.toLowerCase().includes('lidocaine') || allergy.toLowerCase().includes('novocaine')) {
+            results.push({
+              id: `allergy-anesthetic-${Date.now()}`,
+              treatment: 'Lidocaine/articaine anesthetics',
+              reason: 'Patient has documented local anesthetic allergy',
+              severity: ContraindicationSeverity.ABSOLUTE,
+              alternatives: ['Diphenhydramine infiltration', 'General anesthesia'],
+              precautions: ['Consult with allergist', 'Have emergency kit ready']
+            });
+          }
         });
       }
     }
@@ -136,10 +156,10 @@ export function Contraindications({
     // Check medications for contraindications
     if (history.medications && history.medications.length > 0) {
       if (typeof history.medications === 'string') {
-        const medicationsArray = history.medications.split(',').map(m => m.trim());
+        const medicationsArray = history.medications.split(',').map((m: string) => m.trim());
         
         // Check for blood thinners
-        if (medicationsArray.some(med => 
+        if (medicationsArray.some((med: string) => 
           med.toLowerCase().includes('warfarin') || 
           med.toLowerCase().includes('coumadin') ||
           med.toLowerCase().includes('plavix') ||
@@ -162,7 +182,7 @@ export function Contraindications({
         }
         
         // Check for bisphosphonates
-        if (medicationsArray.some(med => 
+        if (medicationsArray.some((med: string) => 
           med.toLowerCase().includes('fosamax') || 
           med.toLowerCase().includes('boniva') ||
           med.toLowerCase().includes('alendronate') ||
@@ -184,7 +204,7 @@ export function Contraindications({
         }
         
         // Check for immunosuppressants
-        if (medicationsArray.some(med => 
+        if (medicationsArray.some((med: string) => 
           med.toLowerCase().includes('prednisone') || 
           med.toLowerCase().includes('methotrexate') ||
           med.toLowerCase().includes('humira') ||
@@ -205,7 +225,72 @@ export function Contraindications({
           });
         }
       } else if (Array.isArray(history.medications)) {
-        // Similar logic but for array format of medications
+        // Check for blood thinners
+        if (history.medications.some((med: string) => 
+          med.toLowerCase().includes('warfarin') || 
+          med.toLowerCase().includes('coumadin') ||
+          med.toLowerCase().includes('plavix') ||
+          med.toLowerCase().includes('aspirin') ||
+          med.toLowerCase().includes('eliquis') ||
+          med.toLowerCase().includes('xarelto')
+        )) {
+          results.push({
+            id: `medication-anticoagulant-${Date.now()}`,
+            treatment: 'Invasive dental procedures',
+            reason: 'Patient is taking anticoagulant medication',
+            severity: ContraindicationSeverity.RELATIVE,
+            alternatives: ['Minimally invasive techniques', 'Staged approach'],
+            precautions: [
+              'Consult with prescribing physician',
+              'Check recent INR values',
+              'Have local hemostatic agents available'
+            ]
+          });
+        }
+        
+        // Check for bisphosphonates
+        if (history.medications.some((med: string) => 
+          med.toLowerCase().includes('fosamax') || 
+          med.toLowerCase().includes('boniva') ||
+          med.toLowerCase().includes('alendronate') ||
+          med.toLowerCase().includes('zometa') ||
+          med.toLowerCase().includes('reclast')
+        )) {
+          results.push({
+            id: `medication-bisphosphonate-${Date.now()}`,
+            treatment: 'Invasive oral surgery procedures',
+            reason: 'Patient is taking bisphosphonate medication',
+            severity: ContraindicationSeverity.RELATIVE,
+            alternatives: ['Root canal instead of extraction when possible', 'Conservative management'],
+            precautions: [
+              'Consult with prescribing physician',
+              'Assess duration and route of administration',
+              'Risk assessment for MRONJ'
+            ]
+          });
+        }
+        
+        // Check for immunosuppressants
+        if (history.medications.some((med: string) => 
+          med.toLowerCase().includes('prednisone') || 
+          med.toLowerCase().includes('methotrexate') ||
+          med.toLowerCase().includes('humira') ||
+          med.toLowerCase().includes('cyclosporine') ||
+          med.toLowerCase().includes('tacrolimus')
+        )) {
+          results.push({
+            id: `medication-immunosuppressant-${Date.now()}`,
+            treatment: 'Elective invasive procedures',
+            reason: 'Patient is taking immunosuppressant medication',
+            severity: ContraindicationSeverity.CAUTION,
+            alternatives: ['Minimally invasive procedures', 'Prophylactic antibiotics'],
+            precautions: [
+              'Consider additional antibiotic prophylaxis',
+              'Ensure strict aseptic technique',
+              'Monitor for delayed healing'
+            ]
+          });
+        }
       }
     }
     

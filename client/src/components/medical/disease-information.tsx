@@ -27,6 +27,33 @@ import {
 
 import { Input } from "@/components/ui/input";
 
+// Custom Lungs icon component
+const Lungs = React.forwardRef<SVGSVGElement, React.ComponentProps<'svg'>>(
+  ({ className, ...props }, ref) => {
+    return (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        ref={ref}
+        className={className}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        {...props}
+      >
+        <path d="M6.081 20c2.633-2.133 4.283-4.85 5.035-7.959.234-1.337-.135-2.536-1.172-2.536-.94 0-1.562.812-1.57 1.751L8 20" />
+        <path d="M17.92 20c-2.633-2.133-4.283-4.85-5.035-7.959-.234-1.337.135-2.536 1.172-2.536.94 0 1.562.812 1.57 1.751L16 20" />
+        <path d="M8 20v2" />
+        <path d="M16 20v2" />
+        <path d="M12 2c.771.732 1.392 1.532 1.839 2.395a8.468 8.468 0 0 1 .661 4.228c-.068.937.059 1.78.373 2.505.315.724.786 1.339 1.254 1.339M12 2c-.771.732-1.392 1.532-1.839 2.395a8.468 8.468 0 0 0-.661 4.228c.068.937-.059 1.78-.373 2.505-.315.724-.786 1.339-1.254 1.339" />
+      </svg>
+    );
+  }
+);
+Lungs.displayName = "Lungs";
+
 export interface DiseaseInfo {
   id: string;
   name: string;

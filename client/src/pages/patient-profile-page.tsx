@@ -24,7 +24,9 @@ import {
   Bot,
   Activity,
   FileImage,
+  AlertTriangle
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { IntraoralScanner } from "@/components/imaging/intraoral-scanner";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 import { PageHeader } from "@/components/layout/page-header";
@@ -183,39 +185,98 @@ export default function PatientProfilePage() {
                     {/* AI-Assisted ASA Classification */}
                     <div className="mb-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <Heart className="h-5 w-5 text-rose-500" />
+                        <Heart className="h-5 w-5 text-green-500" />
                         <h3 className="font-medium">AI-Assisted ASA Classification</h3>
+                        <Badge 
+                          variant="outline" 
+                          className="bg-green-50 text-green-700 border-green-200 ml-auto"
+                        >
+                          Auto-Generated
+                        </Badge>
                       </div>
                       <AutoASAClassification 
                         patientId={patientId}
-                        initialClass={asaClass}
-                        initialEmergencyStatus={emergencyStatus === true ? 'emergency' : 'routine'}
+                        patientName={`${patient.user.firstName} ${patient.user.lastName}`}
+                        medicalHistory={{
+                          systemicConditions: (() => {
+                            // Auto-identify conditions from various fields
+                            const conditions = [];
+                            if (patient.hypertension) conditions.push('Hypertension');
+                            if (patient.diabetes) conditions.push('Diabetes Mellitus');
+                            if (patient.heartDisease) conditions.push('Heart Disease');
+                            if (patient.asthma) conditions.push('Asthma');
+                            if (patient.arthritis) conditions.push('Arthritis');
+                            if (patient.cancer) conditions.push('Cancer');
+                            if (patient.stroke) conditions.push('Stroke');
+                            if (patient.kidneyDisease) conditions.push('Kidney Disease');
+                            if (patient.liverDisease) conditions.push('Liver Disease');
+                            if (patient.thyroidDisease) conditions.push('Thyroid Disease');
+                            if (patient.mentalIllness) conditions.push('Mental Illness');
+                            if (patient.seizures) conditions.push('Seizure Disorder');
+                            if (patient.bleedingDisorders) conditions.push('Bleeding Disorder');
+                            if (patient.autoimmune) conditions.push('Autoimmune Disease');
+                            if (patient.hepatitis) conditions.push('Hepatitis');
+                            if (patient.hivAids) conditions.push('HIV/AIDS');
+                            if (patient.lungDisease) conditions.push('Lung Disease');
+                            if (patient.osteoporosis) conditions.push('Osteoporosis');
+                            return conditions;
+                          })(),
+                          medications: patient.currentMedications ? patient.currentMedications.split(',').map(med => med.trim()) : [],
+                          allergies: patient.allergies ? patient.allergies.split(',').map(allergy => allergy.trim()) : [],
+                          smokingHistory: patient.smokesTobacco === true,
+                        }}
                       />
                     </div>
                     
                     {/* Contraindications to Treatment */}
                     <div className="mt-6 mb-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertTriangle className="h-5 w-5 text-amber-500" />
+                        <h3 className="font-medium">Treatment Contraindications</h3>
+                        <Badge 
+                          variant="outline" 
+                          className="bg-green-50 text-green-700 border-green-200 ml-auto"
+                        >
+                          AI-Generated
+                        </Badge>
+                      </div>
                       <Contraindications 
                         patientId={patientId} 
                         patientName={`${patient.user.firstName} ${patient.user.lastName}`}
-                        asaClass={asaClass}
                         medicalHistory={{
-                          systemicConditions: patient.medicalHistory ? (() => {
-                            try {
-                              const parsedHistory = JSON.parse(patient.medicalHistory);
-                              return parsedHistory.systemicConditions || [];
-                            } catch (e) {
-                              console.error("Error parsing medical history:", e);
-                              return [];
-                            }
-                          })() : [],
+                          systemicConditions: (() => {
+                            // Auto-identify conditions from various fields
+                            const conditions = [];
+                            if (patient.hypertension) conditions.push('Hypertension');
+                            if (patient.diabetes) conditions.push('Diabetes Mellitus');
+                            if (patient.heartDisease) conditions.push('Heart Disease');
+                            if (patient.asthma) conditions.push('Asthma');
+                            if (patient.arthritis) conditions.push('Arthritis');
+                            if (patient.cancer) conditions.push('Cancer');
+                            if (patient.stroke) conditions.push('Stroke');
+                            if (patient.kidneyDisease) conditions.push('Kidney Disease');
+                            if (patient.liverDisease) conditions.push('Liver Disease');
+                            if (patient.thyroidDisease) conditions.push('Thyroid Disease');
+                            if (patient.mentalIllness) conditions.push('Mental Illness');
+                            if (patient.seizures) conditions.push('Seizure Disorder');
+                            if (patient.bleedingDisorders) conditions.push('Bleeding Disorder');
+                            if (patient.autoimmune) conditions.push('Autoimmune Disease');
+                            if (patient.hepatitis) conditions.push('Hepatitis');
+                            if (patient.hivAids) conditions.push('HIV/AIDS');
+                            if (patient.lungDisease) conditions.push('Lung Disease');
+                            if (patient.osteoporosis) conditions.push('Osteoporosis');
+                            return conditions;
+                          })(),
                           medications: patient.currentMedications ? patient.currentMedications.split(',').map(med => med.trim()) : [],
-                          allergies: patient.allergies,
+                          allergies: patient.allergies ? patient.allergies.split(',').map(allergy => allergy.trim()) : [],
                           vitalSigns: {
-                            bloodPressure: patient.bloodPressure,
-                            heartRate: patient.heartRate ? parseInt(patient.heartRate) : undefined,
+                            // Note: We don't have these values stored currently
+                            // In a real app, we would fetch them from the most recent visit
+                            // For now, providing empty values which will be updated when available
+                            bloodPressure: undefined,
+                            heartRate: undefined,
                           },
-                          smokingHistory: patient.smokesTobacco,
+                          smokingHistory: patient.smokesTobacco === true,
                           pregnancyStatus: patient.isPregnantOrNursing ? 'pregnant' : 'not_pregnant'
                         }}
                       />
