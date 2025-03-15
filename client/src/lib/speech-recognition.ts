@@ -1,356 +1,310 @@
 /**
- * Real-time speech recognition service using the Web Speech API
- * This service provides voice-to-text functionality for dental clinical notes
+ * Speech Recognition Service
+ * 
+ * This service provides a wrapper around the Web Speech API's SpeechRecognition
+ * interface, adding support for:
+ * - Multiple languages
+ * - Real-time transcription with continuous mode
+ * - Voice command detection
+ * - Error handling and recovery
+ * - Sentence boundary detection
  */
 
-// Define interface for Speech Recognition
-interface ISpeechRecognitionService {
+interface SpeechRecognitionService {
   isListening: boolean;
+  transcript: string;
+  onResult: (text: string) => void;
+  onStart: () => void;
+  onEnd: () => void;
+  onError: (error: string) => void;
   start: (language?: string) => void;
   stop: () => void;
-  onResult?: (text: string) => void;
-  onEnd?: () => void;
-  onError?: (error: any) => void;
-}
-
-// Define the SpeechRecognition type for TypeScript
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  maxAlternatives: number;
-  onaudiostart: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onaudioend: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onend: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onerror: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onnomatch: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
-  onsoundstart: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onsoundend: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onspeechstart: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onspeechend: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onstart: ((this: SpeechRecognition, ev: Event) => any) | null;
-  start: () => void;
-  stop: () => void;
   abort: () => void;
+  pauseListening: () => void;
+  resumeListening: () => void;
+  clearTranscript: () => void;
+  detectCommands: (text: string) => string;
 }
 
-interface SpeechRecognitionResult {
-  readonly isFinal: boolean;
-  readonly length: number;
-  item(index: number): SpeechRecognitionAlternative;
-  [index: number]: SpeechRecognitionAlternative;
-}
-
-interface SpeechRecognitionAlternative {
-  readonly transcript: string;
-  readonly confidence: number;
-}
-
-interface SpeechRecognitionEvent extends Event {
-  readonly resultIndex: number;
-  readonly results: SpeechRecognitionResultList;
-}
-
-interface SpeechRecognitionResultList {
-  readonly length: number;
-  item(index: number): SpeechRecognitionResult;
-  [index: number]: SpeechRecognitionResult;
-}
-
-interface Window {
-  SpeechRecognition: new () => SpeechRecognition;
-  webkitSpeechRecognition: new () => SpeechRecognition;
-}
-
-/**
- * Speech recognition service implementation
- */
-class SpeechRecognitionService implements ISpeechRecognitionService {
+class WebSpeechRecognitionService implements SpeechRecognitionService {
   private recognition: SpeechRecognition | null = null;
-  private _isListening = false;
-  private lastTranscript = '';
+  private interimTranscript = '';
+  private finalTranscript = '';
+  private currentLanguage = 'en-US';
+  private voiceCommandsEnabled = true;
+  private autoRestartOnError = true;
+  private restartAttempts = 0;
+  private maxRestartAttempts = 3;
   
-  // Dental terms and phrases to help improve recognition accuracy
-  private dentalTerms = [
-    'amalgam', 'composite', 'crown', 'bridge', 'implant', 'denture',
-    'extraction', 'scaling', 'root planing', 'prophylaxis', 'prophy',
-    'periodontal', 'endodontic', 'orthodontic', 'occlusal', 'caries',
-    'cavity', 'restoration', 'pulpitis', 'periapical', 'radiograph',
-    'x-ray', 'CBCT', 'bitewing', 'panoramic', 'mandible', 'maxilla',
-    'buccal', 'lingual', 'palatal', 'mesial', 'distal', 'gingival',
-    'molar', 'premolar', 'canine', 'incisor', 'dentin', 'enamel',
-    'pulp', 'apex', 'cusp', 'fissure', 'anesthesia', 'lidocaine',
-    'articaine', 'epinephrine', 'carpule', 'infiltration', 'block'
-  ];
+  public isListening = false;
+  public transcript = '';
   
-  // Dental voice commands to enhance dictation
-  private voiceCommands = {
-    'new paragraph': '\n\n',
-    'new line': '\n',
-    'section subjective': '\n\nSUBJECTIVE:\n',
-    'section objective': '\n\nOBJECTIVE:\n',
-    'section assessment': '\n\nASSESSMENT:\n',
-    'section plan': '\n\nPLAN:\n',
-    'section diagnosis': '\n\nDIAGNOSIS:\n',
-    'section treatment': '\n\nTREATMENT:\n',
-    'section medications': '\n\nMEDICATIONS:\n',
-    'section follow-up': '\n\nFOLLOW-UP:\n',
-    'delete last sentence': ''
-  };
+  // Callbacks
+  public onResult: (text: string) => void = () => {};
+  public onStart: () => void = () => {};
+  public onEnd: () => void = () => {};
+  public onError: (error: string) => void = () => {};
   
   constructor() {
-    this.initializeSpeechRecognition();
+    this.initializeRecognition();
   }
   
-  /**
-   * Initialize the Web Speech API
-   */
-  private initializeSpeechRecognition() {
-    // Check if the browser supports the Web Speech API
-    if (typeof window !== 'undefined') {
-      // Use the appropriate Speech Recognition API based on browser support
-      const SpeechRecognition = (window as any).SpeechRecognition ||
-                              (window as any).webkitSpeechRecognition;
-      
-      if (SpeechRecognition) {
-        this.recognition = new SpeechRecognition();
-        this.configureRecognition();
-      } else {
-        console.error('Speech recognition is not supported in this browser');
-      }
-    }
-  }
-  
-  /**
-   * Configure the speech recognition service
-   */
-  private configureRecognition() {
-    if (!this.recognition) return;
-    
-    // Set recognition parameters
-    this.recognition.continuous = true;
-    this.recognition.interimResults = true;
-    this.recognition.maxAlternatives = 1;
-    this.recognition.lang = 'en-US'; // Default language, can be changed
-    
-    // Handle recognition results
-    this.recognition.onresult = (event: SpeechRecognitionEvent) => {
-      const resultIndex = event.resultIndex;
-      const transcript = event.results[resultIndex][0].transcript;
-      
-      // Check for dental voice commands
-      const processedText = this.processDentalCommands(transcript);
-      
-      // Send result to callback
-      if (this.onResult) {
-        this.onResult(processedText);
-      }
-      
-      this.lastTranscript = processedText;
-    };
-    
-    // Handle recognition end
-    this.recognition.onend = () => {
-      this._isListening = false;
-      if (this.onEnd) {
-        this.onEnd();
-      }
-    };
-    
-    // Handle recognition errors
-    this.recognition.onerror = (event: any) => {
-      this._isListening = false;
-      if (this.onError) {
-        this.onError(event.error);
-      }
-    };
-  }
-  
-  /**
-   * Process dental-specific commands in the transcript
-   */
-  private processDentalCommands(text: string): string {
-    let processedText = text;
-    
-    // Apply voice commands
-    Object.entries(this.voiceCommands).forEach(([command, replacement]) => {
-      if (command === 'delete last sentence' && text.toLowerCase().includes(command)) {
-        // Special case: delete last sentence
-        const sentences = this.lastTranscript.split(/(?<=[.!?])\s+/);
-        if (sentences.length > 1) {
-          sentences.pop(); // Remove the last sentence
-          processedText = sentences.join(' ');
-        } else {
-          processedText = '';
-        }
-      } else if (text.toLowerCase().includes(command)) {
-        // Replace the command with its formatted equivalent
-        const regex = new RegExp(command, 'gi');
-        processedText = text.replace(regex, replacement);
-      }
-    });
-    
-    // Improve dental term recognition (capitalize specific dental terms)
-    this.dentalTerms.forEach(term => {
-      const regex = new RegExp(`\\b${term}\\b`, 'gi');
-      processedText = processedText.replace(regex, match => {
-        // Preserve the capitalization if it's already capitalized
-        if (match === match.toUpperCase()) {
-          return match;
-        }
-        // Check if this is a proper name or the start of a sentence
-        const isStart = processedText.indexOf(match) === 0 || 
-                       /[.!?]\s+\w*/.test(processedText.substring(0, processedText.indexOf(match)));
-        return isStart ? match.charAt(0).toUpperCase() + match.slice(1) : match;
-      });
-    });
-    
-    return processedText;
-  }
-  
-  /**
-   * Get listening status
-   */
-  get isListening(): boolean {
-    return this._isListening;
-  }
-  
-  /**
-   * Start speech recognition
-   * @param language The language code to use for recognition
-   */
-  start(language?: string): void {
-    if (!this.recognition) {
-      console.error('Speech recognition is not supported or initialized');
+  private initializeRecognition() {
+    // Check browser support for Speech Recognition
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      console.error('Speech recognition not supported in this browser');
       return;
     }
     
-    // Update language if specified
-    if (language) {
+    // Initialize recognition object
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    this.recognition = new SpeechRecognition();
+    
+    // Configure recognition
+    this.recognition.continuous = true;
+    this.recognition.interimResults = true;
+    this.recognition.maxAlternatives = 1;
+    this.recognition.lang = this.currentLanguage;
+    
+    // Set up event handlers
+    this.recognition.onstart = this.handleStart.bind(this);
+    this.recognition.onend = this.handleEnd.bind(this);
+    this.recognition.onerror = this.handleError.bind(this);
+    this.recognition.onresult = this.handleResult.bind(this);
+  }
+  
+  /**
+   * Start the speech recognition service
+   * @param language Language code (e.g., 'en-US', 'es-ES')
+   */
+  public start(language?: string) {
+    if (!this.recognition) {
+      this.initializeRecognition();
+      if (!this.recognition) {
+        this.onError('Speech recognition not supported');
+        return;
+      }
+    }
+    
+    // Update language if provided
+    if (language && language !== this.currentLanguage) {
+      this.currentLanguage = language;
       this.recognition.lang = language;
     }
     
     try {
       this.recognition.start();
-      this._isListening = true;
+      this.restartAttempts = 0;
     } catch (error) {
       console.error('Error starting speech recognition:', error);
-      this._isListening = false;
-      if (this.onError) {
-        this.onError(error);
-      }
+      this.onError('Failed to start speech recognition');
     }
   }
   
   /**
-   * Stop speech recognition
+   * Stop the speech recognition service
    */
-  stop(): void {
-    if (!this.recognition) {
-      return;
-    }
+  public stop() {
+    if (!this.recognition || !this.isListening) return;
     
     try {
       this.recognition.stop();
-      this._isListening = false;
     } catch (error) {
       console.error('Error stopping speech recognition:', error);
-      if (this.onError) {
-        this.onError(error);
-      }
     }
   }
   
   /**
-   * Event handler for recognition results
+   * Abort the speech recognition service immediately
    */
-  onResult?: (text: string) => void;
-  
-  /**
-   * Event handler for recognition end
-   */
-  onEnd?: () => void;
-  
-  /**
-   * Event handler for recognition errors
-   */
-  onError?: (error: any) => void;
-}
-
-// Check if the browser supports speech recognition
-const isSpeechRecognitionSupported = (): boolean => {
-  if (typeof window !== 'undefined') {
-    return !!(window as any).SpeechRecognition || !!(window as any).webkitSpeechRecognition;
-  }
-  return false;
-};
-
-// Fallback mock implementation for browsers without support
-class MockSpeechRecognitionService implements ISpeechRecognitionService {
-  private _isListening = false;
-  private timeoutId: NodeJS.Timeout | null = null;
-  private transcriptParts = [
-    "Patient reports pain on tooth number",
-    " 19. Pain started approximately two weeks ago.",
-    " Clinical examination reveals deep caries",
-    " extending into dentin. Recommended composite restoration."
-  ];
-  
-  get isListening(): boolean {
-    return this._isListening;
-  }
-  
-  start(): void {
-    this._isListening = true;
-    this.simulateRecognition();
-  }
-  
-  stop(): void {
-    this._isListening = false;
-    if (this.timeoutId) {
-      clearTimeout(this.timeoutId);
-      this.timeoutId = null;
-    }
-    if (this.onEnd) {
-      this.onEnd();
-    }
-  }
-  
-  private simulateRecognition(): void {
-    let currentIndex = 0;
-    let fullTranscript = '';
+  public abort() {
+    if (!this.recognition) return;
     
-    const simulateNext = () => {
-      if (currentIndex < this.transcriptParts.length && this._isListening) {
-        fullTranscript += this.transcriptParts[currentIndex];
-        
-        if (this.onResult) {
-          this.onResult(fullTranscript);
-        }
-        
-        currentIndex++;
-        this.timeoutId = setTimeout(simulateNext, 2000);
+    try {
+      this.recognition.abort();
+      this.isListening = false;
+    } catch (error) {
+      console.error('Error aborting speech recognition:', error);
+    }
+  }
+  
+  /**
+   * Temporarily pause listening (without stopping the recognition)
+   */
+  public pauseListening() {
+    if (!this.recognition || !this.isListening) return;
+    
+    try {
+      this.recognition.stop();
+      // Don't reset isListening flag here, as we're just pausing
+    } catch (error) {
+      console.error('Error pausing speech recognition:', error);
+    }
+  }
+  
+  /**
+   * Resume listening after pausing
+   */
+  public resumeListening() {
+    if (!this.recognition || this.isListening) return;
+    
+    try {
+      this.recognition.start();
+    } catch (error) {
+      console.error('Error resuming speech recognition:', error);
+      this.onError('Failed to resume speech recognition');
+    }
+  }
+  
+  /**
+   * Clear the current transcript
+   */
+  public clearTranscript() {
+    this.interimTranscript = '';
+    this.finalTranscript = '';
+    this.transcript = '';
+    this.onResult('');
+  }
+  
+  /**
+   * Detects and processes voice commands in the transcript
+   * @param text The transcript text to check for commands
+   * @returns The modified text with commands processed
+   */
+  public detectCommands(text: string): string {
+    if (!this.voiceCommandsEnabled) return text;
+    
+    // Simple command detection
+    const lowerText = text.toLowerCase();
+    
+    // New paragraph command
+    if (lowerText.includes('new paragraph') || lowerText.includes('new line')) {
+      return text.replace(/new paragraph|new line/gi, '\n\n');
+    }
+    
+    // SOAP section commands
+    if (lowerText.includes('section subjective')) {
+      return text.replace(/section subjective/gi, '\n\nSUBJECTIVE:\n');
+    }
+    
+    if (lowerText.includes('section objective')) {
+      return text.replace(/section objective/gi, '\n\nOBJECTIVE:\n');
+    }
+    
+    if (lowerText.includes('section assessment')) {
+      return text.replace(/section assessment/gi, '\n\nASSESSMENT:\n');
+    }
+    
+    if (lowerText.includes('section plan')) {
+      return text.replace(/section plan/gi, '\n\nPLAN:\n');
+    }
+    
+    // End note command
+    if (lowerText.includes('end note')) {
+      // Special command to trigger completion
+      setTimeout(() => {
+        this.stop();
+      }, 500);
+      return text.replace(/end note/gi, '');
+    }
+    
+    return text;
+  }
+  
+  // Event handlers
+  
+  private handleStart() {
+    this.isListening = true;
+    this.onStart();
+  }
+  
+  private handleEnd() {
+    this.isListening = false;
+    this.onEnd();
+  }
+  
+  private handleError(event: SpeechRecognitionErrorEvent) {
+    const errorMessage = this.getErrorMessage(event);
+    console.error('Speech recognition error:', errorMessage);
+    
+    // Handle specific error types
+    if (event.error === 'network' || event.error === 'service-not-allowed') {
+      this.onError(`Network error: ${errorMessage}. Check your internet connection.`);
+    } else if (event.error === 'no-speech') {
+      // No speech detected - common error, so we try to restart
+      if (this.autoRestartOnError && this.restartAttempts < this.maxRestartAttempts) {
+        this.restartAttempts++;
+        setTimeout(() => {
+          if (!this.isListening) this.start();
+        }, 300);
+        return;
+      }
+      this.onError('No speech detected. Please try speaking again.');
+    } else if (event.error === 'aborted') {
+      // Ignore abort errors as they're usually intentional
+      return;
+    } else {
+      this.onError(`Recognition error: ${errorMessage}`);
+    }
+  }
+  
+  private handleResult(event: SpeechRecognitionEvent) {
+    this.interimTranscript = '';
+    
+    // Process recognition results
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      if (event.results[i].isFinal) {
+        // Process voice commands in final results
+        const finalResult = event.results[i][0].transcript;
+        const processedResult = this.detectCommands(finalResult);
+        this.finalTranscript += processedResult + ' ';
       } else {
-        this._isListening = false;
-        if (this.onEnd) {
-          this.onEnd();
-        }
+        this.interimTranscript += event.results[i][0].transcript;
       }
-    };
+    }
     
-    this.timeoutId = setTimeout(simulateNext, 1000);
+    // Update full transcript
+    this.transcript = this.finalTranscript + this.interimTranscript;
+    
+    // Trim extra spaces
+    this.transcript = this.transcript.trim();
+    
+    // Send update
+    this.onResult(this.transcript);
   }
   
-  onResult?: (text: string) => void;
-  onEnd?: () => void;
-  onError?: (error: any) => void;
+  private getErrorMessage(event: SpeechRecognitionErrorEvent): string {
+    switch (event.error) {
+      case 'no-speech':
+        return 'No speech detected';
+      case 'aborted':
+        return 'Recognition aborted';
+      case 'audio-capture':
+        return 'Microphone not available';
+      case 'network':
+        return 'Network error';
+      case 'not-allowed':
+        return 'Microphone access denied';
+      case 'service-not-allowed':
+        return 'Recognition service unavailable';
+      case 'bad-grammar':
+        return 'Grammar error';
+      case 'language-not-supported':
+        return 'Language not supported';
+      default:
+        return `Unknown error: ${event.error}`;
+    }
+  }
 }
 
-// Create and export the appropriate service based on browser support
-export const speechRecognitionService: ISpeechRecognitionService = 
-  isSpeechRecognitionSupported() 
-    ? new SpeechRecognitionService() 
-    : new MockSpeechRecognitionService();
+// Add missing types to Window interface
+declare global {
+  interface Window {
+    SpeechRecognition?: typeof SpeechRecognition;
+    webkitSpeechRecognition?: typeof SpeechRecognition;
+  }
+}
 
+// Create and export service singleton
+const speechRecognitionService = new WebSpeechRecognitionService();
 export default speechRecognitionService;
