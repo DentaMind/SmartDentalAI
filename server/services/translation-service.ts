@@ -634,7 +634,6 @@ class TranslationService {
       apiCallMade = true;
       const translation = await aiRequestQueue.enqueueRequest<string>(
         AIServiceType.PATIENT_COMMUNICATION,
-        settings.priority,
         async () => {
           // In a production environment, this would call an actual translation API
           // like Google Translate, DeepL, or Azure Translator

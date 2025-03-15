@@ -8,6 +8,7 @@ import { analyzeMedicalHistory } from './services/medical-history-ai';
 import { financialService } from './services/financial';
 import { aiServiceManager } from './services/ai-service-manager';
 import schedulerRoutes from './routes/scheduler-routes';
+import translationRoutes from './routes/translation-routes';
 import path from 'path';
 import { PatientMedicalHistory } from '../shared/schema';
 import { seedDatabase } from './seed-data';
@@ -393,6 +394,9 @@ router.post("/ai/medical-analysis", requireAuth, async (req, res) => {
 
 // Use scheduler routes
 router.use('/scheduler', schedulerRoutes);
+
+// Use translation routes
+router.use('/api', translationRoutes);
 
 // AI Services Status Endpoint
 router.get('/ai/status', requireAuth, async (req, res) => {
