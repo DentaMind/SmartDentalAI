@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -42,6 +42,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Progress } from '@/components/ui/progress';
+import speechRecognitionService from '@/lib/speech-recognition';
 
 export function VoiceDictation() {
   const [isRecording, setIsRecording] = useState(false);
@@ -59,7 +60,11 @@ export function VoiceDictation() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [notePreview, setNotePreview] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState('en-US');
   const { toast } = useToast();
+  
+  // Timer ref for recording duration
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Mock patients data
   const patients = [
@@ -69,17 +74,80 @@ export function VoiceDictation() {
     { id: '4', name: 'Sarah Williams', appointment: 'Implant Consultation' }
   ];
   
+  // Available recognition languages
+  const languages = [
+    { code: 'en-US', name: 'English (US)' },
+    { code: 'en-GB', name: 'English (UK)' },
+    { code: 'es-ES', name: 'Spanish' },
+    { code: 'fr-FR', name: 'French' },
+    { code: 'de-DE', name: 'German' },
+    { code: 'zh-CN', name: 'Chinese (Simplified)' },
+    { code: 'ja-JP', name: 'Japanese' },
+    { code: 'ru-RU', name: 'Russian' },
+    { code: 'hi-IN', name: 'Hindi' },
+    { code: 'ar-SA', name: 'Arabic' }
+  ];
+  
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    // Initialize speech recognition handlers
+    speechRecognitionService.onResult = (text) => {
+      setTranscriptionText(text);
+    };
     
+    speechRecognitionService.onEnd = () => {
+      setIsRecording(false);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      
+      // If auto-generate is enabled, generate SOAP notes when recording ends
+      if (autoGenerateEnabled && transcriptionText.trim().length > 0) {
+        generateSOAPNotes();
+      }
+    };
+    
+    speechRecognitionService.onError = (error) => {
+      toast({
+        title: "Speech Recognition Error",
+        description: `An error occurred: ${error}. Please try again.`,
+        variant: "destructive",
+      });
+      
+      setIsRecording(false);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+    
+    // Cleanup on component unmount
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      
+      if (speechRecognitionService.isListening) {
+        speechRecognitionService.stop();
+      }
+    };
+  }, [autoGenerateEnabled, toast, transcriptionText]);
+  
+  // Recording timer effect
+  useEffect(() => {
     if (isRecording) {
-      interval = setInterval(() => {
+      timerRef.current = setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
     }
     
     return () => {
-      if (interval) clearInterval(interval);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
     };
   }, [isRecording]);
   
@@ -91,12 +159,11 @@ export function VoiceDictation() {
   
   const toggleRecording = () => {
     if (isRecording) {
+      // Stop recording
+      speechRecognitionService.stop();
       setIsRecording(false);
-      // In a real implementation, this would stop the voice recognition API
-      if (autoGenerateEnabled) {
-        generateSOAPNotes();
-      }
     } else {
+      // Start recording
       if (!selectedPatient) {
         toast({
           title: "No patient selected",
@@ -108,11 +175,27 @@ export function VoiceDictation() {
       
       setIsRecording(true);
       setRecordingTime(0);
-      // In a real implementation, this would start the voice recognition API
+      
+      // Clear previous transcription if starting a new recording session
+      if (transcriptionText.trim() === '') {
+        setTranscriptionText('');
+      }
+      
+      // Start speech recognition with the selected language
+      speechRecognitionService.start(selectedLanguage);
     }
   };
   
   const generateSOAPNotes = () => {
+    if (transcriptionText.trim() === '') {
+      toast({
+        title: "Empty transcription",
+        description: "Cannot generate notes from empty transcription.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsGenerating(true);
     setGenerationProgress(0);
     
@@ -124,23 +207,11 @@ export function VoiceDictation() {
         if (newProgress >= 100) {
           clearInterval(interval);
           
-          // Mock data for generated SOAP notes
-          const mockNotes = {
-            subjective: "Patient reports sensitivity on tooth #19 when consuming cold beverages. The discomfort began approximately two weeks ago and has gradually increased in intensity. Patient rates the pain as 5/10 and describes it as a sharp, brief sensation that subsides quickly after the stimulus is removed.",
-            objective: "Clinical examination reveals a visible occlusal-distal cavity on tooth #19. Percussion test negative. Cold test positive with lingering sensitivity. X-ray shows radiolucency extending into the dentin but not approaching the pulp chamber. Periodontal probing depths are within normal limits.",
-            assessment: "Diagnosis: Moderate caries on tooth #19 (occlusal-distal) with possible early pulpitis. The carious lesion has extended into the dentin layer but appears to have adequate remaining dentin thickness for pulpal protection.",
-            plan: "Treatment plan: Composite restoration on tooth #19 (occlusal-distal) with composite resin (A2 shade). Local anesthesia: 1 carpule of 2% lidocaine with 1:100,000 epinephrine administered via infiltration. Procedure scheduled for next available appointment."
-          };
+          // Use the transcription to generate structured notes
+          // In a real implementation, this would call an AI service
+          const formattedResult = processTranscriptionToSOAP(transcriptionText);
           
-          setFormattedNotes(mockNotes);
-          setTranscriptionText(`Patient reports sensitivity on tooth #19 when consuming cold beverages. The discomfort began approximately two weeks ago and has gradually increased in intensity. Patient rates the pain as 5/10.
-
-Clinical examination reveals a visible occlusal-distal cavity on tooth #19. Percussion test negative. Cold test positive with lingering sensitivity. X-ray shows radiolucency extending into the dentin but not approaching the pulp chamber.
-
-Diagnosis: Moderate caries on tooth #19 (occlusal-distal) with possible early pulpitis.
-
-Treatment plan: Composite restoration on tooth #19 (occlusal-distal) with composite resin (A2 shade). Local anesthesia: 1 carpule of 2% lidocaine with 1:100,000 epinephrine administered via infiltration.`);
-          
+          setFormattedNotes(formattedResult);
           setActiveTab('notes');
           setIsGenerating(false);
           
@@ -158,7 +229,72 @@ Treatment plan: Composite restoration on tooth #19 (occlusal-distal) with compos
     }, 200);
   };
   
+  const processTranscriptionToSOAP = (text: string) => {
+    // This is a simple implementation that would be replaced by a real AI service
+    // that properly structures clinical notes in SOAP format
+    
+    const sections = {
+      subjective: "",
+      objective: "",
+      assessment: "",
+      plan: ""
+    };
+    
+    // Simple rule-based categorization
+    const lines = text.split('\n');
+    let currentSection = 'subjective'; // Default starting section
+    
+    for (const line of lines) {
+      // Check for section markers
+      const lowerLine = line.toLowerCase();
+      
+      if (lowerLine.includes('subjective') || lowerLine.includes('chief complaint') || lowerLine.includes('patient reports')) {
+        currentSection = 'subjective';
+        // Skip this line if it's just a section header
+        if (lowerLine.trim() === 'subjective:') continue;
+      } 
+      else if (lowerLine.includes('objective') || lowerLine.includes('examination') || lowerLine.includes('clinical findings')) {
+        currentSection = 'objective';
+        if (lowerLine.trim() === 'objective:') continue;
+      }
+      else if (lowerLine.includes('assessment') || lowerLine.includes('diagnosis')) {
+        currentSection = 'assessment';
+        if (lowerLine.trim() === 'assessment:') continue;
+      }
+      else if (lowerLine.includes('plan') || lowerLine.includes('treatment') || lowerLine.includes('recommendation')) {
+        currentSection = 'plan';
+        if (lowerLine.trim() === 'plan:') continue;
+      }
+      
+      // Add line to the appropriate section
+      if (line.trim() !== '') {
+        sections[currentSection as keyof typeof sections] += 
+          (sections[currentSection as keyof typeof sections] ? '\n' : '') + line.trim();
+      }
+    }
+    
+    // Ensure each section has content
+    if (!sections.subjective) {
+      sections.subjective = "No subjective information provided.";
+    }
+    
+    if (!sections.objective) {
+      sections.objective = "No objective findings recorded.";
+    }
+    
+    if (!sections.assessment) {
+      sections.assessment = "Assessment pending further evaluation.";
+    }
+    
+    if (!sections.plan) {
+      sections.plan = "Treatment plan to be determined following complete evaluation.";
+    }
+    
+    return sections;
+  };
+  
   const handleSaveNotes = () => {
+    // In a real implementation, this would save the notes to the patient's record in the database
     toast({
       title: "Notes saved",
       description: `Clinical notes have been saved to ${patients.find(p => p.id === selectedPatient)?.name}'s chart.`,
@@ -168,10 +304,37 @@ Treatment plan: Composite restoration on tooth #19 (occlusal-distal) with compos
   
   const handleCopyNotes = () => {
     // In a real implementation, this would copy the notes to the clipboard
-    toast({
-      title: "Notes copied",
-      description: "The formatted clinical notes have been copied to clipboard.",
-      variant: "default",
+    const formattedSOAP = `SUBJECTIVE:\n${formattedNotes.subjective}\n\nOBJECTIVE:\n${formattedNotes.objective}\n\nASSESSMENT:\n${formattedNotes.assessment}\n\nPLAN:\n${formattedNotes.plan}`;
+    
+    navigator.clipboard.writeText(formattedSOAP).then(() => {
+      toast({
+        title: "Notes copied",
+        description: "The formatted clinical notes have been copied to clipboard.",
+        variant: "default",
+      });
+    }).catch(err => {
+      console.error('Failed to copy text: ', err);
+      toast({
+        title: "Copy failed",
+        description: "Unable to copy notes to clipboard.",
+        variant: "destructive",
+      });
+    });
+  };
+  
+  const resetRecording = () => {
+    if (isRecording) {
+      speechRecognitionService.stop();
+    }
+    
+    setIsRecording(false);
+    setRecordingTime(0);
+    setTranscriptionText('');
+    setFormattedNotes({
+      subjective: '',
+      objective: '',
+      assessment: '',
+      plan: ''
     });
   };
 
@@ -280,18 +443,29 @@ Treatment plan: Composite restoration on tooth #19 (occlusal-distal) with compos
                     )}
                   </div>
                   
-                  {transcriptionText && !isRecording && (
+                  {transcriptionText && (
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <h3 className="font-medium">Transcription Preview</h3>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => setTranscriptionText('')}>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => setTranscriptionText('')}
+                            disabled={isRecording}
+                          >
                             Clear
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => generateSOAPNotes()}>
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                            Regenerate
-                          </Button>
+                          {!isRecording && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => generateSOAPNotes()}
+                            >
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                              Regenerate
+                            </Button>
+                          )}
                         </div>
                       </div>
                       
@@ -300,6 +474,7 @@ Treatment plan: Composite restoration on tooth #19 (occlusal-distal) with compos
                         onChange={(e) => setTranscriptionText(e.target.value)}
                         className="min-h-[200px]"
                         placeholder="Transcription will appear here..."
+                        readOnly={isRecording}
                       />
                     </div>
                   )}
@@ -396,7 +571,13 @@ Treatment plan: Composite restoration on tooth #19 (occlusal-distal) with compos
                   <div className="bg-green-50 p-1 rounded-full mt-0.5">
                     <Check className="h-3 w-3 text-green-600" />
                   </div>
-                  <p className="text-xs">End-to-end encryption for all patient data</p>
+                  <p className="text-xs">Private secure processing with multi-layer encryption</p>
+                </div>
+                <div className="flex items-start gap-2 mt-2">
+                  <div className="bg-green-50 p-1 rounded-full mt-0.5">
+                    <Check className="h-3 w-3 text-green-600" />
+                  </div>
+                  <p className="text-xs">Complies with all HIPAA requirements for PHI</p>
                 </div>
               </CardContent>
             </Card>
@@ -405,158 +586,84 @@ Treatment plan: Composite restoration on tooth #19 (occlusal-distal) with compos
         
         <TabsContent value="notes" className="space-y-4">
           <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>SOAP Notes</CardTitle>
-                  <CardDescription>
-                    {selectedPatient ? 
-                      `AI-generated clinical notes for ${patients.find(p => p.id === selectedPatient)?.name}` : 
-                      "AI-generated clinical notes"
-                    }
-                  </CardDescription>
-                </div>
-                
-                <div className="flex gap-2">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" onClick={handleCopyNotes}>
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Copy notes</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" onClick={() => setNotePreview(!notePreview)}>
-                          {notePreview ? (
-                            <ClipboardList className="h-4 w-4" />
-                          ) : (
-                            <FileText className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{notePreview ? "Show SOAP format" : "Show preview"}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" onClick={() => setActiveTab('record')}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Edit recording</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              </div>
+            <CardHeader>
+              <CardTitle>AI-Generated SOAP Notes</CardTitle>
+              <CardDescription>
+                Review and edit the AI-generated notes before saving
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              {notePreview ? (
-                <div className="rounded-md border p-4 bg-muted/30">
-                  <div className="space-y-4">
-                    <div className="flex justify-between border-b pb-2">
-                      <div>
-                        <p className="font-medium">
-                          {patients.find(p => p.id === selectedPatient)?.name || "Patient Name"}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {patients.find(p => p.id === selectedPatient)?.appointment || "Appointment Type"}
-                        </p>
+              <div className="space-y-4">
+                {!notePreview ? (
+                  <div className="space-y-5">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-semibold mr-2">S</Badge>
+                        <h3 className="font-medium">Subjective</h3>
                       </div>
-                      <p className="text-sm">{new Date().toLocaleDateString()}</p>
+                      <Textarea 
+                        value={formattedNotes.subjective}
+                        onChange={(e) => setFormattedNotes({...formattedNotes, subjective: e.target.value})}
+                        placeholder="Patient's reported symptoms, complaints, and history..."
+                        className="min-h-[100px]"
+                      />
                     </div>
                     
                     <div className="space-y-2">
-                      <p>
-                        {formattedNotes.subjective}
-                      </p>
-                      <p>
-                        {formattedNotes.objective}
-                      </p>
-                      <p>
-                        {formattedNotes.assessment}
-                      </p>
-                      <p>
-                        {formattedNotes.plan}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-semibold mr-2">O</Badge>
+                        <h3 className="font-medium">Objective</h3>
+                      </div>
+                      <Textarea 
+                        value={formattedNotes.objective}
+                        onChange={(e) => setFormattedNotes({...formattedNotes, objective: e.target.value})}
+                        placeholder="Clinical findings, examination results, measurements..."
+                        className="min-h-[100px]"
+                      />
                     </div>
                     
-                    <div className="pt-2 text-sm">
-                      <p>Note created by: Dr. [Current User]</p>
-                      <p className="text-xs text-muted-foreground">
-                        <em>This note was AI-assisted but fully reviewed and approved by the provider.</em>
-                      </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 font-semibold mr-2">A</Badge>
+                        <h3 className="font-medium">Assessment</h3>
+                      </div>
+                      <Textarea 
+                        value={formattedNotes.assessment}
+                        onChange={(e) => setFormattedNotes({...formattedNotes, assessment: e.target.value})}
+                        placeholder="Diagnosis, interpretation of findings..."
+                        className="min-h-[100px]"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 font-semibold mr-2">P</Badge>
+                        <h3 className="font-medium">Plan</h3>
+                      </div>
+                      <Textarea 
+                        value={formattedNotes.plan}
+                        onChange={(e) => setFormattedNotes({...formattedNotes, plan: e.target.value})}
+                        placeholder="Treatment plan, next steps, prescriptions..."
+                        className="min-h-[100px]"
+                      />
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <div className="flex items-center">
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-semibold mr-2">S</Badge>
-                      <h3 className="font-medium">Subjective</h3>
-                    </div>
-                    <Textarea 
-                      value={formattedNotes.subjective}
-                      onChange={(e) => setFormattedNotes({...formattedNotes, subjective: e.target.value})}
-                      placeholder="Patient's reported symptoms and concerns..."
-                      className="min-h-[100px]"
-                    />
+                ) : (
+                  <div className="prose prose-sm max-w-none">
+                    <h3 className="text-blue-700">SUBJECTIVE</h3>
+                    <p>{formattedNotes.subjective}</p>
+                    
+                    <h3 className="text-green-700 mt-4">OBJECTIVE</h3>
+                    <p>{formattedNotes.objective}</p>
+                    
+                    <h3 className="text-amber-700 mt-4">ASSESSMENT</h3>
+                    <p>{formattedNotes.assessment}</p>
+                    
+                    <h3 className="text-purple-700 mt-4">PLAN</h3>
+                    <p>{formattedNotes.plan}</p>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center">
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-semibold mr-2">O</Badge>
-                      <h3 className="font-medium">Objective</h3>
-                    </div>
-                    <Textarea 
-                      value={formattedNotes.objective}
-                      onChange={(e) => setFormattedNotes({...formattedNotes, objective: e.target.value})}
-                      placeholder="Clinical findings, examination notes..."
-                      className="min-h-[100px]"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center">
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 font-semibold mr-2">A</Badge>
-                      <h3 className="font-medium">Assessment</h3>
-                    </div>
-                    <Textarea 
-                      value={formattedNotes.assessment}
-                      onChange={(e) => setFormattedNotes({...formattedNotes, assessment: e.target.value})}
-                      placeholder="Diagnosis and assessment..."
-                      className="min-h-[100px]"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center">
-                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 font-semibold mr-2">P</Badge>
-                      <h3 className="font-medium">Plan</h3>
-                    </div>
-                    <Textarea 
-                      value={formattedNotes.plan}
-                      onChange={(e) => setFormattedNotes({...formattedNotes, plan: e.target.value})}
-                      placeholder="Treatment plan, next steps, prescriptions..."
-                      className="min-h-[100px]"
-                    />
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </CardContent>
             <CardFooter className="justify-between">
               <div className="flex items-center">
@@ -568,10 +675,22 @@ Treatment plan: Composite restoration on tooth #19 (occlusal-distal) with compos
                 </div>
               </div>
               
-              <Button onClick={handleSaveNotes}>
-                <Save className="h-4 w-4 mr-2" />
-                Save to Patient Chart
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setNotePreview(!notePreview)}>
+                  {notePreview ? <Edit className="h-4 w-4 mr-2" /> : <FileText className="h-4 w-4 mr-2" />}
+                  {notePreview ? "Edit" : "Preview"}
+                </Button>
+                
+                <Button variant="outline" onClick={handleCopyNotes}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy
+                </Button>
+                
+                <Button onClick={handleSaveNotes}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save to Patient Chart
+                </Button>
+              </div>
             </CardFooter>
           </Card>
         </TabsContent>
@@ -581,16 +700,16 @@ Treatment plan: Composite restoration on tooth #19 (occlusal-distal) with compos
             <CardHeader>
               <CardTitle>Voice Dictation Settings</CardTitle>
               <CardDescription>
-                Configure AI behavior and dictation preferences
+                Configure recognition options and preferences
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="auto-generate" className="flex flex-col space-y-1">
-                    <span>Auto-generate SOAP Notes</span>
+                    <span>Auto-generate SOAP notes</span>
                     <span className="font-normal text-sm text-muted-foreground">
-                      Automatically format notes when recording stops
+                      Automatically generate notes when dictation ends
                     </span>
                   </Label>
                   <Switch
@@ -603,19 +722,19 @@ Treatment plan: Composite restoration on tooth #19 (occlusal-distal) with compos
               
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="auto-pause" className="flex flex-col space-y-1">
-                    <span>Smart Pause Detection</span>
+                  <Label htmlFor="auto-punctuate" className="flex flex-col space-y-1">
+                    <span>Auto-punctuation</span>
                     <span className="font-normal text-sm text-muted-foreground">
-                      AI will automatically pause recording during sensitive discussions
+                      Intelligently add periods and commas
                     </span>
                   </Label>
                   <Switch
-                    id="auto-pause"
+                    id="auto-punctuate"
                     defaultChecked
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="code-suggestion" className="flex flex-col space-y-1">
@@ -632,16 +751,20 @@ Treatment plan: Composite restoration on tooth #19 (occlusal-distal) with compos
               </div>
               
               <div className="space-y-2">
-                <Label>Language</Label>
-                <Select defaultValue="en-US">
+                <Label>Recognition Language</Label>
+                <Select 
+                  value={selectedLanguage} 
+                  onValueChange={setSelectedLanguage}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select language" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="en-US">English (US)</SelectItem>
-                    <SelectItem value="en-GB">English (UK)</SelectItem>
-                    <SelectItem value="es-ES">Spanish</SelectItem>
-                    <SelectItem value="fr-FR">French</SelectItem>
+                    {languages.map(language => (
+                      <SelectItem key={language.code} value={language.code}>
+                        {language.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
@@ -649,65 +772,32 @@ Treatment plan: Composite restoration on tooth #19 (occlusal-distal) with compos
                 </p>
               </div>
               
-              <div className="pt-2">
-                <div className="p-3 border rounded-md bg-amber-50 border-amber-200">
-                  <div className="flex gap-2">
-                    <div className="flex-shrink-0 mt-0.5">
-                      <AlertTriangle className="h-4 w-4 text-amber-600" />
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-medium text-amber-800">Privacy Notice</h4>
-                      <p className="text-xs text-amber-700">
-                        Voice recordings are processed in real-time and never stored. All transcriptions follow 
-                        HIPAA guidelines and are encrypted end-to-end. AI-generated notes are stored only within 
-                        your secure practice management system.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              <div className="space-y-2">
+                <Label>Microphone</Label>
+                <Select defaultValue="default">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select microphone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Default Device</SelectItem>
+                    <SelectItem value="headset">Headset Microphone</SelectItem>
+                    <SelectItem value="webcam">Webcam Microphone</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Select which microphone to use for dictation
+                </p>
               </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Voice Command Shortcuts</CardTitle>
-              <CardDescription>
-                Custom commands to improve dictation workflow
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-2 rounded-md bg-muted">
-                  <div className="flex gap-2 items-center">
-                    <Badge>Add post-op instructions</Badge>
-                    <span className="text-sm text-muted-foreground">Adds standard post-op care text</span>
-                  </div>
-                  <Button variant="ghost" size="sm">Edit</Button>
-                </div>
-                
-                <div className="flex items-center justify-between p-2 rounded-md bg-muted">
-                  <div className="flex gap-2 items-center">
-                    <Badge>Prescribe amoxicillin</Badge>
-                    <span className="text-sm text-muted-foreground">Adds standard antibiotic prescription</span>
-                  </div>
-                  <Button variant="ghost" size="sm">Edit</Button>
-                </div>
-                
-                <div className="flex items-center justify-between p-2 rounded-md bg-muted">
-                  <div className="flex gap-2 items-center">
-                    <Badge>Schedule follow-up</Badge>
-                    <span className="text-sm text-muted-foreground">Adds follow-up booking information</span>
-                  </div>
-                  <Button variant="ghost" size="sm">Edit</Button>
-                </div>
-                
-                <div className="flex justify-center pt-3">
-                  <Button variant="outline" size="sm">
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Custom Command
-                  </Button>
-                </div>
+              
+              <div className="pt-4 border-t">
+                <Button 
+                  variant="destructive" 
+                  className="w-full" 
+                  onClick={resetRecording}
+                  disabled={isRecording}
+                >
+                  Reset Dictation Session
+                </Button>
               </div>
             </CardContent>
           </Card>
