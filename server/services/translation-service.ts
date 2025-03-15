@@ -632,6 +632,12 @@ class TranslationService {
       
       // No cache hit, use translation service via queue
       apiCallMade = true;
+      
+      // Create options object with priority
+      const queueOptions = {
+        priority: settings.priority
+      };
+      
       const translation = await aiRequestQueue.enqueueRequest<string>(
         AIServiceType.PATIENT_COMMUNICATION,
         async () => {
@@ -687,7 +693,8 @@ class TranslationService {
           }
           
           return simulatedTranslation;
-        }
+        },
+        queueOptions
       );
       
       // Cache successful translation
