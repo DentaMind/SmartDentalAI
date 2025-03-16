@@ -571,7 +571,7 @@ export function ImprovedPerioChart({
                     {upperTeeth.map(tooth => (
                       <td 
                         key={`mobility-${tooth}`} 
-                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                         onClick={() => {
                           setSelectedTooth(tooth);
                           setSelectedMeasurementType('mobility');
@@ -588,7 +588,7 @@ export function ImprovedPerioChart({
                     {upperTeeth.map(tooth => (
                       <td 
                         key={`implant-${tooth}`} 
-                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                         onClick={() => {
                           setSelectedTooth(tooth);
                           toggleImplant(tooth);
@@ -605,7 +605,7 @@ export function ImprovedPerioChart({
                     {upperTeeth.map(tooth => (
                       <td 
                         key={`furcation-${tooth}`} 
-                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                         onClick={() => {
                           setSelectedTooth(tooth);
                           setSelectedMeasurementType('furcation');
@@ -622,7 +622,7 @@ export function ImprovedPerioChart({
                     {upperTeeth.map(tooth => (
                       <td 
                         key={`bleeding-${tooth}`} 
-                        className={`border p-1 text-center cursor-pointer ${measurements[tooth]?.bleedingOnProbing ? 'bg-red-200' : ''} ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                        className={`border p-1 text-center cursor-pointer ${measurements[tooth]?.bleedingOnProbing ? 'bg-red-200' : ''} ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                         onClick={() => {
                           setSelectedTooth(tooth);
                           toggleBleeding(tooth);
@@ -639,7 +639,7 @@ export function ImprovedPerioChart({
                     {upperTeeth.map(tooth => (
                       <td 
                         key={`plaque-${tooth}`} 
-                        className={`border p-1 text-center cursor-pointer ${measurements[tooth]?.plaque ? 'bg-blue-200' : ''} ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                        className={`border p-1 text-center cursor-pointer ${measurements[tooth]?.plaque ? 'bg-primary/20' : ''} ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                         onClick={() => {
                           setSelectedTooth(tooth);
                           togglePlaque(tooth);
@@ -656,7 +656,7 @@ export function ImprovedPerioChart({
                     {upperTeeth.map(tooth => (
                       <td 
                         key={`gm-${tooth}`} 
-                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                         onClick={() => {
                           setSelectedTooth(tooth);
                           setSelectedMeasurementType('gingivalMargin');
@@ -674,7 +674,7 @@ export function ImprovedPerioChart({
                       <td key={`pd-${tooth}`} className="border p-0 px-0.5">
                         <div className="grid grid-cols-3 gap-0.5">
                           <div 
-                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.buccal.distal)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'distal' ? 'ring-2 ring-blue-400' : ''}`}
+                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.buccal.distal)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'distal' ? 'ring-2 ring-primary' : ''}`}
                             onClick={() => {
                               handlePositionClick(tooth, 'buccal', 'distal');
                               setSelectedMeasurementType('probingDepth');
@@ -683,7 +683,7 @@ export function ImprovedPerioChart({
                             {measurements[tooth]?.probingDepth.buccal.distal}
                           </div>
                           <div 
-                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.buccal.mid)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mid' ? 'ring-2 ring-blue-400' : ''}`}
+                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.buccal.mid)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mid' ? 'ring-2 ring-primary' : ''}`}
                             onClick={() => {
                               handlePositionClick(tooth, 'buccal', 'mid');
                               setSelectedMeasurementType('probingDepth');
@@ -692,7 +692,7 @@ export function ImprovedPerioChart({
                             {measurements[tooth]?.probingDepth.buccal.mid}
                           </div>
                           <div 
-                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.buccal.mesial)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mesial' ? 'ring-2 ring-blue-400' : ''}`}
+                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.buccal.mesial)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mesial' ? 'ring-2 ring-primary' : ''}`}
                             onClick={() => {
                               handlePositionClick(tooth, 'buccal', 'mesial');
                               setSelectedMeasurementType('probingDepth');
@@ -714,7 +714,7 @@ export function ImprovedPerioChart({
                   {upperTeeth.map(tooth => (
                     <div 
                       key={`tooth-buccal-${tooth}`} 
-                      className={`flex justify-center ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                      className={`flex justify-center ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                       onClick={() => !readOnly && handleToothClick(tooth)}
                     >
                       <ToothSvgBuccal
@@ -735,7 +735,7 @@ export function ImprovedPerioChart({
                   {upperTeeth.map(tooth => (
                     <div 
                       key={`tooth-lingual-${tooth}`} 
-                      className={`flex justify-center ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                      className={`flex justify-center ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                       onClick={() => !readOnly && handleToothClick(tooth)}
                     >
                       <ToothSvgLingual
@@ -758,7 +758,7 @@ export function ImprovedPerioChart({
                     {upperTeeth.map(tooth => (
                       <td 
                         key={`gm-lingual-${tooth}`} 
-                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                         onClick={() => {
                           setSelectedTooth(tooth);
                           setSelectedMeasurementType('gingivalMargin');
@@ -776,7 +776,7 @@ export function ImprovedPerioChart({
                       <td key={`pd-lingual-${tooth}`} className="border p-0 px-0.5">
                         <div className="grid grid-cols-3 gap-0.5">
                           <div 
-                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.lingual.mesial)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mesial' ? 'ring-2 ring-blue-400' : ''}`}
+                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.lingual.mesial)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mesial' ? 'ring-2 ring-primary' : ''}`}
                             onClick={() => {
                               handlePositionClick(tooth, 'lingual', 'mesial');
                               setSelectedMeasurementType('probingDepth');
@@ -785,7 +785,7 @@ export function ImprovedPerioChart({
                             {measurements[tooth]?.probingDepth.lingual.mesial}
                           </div>
                           <div 
-                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.lingual.mid)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mid' ? 'ring-2 ring-blue-400' : ''}`}
+                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.lingual.mid)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mid' ? 'ring-2 ring-primary' : ''}`}
                             onClick={() => {
                               handlePositionClick(tooth, 'lingual', 'mid');
                               setSelectedMeasurementType('probingDepth');
@@ -794,7 +794,7 @@ export function ImprovedPerioChart({
                             {measurements[tooth]?.probingDepth.lingual.mid}
                           </div>
                           <div 
-                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.lingual.distal)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'distal' ? 'ring-2 ring-blue-400' : ''}`}
+                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.lingual.distal)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'distal' ? 'ring-2 ring-primary' : ''}`}
                             onClick={() => {
                               handlePositionClick(tooth, 'lingual', 'distal');
                               setSelectedMeasurementType('probingDepth');
@@ -813,7 +813,7 @@ export function ImprovedPerioChart({
                     {upperTeeth.map(tooth => (
                       <td 
                         key={`plaque-lingual-${tooth}`} 
-                        className={`border p-1 text-center cursor-pointer ${measurements[tooth]?.plaque ? 'bg-blue-200' : ''} ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                        className={`border p-1 text-center cursor-pointer ${measurements[tooth]?.plaque ? 'bg-primary/20' : ''} ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                         onClick={() => {
                           setSelectedTooth(tooth);
                           togglePlaque(tooth);
@@ -830,7 +830,7 @@ export function ImprovedPerioChart({
                     {upperTeeth.map(tooth => (
                       <td 
                         key={`bleeding-lingual-${tooth}`} 
-                        className={`border p-1 text-center cursor-pointer ${measurements[tooth]?.bleedingOnProbing ? 'bg-red-200' : ''} ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                        className={`border p-1 text-center cursor-pointer ${measurements[tooth]?.bleedingOnProbing ? 'bg-red-200' : ''} ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                         onClick={() => {
                           setSelectedTooth(tooth);
                           toggleBleeding(tooth);
@@ -867,7 +867,7 @@ export function ImprovedPerioChart({
                     {lowerTeeth.map(tooth => (
                       <td 
                         key={`mobility-${tooth}`} 
-                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                         onClick={() => {
                           setSelectedTooth(tooth);
                           setSelectedMeasurementType('mobility');
@@ -884,7 +884,7 @@ export function ImprovedPerioChart({
                     {lowerTeeth.map(tooth => (
                       <td 
                         key={`implant-${tooth}`} 
-                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                         onClick={() => {
                           setSelectedTooth(tooth);
                           toggleImplant(tooth);
@@ -901,7 +901,7 @@ export function ImprovedPerioChart({
                     {lowerTeeth.map(tooth => (
                       <td 
                         key={`furcation-${tooth}`} 
-                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                         onClick={() => {
                           setSelectedTooth(tooth);
                           setSelectedMeasurementType('furcation');
@@ -918,7 +918,7 @@ export function ImprovedPerioChart({
                     {lowerTeeth.map(tooth => (
                       <td 
                         key={`bleeding-${tooth}`} 
-                        className={`border p-1 text-center cursor-pointer ${measurements[tooth]?.bleedingOnProbing ? 'bg-red-200' : ''} ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                        className={`border p-1 text-center cursor-pointer ${measurements[tooth]?.bleedingOnProbing ? 'bg-red-200' : ''} ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                         onClick={() => {
                           setSelectedTooth(tooth);
                           toggleBleeding(tooth);
@@ -935,7 +935,7 @@ export function ImprovedPerioChart({
                     {lowerTeeth.map(tooth => (
                       <td 
                         key={`plaque-${tooth}`} 
-                        className={`border p-1 text-center cursor-pointer ${measurements[tooth]?.plaque ? 'bg-blue-200' : ''} ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                        className={`border p-1 text-center cursor-pointer ${measurements[tooth]?.plaque ? 'bg-primary/20' : ''} ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                         onClick={() => {
                           setSelectedTooth(tooth);
                           togglePlaque(tooth);
@@ -952,7 +952,7 @@ export function ImprovedPerioChart({
                     {lowerTeeth.map(tooth => (
                       <td 
                         key={`gm-${tooth}`} 
-                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                         onClick={() => {
                           setSelectedTooth(tooth);
                           setSelectedMeasurementType('gingivalMargin');
@@ -970,7 +970,7 @@ export function ImprovedPerioChart({
                       <td key={`pd-${tooth}`} className="border p-0 px-0.5">
                         <div className="grid grid-cols-3 gap-0.5">
                           <div 
-                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.buccal.distal)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'distal' ? 'ring-2 ring-blue-400' : ''}`}
+                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.buccal.distal)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'distal' ? 'ring-2 ring-primary' : ''}`}
                             onClick={() => {
                               handlePositionClick(tooth, 'buccal', 'distal');
                               setSelectedMeasurementType('probingDepth');
@@ -979,7 +979,7 @@ export function ImprovedPerioChart({
                             {measurements[tooth]?.probingDepth.buccal.distal}
                           </div>
                           <div 
-                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.buccal.mid)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mid' ? 'ring-2 ring-blue-400' : ''}`}
+                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.buccal.mid)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mid' ? 'ring-2 ring-primary' : ''}`}
                             onClick={() => {
                               handlePositionClick(tooth, 'buccal', 'mid');
                               setSelectedMeasurementType('probingDepth');
@@ -988,7 +988,7 @@ export function ImprovedPerioChart({
                             {measurements[tooth]?.probingDepth.buccal.mid}
                           </div>
                           <div 
-                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.buccal.mesial)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mesial' ? 'ring-2 ring-blue-400' : ''}`}
+                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.buccal.mesial)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mesial' ? 'ring-2 ring-primary' : ''}`}
                             onClick={() => {
                               handlePositionClick(tooth, 'buccal', 'mesial');
                               setSelectedMeasurementType('probingDepth');
@@ -1010,7 +1010,7 @@ export function ImprovedPerioChart({
                   {lowerTeeth.map(tooth => (
                     <div 
                       key={`tooth-buccal-${tooth}`} 
-                      className={`flex justify-center ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                      className={`flex justify-center ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                       onClick={() => !readOnly && handleToothClick(tooth)}
                     >
                       <ToothSvgBuccal
@@ -1031,7 +1031,7 @@ export function ImprovedPerioChart({
                   {lowerTeeth.map(tooth => (
                     <div 
                       key={`tooth-lingual-${tooth}`} 
-                      className={`flex justify-center ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                      className={`flex justify-center ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                       onClick={() => !readOnly && handleToothClick(tooth)}
                     >
                       <ToothSvgLingual
@@ -1054,7 +1054,7 @@ export function ImprovedPerioChart({
                     {lowerTeeth.map(tooth => (
                       <td 
                         key={`gm-lingual-${tooth}`} 
-                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                        className={`border p-1 text-center cursor-pointer ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                         onClick={() => {
                           setSelectedTooth(tooth);
                           setSelectedMeasurementType('gingivalMargin');
@@ -1072,7 +1072,7 @@ export function ImprovedPerioChart({
                       <td key={`pd-lingual-${tooth}`} className="border p-0 px-0.5">
                         <div className="grid grid-cols-3 gap-0.5">
                           <div 
-                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.lingual.mesial)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mesial' ? 'ring-2 ring-blue-400' : ''}`}
+                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.lingual.mesial)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mesial' ? 'ring-2 ring-primary' : ''}`}
                             onClick={() => {
                               handlePositionClick(tooth, 'lingual', 'mesial');
                               setSelectedMeasurementType('probingDepth');
@@ -1081,7 +1081,7 @@ export function ImprovedPerioChart({
                             {measurements[tooth]?.probingDepth.lingual.mesial}
                           </div>
                           <div 
-                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.lingual.mid)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mid' ? 'ring-2 ring-blue-400' : ''}`}
+                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.lingual.mid)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mid' ? 'ring-2 ring-primary' : ''}`}
                             onClick={() => {
                               handlePositionClick(tooth, 'lingual', 'mid');
                               setSelectedMeasurementType('probingDepth');
@@ -1090,7 +1090,7 @@ export function ImprovedPerioChart({
                             {measurements[tooth]?.probingDepth.lingual.mid}
                           </div>
                           <div 
-                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.lingual.distal)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'distal' ? 'ring-2 ring-blue-400' : ''}`}
+                            className={`${getPocketDepthColor(measurements[tooth]?.probingDepth.lingual.distal)} p-1 text-center cursor-pointer ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'distal' ? 'ring-2 ring-primary' : ''}`}
                             onClick={() => {
                               handlePositionClick(tooth, 'lingual', 'distal');
                               setSelectedMeasurementType('probingDepth');
@@ -1109,7 +1109,7 @@ export function ImprovedPerioChart({
                     {lowerTeeth.map(tooth => (
                       <td 
                         key={`plaque-lingual-${tooth}`} 
-                        className={`border p-1 text-center cursor-pointer ${measurements[tooth]?.plaque ? 'bg-blue-200' : ''} ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                        className={`border p-1 text-center cursor-pointer ${measurements[tooth]?.plaque ? 'bg-primary/20' : ''} ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                         onClick={() => {
                           setSelectedTooth(tooth);
                           togglePlaque(tooth);
@@ -1126,7 +1126,7 @@ export function ImprovedPerioChart({
                     {lowerTeeth.map(tooth => (
                       <td 
                         key={`bleeding-lingual-${tooth}`} 
-                        className={`border p-1 text-center cursor-pointer ${measurements[tooth]?.bleedingOnProbing ? 'bg-red-200' : ''} ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                        className={`border p-1 text-center cursor-pointer ${measurements[tooth]?.bleedingOnProbing ? 'bg-red-200' : ''} ${selectedTooth === tooth ? 'bg-primary/5' : ''}`}
                         onClick={() => {
                           setSelectedTooth(tooth);
                           toggleBleeding(tooth);
@@ -1172,7 +1172,7 @@ export function ImprovedPerioChart({
                   <span>Bleeding on Probing</span>
                 </div>
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="w-4 h-4 bg-blue-200 border flex items-center justify-center">✓</div>
+                  <div className="w-4 h-4 bg-primary/20 border flex items-center justify-center">✓</div>
                   <span>Plaque</span>
                 </div>
                 <div className="flex items-center gap-2">
