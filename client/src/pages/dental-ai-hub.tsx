@@ -184,7 +184,7 @@ export default function DentalAIHub() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Sparkles className="mr-2 h-5 w-5 text-amber-500" />
-                  DentaMind AI Capabilities
+                  SmartDental AI Capabilities
                 </CardTitle>
                 <CardDescription>
                   Powered by state-of-the-art AI technology to enhance your dental practice
@@ -199,7 +199,7 @@ export default function DentalAIHub() {
                     <div>
                       <h3 className="font-medium">Multi-Domain Neural Networks</h3>
                       <p className="text-sm text-muted-foreground">
-                        DentaMind's AI system uses specialized neural networks for each dental domain: 
+                        SmartDental AI system uses specialized neural networks for each dental domain: 
                         periodontics, endodontics, prosthodontics, oral surgery, and orthodontics. 
                         This ensures highly accurate and domain-specific insights.
                       </p>
@@ -228,7 +228,7 @@ export default function DentalAIHub() {
                       <h3 className="font-medium">Workflow Optimization</h3>
                       <p className="text-sm text-muted-foreground">
                         Our AI doesn't just analyze data—it enhances your entire workflow. From automatically 
-                        generating clinical notes to optimizing treatment sequencing and scheduling, DentaMind 
+                        generating clinical notes to optimizing treatment sequencing and scheduling, SmartDental AI 
                         helps you focus more on patient care.
                       </p>
                     </div>
@@ -250,7 +250,7 @@ export default function DentalAIHub() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">DentaMind AI Hub</h1>
+        <h1 className="text-3xl font-bold">SmartDental AI Hub</h1>
         <p className="text-muted-foreground">
           Advanced AI-powered tools to enhance dental practice management
         </p>

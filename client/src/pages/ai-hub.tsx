@@ -54,7 +54,7 @@ export default function AIHub() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-2xl flex items-center">
                   <Brain className="h-6 w-6 mr-2 text-primary" />
-                  DentaMind AI Suite
+                  SmartDental AI Suite
                 </CardTitle>
                 <CardDescription className="text-base">
                   AI-powered tools to revolutionize your dental practice

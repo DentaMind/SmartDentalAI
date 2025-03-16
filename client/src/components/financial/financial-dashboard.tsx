@@ -21,7 +21,7 @@ import {
   ArrowLeft
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "wouter";
+import { useLocation } from "wouter";
 
 // Type for the dashboard mode
 type DashboardMode = 'tax' | 'revenue' | 'accounting' | 'legal';
@@ -50,7 +50,7 @@ export function FinancialDashboard({ userId, initialTab = 'tax' }: FinancialDash
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<DashboardMode>(initialTab);
   const [userRole, setUserRole] = useState<string>('dentist'); // For access control
-  const [, navigate] = useRouter();
+  const [, setLocation] = useLocation();
   
   // The blue screen issue was happening here, adding error handling to fix it
   useEffect(() => {
