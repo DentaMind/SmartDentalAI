@@ -18,33 +18,73 @@ export const ToothDoctorIcon = forwardRef<SVGSVGElement, LucideProps>(
         strokeLinejoin="round"
         {...props}
       >
-        {/* Tooth shaped like a molar */}
+        {/* Elegant molar tooth shape */}
         <path 
-          d="M8,8 C6,8 6,10 6,11 C6,13 7,15 7,17 C7,19 8,20 9,20 C10,20 11,18 12,18 C13,18 14,20 15,20 C16,20 17,19 17,17 C17,15 18,13 18,11 C18,10 18,8 16,8 C14,8 13,10 12,10 C11,10 10,8 8,8 Z" 
+          d="M7,8.5 C5.5,8.5 5,10 5,11.5 C5,13.5 6,15.5 6,17.5 C6,19 7,20 8.5,20 C9.5,20 10.5,18.5 12,18.5 C13.5,18.5 14.5,20 15.5,20 C17,20 18,19 18,17.5 C18,15.5 19,13.5 19,11.5 C19,10 18.5,8.5 17,8.5 C15.5,8.5 14.5,10 12,10 C9.5,10 8.5,8.5 7,8.5 Z" 
           fill={color} 
           stroke={color}
           strokeWidth="1"
+          opacity="0.85"
         />
 
-        {/* Doctor's face */}
-        <circle cx="12" cy="7" r="2.5" fill={color} />
-        
-        {/* Doctor's white coat/lab coat */}
-        <path 
-          d="M9,9 L8,14 L9,18 L15,18 L16,14 L15,9 Z" 
+        {/* Small dental mirror */}
+        <circle 
+          cx="17.5" 
+          cy="7" 
+          r="1.5" 
           fill="white" 
-          stroke={color}
+          stroke={color} 
+          strokeWidth="0.75"
+        />
+        <line 
+          x1="17.5" 
+          y1="8.5" 
+          x2="16.5" 
+          y2="11" 
+          stroke={color} 
+          strokeWidth="0.75"
+        />
+
+        {/* Professional elements */}
+        <path 
+          d="M8,5.5 C8,3.5 9.8,2 12,2 C14.2,2 16,3.5 16,5.5 C16,7.5 14.2,9 12,9 C9.8,9 8,7.5 8,5.5 Z" 
+          fill="white" 
+          stroke={color} 
           strokeWidth="0.75"
         />
         
-        {/* Stethoscope */}
+        {/* Dental lab coat details */}
         <path 
-          d="M7,11 C5,12 4,14 6,15 C7,15.5 9,15 10,14" 
+          d="M9,7 L8,10 L9,14 L15,14 L16,10 L15,7" 
+          stroke={color}
+          strokeWidth="0.75"
+          fill="white"
+        />
+
+        {/* Stethoscope or dental explorer tool */}
+        <path 
+          d="M7.5,10.5 C6,11.5 5.5,13 7,14 C8,14.5 9,14 10,13" 
           fill="none" 
           stroke={color}
-          strokeWidth="1"
+          strokeWidth="0.75"
         />
-        <circle cx="6" cy="15" r="0.75" fill={color} />
+        <circle cx="7" cy="14" r="0.5" fill={color} />
+
+        {/* Smile indication */}
+        <path
+          d="M10.5,6 C11,6.5 11.5,6.75 12,6.75 C12.5,6.75 13,6.5 13.5,6"
+          stroke={color}
+          strokeWidth="0.75"
+          fill="none"
+        />
+
+        {/* Glasses or professional eye details */}
+        <path
+          d="M10,4.5 C10.5,4.5 11,5 11,5 M13,5 C13,5 13.5,4.5 14,4.5"
+          stroke={color}
+          strokeWidth="0.5"
+          fill="none"
+        />
       </svg>
     );
   }
