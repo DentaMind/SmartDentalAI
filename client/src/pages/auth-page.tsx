@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Redirect } from "wouter";
 import { Stethoscope } from "lucide-react";
+import { ToothDoctorIcon } from "../components/icons/tooth-doctor-icon";
 import dentalSmile from "../../../attached_assets/iStock-526222203.jpg";
 
 type UserRegistrationData = {
@@ -185,7 +186,7 @@ export default function AuthPage() {
         <div className="flex flex-col justify-center space-y-6">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-primary text-white shadow-lg rotate-12 hover:rotate-0 transition-transform duration-300">
-              <Stethoscope className="h-8 w-8" />
+              <ToothDoctorIcon className="h-8 w-8" />
             </div>
             <div className="flex flex-col">
               <h1 className="text-4xl font-bold tracking-tight text-primary">

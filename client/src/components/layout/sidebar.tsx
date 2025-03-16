@@ -71,7 +71,7 @@ export function Sidebar() {
       { 
         name: "AI Hub", 
         href: "/ai-hub", 
-        icon: Bot,
+        icon: ToothDoctorIcon,
         highlight: true 
       },
       { name: "Patients", href: "/patients", icon: Users },
@@ -88,7 +88,7 @@ export function Sidebar() {
       { 
         name: "AI Hub", 
         href: "/ai-hub", 
-        icon: Bot,
+        icon: ToothDoctorIcon,
         highlight: true 
       },
       { name: "Patients", href: "/patients", icon: Users },
