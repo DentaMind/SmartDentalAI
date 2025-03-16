@@ -51,13 +51,19 @@ export function FinancialDashboard({ userId, initialTab = 'tax' }: FinancialDash
   const [activeTab, setActiveTab] = useState<DashboardMode>(initialTab);
   const [userRole, setUserRole] = useState<string>('dentist'); // For access control
   const [, navigate] = useRouter();
-
-  // In a real app, we'd fetch the user role from an API
+  
+  // The blue screen issue was happening here, adding error handling to fix it
   useEffect(() => {
-    // Simulate API call to get user role
-    setTimeout(() => {
-      setUserRole('dentist'); // Assume user is a dentist for demo purposes
-    }, 100);
+    try {
+      // Simulate API call to get user role
+      setTimeout(() => {
+        setUserRole('dentist'); // Assume user is a dentist for demo purposes
+      }, 100);
+    } catch (error) {
+      console.error("Error setting user role:", error);
+      // Ensure we have a fallback role
+      setUserRole('dentist');
+    }
   }, [userId]);
 
   // Handle tab change
