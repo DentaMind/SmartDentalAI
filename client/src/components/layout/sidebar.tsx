@@ -28,6 +28,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronRight,
+  Lightbulb,
 } from "lucide-react";
 import { ToothDoctorIcon } from "../icons/tooth-doctor-icon";
 import { LucideIcon } from "lucide-react";
@@ -74,6 +75,12 @@ export function Sidebar() {
         icon: ToothDoctorIcon,
         highlight: true 
       },
+      { 
+        name: "AI Recommendations", 
+        href: "/ai-recommendations", 
+        icon: Lightbulb,
+        highlight: true 
+      },
       { name: "Patients", href: "/patients", icon: Users },
       { name: "Schedule", href: "/appointments", icon: Calendar },
       { name: "Treatment Planning", href: "/treatment-plans", icon: FileText },
@@ -89,6 +96,12 @@ export function Sidebar() {
         name: "AI Hub", 
         href: "/ai-hub", 
         icon: ToothDoctorIcon,
+        highlight: true 
+      },
+      { 
+        name: "AI Recommendations", 
+        href: "/ai-recommendations", 
+        icon: Lightbulb,
         highlight: true 
       },
       { name: "Patients", href: "/patients", icon: Users },
