@@ -295,23 +295,33 @@ export function RestorativeChart({
     if (!tooth) return "white";
     if (tooth.missing) return "#f0f0f0"; // Light gray for missing teeth
     
-    // For simplicity, just use the first restoration to color the tooth
+    // If tooth has restorations, apply specific material-based fill colors
     if (tooth.restorations.length > 0) {
-      const firstRestoration = tooth.restorations[0];
-      switch (firstRestoration.type) {
-        case 'amalgam': return "#555555"; // Dark gray for amalgam
-        case 'composite': return "#e0e0e0"; // Light gray for composite
-        case 'crown': return "#FFD700"; // Gold for crown
-        case 'implant': return "#8A2BE2"; // Purple for implant
-        case 'bridge': return "#4169E1"; // Royal blue for bridge
-        case 'root-canal': return "#FF4500"; // Red-orange for root canal
-        case 'sealant': return "#87CEEB"; // Sky blue for sealant
-        case 'veneer': return "#FAFAD2"; // Light yellow for veneer
+      // Prioritize certain restoration types for coloring
+      const priorityOrder = ['implant', 'crown', 'bridge', 'root-canal', 'amalgam', 'composite', 'sealant', 'veneer'];
+      
+      // Sort restorations by priority
+      const sortedRestorations = [...tooth.restorations].sort((a, b) => {
+        return priorityOrder.indexOf(a.type) - priorityOrder.indexOf(b.type);
+      });
+      
+      const primaryRestoration = sortedRestorations[0];
+      
+      // Return color based on restoration type with enhanced material realism
+      switch (primaryRestoration.type) {
+        case 'amalgam': return "#a8a9ad"; // Metallic silver (more realistic for amalgam)
+        case 'composite': return "#f0f0e8"; // Slightly off-white with yellow tint (realistic tooth-colored composite)
+        case 'crown': return "#e0d0a0"; // Less saturated gold (more realistic for gold crowns)
+        case 'implant': return "#d8d8d8"; // Titanium-like color
+        case 'bridge': return "#eae0d0"; // Porcelain-like color
+        case 'root-canal': return "#fff0e8"; // Slightly pink indicating treated area
+        case 'sealant': return "#ffffff"; // White (clear sealant)
+        case 'veneer': return "#f8f8ff"; // Very slightly off-white (realistic porcelain veneer)
         default: return "white";
       }
     }
     
-    return "white"; // Default fill
+    return "white"; // Default fill color
   };
 
   // Function to get tooth stroke based on restorations
@@ -321,10 +331,30 @@ export function RestorativeChart({
     if (!tooth) return "black";
     if (tooth.missing) return "#999999"; // Gray for missing teeth
     
-    // For simplicity, just use the first restoration to color the tooth stroke
+    // Apply appropriate outline colors based on restoration type
     if (tooth.restorations.length > 0) {
-      const firstRestoration = tooth.restorations[0];
-      if (firstRestoration.type === 'bridge') return "#0000FF"; // Blue for bridge
+      // Prioritize certain restoration types for coloring
+      const priorityOrder = ['implant', 'crown', 'bridge', 'root-canal', 'amalgam', 'composite', 'sealant', 'veneer'];
+      
+      // Sort restorations by priority
+      const sortedRestorations = [...tooth.restorations].sort((a, b) => {
+        return priorityOrder.indexOf(a.type) - priorityOrder.indexOf(b.type);
+      });
+      
+      const primaryRestoration = sortedRestorations[0];
+      
+      // Return stroke color based on restoration type
+      switch (primaryRestoration.type) {
+        case 'amalgam': return "#777777"; // Darker gray outline for amalgam
+        case 'composite': return "#909080"; // Subtle outline for composite
+        case 'crown': return "#b0a060"; // Gold-like outline for crowns
+        case 'implant': return "#606060"; // Dark gray for implant to show titanium distinction
+        case 'bridge': return "#a08060"; // Brown undertone for bridge
+        case 'root-canal': return "#bb6060"; // Slightly reddish for root canal
+        case 'sealant': return "#60a0a0"; // Cyan-tint for sealant
+        case 'veneer': return "#909090"; // Subtle gray for veneer edge
+        default: return "black";
+      }
     }
     
     return "black"; // Default stroke
@@ -383,6 +413,11 @@ export function RestorativeChart({
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+  
+  // Helper function for selected tooth styling - using amber instead of blue
+  const getSelectedToothClass = (tooth: number) => {
+    return selectedTooth === tooth ? 'bg-amber-100 rounded p-1' : 'p-1';
   };
   
   return (
