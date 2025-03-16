@@ -30,7 +30,9 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 
-// Constants
+// Constants - Using international teeth numbering system (FDI/ISO)
+// Upper: 18-11 (right to left), 21-28 (left to right)
+// Lower: 48-41 (right to left), 31-38 (left to right)
 const ADULT_TEETH_UPPER = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
 const ADULT_TEETH_LOWER = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
 

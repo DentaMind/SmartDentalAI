@@ -57,12 +57,60 @@ export function ImprovedPerioChart({
   // State to hold all measurements for all teeth
   const [measurements, setMeasurements] = useState<Record<number, PerioMeasurements>>({});
 
-  // Initialize measurements for all teeth (1-32)
+  // Initialize measurements for all teeth using FDI/ISO system
   useEffect(() => {
     const initialMeasurements: Record<number, PerioMeasurements> = {};
     
-    // Upper teeth (1-16) and lower teeth (17-32)
-    for (let i = 1; i <= 32; i++) {
+    // Upper right quadrant (18-11)
+    for (let i = 18; i >= 11; i--) {
+      initialMeasurements[i] = {
+        mobility: null,
+        implant: false,
+        furcation: null,
+        bleedingOnProbing: false,
+        plaque: false,
+        gingivalMargin: null,
+        probingDepth: {
+          buccal: { mesial: null, mid: null, distal: null },
+          lingual: { mesial: null, mid: null, distal: null },
+        }
+      };
+    }
+    
+    // Upper left quadrant (21-28)
+    for (let i = 21; i <= 28; i++) {
+      initialMeasurements[i] = {
+        mobility: null,
+        implant: false,
+        furcation: null,
+        bleedingOnProbing: false,
+        plaque: false,
+        gingivalMargin: null,
+        probingDepth: {
+          buccal: { mesial: null, mid: null, distal: null },
+          lingual: { mesial: null, mid: null, distal: null },
+        }
+      };
+    }
+    
+    // Lower right quadrant (48-41)
+    for (let i = 48; i >= 41; i--) {
+      initialMeasurements[i] = {
+        mobility: null,
+        implant: false,
+        furcation: null,
+        bleedingOnProbing: false,
+        plaque: false,
+        gingivalMargin: null,
+        probingDepth: {
+          buccal: { mesial: null, mid: null, distal: null },
+          lingual: { mesial: null, mid: null, distal: null },
+        }
+      };
+    }
+    
+    // Lower left quadrant (31-38)
+    for (let i = 31; i <= 38; i++) {
       initialMeasurements[i] = {
         mobility: null,
         implant: false,

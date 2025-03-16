@@ -70,7 +70,7 @@ const DEFAULT_OPENAI_CONFIG: AIKeyConfig = {
 const AI_SERVICE_CONFIGS: Record<AIServiceType, AIKeyConfig> = {
   [AIServiceType.DIAGNOSIS]: {
     provider: 'openai',
-    apiKey: process.env.DIAGNOSIS_AI_KEY || process.env.OPENAI_API_KEY || '',
+    apiKey: process.env.OPENAI_API_KEY_DIAGNOSIS || process.env.OPENAI_API_KEY || '',
     model: 'gpt-4',
     maxTokens: 2000,
     temperature: 0.3,
@@ -79,7 +79,7 @@ const AI_SERVICE_CONFIGS: Record<AIServiceType, AIKeyConfig> = {
   },
   [AIServiceType.XRAY_ANALYSIS]: {
     provider: 'openai',
-    apiKey: process.env.XRAY_AI_KEY || process.env.OPENAI_API_KEY || '',
+    apiKey: process.env.OPENAI_API_KEY_XRAY || process.env.OPENAI_API_KEY || '',
     model: 'gpt-4-vision-preview',
     maxTokens: 1000,
     temperature: 0.2,
@@ -88,7 +88,7 @@ const AI_SERVICE_CONFIGS: Record<AIServiceType, AIKeyConfig> = {
   },
   [AIServiceType.TREATMENT_PLANNING]: {
     provider: 'openai',
-    apiKey: process.env.TREATMENT_AI_KEY || process.env.OPENAI_API_KEY || '',
+    apiKey: process.env.OPENAI_API_KEY_TREATMENT || process.env.OPENAI_API_KEY || '',
     model: 'gpt-4',
     maxTokens: 3000,
     temperature: 0.7,
@@ -97,7 +97,7 @@ const AI_SERVICE_CONFIGS: Record<AIServiceType, AIKeyConfig> = {
   },
   [AIServiceType.FINANCIAL]: {
     provider: 'openai',
-    apiKey: process.env.FINANCIAL_AI_KEY || process.env.OPENAI_API_KEY || '',
+    apiKey: process.env.OPENAI_API_KEY_FINANCIAL || process.env.OPENAI_API_KEY || '',
     model: 'gpt-4',
     maxTokens: 2000,
     temperature: 0.2,
@@ -106,7 +106,7 @@ const AI_SERVICE_CONFIGS: Record<AIServiceType, AIKeyConfig> = {
   },
   [AIServiceType.SCHEDULING]: {
     provider: 'openai',
-    apiKey: process.env.SCHEDULING_AI_KEY || process.env.OPENAI_API_KEY || '',
+    apiKey: process.env.OPENAI_API_KEY_SCHEDULING || process.env.OPENAI_API_KEY || '',
     model: 'gpt-3.5-turbo',
     maxTokens: 1000,
     temperature: 0.3,
@@ -115,7 +115,7 @@ const AI_SERVICE_CONFIGS: Record<AIServiceType, AIKeyConfig> = {
   },
   [AIServiceType.PATIENT_COMMUNICATION]: {
     provider: 'openai',
-    apiKey: process.env.CHAT_AI_KEY || process.env.OPENAI_API_KEY || '',
+    apiKey: process.env.OPENAI_API_KEY_COMMUNICATION || process.env.OPENAI_API_KEY || '',
     model: 'gpt-4',
     maxTokens: 1500,
     temperature: 0.7,
