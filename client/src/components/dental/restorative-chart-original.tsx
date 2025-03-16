@@ -650,7 +650,7 @@ export function RestorativeChart({
                     {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
                       <div 
                         key={`buccal-${tooth}`} 
-                        className={`flex flex-col items-center ${selectedTooth === tooth ? 'bg-amber-100 rounded p-1' : 'p-1'}`}
+                        className={`flex flex-col items-center ${selectedTooth === tooth ? 'bg-blue-100 rounded p-1' : 'p-1'}`}
                         onClick={() => !readOnly && handleToothClick(tooth)}
                       >
                         <div className="text-[10px] font-medium">#{tooth}</div>
@@ -673,7 +673,7 @@ export function RestorativeChart({
                     {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
                       <div 
                         key={`occlusal-${tooth}`} 
-                        className={`flex flex-col items-center ${selectedTooth === tooth ? 'bg-amber-100 rounded p-1' : 'p-1'}`}
+                        className={`flex flex-col items-center ${selectedTooth === tooth ? 'bg-blue-100 rounded p-1' : 'p-1'}`}
                         onClick={() => !readOnly && handleToothClick(tooth)}
                       >
                         <ToothSvgOcclusal
@@ -704,7 +704,7 @@ export function RestorativeChart({
                     {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
                       <div 
                         key={`occlusal-${tooth}`} 
-                        className={`flex flex-col items-center ${selectedTooth === tooth ? 'bg-amber-100 rounded p-1' : 'p-1'}`}
+                        className={`flex flex-col items-center ${selectedTooth === tooth ? 'bg-blue-100 rounded p-1' : 'p-1'}`}
                         onClick={() => !readOnly && handleToothClick(tooth)}
                       >
                         <ToothSvgOcclusal
@@ -726,7 +726,7 @@ export function RestorativeChart({
                     {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
                       <div 
                         key={`buccal-${tooth}`} 
-                        className={`flex flex-col items-center ${selectedTooth === tooth ? 'bg-amber-100 rounded p-1' : 'p-1'}`}
+                        className={`flex flex-col items-center ${selectedTooth === tooth ? 'bg-blue-100 rounded p-1' : 'p-1'}`}
                         onClick={() => !readOnly && handleToothClick(tooth)}
                       >
                         <ToothSvgBuccal
