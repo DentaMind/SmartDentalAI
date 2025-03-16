@@ -305,10 +305,10 @@ export function ImprovedPerioChart({
   // Helper function to get cell background based on pocket depth with improved clinical color standard
   const getPocketDepthColor = (depth: number | null) => {
     if (depth === null) return 'bg-white';
-    if (depth <= 3) return 'bg-green-100'; // Healthy (1-3mm)
-    if (depth <= 5) return 'bg-yellow-100'; // Early periodontitis (4-5mm)
-    if (depth <= 7) return 'bg-orange-100'; // Moderate periodontitis (6-7mm)
-    return 'bg-red-100'; // Severe periodontitis (8mm+)
+    if (depth < 3) return 'bg-green-100'; // Healthy (<3mm)
+    if (depth < 5) return 'bg-yellow-100'; // Mild inflammation (3-4mm)
+    if (depth < 7) return 'bg-orange-100'; // Moderate periodontitis (5-6mm)
+    return 'bg-red-100'; // Severe periodontitis (7mm+)
   };
 
   // Render teeth numbers for upper arch using FDI/ISO system (18-11, 21-28)
