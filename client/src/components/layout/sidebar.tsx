@@ -21,7 +21,6 @@ import {
   DollarSign,
   Brain,
   ActivitySquare,
-  Bot,
   Ruler,
   Clock,
   Shield,
@@ -30,6 +29,7 @@ import {
   PanelLeftOpen,
   ChevronRight,
 } from "lucide-react";
+import { ToothDoctorIcon } from "../icons/tooth-doctor-icon";
 import { LucideIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -141,7 +141,7 @@ export function Sidebar() {
         <Link href="/">
           <div className="flex items-center gap-3 hover:opacity-90 transition-opacity cursor-pointer">
             <div className="p-2.5 rounded-xl bg-primary text-white shadow-lg rotate-12 hover:rotate-0 transition-transform duration-300">
-              <Bot className="h-7 w-7" />
+              <ToothDoctorIcon className="h-7 w-7" />
             </div>
             {!collapsed && (
               <div className="flex flex-col">
