@@ -207,14 +207,30 @@ export function ImprovedPerioChart({
     }
   };
 
-  // Function to determine next tooth in sequence
+  // Function to determine next tooth in sequence using FDI/ISO system
   const getNextTooth = (currentTooth: number) => {
-    // Upper arch (1-16) from left to right
-    if (currentTooth >= 1 && currentTooth < 16) return currentTooth + 1;
-    if (currentTooth === 16) return 17;
-    // Lower arch (17-32) from right to left
-    if (currentTooth >= 17 && currentTooth < 32) return currentTooth + 1;
-    return null; // No next tooth after 32
+    // Upper right quadrant (18-11)
+    if (currentTooth > 11 && currentTooth <= 18) return currentTooth - 1;
+    
+    // Transition from upper right to upper left quadrant
+    if (currentTooth === 11) return 21;
+    
+    // Upper left quadrant (21-28)
+    if (currentTooth >= 21 && currentTooth < 28) return currentTooth + 1;
+    
+    // Transition from upper left to lower right quadrant
+    if (currentTooth === 28) return 48;
+    
+    // Lower right quadrant (48-41)
+    if (currentTooth > 41 && currentTooth <= 48) return currentTooth - 1;
+    
+    // Transition from lower right to lower left quadrant
+    if (currentTooth === 41) return 31;
+    
+    // Lower left quadrant (31-38)
+    if (currentTooth >= 31 && currentTooth < 38) return currentTooth + 1;
+    
+    return null; // End of sequence
   };
 
   // Function to toggle bleeding
@@ -286,26 +302,37 @@ export function ImprovedPerioChart({
     });
   };
 
-  // Helper function to get cell background based on pocket depth
+  // Helper function to get cell background based on pocket depth with improved clinical color standard
   const getPocketDepthColor = (depth: number | null) => {
     if (depth === null) return 'bg-white';
-    if (depth <= 3) return 'bg-green-100';
-    if (depth <= 5) return 'bg-yellow-100';
-    return 'bg-red-100';
+    if (depth <= 3) return 'bg-green-100'; // Healthy (1-3mm)
+    if (depth <= 5) return 'bg-yellow-100'; // Early periodontitis (4-5mm)
+    if (depth <= 7) return 'bg-orange-100'; // Moderate periodontitis (6-7mm)
+    return 'bg-red-100'; // Severe periodontitis (8mm+)
   };
 
-  // Render teeth numbers for upper arch (1-16)
+  // Render teeth numbers for upper arch using FDI/ISO system (18-11, 21-28)
   const renderUpperTeethNumbers = () => {
-    return Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
+    // Upper right quadrant (18-11)
+    const upperRightTeeth = Array.from({length: 8}, (_, i) => 18 - i);
+    // Upper left quadrant (21-28)
+    const upperLeftTeeth = Array.from({length: 8}, (_, i) => 21 + i);
+    
+    return [...upperRightTeeth, ...upperLeftTeeth].map(tooth => (
       <div key={`upper-tooth-${tooth}`} className="text-center font-medium text-xs">
         {tooth}
       </div>
     ));
   };
 
-  // Render teeth numbers for lower arch (17-32) from right to left
+  // Render teeth numbers for lower arch using FDI/ISO system (48-41, 31-38)
   const renderLowerTeethNumbers = () => {
-    return Array.from({length: 16}, (_, i) => 32 - i).map(tooth => (
+    // Lower right quadrant (48-41)
+    const lowerRightTeeth = Array.from({length: 8}, (_, i) => 48 - i);
+    // Lower left quadrant (31-38)
+    const lowerLeftTeeth = Array.from({length: 8}, (_, i) => 31 + i);
+    
+    return [...lowerRightTeeth, ...lowerLeftTeeth].map(tooth => (
       <div key={`lower-tooth-${tooth}`} className="text-center font-medium text-xs">
         {tooth}
       </div>
@@ -326,11 +353,16 @@ export function ImprovedPerioChart({
     return null;
   };
 
-  // Create an array of upper teeth (1-16)
-  const upperTeeth = Array.from({length: 16}, (_, i) => i + 1);
+  // Create arrays of teeth using FDI/ISO system
+  // Upper teeth: right quadrant (18-11) followed by left quadrant (21-28)
+  const upperRightTeeth = Array.from({length: 8}, (_, i) => 18 - i);
+  const upperLeftTeeth = Array.from({length: 8}, (_, i) => 21 + i);
+  const upperTeeth = [...upperRightTeeth, ...upperLeftTeeth];
   
-  // Create an array of lower teeth (17-32) in reverse order (right to left)
-  const lowerTeeth = Array.from({length: 16}, (_, i) => 32 - i);
+  // Lower teeth: right quadrant (48-41) followed by left quadrant (31-38)
+  const lowerRightTeeth = Array.from({length: 8}, (_, i) => 48 - i);
+  const lowerLeftTeeth = Array.from({length: 8}, (_, i) => 31 + i);
+  const lowerTeeth = [...lowerRightTeeth, ...lowerLeftTeeth];
 
   return (
     <Card className={`w-full ${fullScreen ? 'fixed inset-0 z-50 overflow-auto bg-background' : ''}`}>
@@ -519,7 +551,7 @@ export function ImprovedPerioChart({
 
           {/* UPPER ARCH */}
           <div className="border rounded-lg p-4">
-            <h3 className="text-sm font-medium mb-2">Upper Arch (1-16)</h3>
+            <h3 className="text-sm font-medium mb-2">Upper Arch (FDI: 18-11, 21-28)</h3>
             
             {/* Measurement Grid - Structure matches reference image */}
             <div className="w-full relative overflow-x-auto">
@@ -815,7 +847,7 @@ export function ImprovedPerioChart({
           
           {/* LOWER ARCH */}
           <div className="border rounded-lg p-4 mt-6">
-            <h3 className="text-sm font-medium mb-2">Lower Arch (17-32)</h3>
+            <h3 className="text-sm font-medium mb-2">Lower Arch (FDI: 48-41, 31-38)</h3>
             
             {/* Measurement Grid - Lower Arch */}
             <div className="w-full relative overflow-x-auto">
@@ -1121,11 +1153,15 @@ export function ImprovedPerioChart({
                 </div>
                 <div className="flex items-center gap-2 mb-1">
                   <div className="w-4 h-4 bg-yellow-100 border"></div>
-                  <span>4-5mm (Moderate)</span>
+                  <span>4-5mm (Early Periodontitis)</span>
+                </div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-4 h-4 bg-orange-100 border"></div>
+                  <span>6-7mm (Moderate Periodontitis)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 bg-red-100 border"></div>
-                  <span>6mm+ (Severe)</span>
+                  <span>8mm+ (Severe Periodontitis)</span>
                 </div>
               </div>
               
