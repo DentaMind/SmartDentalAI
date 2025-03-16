@@ -73,7 +73,7 @@ export function FinancialDashboard({ userId, initialTab = 'tax' }: FinancialDash
 
   // Navigate back to main AI hub
   const navigateToHub = () => {
-    navigate('/ai-hub');
+    setLocation('/ai-hub');
   };
 
   // Function to render help content for each tab
