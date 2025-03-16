@@ -451,7 +451,7 @@ export function ImprovedPerioChart({
                         key={value}
                         size="sm"
                         variant="outline"
-                        className={`h-6 w-6 p-0 ${measurements[selectedTooth]?.probingDepth[selectedSurface][selectedPosition] === value ? 'bg-blue-100' : ''}`}
+                        className={`h-6 w-6 p-0 ${measurements[selectedTooth]?.probingDepth[selectedSurface][selectedPosition] === value ? 'bg-primary/10 font-bold border-primary' : ''}`}
                         onClick={() => updateProbingDepthValue(value)}
                       >
                         {value}
@@ -467,7 +467,7 @@ export function ImprovedPerioChart({
                         key={value}
                         size="sm"
                         variant="outline"
-                        className={`h-6 w-6 p-0 ${measurements[selectedTooth]?.gingivalMargin === value ? 'bg-blue-100' : ''}`}
+                        className={`h-6 w-6 p-0 ${measurements[selectedTooth]?.gingivalMargin === value ? 'bg-primary/10 font-bold border-primary' : ''}`}
                         onClick={() => setGingivalMargin(selectedTooth, value)}
                       >
                         {value}
@@ -483,7 +483,7 @@ export function ImprovedPerioChart({
                         key={value}
                         size="sm"
                         variant="outline"
-                        className={`h-6 w-6 p-0 ${measurements[selectedTooth]?.mobility === value ? 'bg-blue-100' : ''}`}
+                        className={`h-6 w-6 p-0 ${measurements[selectedTooth]?.mobility === value ? 'bg-primary/10 font-bold border-primary' : ''}`}
                         onClick={() => setMobility(selectedTooth, value)}
                       >
                         {value}
@@ -499,7 +499,7 @@ export function ImprovedPerioChart({
                         key={value}
                         size="sm"
                         variant="outline"
-                        className={`h-6 w-6 p-0 ${measurements[selectedTooth]?.furcation === value ? 'bg-blue-100' : ''}`}
+                        className={`h-6 w-6 p-0 ${measurements[selectedTooth]?.furcation === value ? 'bg-primary/10 font-bold border-primary' : ''}`}
                         onClick={() => setFurcation(selectedTooth, value)}
                       >
                         {value === 1 ? '○' : value === 2 ? '◐' : '●'}
