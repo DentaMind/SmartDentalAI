@@ -1,23 +1,12 @@
 import express, { Request, Response } from 'express';
-import { z } from 'zod';
-import { storage } from '../storage';
 import { requireAuth, requireRole } from '../middleware/auth';
-import { insertMedicalNoteSchema } from '../../shared/schema';
-import { type InsertMedicalNote } from '../../shared/schema';
+import { storage } from '../storage';
+import { log } from '../vite';
+import { InsertMedicalNote, insertMedicalNoteSchema } from '../../shared/schema';
+import { z } from 'zod';
 import { generateAiTreatmentNote } from '../services/ai-treatment-note-service';
 
 const router = express.Router();
-
-// Schema for AI treatment note generation
-const aiTreatmentNoteSchema = z.object({
-  procedure: z.string().min(1),
-  teeth: z.array(z.string()).min(1),
-  materials: z.array(z.string()).optional(),
-  isolation: z.string().optional(),
-  anesthesia: z.string().optional(),
-  additionalDetails: z.string().optional(),
-  patientResponse: z.string().optional(),
-});
 
 /**
  * @route GET /api/patients/:patientId/medical-notes
@@ -26,16 +15,37 @@ const aiTreatmentNoteSchema = z.object({
  */
 router.get('/patients/:patientId/medical-notes', requireAuth, async (req: Request, res: Response) => {
   try {
-    const patientId = Number(req.params.patientId);
+    const patientId = parseInt(req.params.patientId);
     if (isNaN(patientId)) {
       return res.status(400).json({ message: 'Invalid patient ID' });
     }
 
     const notes = await storage.getPatientMedicalNotes(patientId, req.user?.role || '');
     return res.json(notes);
-  } catch (error) {
-    console.error('Error fetching patient medical notes:', error);
-    return res.status(500).json({ message: 'Failed to fetch medical notes' });
+  } catch (error: any) {
+    log(`Error fetching medical notes: ${error.message}`, 'medical-notes');
+    return res.status(500).json({ message: 'Error fetching medical notes', error: error.message });
+  }
+});
+
+/**
+ * @route GET /api/patients/:patientId/medical-notes/category/:category
+ * @desc Get notes for a patient by category
+ * @access Private
+ */
+router.get('/patients/:patientId/medical-notes/category/:category', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const patientId = parseInt(req.params.patientId);
+    if (isNaN(patientId)) {
+      return res.status(400).json({ message: 'Invalid patient ID' });
+    }
+
+    const { category } = req.params;
+    const notes = await storage.getPatientMedicalNotesByCategory(patientId, category, req.user?.role || '');
+    return res.json(notes);
+  } catch (error: any) {
+    log(`Error fetching medical notes by category: ${error.message}`, 'medical-notes');
+    return res.status(500).json({ message: 'Error fetching medical notes', error: error.message });
   }
 });
 
@@ -46,202 +56,168 @@ router.get('/patients/:patientId/medical-notes', requireAuth, async (req: Reques
  */
 router.post('/patients/:patientId/medical-notes', requireAuth, requireRole(['doctor', 'staff']), async (req: Request, res: Response) => {
   try {
-    const patientId = Number(req.params.patientId);
+    const patientId = parseInt(req.params.patientId);
     if (isNaN(patientId)) {
       return res.status(400).json({ message: 'Invalid patient ID' });
     }
 
-    // Validate note data
-    const validationResult = insertMedicalNoteSchema.safeParse({
-      ...req.body,
-      patientId
-    });
+    const doctorId = req.user?.id;
+    if (!doctorId) {
+      return res.status(401).json({ message: 'User ID is required' });
+    }
 
-    if (!validationResult.success) {
+    // Validate the request body against the schema
+    const validateResult = insertMedicalNoteSchema.safeParse({ ...req.body, patientId, doctorId });
+    
+    if (!validateResult.success) {
       return res.status(400).json({ 
         message: 'Invalid note data', 
-        errors: validationResult.error.flatten() 
+        errors: validateResult.error.format() 
       });
     }
 
-    // Make sure there's a doctor assigned if staff is creating the note
-    if (req.user?.role === 'staff' && !req.body.doctorId) {
-      return res.status(400).json({ message: 'Doctor ID is required for staff-created notes' });
-    }
-
-    const noteData: InsertMedicalNote = {
-      patientId,
-      userId: req.user?.id || 0,
-      title: req.body.title,
-      content: req.body.content,
-      category: req.body.category,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
+    const noteData: InsertMedicalNote = validateResult.data;
     const note = await storage.createMedicalNote(noteData);
     return res.status(201).json(note);
-  } catch (error) {
-    console.error('Error creating medical note:', error);
-    return res.status(500).json({ message: 'Failed to create medical note' });
+  } catch (error: any) {
+    log(`Error creating medical note: ${error.message}`, 'medical-notes');
+    return res.status(500).json({ message: 'Error creating medical note', error: error.message });
   }
 });
 
 /**
- * @route POST /api/patients/:patientId/medical-notes/:noteId/sign
- * @desc Sign a medical note (doctor only)
- * @access Private - Doctor only
- */
-router.post('/patients/:patientId/medical-notes/:noteId/sign', requireAuth, requireRole(['doctor']), async (req: Request, res: Response) => {
-  try {
-    const patientId = Number(req.params.patientId);
-    const noteId = Number(req.params.noteId);
-
-    if (isNaN(patientId) || isNaN(noteId)) {
-      return res.status(400).json({ message: 'Invalid patient or note ID' });
-    }
-
-    // Update the note with signed info
-    const updatedNote = await storage.updateMedicalNote(noteId, {
-      signedBy: req.user?.id,
-      signedAt: new Date(),
-      signedByName: req.body.signedByName || `${req.user?.firstName} ${req.user?.lastName}`,
-    });
-
-    if (!updatedNote) {
-      return res.status(404).json({ message: 'Medical note not found' });
-    }
-
-    return res.json(updatedNote);
-  } catch (error) {
-    console.error('Error signing medical note:', error);
-    return res.status(500).json({ message: 'Failed to sign medical note' });
-  }
-});
-
-/**
- * @route GET /api/patients/:patientId/medical-notes/:noteId
+ * @route GET /api/medical-notes/:noteId
  * @desc Get a specific medical note
  * @access Private
  */
-router.get('/patients/:patientId/medical-notes/:noteId', requireAuth, async (req: Request, res: Response) => {
+router.get('/medical-notes/:noteId', requireAuth, async (req: Request, res: Response) => {
   try {
-    const patientId = Number(req.params.patientId);
-    const noteId = Number(req.params.noteId);
-
-    if (isNaN(patientId) || isNaN(noteId)) {
-      return res.status(400).json({ message: 'Invalid patient or note ID' });
+    const noteId = parseInt(req.params.noteId);
+    if (isNaN(noteId)) {
+      return res.status(400).json({ message: 'Invalid note ID' });
     }
 
     const note = await storage.getMedicalNote(noteId);
+    if (!note) {
+      return res.status(404).json({ message: 'Note not found' });
+    }
     
-    if (!note || note.patientId !== patientId) {
-      return res.status(404).json({ message: 'Medical note not found' });
-    }
-
-    // Check if the user has access to this note (admin, the doctor who created it, or staff)
-    if (req.user?.role !== 'admin' && req.user?.role !== 'doctor' && req.user?.id !== note.userId) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-
     return res.json(note);
-  } catch (error) {
-    console.error('Error fetching medical note:', error);
-    return res.status(500).json({ message: 'Failed to fetch medical note' });
+  } catch (error: any) {
+    log(`Error fetching medical note: ${error.message}`, 'medical-notes');
+    return res.status(500).json({ message: 'Error fetching medical note', error: error.message });
   }
 });
 
 /**
- * @route PATCH /api/patients/:patientId/medical-notes/:noteId
+ * @route PUT /api/medical-notes/:noteId
  * @desc Update a medical note
- * @access Private - Doctor or creator
+ * @access Private - Doctor or staff
  */
-router.patch('/patients/:patientId/medical-notes/:noteId', requireAuth, async (req: Request, res: Response) => {
+router.put('/medical-notes/:noteId', requireAuth, requireRole(['doctor', 'staff']), async (req: Request, res: Response) => {
   try {
-    const patientId = Number(req.params.patientId);
-    const noteId = Number(req.params.noteId);
-
-    if (isNaN(patientId) || isNaN(noteId)) {
-      return res.status(400).json({ message: 'Invalid patient or note ID' });
+    const noteId = parseInt(req.params.noteId);
+    if (isNaN(noteId)) {
+      return res.status(400).json({ message: 'Invalid note ID' });
     }
 
-    const note = await storage.getMedicalNote(noteId);
-    
-    if (!note || note.patientId !== patientId) {
-      return res.status(404).json({ message: 'Medical note not found' });
+    const existingNote = await storage.getMedicalNote(noteId);
+    if (!existingNote) {
+      return res.status(404).json({ message: 'Note not found' });
     }
 
-    // Only allow updates if the note is not signed and user is the creator or a doctor
-    if (note.signedBy) {
-      return res.status(400).json({ message: 'Cannot update a signed note' });
-    }
-
-    // Check if the user has permission to update this note
-    if (req.user?.role !== 'admin' && req.user?.role !== 'doctor' && req.user?.id !== note.userId) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-
-    // Update the note
-    const updatedNote = await storage.updateMedicalNote(noteId, {
-      ...req.body,
-      updatedAt: new Date()
-    });
-
-    return res.json(updatedNote);
-  } catch (error) {
-    console.error('Error updating medical note:', error);
-    return res.status(500).json({ message: 'Failed to update medical note' });
-  }
-});
-
-/**
- * @route GET /api/patients/:patientId/medical-notes/category/:category
- * @desc Get all medical notes for a patient filtered by category
- * @access Private
- */
-router.get('/patients/:patientId/medical-notes/category/:category', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const patientId = Number(req.params.patientId);
-    const category = req.params.category;
-
-    if (isNaN(patientId)) {
-      return res.status(400).json({ message: 'Invalid patient ID' });
-    }
-
-    const notes = await storage.getPatientMedicalNotesByCategory(patientId, category, req.user?.role || '');
-    return res.json(notes);
-  } catch (error) {
-    console.error('Error fetching patient medical notes by category:', error);
-    return res.status(500).json({ message: 'Failed to fetch medical notes' });
-  }
-});
-
-/**
- * @route POST /api/ai/generate-treatment-note
- * @desc Generate an AI-assisted treatment note
- * @access Private - Doctors only
- */
-router.post('/ai/generate-treatment-note', requireAuth, requireRole(['doctor']), async (req: Request, res: Response) => {
-  try {
-    // Validate the input data
-    const validationResult = aiTreatmentNoteSchema.safeParse(req.body);
-    
-    if (!validationResult.success) {
-      return res.status(400).json({ 
-        message: 'Invalid treatment data', 
-        errors: validationResult.error.flatten() 
+    // If the note is already signed, don't allow updates unless from the signing doctor
+    if (existingNote.signedAt && existingNote.signedBy && existingNote.signedBy !== req.user?.id) {
+      return res.status(403).json({ 
+        message: 'Cannot modify a note that has been signed by another doctor' 
       });
     }
+
+    const updates = req.body;
+    const updatedNote = await storage.updateMedicalNote(noteId, updates);
+    return res.json(updatedNote);
+  } catch (error: any) {
+    log(`Error updating medical note: ${error.message}`, 'medical-notes');
+    return res.status(500).json({ message: 'Error updating medical note', error: error.message });
+  }
+});
+
+/**
+ * @route POST /api/medical-notes/:noteId/sign
+ * @desc Sign a medical note (only by a doctor)
+ * @access Private - Doctor only
+ */
+router.post('/medical-notes/:noteId/sign', requireAuth, requireRole(['doctor']), async (req: Request, res: Response) => {
+  try {
+    const noteId = parseInt(req.params.noteId);
+    if (isNaN(noteId)) {
+      return res.status(400).json({ message: 'Invalid note ID' });
+    }
+
+    const existingNote = await storage.getMedicalNote(noteId);
+    if (!existingNote) {
+      return res.status(404).json({ message: 'Note not found' });
+    }
+
+    if (existingNote.signedAt) {
+      return res.status(400).json({ message: 'Note has already been signed' });
+    }
+
+    // Update the note with signature information
+    const updates = {
+      signedAt: new Date(),
+      signedBy: req.user?.id
+    };
+
+    const updatedNote = await storage.updateMedicalNote(noteId, updates);
+    return res.json(updatedNote);
+  } catch (error: any) {
+    log(`Error signing medical note: ${error.message}`, 'medical-notes');
+    return res.status(500).json({ message: 'Error signing medical note', error: error.message });
+  }
+});
+
+/**
+ * @route POST /api/medical-notes/generate-treatment-note
+ * @desc Generate a treatment note using AI
+ * @access Private - Doctor or staff
+ */
+router.post('/medical-notes/generate-treatment-note', requireAuth, requireRole(['doctor', 'staff']), async (req: Request, res: Response) => {
+  try {
+    // Define the schema for the request body
+    const generateNoteSchema = z.object({
+      procedure: z.string().min(1, "Procedure is required"),
+      teeth: z.array(z.string()).min(1, "At least one tooth must be specified"),
+      materials: z.array(z.string()).optional(),
+      isolation: z.string().optional(),
+      anesthesia: z.string().optional(),
+      additionalDetails: z.string().optional(),
+      patientResponse: z.string().optional(),
+    });
+
+    // Validate the request body
+    const validateResult = generateNoteSchema.safeParse(req.body);
     
-    const data = validationResult.data;
+    if (!validateResult.success) {
+      return res.status(400).json({ 
+        message: 'Invalid treatment note data', 
+        errors: validateResult.error.format() 
+      });
+    }
+
+    // Generate the note using AI
+    const generatedNote = await generateAiTreatmentNote(validateResult.data);
     
-    // Call the AI service to generate the note
-    const generatedNote = await generateAiTreatmentNote(data);
-    
-    return res.json({ note: generatedNote });
-  } catch (error) {
-    console.error('Error generating AI treatment note:', error);
-    return res.status(500).json({ message: 'Failed to generate treatment note' });
+    return res.json({ 
+      note: generatedNote,
+      procedureDetails: validateResult.data
+    });
+  } catch (error: any) {
+    log(`Error generating AI treatment note: ${error.message}`, 'medical-notes');
+    return res.status(500).json({ 
+      message: 'Error generating treatment note', 
+      error: error.message 
+    });
   }
 });
 

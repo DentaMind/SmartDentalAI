@@ -213,6 +213,47 @@ class AIServiceManager {
   }
 
   /**
+   * Generate treatment note based on procedure details
+   */
+  async generateTreatmentNote(prompt: string): Promise<string> {
+    try {
+      // Use request queue with appropriate priority
+      return await aiRequestQueue.enqueueRequest(
+        AIServiceType.TREATMENT,
+        async () => {
+          const client = this.getOpenAIClient(AIServiceType.TREATMENT);
+          const config = getOptimalAIConfig(AIServiceType.TREATMENT);
+
+          const response = await client.chat.completions.create({
+            model: config.model || 'gpt-4',
+            max_tokens: 1000,
+            temperature: 0.2, // Lower temperature for more structured, consistent output
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a dental professional assistant who creates detailed clinical notes for procedures. Generate clear, professional treatment notes following dental documentation standards. Be specific and use proper dental terminology.'
+              },
+              {
+                role: 'user',
+                content: prompt
+              }
+            ]
+          });
+
+          // Track API usage for monitoring
+          trackAPIUsage(AIServiceType.TREATMENT, response.usage?.total_tokens || 0);
+          
+          return response.choices[0].message.content || '';
+        },
+        { priority: 7 } // Treatment notes are high priority but below diagnosis and treatment planning
+      );
+    } catch (error: any) {
+      console.error('Error generating treatment note:', error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Generate financial forecast for the practice
    */
   async generateFinancialForecast(historicalData: any, months: number = 12): Promise<any> {
