@@ -183,10 +183,12 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-800 to-gray-700 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Subtle background gradient pattern - lightened for better contrast */}
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-gray-800 to-gray-900 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Enhanced background with multiple gradient layers */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-800/10 via-gray-800/80 to-gray-800/80"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-800/20 via-indigo-900/10 to-gray-900/30 backdrop-blur-3xl"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_70%)]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.08),transparent_70%)]"></div>
       </div>
       
       <div className="w-full max-w-5xl grid md:grid-cols-2 gap-10 mx-auto">
@@ -234,10 +236,12 @@ export default function AuthPage() {
           </div>
         </div>
 
-        <Card className="w-full self-center bg-white shadow-[0_20px_60px_-15px_rgba(20,30,70,0.3)] rounded-xl border border-gray-100">
-          <CardContent className="pt-8 px-8 pb-10">
+        <Card className="w-full self-center bg-white/95 backdrop-blur-md shadow-[0_20px_60px_-15px_rgba(20,30,70,0.4)] rounded-xl border border-white/50 hover:border-white transition-all duration-300">
+          <CardContent className="pt-8 px-8 pb-10 relative">
+            {/* Subtle card pattern */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0)_0%,rgba(255,255,255,0.4)_100%)] opacity-30 pointer-events-none rounded-xl"></div>
             <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-4 mb-8 bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 p-1 gap-1">
+              <TabsList className="grid w-full grid-cols-4 mb-8 bg-white/80 backdrop-blur-sm rounded-xl shadow-md overflow-hidden border border-blue-100/50 p-1.5 gap-1.5">
                 <TabsTrigger 
                   value="login" 
                   className="py-3 px-1 text-gray-700 data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
@@ -287,7 +291,7 @@ export default function AuthPage() {
                           <FormControl>
                             <Input 
                               {...field} 
-                              className="h-12 px-4 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all hover:border-blue-400 bg-white text-gray-900" 
+                              className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95 text-gray-900 text-base" 
                               placeholder="Enter your username"
                             />
                           </FormControl>
