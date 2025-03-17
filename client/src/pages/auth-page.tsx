@@ -179,7 +179,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-5xl grid md:grid-cols-2 gap-8">
         <div className="flex flex-col justify-center space-y-8">
           <div className="flex flex-col items-center mb-8">
@@ -190,11 +190,11 @@ export default function AuthPage() {
                 className="h-24 w-auto"
               />
               <div className="ml-4">
-                <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">DentaMind</h1>
-                <div className="h-1.5 w-32 bg-gradient-to-r from-blue-500 to-blue-700 rounded-full mt-1.5"></div>
+                <h1 className="text-3xl md:text-4xl font-bold text-primary">DentaMind</h1>
+                <div className="h-1.5 w-32 bg-primary rounded-full mt-1.5"></div>
               </div>
             </div>
-            <p className="text-xl text-gray-700 mt-6 text-center max-w-md">
+            <p className="text-xl text-muted-foreground mt-6 text-center max-w-md">
               Experience next-generation dental care with AI assistance and advanced patient management.
             </p>
           </div>
@@ -208,17 +208,17 @@ export default function AuthPage() {
           </div>
         </div>
 
-        <Card className="w-full self-center bg-white shadow-xl rounded-xl border-0">
+        <Card className="w-full self-center bg-card shadow-xl rounded-xl border">
           <CardContent className="pt-8 px-8">
             <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-3 mb-8 bg-gray-100">
-                <TabsTrigger value="login" className="py-3 text-gray-700 data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">
+              <TabsList className="grid w-full grid-cols-3 mb-8 bg-muted">
+                <TabsTrigger value="login" className="py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-white font-medium">
                   Sign In
                 </TabsTrigger>
-                <TabsTrigger value="provider" className="py-3 text-gray-700 data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">
+                <TabsTrigger value="provider" className="py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-white font-medium">
                   Provider Sign Up
                 </TabsTrigger>
-                <TabsTrigger value="staff" className="py-3 text-gray-700 data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">
+                <TabsTrigger value="staff" className="py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-white font-medium">
                   Staff Sign Up
                 </TabsTrigger>
               </TabsList>
@@ -287,7 +287,7 @@ export default function AuthPage() {
                     <div className="pt-2">
                       <Button 
                         type="submit" 
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 h-12 rounded-lg transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md" 
+                        className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 h-12 rounded-lg transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md" 
                         disabled={isLoading}
                       >
                         {isLoading ? t("common.loading") : t("auth.login")}
@@ -425,7 +425,7 @@ export default function AuthPage() {
                     />
                     <Button 
                       type="submit" 
-                      className="w-full bg-blue-500 hover:bg-blue-600 font-medium" 
+                      className="w-full bg-primary hover:bg-primary/90 font-medium" 
                       disabled={isLoading}
                     >
                       {isLoading ? t("common.loading") : t("auth.register")}
@@ -435,8 +435,8 @@ export default function AuthPage() {
               </TabsContent>
 
               <TabsContent value="staff">
-                <div className="mb-4 p-4 bg-green-50 rounded-lg">
-                  <p className="text-sm text-green-700">
+                <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
+                  <p className="text-sm text-foreground">
                     Sign up as staff member to assist with patient management, scheduling, and administrative tasks.
                   </p>
                 </div>
@@ -531,7 +531,7 @@ export default function AuthPage() {
                     
                     <Button 
                       type="submit" 
-                      className="w-full bg-green-600 hover:bg-green-700 font-medium" 
+                      className="w-full bg-primary hover:bg-primary/90 font-medium" 
                       disabled={isLoading}
                     >
                       {isLoading ? t("common.loading") : "Register as Staff"}
@@ -541,8 +541,8 @@ export default function AuthPage() {
               </TabsContent>
               
               <TabsContent value="provider">
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                  <p className="text-sm text-blue-700 font-medium">
+                <div className="mb-6 p-4 bg-muted/50 rounded-lg border">
+                  <p className="text-sm text-foreground font-medium">
                     Sign up as a dental provider to access all DentaMind features. License number is required for verification.
                   </p>
                 </div>
@@ -744,7 +744,7 @@ export default function AuthPage() {
                     
                     <Button 
                       type="submit" 
-                      className="w-full mt-6 bg-blue-500 hover:bg-blue-600 font-medium" 
+                      className="w-full mt-6 bg-primary hover:bg-primary/90 font-medium" 
                       disabled={isLoading}
                     >
                       {isLoading ? "Processing..." : "Complete Sign Up & Subscribe"}
