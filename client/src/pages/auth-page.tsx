@@ -192,17 +192,17 @@ export default function AuthPage() {
       <div className="w-full max-w-5xl grid md:grid-cols-2 gap-8">
         <div className="flex flex-col justify-center space-y-6 relative">
           <div className="flex flex-col items-center mb-4">
-            {/* Enhanced logo with glow effect */}
+            {/* Enhanced logo with subtle glow effect - increased size */}
             <div className="flex items-center justify-center mb-2 relative">
-              <div className="absolute inset-0 rounded-full blur-md bg-blue-500/20"></div>
+              <div className="absolute inset-0 rounded-full blur-md bg-blue-500/10"></div>
               <img 
                 src={dentaMindLogo} 
                 alt="DentaMind Logo" 
-                className="h-32 w-auto drop-shadow-lg relative z-10"
+                className="h-40 w-auto drop-shadow-lg relative z-10"
               />
             </div>
             <h1 className="text-4xl font-bold text-white mt-3 mb-3 font-sans tracking-wider">
-              Dent<span className="text-blue-400">a</span>M<span className="text-blue-400">i</span>nd
+              DentaMind
             </h1>
             <p className="text-lg text-blue-100 mt-2 text-center max-w-md leading-relaxed">
               Transforming dental practices with AI-driven diagnostics and intelligent patient management
@@ -227,7 +227,7 @@ export default function AuthPage() {
               <img 
                 src={smileImage}
                 alt="Beautiful dental smile" 
-                className="w-full h-[240px] object-cover brightness-105 contrast-105"
+                className="w-full h-[240px] object-cover brightness-110 contrast-110"
               />
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-900/60 to-transparent p-5 shadow-inner">
                 <p className="text-white text-sm font-medium drop-shadow-sm">Achieve perfect smiles with our advanced AI-powered dentistry</p>
@@ -236,31 +236,31 @@ export default function AuthPage() {
           </div>
         </div>
 
-        <Card className="w-full self-center bg-white shadow-[0_15px_50px_-12px_rgba(59,130,246,0.4)] rounded-xl border border-blue-200">
+        <Card className="w-full self-center bg-white shadow-[0_15px_50px_-12px_rgba(20,30,70,0.2)] rounded-xl border border-gray-100">
           <CardContent className="pt-8 px-8 pb-10">
             <Tabs defaultValue="login">
               <TabsList className="grid w-full grid-cols-4 mb-8 bg-gray-50 rounded-lg shadow-md overflow-hidden">
                 <TabsTrigger 
                   value="login" 
-                  className="py-3 px-1 text-foreground data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all hover:bg-blue-50 hover:text-blue-700"
+                  className="py-3 px-1 text-gray-700 data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-inner"
                 >
                   Sign In
                 </TabsTrigger>
                 <TabsTrigger 
                   value="patient" 
-                  className="py-3 px-1 text-foreground data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all hover:bg-blue-50 hover:text-blue-700"
+                  className="py-3 px-1 text-gray-700 data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-inner"
                 >
                   Patient Sign Up
                 </TabsTrigger>
                 <TabsTrigger 
                   value="provider" 
-                  className="py-3 px-1 text-foreground data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all hover:bg-blue-50 hover:text-blue-700"
+                  className="py-3 px-1 text-gray-700 data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-inner"
                 >
                   Provider Sign Up
                 </TabsTrigger>
                 <TabsTrigger 
                   value="staff" 
-                  className="py-3 px-1 text-foreground data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all hover:bg-blue-50 hover:text-blue-700"
+                  className="py-3 px-1 text-gray-700 data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-inner"
                 >
                   Staff Sign Up
                 </TabsTrigger>
@@ -279,7 +279,7 @@ export default function AuthPage() {
                     } catch (err) {
                       console.error("Login failed:", err);
                     }
-                  })} className="space-y-7">
+                  })} className="space-y-8">
                     <FormField
                       control={loginForm.control}
                       name="username"
@@ -493,7 +493,7 @@ export default function AuthPage() {
                     />
                     <Button 
                       type="submit" 
-                      className="w-full bg-primary hover:bg-primary/90 font-medium" 
+                      className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold py-3 h-12 rounded-lg transition-all duration-300 hover:shadow-xl active:scale-[0.98] shadow-[0_4px_14px_0_rgba(59,130,246,0.3)] hover:shadow-[0_6px_16px_rgba(59,130,246,0.5)]" 
                       disabled={isLoading}
                     >
                       {isLoading ? t("common.loading") : t("auth.register")}
@@ -609,7 +609,7 @@ export default function AuthPage() {
                     
                     <Button 
                       type="submit" 
-                      className="w-full bg-primary hover:bg-primary/90 font-medium" 
+                      className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold py-3 h-12 rounded-lg transition-all duration-300 hover:shadow-xl active:scale-[0.98] shadow-[0_4px_14px_0_rgba(59,130,246,0.3)] hover:shadow-[0_6px_16px_rgba(59,130,246,0.5)]" 
                       disabled={isLoading}
                     >
                       {isLoading ? t("common.loading") : "Register as Staff"}
@@ -832,7 +832,7 @@ export default function AuthPage() {
                     
                     <Button 
                       type="submit" 
-                      className="w-full mt-6 bg-primary hover:bg-primary/90 font-medium" 
+                      className="w-full mt-6 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold py-3 h-12 rounded-lg transition-all duration-300 hover:shadow-xl active:scale-[0.98] shadow-[0_4px_14px_0_rgba(59,130,246,0.3)] hover:shadow-[0_6px_16px_rgba(59,130,246,0.5)]" 
                       disabled={isLoading}
                     >
                       {isLoading ? "Processing..." : "Complete Sign Up & Subscribe"}
