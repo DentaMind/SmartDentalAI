@@ -153,8 +153,12 @@ export function Sidebar() {
       <div className="flex items-center justify-center h-20 px-2">
         <Link href="/">
           <div className="flex items-center gap-3 hover:opacity-90 transition-opacity cursor-pointer">
-            <div className="p-2.5 rounded-xl bg-primary text-white shadow-lg rotate-12 hover:rotate-0 transition-transform duration-300">
-              <ToothDoctorIcon className="h-7 w-7" />
+            <div className="flex justify-center items-center h-12 w-12">
+              <img 
+                src="/images/dentamind-logo.svg" 
+                alt="DentaMind Logo" 
+                className="h-12 w-12 hover:scale-110 transition-transform duration-300" 
+              />
             </div>
             {!collapsed && (
               <div className="flex flex-col">

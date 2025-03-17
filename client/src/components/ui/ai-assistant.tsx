@@ -55,7 +55,7 @@ export function AIAssistant({ contextType = 'patient', initialSuggestions = [] }
         greeting = `Welcome, Dr. ${name}! I'm your clinical assistant. I can help with treatment planning, diagnostic suggestions, or practice management. What would you like assistance with?`;
         break;
       default:
-        greeting = `Hello ${name}! I'm your Smart Dental AI assistant. How can I help you today?`;
+        greeting = `Hello ${name}! I'm your DentaMind assistant. How can I help you today?`;
     }
     
     setIsTyping(true);
@@ -163,7 +163,7 @@ export function AIAssistant({ contextType = 'patient', initialSuggestions = [] }
     
     // Generic responses based on context type
     if (contextType === 'patient') {
-      return "I understand you're asking about your dental care. The Smart Dental AI platform gives you access to all your records, upcoming appointments, and treatment plans. Is there a specific part of your care you'd like help with?";
+      return "I understand you're asking about your dental care. The DentaMind platform gives you access to all your records, upcoming appointments, and treatment plans. Is there a specific part of your care you'd like help with?";
     } else if (contextType === 'staff') {
       return "As a staff member, you have access to patient management, appointment scheduling, and billing functions. I can help you navigate any of these areas more effectively. What specifically are you working on today?";
     } else {
@@ -221,7 +221,7 @@ export function AIAssistant({ contextType = 'patient', initialSuggestions = [] }
             <div className="p-3 border-b flex items-center justify-between bg-primary text-white">
               <div className="flex items-center gap-2">
                 <Bot className="h-5 w-5" />
-                <h3 className="font-medium">Smart Dental AI Assistant</h3>
+                <h3 className="font-medium">DentaMind AI Assistant</h3>
               </div>
               <div className="flex items-center gap-1">
                 <Button

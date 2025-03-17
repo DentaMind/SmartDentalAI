@@ -182,17 +182,22 @@ export default function AuthPage() {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">
       <div className="w-full max-w-5xl grid md:grid-cols-2 gap-8">
         <div className="flex flex-col justify-center space-y-6">
-          <div className="flex items-center mb-6">
-            <img 
-              src="/images/dentamind-logo.webp" 
-              alt="DentaMind Logo" 
-              className="h-16 w-auto"
-            />
-            <h1 className="text-2xl font-bold text-blue-600 ml-3">DentaMind</h1>
+          <div className="flex flex-col items-center mb-8">
+            <div className="flex items-center">
+              <img 
+                src="/images/dentamind-logo.svg" 
+                alt="DentaMind Logo" 
+                className="h-20 w-auto"
+              />
+              <div className="ml-3">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-blue-700 bg-clip-text text-transparent">DentaMind</h1>
+                <div className="h-1 w-28 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full mt-1"></div>
+              </div>
+            </div>
+            <p className="text-xl text-gray-600 mt-4">
+              Experience next-generation dental care with AI assistance and advanced patient management.
+            </p>
           </div>
-          <p className="text-xl text-gray-600">
-            Experience next-generation dental care with AI assistance and advanced patient management.
-          </p>
           <div className="relative mt-8 rounded-2xl overflow-hidden shadow-xl">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5"></div>
             <img 
@@ -260,7 +265,7 @@ export default function AuthPage() {
                     />
                     <Button 
                       type="submit" 
-                      className="w-full bg-blue-500 hover:bg-blue-600" 
+                      className="w-full bg-blue-500 hover:bg-blue-600 font-medium" 
                       disabled={isLoading}
                     >
                       {isLoading ? t("common.loading") : t("auth.login")}
@@ -391,7 +396,7 @@ export default function AuthPage() {
                     />
                     <Button 
                       type="submit" 
-                      className="w-full bg-blue-500 hover:bg-blue-600" 
+                      className="w-full bg-blue-500 hover:bg-blue-600 font-medium" 
                       disabled={isLoading}
                     >
                       {isLoading ? t("common.loading") : t("auth.register")}
@@ -497,7 +502,7 @@ export default function AuthPage() {
                     
                     <Button 
                       type="submit" 
-                      className="w-full bg-green-600 hover:bg-green-700" 
+                      className="w-full bg-green-600 hover:bg-green-700 font-medium" 
                       disabled={isLoading}
                     >
                       {isLoading ? t("common.loading") : "Register as Staff"}
@@ -702,7 +707,7 @@ export default function AuthPage() {
                     
                     <Button 
                       type="submit" 
-                      className="w-full mt-6 bg-blue-500 hover:bg-blue-600" 
+                      className="w-full mt-6 bg-blue-500 hover:bg-blue-600 font-medium" 
                       disabled={isLoading}
                     >
                       {isLoading ? "Processing..." : "Complete Sign Up & Subscribe"}
