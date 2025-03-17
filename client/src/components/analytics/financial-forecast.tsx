@@ -48,7 +48,7 @@ export function FinancialForecast({ classname }: FinancialForecastProps) {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `DentaMind_Financial_Forecast_${new Date().getFullYear()}.xlsx`);
+      link.setAttribute('download', `SmartDentalAI_Financial_Forecast_${new Date().getFullYear()}.xlsx`);
       document.body.appendChild(link);
       link.click();
     } catch (error) {

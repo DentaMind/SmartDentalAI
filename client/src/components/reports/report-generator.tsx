@@ -56,7 +56,7 @@ export function ReportGenerator({ prediction, patientId }: ReportGeneratorProps)
       // Create a link and trigger download
       const a = document.createElement('a');
       a.href = url;
-      a.download = `DentaMind-Report-${new Date().toISOString().split('T')[0]}.pdf`;
+      a.download = `SmartDentalAI-Report-${new Date().toISOString().split('T')[0]}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

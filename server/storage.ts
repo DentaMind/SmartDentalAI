@@ -500,7 +500,7 @@ export class MemStorage implements IStorage {
   async createCompleteBackup() {
     try {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const backupName = `dentamind_backup_${timestamp}`;
+      const backupName = `smartdental_backup_${timestamp}`;
 
       // Simulate backup creation - replace with actual backup mechanism
       const backup = {
