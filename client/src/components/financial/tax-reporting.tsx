@@ -350,7 +350,7 @@ export function TaxReporting() {
                 </p>
                 <p className="text-sm text-muted-foreground">
                   Note: This report is provided for informational purposes only and should not be considered
-                  tax advice. Smart Dental AI is not responsible for tax filing accuracy.
+                  tax advice. DentaMind is not responsible for tax filing accuracy.
                 </p>
               </div>
             </CardContent>

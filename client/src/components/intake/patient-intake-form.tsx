@@ -103,7 +103,7 @@ interface PatientIntakeFormProps {
 }
 
 export function PatientIntakeForm({
-  practiceName = "Smart Dental AI Care",
+  practiceName = "DentaMind Care",
   onSubmit,
   defaultValues
 }: PatientIntakeFormProps) {
