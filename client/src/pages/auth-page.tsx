@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Redirect } from "wouter";
 // Import the logo directly to avoid potential issues
-import smartDentalLogo from "../assets/smart-dental-ai-logo.png";
+import dentaMindLogo from "../assets/dentamind-logo.png";
 // Use a relative path for the dental smile image
 import dentalSmile from "../assets/dental-smile.jpg";
 
@@ -188,13 +188,13 @@ export default function AuthPage() {
           <div className="flex flex-col items-center mb-6">
             <div className="flex items-center justify-center">
               <img 
-                src={smartDentalLogo} 
-                alt="SmartDental AI Logo" 
-                className="h-20 w-auto"
+                src={dentaMindLogo} 
+                alt="DentaMind Logo" 
+                className="h-28 w-auto"
               />
             </div>
-            <h1 className="text-3xl font-bold text-primary mt-4 mb-2">
-              SmartDental AI
+            <h1 className="text-3xl font-bold text-cyan-500 mt-4 mb-2 font-sans tracking-wider">
+              DentaMind
             </h1>
             <p className="text-xl text-muted-foreground mt-2 text-center max-w-md">
               Transforming dental practices with AI-driven diagnostics and intelligent patient management
