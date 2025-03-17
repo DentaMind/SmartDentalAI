@@ -193,7 +193,10 @@ export default function AuthPage() {
                 className="h-20 w-auto"
               />
             </div>
-            <p className="text-xl text-muted-foreground mt-6 text-center max-w-md">
+            <h1 className="text-3xl font-bold text-primary mt-4 mb-2">
+              SmartDental AI
+            </h1>
+            <p className="text-xl text-muted-foreground mt-2 text-center max-w-md">
               Transforming dental practices with AI-driven diagnostics and intelligent patient management
             </p>
           </div>
