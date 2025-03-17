@@ -228,9 +228,12 @@ export default function AuthPage() {
         <Card className="w-full self-center bg-card shadow-xl rounded-xl border">
           <CardContent className="pt-8 px-8">
             <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-3 mb-8 bg-muted">
+              <TabsList className="grid w-full grid-cols-4 mb-8 bg-muted">
                 <TabsTrigger value="login" className="py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-white font-medium">
                   Sign In
+                </TabsTrigger>
+                <TabsTrigger value="patient" className="py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-white font-medium">
+                  Patient Sign Up
                 </TabsTrigger>
                 <TabsTrigger value="provider" className="py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-white font-medium">
                   Provider Sign Up
@@ -313,14 +316,29 @@ export default function AuthPage() {
                     
                     <div className="mt-4 text-center">
                       <p className="text-sm text-gray-600">
-                        Don't have an account? Select "Provider Sign Up" or "Staff Sign Up"
+                        Don't have an account? Select "Patient Sign Up", "Provider Sign Up", or "Staff Sign Up"
                       </p>
                     </div>
                   </form>
                 </Form>
               </TabsContent>
 
-              <TabsContent value="register">
+              <TabsContent value="patient">
+                <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-100">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-blue-800">Patient Registration</h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Register as a patient to access your dental records, appointment scheduling, and personalized care plans.
+                      </p>
+                    </div>
+                  </div>
+                </div>
                 <Form {...registerForm}>
                   <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
                     <FormField
@@ -452,10 +470,20 @@ export default function AuthPage() {
               </TabsContent>
 
               <TabsContent value="staff">
-                <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
-                  <p className="text-sm text-foreground">
-                    Sign up as staff member to assist with patient management, scheduling, and administrative tasks.
-                  </p>
+                <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-blue-800">Staff Registration</h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Sign up as staff member to assist with patient management, scheduling, and administrative tasks.
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 <Form {...staffForm}>
                   <form onSubmit={staffForm.handleSubmit(onStaffRegister)} className="space-y-4">
