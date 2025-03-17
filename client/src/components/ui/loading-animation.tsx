@@ -54,8 +54,12 @@ export function LoadingAnimation({ className }: LoadingAnimationProps) {
     <div className={cn("flex flex-col items-center", className)}>
       {/* AI icon animation with glowing effect */}
       <div className="relative h-16 w-16 mb-2">
-        {/* Background glow */}
+        {/* Background glow with multi-layered effect */}
         <div className="absolute inset-0 rounded-full bg-blue-500/10 blur-xl animate-pulse"></div>
+        <div className="absolute inset-0 rounded-full bg-cyan-400/5 blur-lg animate-pulse" 
+             style={{ animationDelay: '300ms' }}></div>
+        <div className="absolute inset-1 rounded-full bg-indigo-400/8 blur-md animate-pulse" 
+             style={{ animationDelay: '600ms' }}></div>
         
         {/* Icon animations */}
         {tools.map((Tool, index) => {
@@ -64,11 +68,11 @@ export function LoadingAnimation({ className }: LoadingAnimationProps) {
             <div
               key={index}
               className={cn(
-                "absolute inset-0 transition-all duration-500 transform",
+                "absolute inset-0 transition-all duration-700 ease-in-out transform",
                 Tool.color,
                 isActive
                   ? "opacity-100 scale-100 rotate-0"
-                  : "opacity-0 scale-75 rotate-90"
+                  : "opacity-0 scale-75 rotate-90 translate-y-2"
               )}
             >
               <Tool.icon className="h-16 w-16 stroke-1 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
@@ -89,9 +93,21 @@ export function LoadingAnimation({ className }: LoadingAnimationProps) {
         })}
       </div>
       
-      {/* Loading message that cycles */}
-      <div className="text-sm text-blue-300 opacity-80 h-5 text-center min-w-[180px]">
-        {loadingMessages[currentMessage]}
+      {/* Loading message that cycles with fade transition */}
+      <div className="relative text-sm text-blue-300 opacity-80 h-5 text-center min-w-[220px] overflow-hidden">
+        {loadingMessages.map((message, index) => (
+          <div 
+            key={index}
+            className={cn(
+              "absolute inset-0 transition-all duration-500 ease-in-out transform",
+              index === currentMessage 
+                ? "opacity-100 translate-y-0" 
+                : "opacity-0 translate-y-4"
+            )}
+          >
+            {message}
+          </div>
+        ))}
       </div>
     </div>
   );
