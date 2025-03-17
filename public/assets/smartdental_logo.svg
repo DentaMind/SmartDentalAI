@@ -19,6 +19,6 @@
   <!-- Stethoscope chest piece -->
   <circle cx="100" cy="45" r="8" fill="#0c4a6e" stroke="#075985" stroke-width="2" />
   
-  <!-- Smart Dental AI text -->
-  <text x="120" y="115" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#0c4a6e">SmartDental AI</text>
+  <!-- DentaMind text -->
+  <text x="120" y="115" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#0c4a6e">DentaMind</text>
 </svg>
