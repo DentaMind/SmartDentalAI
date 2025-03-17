@@ -207,13 +207,13 @@ export default function AuthPage() {
           <CardContent className="pt-6">
             <Tabs defaultValue="login">
               <TabsList className="grid w-full grid-cols-3 mb-6">
-                <TabsTrigger value="login" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                <TabsTrigger value="login" className="text-gray-700 data-[state=active]:bg-blue-500 data-[state=active]:text-white">
                   Sign In
                 </TabsTrigger>
-                <TabsTrigger value="provider" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                <TabsTrigger value="provider" className="text-gray-700 data-[state=active]:bg-blue-500 data-[state=active]:text-white">
                   Provider Sign Up
                 </TabsTrigger>
-                <TabsTrigger value="staff" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                <TabsTrigger value="staff" className="text-gray-700 data-[state=active]:bg-blue-500 data-[state=active]:text-white">
                   Staff Sign Up
                 </TabsTrigger>
               </TabsList>
@@ -260,7 +260,7 @@ export default function AuthPage() {
                     />
                     <Button 
                       type="submit" 
-                      className="w-full" 
+                      className="w-full bg-blue-500 hover:bg-blue-600" 
                       disabled={isLoading}
                     >
                       {isLoading ? t("common.loading") : t("auth.login")}
@@ -391,7 +391,7 @@ export default function AuthPage() {
                     />
                     <Button 
                       type="submit" 
-                      className="w-full" 
+                      className="w-full bg-blue-500 hover:bg-blue-600" 
                       disabled={isLoading}
                     >
                       {isLoading ? t("common.loading") : t("auth.register")}
@@ -702,7 +702,7 @@ export default function AuthPage() {
                     
                     <Button 
                       type="submit" 
-                      className="w-full mt-6" 
+                      className="w-full mt-6 bg-blue-500 hover:bg-blue-600" 
                       disabled={isLoading}
                     >
                       {isLoading ? "Processing..." : "Complete Sign Up & Subscribe"}
