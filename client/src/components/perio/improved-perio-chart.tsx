@@ -366,10 +366,10 @@ export function ImprovedPerioChart({
   const lowerTeeth = [...lowerRightTeeth, ...lowerLeftTeeth];
 
   return (
-    <Card className={`w-full ${fullScreen ? 'fixed inset-0 z-50 overflow-auto bg-background' : ''}`}>
-      <CardHeader className="flex flex-row items-center justify-between p-2 sm:p-4">
+    <Card className={`w-full bg-card border ${fullScreen ? 'fixed inset-0 z-50 overflow-auto' : ''}`}>
+      <CardHeader className="flex flex-row items-center justify-between bg-card border-b p-2 sm:p-4">
         <div>
-          <CardTitle className="text-base sm:text-lg">Periodontal Chart</CardTitle>
+          <CardTitle className="text-base sm:text-lg text-foreground">Periodontal Chart</CardTitle>
           <div className="text-xs sm:text-sm text-muted-foreground">
             Patient: {patientName}
           </div>

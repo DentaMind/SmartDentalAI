@@ -405,14 +405,14 @@ export default function PatientProfilePage() {
                 
                 {/* Perio Chart Tab */}
                 <TabsContent value="perio-chart">
-                  <Card>
-                    <CardHeader>
+                  <Card className="bg-background">
+                    <CardHeader className="bg-card">
                       <CardTitle className="flex items-center gap-2">
                         <LineChart className="h-5 w-5 text-primary" />
                         Periodontal Chart
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="bg-background p-4">
                       <div className="p-4 bg-green-50 rounded-lg border border-green-200 mb-6">
                         <p className="text-sm text-green-700">
                           <strong>Updated Periodontal Chart:</strong> We've enhanced the periodontal chart with anatomically correct tooth visuals and clinically accurate color coding for better diagnosis.
