@@ -184,7 +184,7 @@ export default function AuthPage() {
         <div className="flex flex-col justify-center space-y-6">
           <div className="flex items-center gap-1">
             <img 
-              src="/assets/smartdental_logo_text.svg" 
+              src="/images/smart-dental-ai-logo.svg" 
               alt="SmartDental AI Logo" 
               className="h-20 w-auto"
             />
