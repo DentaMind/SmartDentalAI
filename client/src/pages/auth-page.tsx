@@ -184,11 +184,11 @@ export default function AuthPage() {
         <div className="flex flex-col justify-center space-y-6">
           <div className="flex items-center mb-6">
             <img 
-              src="/images/smart-dental-ai-logo.webp" 
-              alt="Smart Dental AI Logo" 
+              src="/images/dentamind-logo.webp" 
+              alt="DentaMind Logo" 
               className="h-16 w-auto"
             />
-            <h1 className="text-2xl font-bold text-blue-600 ml-3">Smart Dental AI</h1>
+            <h1 className="text-2xl font-bold text-blue-600 ml-3">DentaMind</h1>
           </div>
           <p className="text-xl text-gray-600">
             Experience next-generation dental care with AI assistance and advanced patient management.
