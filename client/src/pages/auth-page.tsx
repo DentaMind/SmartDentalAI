@@ -187,7 +187,11 @@ export default function AuthPage() {
         <div className="flex flex-col justify-center space-y-8">
           <div className="flex flex-col items-center mb-6">
             <div className="flex items-center justify-center">
-              <SmartDentalLogo size="lg" />
+              <img 
+                src={smartDentalLogo} 
+                alt="SmartDental AI Logo" 
+                className="h-20 w-auto"
+              />
             </div>
             <p className="text-xl text-muted-foreground mt-6 text-center max-w-md">
               Transforming dental practices with AI-driven diagnostics and intelligent patient management

@@ -813,3 +813,6 @@ export function FixedEnhancedPerioChart({
     </Card>
   );
 }
+
+// Add default export to fix imports
+export default FixedEnhancedPerioChart;
