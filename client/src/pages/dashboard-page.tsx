@@ -181,10 +181,10 @@ export default function DashboardPage() {
                     {selectedAppointment.status === "confirmed" && (
                       <span className="h-2 w-2 rounded-full bg-green-500"></span>
                     )}
-                    {selectedAppointment.status === "pending" && (
+                    {selectedAppointment.status === "scheduled" && (
                       <span className="h-2 w-2 rounded-full bg-yellow-500"></span>
                     )}
-                    {selectedAppointment.status === "canceled" && (
+                    {selectedAppointment.status === "cancelled" && (
                       <span className="h-2 w-2 rounded-full bg-red-500"></span>
                     )}
                     {selectedAppointment.status}

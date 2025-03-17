@@ -184,9 +184,9 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Subtle background pattern */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:20px_20px]"></div>
+      {/* Subtle background gradient pattern - changed from dots to gradient */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 via-gray-900 to-gray-900"></div>
       </div>
       
       <div className="w-full max-w-5xl grid md:grid-cols-2 gap-8">
@@ -220,36 +220,48 @@ export default function AuthPage() {
               <p className="text-gray-100">Advanced diagnostic assistance, treatment planning, and clinical decision support powered by our specialized multi-domain AI system.</p>
             </div>
             
-            {/* Enhanced image container with better blending */}
-            <div className="relative rounded-2xl overflow-hidden shadow-xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-blue-400/10"></div>
-              <div className="absolute inset-0 backdrop-blur-[1px]"></div>
+            {/* Improved image container with vibrant display - Removed dark overlay */}
+            <div className="relative rounded-2xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.3)]">
+              {/* Subtle drop shadow instead of dark overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent"></div>
               <img 
                 src={smileImage}
                 alt="Beautiful dental smile" 
-                className="w-full h-[240px] object-cover mix-blend-overlay opacity-90"
+                className="w-full h-[240px] object-cover brightness-105 contrast-105"
               />
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900/90 to-transparent p-5">
-                <p className="text-white text-sm font-medium">Achieve perfect smiles with our advanced AI-powered dentistry</p>
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-900/60 to-transparent p-5 shadow-inner">
+                <p className="text-white text-sm font-medium drop-shadow-sm">Achieve perfect smiles with our advanced AI-powered dentistry</p>
               </div>
             </div>
           </div>
         </div>
 
-        <Card className="w-full self-center bg-white shadow-[0_10px_40px_-15px_rgba(59,130,246,0.3)] rounded-xl border border-blue-100">
+        <Card className="w-full self-center bg-white shadow-[0_15px_50px_-12px_rgba(59,130,246,0.4)] rounded-xl border border-blue-200">
           <CardContent className="pt-8 px-8 pb-10">
             <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-4 mb-8 bg-gray-50 rounded-lg shadow-sm">
-                <TabsTrigger value="login" className="py-3 text-foreground data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">
+              <TabsList className="grid w-full grid-cols-4 mb-8 bg-gray-50 rounded-lg shadow-md overflow-hidden">
+                <TabsTrigger 
+                  value="login" 
+                  className="py-3 px-1 text-foreground data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all hover:bg-blue-50 hover:text-blue-700"
+                >
                   Sign In
                 </TabsTrigger>
-                <TabsTrigger value="patient" className="py-3 text-foreground data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">
+                <TabsTrigger 
+                  value="patient" 
+                  className="py-3 px-1 text-foreground data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all hover:bg-blue-50 hover:text-blue-700"
+                >
                   Patient Sign Up
                 </TabsTrigger>
-                <TabsTrigger value="provider" className="py-3 text-foreground data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">
+                <TabsTrigger 
+                  value="provider" 
+                  className="py-3 px-1 text-foreground data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all hover:bg-blue-50 hover:text-blue-700"
+                >
                   Provider Sign Up
                 </TabsTrigger>
-                <TabsTrigger value="staff" className="py-3 text-foreground data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">
+                <TabsTrigger 
+                  value="staff" 
+                  className="py-3 px-1 text-foreground data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all hover:bg-blue-50 hover:text-blue-700"
+                >
                   Staff Sign Up
                 </TabsTrigger>
               </TabsList>
@@ -267,7 +279,7 @@ export default function AuthPage() {
                     } catch (err) {
                       console.error("Login failed:", err);
                     }
-                  })} className="space-y-5">
+                  })} className="space-y-7">
                     <FormField
                       control={loginForm.control}
                       name="username"
@@ -318,7 +330,7 @@ export default function AuthPage() {
                     <div className="pt-4">
                       <Button 
                         type="submit" 
-                        className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold py-3 h-12 rounded-lg transition-all duration-300 hover:shadow-lg active:scale-[0.98] shadow-md" 
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold py-3 h-12 rounded-lg transition-all duration-300 hover:shadow-xl active:scale-[0.98] shadow-[0_4px_14px_0_rgba(59,130,246,0.4)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.6)]" 
                         disabled={isLoading}
                       >
                         {isLoading ? (
