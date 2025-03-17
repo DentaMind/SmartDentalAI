@@ -184,21 +184,36 @@ export default function AuthPage() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-5xl grid md:grid-cols-2 gap-8">
         <div className="flex flex-col justify-center space-y-8">
-          <div className="flex flex-col items-center mb-8">
+          <div className="flex flex-col items-center mb-6">
             <div className="flex items-center justify-center">
               <DentamindLogo size="lg" />
             </div>
             <p className="text-xl text-muted-foreground mt-6 text-center max-w-md">
-              Experience next-generation dental care with AI assistance and advanced patient management.
+              Transforming dental practices with AI-driven diagnostics and intelligent patient management
             </p>
           </div>
-          <div className="relative mt-8 rounded-2xl overflow-hidden shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5"></div>
-            <img 
-              src={dentalSmile}
-              alt="Professional dental clinic" 
-              className="w-full h-[320px] object-cover"
-            />
+          <div className="mt-4 space-y-6">
+            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-6 rounded-xl border border-blue-100">
+              <h3 className="font-semibold text-blue-800 text-lg flex items-center mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                AI-Powered Clinical Intelligence
+              </h3>
+              <p className="text-gray-600">Advanced diagnostic assistance, treatment planning, and clinical decision support powered by specialized AI models.</p>
+            </div>
+            
+            <div className="relative rounded-2xl overflow-hidden shadow-xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5"></div>
+              <img 
+                src={dentalSmile}
+                alt="Professional dental clinic" 
+                className="w-full h-[240px] object-cover"
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900/80 to-transparent p-4">
+                <p className="text-white text-sm font-medium">Streamline your practice with intelligent clinical workflows</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -535,10 +550,20 @@ export default function AuthPage() {
               </TabsContent>
               
               <TabsContent value="provider">
-                <div className="mb-6 p-4 bg-muted/50 rounded-lg border">
-                  <p className="text-sm text-foreground font-medium">
-                    Sign up as a dental provider to access all DentaMind features. License number is required for verification.
-                  </p>
+                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-blue-800">Provider Registration</h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Register as a dental professional to access all SmartDental AI features including AI diagnostics and advanced treatment planning. License number is required for verification.
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 <Form {...providerForm}>
                   <form onSubmit={providerForm.handleSubmit(onProviderRegister)} className="space-y-5">

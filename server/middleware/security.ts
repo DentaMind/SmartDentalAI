@@ -6,20 +6,47 @@ import { securityService } from '../services/security';
 
 export function setupSecurityMiddleware(app: express.Express) {
   // Set security headers with Helmet
-  app.use(
-    helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          imgSrc: ["'self'", "data:", "blob:"],
-          connectSrc: ["'self'", "wss:", "ws:"],
-          fontSrc: ["'self'", "data:"],
+  // For development, use a more permissive CSP
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Using development CSP configuration');
+    app.use(
+      helmet({
+        contentSecurityPolicy: {
+          directives: {
+            defaultSrc: ["'self'", "http:", "https:", "ws:", "wss:"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "http:", "https:"],
+            styleSrc: ["'self'", "'unsafe-inline'", "http:", "https:"],
+            imgSrc: ["'self'", "data:", "blob:", "http:", "https:"],
+            connectSrc: ["'self'", "http:", "https:", "ws:", "wss:"],
+            fontSrc: ["'self'", "data:", "http:", "https:"],
+            objectSrc: ["'self'", "http:", "https:"],
+            mediaSrc: ["'self'", "data:", "http:", "https:"],
+            frameSrc: ["'self'", "http:", "https:"],
+          },
         },
-      },
-    })
-  );
+        // Allow iframes for development tools
+        crossOriginEmbedderPolicy: false,
+        crossOriginOpenerPolicy: false,
+        crossOriginResourcePolicy: false,
+      })
+    );
+  } else {
+    // Production-grade security
+    app.use(
+      helmet({
+        contentSecurityPolicy: {
+          directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "blob:"],
+            connectSrc: ["'self'", "wss:", "ws:"],
+            fontSrc: ["'self'", "data:"],
+          },
+        },
+      })
+    );
+  }
   
   // Rate limiting for all API requests
   const apiLimiter = rateLimit({
