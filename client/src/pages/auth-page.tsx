@@ -186,10 +186,10 @@ export default function AuthPage() {
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Subtle background gradient pattern - changed from dots to gradient */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 via-gray-900 to-gray-900"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/5 via-gray-900/90 to-gray-900/90"></div>
       </div>
       
-      <div className="w-full max-w-5xl grid md:grid-cols-2 gap-8">
+      <div className="w-full max-w-5xl grid md:grid-cols-2 gap-10 mx-auto">
         <div className="flex flex-col justify-center space-y-6 relative">
           <div className="flex flex-col items-center mb-4">
             {/* Enhanced logo with subtle glow effect - increased size */}
@@ -220,16 +220,14 @@ export default function AuthPage() {
               <p className="text-gray-100">Advanced diagnostic assistance, treatment planning, and clinical decision support powered by our specialized multi-domain AI system.</p>
             </div>
             
-            {/* Improved image container with vibrant display - Removed dark overlay */}
+            {/* Improved image container with vibrant display - NO overlay to ensure bright teeth */}
             <div className="relative rounded-2xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.3)]">
-              {/* Subtle drop shadow instead of dark overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent"></div>
               <img 
                 src={smileImage}
                 alt="Beautiful dental smile" 
-                className="w-full h-[240px] object-cover brightness-110 contrast-110"
+                className="w-full h-[240px] object-cover brightness-125 contrast-110"
               />
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-900/60 to-transparent p-5 shadow-inner">
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-900/40 to-transparent p-5">
                 <p className="text-white text-sm font-medium drop-shadow-sm">Achieve perfect smiles with our advanced AI-powered dentistry</p>
               </div>
             </div>
@@ -239,28 +237,28 @@ export default function AuthPage() {
         <Card className="w-full self-center bg-white shadow-[0_15px_50px_-12px_rgba(20,30,70,0.2)] rounded-xl border border-gray-100">
           <CardContent className="pt-8 px-8 pb-10">
             <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-4 mb-8 bg-gray-50 rounded-lg shadow-md overflow-hidden">
+              <TabsList className="grid w-full grid-cols-4 mb-8 bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 p-1 gap-1">
                 <TabsTrigger 
                   value="login" 
-                  className="py-3 px-1 text-gray-700 data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-inner"
+                  className="py-3 px-1 text-gray-700 data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
                 >
                   Sign In
                 </TabsTrigger>
                 <TabsTrigger 
                   value="patient" 
-                  className="py-3 px-1 text-gray-700 data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-inner"
+                  className="py-3 px-1 text-gray-700 data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
                 >
                   Patient Sign Up
                 </TabsTrigger>
                 <TabsTrigger 
                   value="provider" 
-                  className="py-3 px-1 text-gray-700 data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-inner"
+                  className="py-3 px-1 text-gray-700 data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
                 >
                   Provider Sign Up
                 </TabsTrigger>
                 <TabsTrigger 
                   value="staff" 
-                  className="py-3 px-1 text-gray-700 data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-inner"
+                  className="py-3 px-1 text-gray-700 data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
                 >
                   Staff Sign Up
                 </TabsTrigger>
@@ -289,8 +287,8 @@ export default function AuthPage() {
                           <FormControl>
                             <Input 
                               {...field} 
-                              className="h-12 px-4 rounded-lg border-gray-200 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400/20 transition-all hover:border-blue-300" 
-                              placeholder="Enter your username" 
+                              className="h-12 px-4 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all hover:border-blue-400 bg-white text-gray-900" 
+                              placeholder="Enter your username"
                             />
                           </FormControl>
                           <FormMessage />
