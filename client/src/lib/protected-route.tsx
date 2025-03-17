@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Redirect, Route, useLocation } from "wouter";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 import { useEffect } from "react";
-import smartDentalLogo from "../assets/smart-dental-ai-logo.png";
+import dentaMindLogo from "../assets/dentamind-logo.png";
 
 export function ProtectedRoute({
   path,
@@ -30,12 +30,12 @@ export function ProtectedRoute({
       <Route path={path}>
         <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gradient-to-b from-blue-50 to-white">
           <img 
-            src={smartDentalLogo} 
-            alt="SmartDental AI Logo" 
-            className="h-16 w-auto mb-4"
+            src={dentaMindLogo} 
+            alt="DentaMind Logo" 
+            className="h-20 w-auto mb-4"
           />
           <LoadingAnimation />
-          <p className="text-gray-600 animate-pulse">Loading SmartDental AI...</p>
+          <p className="text-gray-600 animate-pulse">Loading DentaMind...</p>
         </div>
       </Route>
     );
@@ -60,9 +60,9 @@ export function ProtectedRoute({
         <Route path={path}>
           <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gradient-to-b from-blue-50 to-white">
             <img 
-              src={smartDentalLogo} 
-              alt="SmartDental AI Logo" 
-              className="h-16 w-auto mb-4"
+              src={dentaMindLogo} 
+              alt="DentaMind Logo" 
+              className="h-20 w-auto mb-4"
             />
             <p className="text-red-600">Please log in to access this page.</p>
           </div>

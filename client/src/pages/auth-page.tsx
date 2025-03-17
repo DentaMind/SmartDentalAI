@@ -596,7 +596,7 @@ export default function AuthPage() {
                     <div className="ml-3">
                       <h3 className="text-sm font-medium text-blue-800">Provider Registration</h3>
                       <p className="text-sm text-gray-600 mt-1">
-                        Register as a dental professional to access all SmartDental AI features including AI diagnostics and advanced treatment planning. License number is required for verification.
+                        Register as a dental professional to access all DentaMind features including AI diagnostics and advanced treatment planning. License number is required for verification.
                       </p>
                     </div>
                   </div>

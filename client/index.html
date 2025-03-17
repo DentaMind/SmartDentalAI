@@ -13,7 +13,7 @@
       };
       window.APP_DEBUG.initSteps.push('HTML document loaded');
     </script>
-    <title>SmartDental AI - Advanced Dental Intelligence</title>
+    <title>DentaMind - Advanced Dental Intelligence</title>
   </head>
   <body>
     <div id="root"></div>
@@ -21,13 +21,13 @@
     <!-- Fallback content in case React doesn't render -->
     <noscript>
       <div style="text-align:center; padding:40px; font-family:system-ui,-apple-system,sans-serif">
-        <h2>SmartDental AI requires JavaScript to be enabled</h2>
+        <h2>DentaMind requires JavaScript to be enabled</h2>
         <p>Please enable JavaScript in your browser settings to use this application.</p>
       </div>
     </noscript>
     <div id="app-loading-indicator" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; position:absolute; top:0; left:0; background:#f8fafc; z-index:1000;">
-      <img src="./src/assets/smart-dental-ai-logo.png" alt="SmartDental AI Logo" style="width:240px; margin-bottom:20px;" />
-      <p style="font-family:system-ui,-apple-system,sans-serif; font-size:16px; color:#64748b;">Loading SmartDental AI...</p>
+      <img src="./src/assets/dentamind-logo.png" alt="DentaMind Logo" style="width:240px; margin-bottom:20px;" />
+      <p style="font-family:system-ui,-apple-system,sans-serif; font-size:16px; color:#64748b;">Loading DentaMind...</p>
       <div style="margin-top:20px; width:50px; height:50px; border:5px solid #f3f3f3; border-top:5px solid #3498db; border-radius:50%; animation:spin 1s linear infinite;"></div>
     </div>
     <style>
@@ -76,8 +76,8 @@
             if (rootElement && rootElement.children.length === 0) {
               rootElement.innerHTML = `
                 <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:system-ui,-apple-system,sans-serif;">
-                  <img src="./src/assets/smart-dental-ai-logo.png" alt="SmartDental AI Logo" style="width:240px; margin-bottom:20px;" />
-                  <h2 style="color:#3b82f6; margin-bottom:10px">SmartDental AI</h2>
+                  <img src="./src/assets/dentamind-logo.png" alt="DentaMind Logo" style="width:240px; margin-bottom:20px;" />
+                  <h2 style="color:#3b82f6; margin-bottom:10px">DentaMind</h2>
                   <p style="margin-bottom:20px">Please sign in to continue</p>
                   <a href="/auth" style="background:#3b82f6; color:white; padding:10px 20px; border-radius:5px; text-decoration:none;">Go to Login</a>
                 </div>`;
