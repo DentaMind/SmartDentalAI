@@ -182,12 +182,13 @@ export default function AuthPage() {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">
       <div className="w-full max-w-5xl grid md:grid-cols-2 gap-8">
         <div className="flex flex-col justify-center space-y-6">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center mb-6">
             <img 
-              src="/images/smart-dental-ai-logo.svg" 
-              alt="SmartDental AI Logo" 
-              className="h-20 w-auto"
+              src="/images/smart-dental-ai-logo.webp" 
+              alt="Smart Dental AI Logo" 
+              className="h-16 w-auto"
             />
+            <h1 className="text-2xl font-bold text-blue-600 ml-3">Smart Dental AI</h1>
           </div>
           <p className="text-xl text-gray-600">
             Experience next-generation dental care with AI assistance and advanced patient management.
