@@ -1,1021 +1,815 @@
-import { useState, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from '@/hooks/use-toast';
+import { Maximize2, Save } from 'lucide-react';
 import {
-  Save,
-  ArrowLeft,
-  ArrowRight,
-  Info,
-  ClipboardEdit,
-  Upload,
-  Download,
-  BarChart,
-  AlertTriangle,
-  Printer,
-  Maximize2,
-  PanelRight,
-  Eye,
-  FileText
-} from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Separator } from '@/components/ui/separator';
-import { Progress } from '@/components/ui/progress';
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Input } from '@/components/ui/input';
+import { ToothSvgBuccal, ToothSvgLingual } from '../dental/tooth-illustrations';
 
-// Constants - Using international teeth numbering system (FDI/ISO)
-// Upper: 18-11 (right to left), 21-28 (left to right)
-// Lower: 48-41 (right to left), 31-38 (left to right)
-const ADULT_TEETH_UPPER = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
-const ADULT_TEETH_LOWER = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
-
-// Define perio chart data structure
-interface PerioMeasurement {
-  pocketDepth: {
-    facial: [number | null, number | null, number | null]; // [Mesial, Middle, Distal]
-    lingual: [number | null, number | null, number | null]; // [Mesial, Middle, Distal]
-  };
-  recession: {
-    facial: [number | null, number | null, number | null];
-    lingual: [number | null, number | null, number | null];
-  };
-  bleeding: {
-    facial: [boolean, boolean, boolean];
-    lingual: [boolean, boolean, boolean];
-  };
-  suppuration: {
-    facial: [boolean, boolean, boolean];
-    lingual: [boolean, boolean, boolean];
-  };
+// Define the data structure for periodontal measurements
+interface PerioMeasurements {
   mobility: number | null;
-  furcation: {
-    facial: number | null;
-    lingual: number | null;
-    mesial: number | null;
-    distal: number | null;
-  };
+  implant: boolean;
+  furcation: number | null;
+  bleedingOnProbing: boolean;
   plaque: boolean;
-  calculus: boolean;
+  gingivalMargin: number | null;
+  probingDepth: {
+    buccal: {
+      distal: number | null;
+      mid: number | null;
+      mesial: number | null;
+    };
+    lingual: {
+      distal: number | null;
+      mid: number | null;
+      mesial: number | null;
+    };
+  };
+  attachmentLoss: {
+    buccal: {
+      distal: number | null;
+      mid: number | null;
+      mesial: number | null;
+    };
+    lingual: {
+      distal: number | null;
+      mid: number | null;
+      mesial: number | null;
+    };
+  };
 }
 
-interface ToothPerioData {
-  id: number;
-  measurements: PerioMeasurement;
-}
-
-interface PerioChartData {
-  id?: number;
+// Define the component props
+interface FixedEnhancedPerioChartProps {
   patientId: number;
-  date: string;
-  examiner: string;
-  notes: string;
-  lastUpdated: string;
-  teeth: ToothPerioData[];
-}
-
-interface PerioChartProps {
-  patientId: number;
-  patientName?: string;
-  initialData?: PerioChartData;
+  patientName: string;
   readOnly?: boolean;
-  onSave?: (data: PerioChartData) => void;
+  onSave?: (data: any) => void;
 }
 
-interface AIAnalysis {
-  healthScore: number;
-  bleedingIndex: number;
-  severeSites: number;
-  findings: string[];
-  recommendations: string[];
-}
-
-// Helper functions
-const getColorForPocketDepth = (depth: number | null): string => {
-  if (depth === null) return '';
-  if (depth <= 3) return 'bg-green-100';
-  if (depth <= 5) return 'bg-yellow-100';
-  return 'bg-red-100';
-};
-
-const getColorForRecession = (recession: number | null): string => {
-  if (recession === null || recession === 0) return '';
-  if (recession <= 2) return 'bg-yellow-100';
-  return 'bg-red-100';
-};
-
-export default function FixedEnhancedPerioChart({
+export function FixedEnhancedPerioChart({
   patientId,
-  patientName = 'Patient',
-  initialData,
+  patientName,
   readOnly = false,
   onSave
-}: PerioChartProps) {
-  // Create an initial data structure if none is provided
-  const createInitialData = useCallback(() => {
-    const defaultMeasurement: PerioMeasurement = {
-      pocketDepth: {
-        facial: [null, null, null],
-        lingual: [null, null, null]
-      },
-      recession: {
-        facial: [null, null, null],
-        lingual: [null, null, null]
-      },
-      bleeding: {
-        facial: [false, false, false],
-        lingual: [false, false, false]
-      },
-      suppuration: {
-        facial: [false, false, false],
-        lingual: [false, false, false]
-      },
-      mobility: null,
-      furcation: {
-        facial: null,
-        lingual: null,
-        mesial: null,
-        distal: null
-      },
-      plaque: false,
-      calculus: false
-    };
-
-    const upperTeeth = ADULT_TEETH_UPPER.map(id => ({
-      id,
-      measurements: { ...defaultMeasurement }
-    }));
-
-    const lowerTeeth = ADULT_TEETH_LOWER.map(id => ({
-      id,
-      measurements: { ...defaultMeasurement }
-    }));
-
-    return {
-      patientId,
-      date: new Date().toISOString().split('T')[0],
-      examiner: 'Dr. Smith',
-      notes: '',
-      lastUpdated: new Date().toISOString(),
-      teeth: [...upperTeeth, ...lowerTeeth]
-    };
-  }, [patientId]);
-
-  // State management
-  const [chartData, setChartData] = useState<PerioChartData>(initialData || createInitialData());
-  
+}: FixedEnhancedPerioChartProps) {
   // UI state
-  const [selectedArch, setSelectedArch] = useState<'upper' | 'lower'>('upper');
-  const [selectedAspect, setSelectedAspect] = useState<'facial' | 'lingual'>('facial');
-  const [selectedView, setSelectedView] = useState<'all' | 'buccal' | 'lingual' | 'occlusal'>('all');
-  const [selectedTab, setSelectedTab] = useState<'pocket' | 'recession' | 'mobility' | 'chart'>('pocket');
-  const [isFullScreen, setIsFullScreen] = useState(false);
-  const [showAIPanel, setShowAIPanel] = useState(false);
-  const [inputMode, setInputMode] = useState<'numeric' | 'click'>('numeric');
+  const [fullScreen, setFullScreen] = useState(false);
+  const [activeTab, setActiveTab] = useState('probingDepth');
+  const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
+  const [selectedMeasurementType, setSelectedMeasurementType] = useState<'probingDepth' | 'gingivalMargin' | 'attachmentLoss' | 'mobility' | 'furcation'>('probingDepth');
+  const [selectedSurface, setSelectedSurface] = useState<'buccal' | 'lingual' | null>(null);
+  const [selectedPosition, setSelectedPosition] = useState<'mesial' | 'mid' | 'distal' | null>(null);
+  const [examType, setExamType] = useState<'initial' | 'followup' | 'maintenance'>('initial');
   
-  // Mock AI Analysis (in a real app this would come from an API call)
-  const aiAnalysis: AIAnalysis = {
-    healthScore: 75,
-    bleedingIndex: 23,
-    severeSites: 4,
-    findings: [
-      "23% of sites show bleeding on probing",
-      "4 sites with pocket depths ≥ 6mm",
-      "Localized recession on teeth 23, 24, 31, 41",
-      "Mobility detected on teeth 31, 41"
-    ],
-    recommendations: [
-      "Scaling and root planing for posterior sextants",
-      "Improved oral hygiene instruction",
-      "Re-evaluation in 6 weeks",
-      "Consider maintenance interval of 3 months"
-    ]
-  };
+  // Measurements data
+  const [measurements, setMeasurements] = useState<Record<number, PerioMeasurements>>({});
 
-  // Event handlers
-  const updatePocketDepth = (toothId: number, aspect: 'facial' | 'lingual', position: number, value: string) => {
-    if (readOnly) return;
+  // Initialize measurements for all teeth using FDI notation system
+  useEffect(() => {
+    const initialMeasurements: Record<number, PerioMeasurements> = {};
     
-    setChartData(prev => {
-      const newTeeth = prev.teeth.map(tooth => {
-        if (tooth.id === toothId) {
-          const newMeasurements = { ...tooth.measurements };
-          newMeasurements.pocketDepth[aspect][position] = value === '' ? null : parseInt(value);
-          return { ...tooth, measurements: newMeasurements };
-        }
-        return tooth;
-      });
-      
-      return {
-        ...prev,
-        teeth: newTeeth,
-        lastUpdated: new Date().toISOString()
-      };
-    });
-  };
-
-  const updateRecession = (toothId: number, aspect: 'facial' | 'lingual', position: number, value: string) => {
-    if (readOnly) return;
+    // Upper right quadrant (18-11)
+    for (let i = 18; i >= 11; i--) {
+      initialMeasurements[i] = createEmptyMeasurement();
+    }
     
-    setChartData(prev => {
-      const newTeeth = prev.teeth.map(tooth => {
-        if (tooth.id === toothId) {
-          const newMeasurements = { ...tooth.measurements };
-          newMeasurements.recession[aspect][position] = value === '' ? null : parseInt(value);
-          return { ...tooth, measurements: newMeasurements };
-        }
-        return tooth;
-      });
-      
-      return {
-        ...prev,
-        teeth: newTeeth,
-        lastUpdated: new Date().toISOString()
-      };
-    });
-  };
-
-  const toggleBleeding = (toothId: number, aspect: 'facial' | 'lingual', position: number) => {
-    if (readOnly) return;
+    // Upper left quadrant (21-28)
+    for (let i = 21; i <= 28; i++) {
+      initialMeasurements[i] = createEmptyMeasurement();
+    }
     
-    setChartData(prev => {
-      const newTeeth = prev.teeth.map(tooth => {
-        if (tooth.id === toothId) {
-          const newMeasurements = { ...tooth.measurements };
-          newMeasurements.bleeding[aspect][position] = !newMeasurements.bleeding[aspect][position];
-          return { ...tooth, measurements: newMeasurements };
-        }
-        return tooth;
-      });
-      
-      return {
-        ...prev,
-        teeth: newTeeth,
-        lastUpdated: new Date().toISOString()
-      };
-    });
-  };
-
-  const toggleSuppuration = (toothId: number, aspect: 'facial' | 'lingual', position: number) => {
-    if (readOnly) return;
+    // Lower right quadrant (48-41)
+    for (let i = 48; i >= 41; i--) {
+      initialMeasurements[i] = createEmptyMeasurement();
+    }
     
-    setChartData(prev => {
-      const newTeeth = prev.teeth.map(tooth => {
-        if (tooth.id === toothId) {
-          const newMeasurements = { ...tooth.measurements };
-          newMeasurements.suppuration[aspect][position] = !newMeasurements.suppuration[aspect][position];
-          return { ...tooth, measurements: newMeasurements };
-        }
-        return tooth;
-      });
-      
-      return {
-        ...prev,
-        teeth: newTeeth,
-        lastUpdated: new Date().toISOString()
-      };
-    });
-  };
-
-  const updateMobility = (toothId: number, value: string) => {
-    if (readOnly) return;
+    // Lower left quadrant (31-38)
+    for (let i = 31; i <= 38; i++) {
+      initialMeasurements[i] = createEmptyMeasurement();
+    }
     
-    setChartData(prev => {
-      const newTeeth = prev.teeth.map(tooth => {
-        if (tooth.id === toothId) {
-          return {
-            ...tooth,
-            measurements: {
-              ...tooth.measurements,
-              mobility: value === '0' ? null : parseInt(value)
-            }
-          };
-        }
-        return tooth;
-      });
-      
-      return {
-        ...prev,
-        teeth: newTeeth,
-        lastUpdated: new Date().toISOString()
-      };
-    });
+    setMeasurements(initialMeasurements);
+  }, []);
+
+  // Helper function to create an empty measurement object
+  const createEmptyMeasurement = (): PerioMeasurements => ({
+    mobility: null,
+    implant: false,
+    furcation: null,
+    bleedingOnProbing: false,
+    plaque: false,
+    gingivalMargin: null,
+    probingDepth: {
+      buccal: { mesial: null, mid: null, distal: null },
+      lingual: { mesial: null, mid: null, distal: null },
+    },
+    attachmentLoss: {
+      buccal: { mesial: null, mid: null, distal: null },
+      lingual: { mesial: null, mid: null, distal: null },
+    }
+  });
+
+  // Function to handle tooth click
+  const handleToothClick = (toothNumber: number) => {
+    setSelectedTooth(toothNumber);
+    setSelectedPosition(null);
+    setSelectedSurface(null);
   };
 
-  const updateFurcation = (toothId: number, location: 'facial' | 'lingual' | 'mesial' | 'distal', value: string) => {
-    if (readOnly) return;
+  // Function to handle position click (mesial, mid, distal)
+  const handlePositionClick = (
+    tooth: number, 
+    surface: 'buccal' | 'lingual', 
+    position: 'mesial' | 'mid' | 'distal'
+  ) => {
+    setSelectedTooth(tooth);
+    setSelectedSurface(surface);
+    setSelectedPosition(position);
+  };
+
+  // Function to update measurement value
+  const updateProbingDepthValue = (value: number) => {
+    if (selectedTooth === null || selectedSurface === null || selectedPosition === null) return;
     
-    setChartData(prev => {
-      const newTeeth = prev.teeth.map(tooth => {
-        if (tooth.id === toothId) {
-          return {
-            ...tooth,
-            measurements: {
-              ...tooth.measurements,
-              furcation: {
-                ...tooth.measurements.furcation,
-                [location]: value === '0' ? null : parseInt(value)
-              }
-            }
-          };
-        }
-        return tooth;
-      });
+    setMeasurements(prev => {
+      const updatedMeasurements = { ...prev };
       
-      return {
-        ...prev,
-        teeth: newTeeth,
-        lastUpdated: new Date().toISOString()
-      };
-    });
-  };
-
-  const togglePlaque = (toothId: number) => {
-    if (readOnly) return;
-    
-    setChartData(prev => {
-      const newTeeth = prev.teeth.map(tooth => {
-        if (tooth.id === toothId) {
-          return {
-            ...tooth,
-            measurements: {
-              ...tooth.measurements,
-              plaque: !tooth.measurements.plaque
-            }
-          };
-        }
-        return tooth;
-      });
-      
-      return {
-        ...prev,
-        teeth: newTeeth,
-        lastUpdated: new Date().toISOString()
-      };
-    });
-  };
-
-  const toggleCalculus = (toothId: number) => {
-    if (readOnly) return;
-    
-    setChartData(prev => {
-      const newTeeth = prev.teeth.map(tooth => {
-        if (tooth.id === toothId) {
-          return {
-            ...tooth,
-            measurements: {
-              ...tooth.measurements,
-              calculus: !tooth.measurements.calculus
-            }
-          };
-        }
-        return tooth;
-      });
-      
-      return {
-        ...prev,
-        teeth: newTeeth,
-        lastUpdated: new Date().toISOString()
-      };
-    });
-  };
-
-  const handleSave = () => {
-    if (readOnly || !onSave) return;
-    onSave(chartData);
-  };
-
-  // Helper function to get current teeth based on selected arch
-  const getCurrentTeeth = () => {
-    return chartData.teeth.filter(tooth => {
-      if (selectedArch === 'upper') {
-        return ADULT_TEETH_UPPER.includes(tooth.id);
-      } else {
-        return ADULT_TEETH_LOWER.includes(tooth.id);
+      if (selectedMeasurementType === 'probingDepth') {
+        updatedMeasurements[selectedTooth].probingDepth[selectedSurface][selectedPosition] = value;
+      } else if (selectedMeasurementType === 'attachmentLoss') {
+        updatedMeasurements[selectedTooth].attachmentLoss[selectedSurface][selectedPosition] = value;
+      } else if (selectedMeasurementType === 'gingivalMargin') {
+        updatedMeasurements[selectedTooth].gingivalMargin = value;
       }
+      
+      return updatedMeasurements;
+    });
+    
+    // Auto-advance to next position for better workflow
+    if (selectedPosition === 'distal') {
+      setSelectedPosition('mid');
+    } else if (selectedPosition === 'mid') {
+      setSelectedPosition('mesial');
+    } else if (selectedPosition === 'mesial') {
+      // Move to next tooth or surface
+      if (selectedSurface === 'buccal') {
+        setSelectedSurface('lingual');
+        setSelectedPosition('distal');
+      } else {
+        // Move to next tooth
+        const nextTooth = getNextTooth(selectedTooth);
+        if (nextTooth) {
+          setSelectedTooth(nextTooth);
+          setSelectedSurface('buccal');
+          setSelectedPosition('distal');
+        }
+      }
+    }
+  };
+
+  // Function to determine next tooth in sequence using FDI notation
+  const getNextTooth = (currentTooth: number) => {
+    // Upper right quadrant (18-11)
+    if (currentTooth > 11 && currentTooth <= 18) return currentTooth - 1;
+    
+    // Transition from upper right to upper left quadrant
+    if (currentTooth === 11) return 21;
+    
+    // Upper left quadrant (21-28)
+    if (currentTooth >= 21 && currentTooth < 28) return currentTooth + 1;
+    
+    // Transition from upper left to lower right quadrant
+    if (currentTooth === 28) return 48;
+    
+    // Lower right quadrant (48-41)
+    if (currentTooth > 41 && currentTooth <= 48) return currentTooth - 1;
+    
+    // Transition from lower right to lower left quadrant
+    if (currentTooth === 41) return 31;
+    
+    // Lower left quadrant (31-38)
+    if (currentTooth >= 31 && currentTooth < 38) return currentTooth + 1;
+    
+    return null; // End of sequence
+  };
+
+  // Function to toggle bleeding
+  const toggleBleeding = (tooth: number) => {
+    setMeasurements(prev => {
+      const updatedMeasurements = { ...prev };
+      updatedMeasurements[tooth].bleedingOnProbing = !updatedMeasurements[tooth].bleedingOnProbing;
+      return updatedMeasurements;
     });
   };
 
-  // Function to render the pocket depth measurement table
-  const renderPocketDepthTable = () => {
-    const teeth = getCurrentTeeth();
+  // Function to toggle plaque
+  const togglePlaque = (tooth: number) => {
+    setMeasurements(prev => {
+      const updatedMeasurements = { ...prev };
+      updatedMeasurements[tooth].plaque = !updatedMeasurements[tooth].plaque;
+      return updatedMeasurements;
+    });
+  };
+
+  // Function to toggle implant
+  const toggleImplant = (tooth: number) => {
+    setMeasurements(prev => {
+      const updatedMeasurements = { ...prev };
+      updatedMeasurements[tooth].implant = !updatedMeasurements[tooth].implant;
+      return updatedMeasurements;
+    });
+  };
+
+  // Function to set mobility
+  const setMobility = (tooth: number, value: number | null) => {
+    setMeasurements(prev => {
+      const updatedMeasurements = { ...prev };
+      updatedMeasurements[tooth].mobility = value;
+      return updatedMeasurements;
+    });
+  };
+
+  // Function to set furcation
+  const setFurcation = (tooth: number, value: number | null) => {
+    setMeasurements(prev => {
+      const updatedMeasurements = { ...prev };
+      updatedMeasurements[tooth].furcation = value;
+      return updatedMeasurements;
+    });
+  };
+
+  // Function to save the chart
+  const handleSave = () => {
+    if (onSave) {
+      onSave({
+        patientId,
+        measurements,
+        examType,
+        timestamp: new Date().toISOString()
+      });
+    }
+  };
+
+  // Helper function to get cell background based on pocket depth with improved clinical color standard
+  const getPocketDepthColor = (depth: number | null) => {
+    if (depth === null) return 'bg-white';
+    if (depth < 3) return 'bg-green-100'; // Healthy (<3mm)
+    if (depth < 5) return 'bg-yellow-100'; // Mild inflammation (3-4mm)
+    if (depth < 7) return 'bg-orange-100'; // Moderate periodontitis (5-6mm)
+    return 'bg-red-100'; // Severe periodontitis (7mm+)
+  };
+
+  // Render teeth numbers for upper arch using FDI/ISO system (18-11, 21-28)
+  const renderUpperTeethNumbers = () => {
+    // Upper right quadrant (18-11)
+    const upperRightTeeth = Array.from({length: 8}, (_, i) => 18 - i);
+    // Upper left quadrant (21-28)
+    const upperLeftTeeth = Array.from({length: 8}, (_, i) => 21 + i);
     
-    return (
-      <div className="overflow-auto">
-        <Table>
-          <TableCaption className="mt-2 text-sm font-medium">
-            Pocket Depth Measurements (mm) - {selectedAspect === 'facial' ? 'Facial' : 'Lingual'} Aspect
-          </TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-24">Tooth #</TableHead>
-              <TableHead>Mesial</TableHead>
-              <TableHead>Mid</TableHead>
-              <TableHead>Distal</TableHead>
-              <TableHead>Mobility</TableHead>
-              <TableHead>Plaque</TableHead>
-              <TableHead>Calculus</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {teeth.map(tooth => (
-              <TableRow key={`pd-${tooth.id}`}>
-                <TableCell className="font-medium text-center">{tooth.id}</TableCell>
-                
-                {/* Pocket Depth Cells */}
-                {[0, 1, 2].map(position => (
-                  <TableCell 
-                    key={`pd-${tooth.id}-${position}`}
-                    className={getColorForPocketDepth(tooth.measurements.pocketDepth[selectedAspect][position])}
-                  >
-                    {inputMode === 'numeric' ? (
-                      <Input
-                        type="number"
-                        min="0"
-                        max="15"
-                        className="h-8 w-14 text-center"
-                        value={tooth.measurements.pocketDepth[selectedAspect][position] === null ? '' : tooth.measurements.pocketDepth[selectedAspect][position] || ''}
-                        onChange={(e) => updatePocketDepth(tooth.id, selectedAspect, position, e.target.value)}
-                        disabled={readOnly}
-                      />
-                    ) : (
-                      <div
-                        onClick={() => {
-                          if (readOnly) return;
-                          const currentValue = tooth.measurements.pocketDepth[selectedAspect][position];
-                          let newValue = 1;
-                          if (currentValue !== null) {
-                            newValue = currentValue + 1;
-                            if (newValue > 15) newValue = 0;
-                          }
-                          updatePocketDepth(tooth.id, selectedAspect, position, newValue.toString());
-                        }}
-                        className="cursor-pointer h-8 w-full flex items-center justify-center"
-                      >
-                        {tooth.measurements.pocketDepth[selectedAspect][position] === null ? '-' : tooth.measurements.pocketDepth[selectedAspect][position]}
-                      </div>
-                    )}
-                    
-                    <div className="mt-1 flex justify-center">
-                      <div 
-                        className={`w-3 h-3 rounded-full ${tooth.measurements.bleeding[selectedAspect][position] ? 'bg-red-500' : 'bg-gray-200'} cursor-pointer`}
-                        onClick={() => toggleBleeding(tooth.id, selectedAspect, position)}
-                        title="Bleeding"
-                      />
-                      <div 
-                        className={`ml-1 w-3 h-3 rounded-full ${tooth.measurements.suppuration[selectedAspect][position] ? 'bg-yellow-500' : 'bg-gray-200'} cursor-pointer`}
-                        onClick={() => toggleSuppuration(tooth.id, selectedAspect, position)}
-                        title="Suppuration"
-                      />
-                    </div>
-                  </TableCell>
-                ))}
-                
-                {/* Mobility */}
-                <TableCell>
-                  <Select
-                    value={tooth.measurements.mobility === null ? '0' : tooth.measurements.mobility.toString()}
-                    onValueChange={(value) => updateMobility(tooth.id, value)}
-                    disabled={readOnly}
-                  >
-                    <SelectTrigger className="w-14 h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">None</SelectItem>
-                      <SelectItem value="1">1</SelectItem>
-                      <SelectItem value="2">2</SelectItem>
-                      <SelectItem value="3">3</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                
-                {/* Plaque */}
-                <TableCell>
-                  <div className="flex justify-center">
-                    <Checkbox
-                      checked={tooth.measurements.plaque}
-                      onCheckedChange={() => togglePlaque(tooth.id)}
-                      disabled={readOnly}
-                      className={tooth.measurements.plaque ? 'bg-blue-100 text-blue-900' : ''}
-                    />
-                  </div>
-                </TableCell>
-                
-                {/* Calculus */}
-                <TableCell>
-                  <div className="flex justify-center">
-                    <Checkbox
-                      checked={tooth.measurements.calculus}
-                      onCheckedChange={() => toggleCalculus(tooth.id)}
-                      disabled={readOnly}
-                      className={tooth.measurements.calculus ? 'bg-gray-300 text-gray-900' : ''}
-                    />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+    return [...upperRightTeeth, ...upperLeftTeeth].map(tooth => (
+      <div key={`upper-tooth-${tooth}`} className="text-center font-medium text-xs">
+        {tooth}
       </div>
-    );
+    ));
   };
 
-  // Function to render the recession measurement table
-  const renderRecessionTable = () => {
-    const teeth = getCurrentTeeth();
+  // Render teeth numbers for lower arch using FDI/ISO system (48-41, 31-38)
+  const renderLowerTeethNumbers = () => {
+    // Lower right quadrant (48-41)
+    const lowerRightTeeth = Array.from({length: 8}, (_, i) => 48 - i);
+    // Lower left quadrant (31-38)
+    const lowerLeftTeeth = Array.from({length: 8}, (_, i) => 31 + i);
     
-    return (
-      <div className="overflow-auto">
-        <Table>
-          <TableCaption className="mt-2 text-sm font-medium">
-            Gingival Recession Measurements (mm) - {selectedAspect === 'facial' ? 'Facial' : 'Lingual'} Aspect
-          </TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-24">Tooth #</TableHead>
-              <TableHead>Mesial</TableHead>
-              <TableHead>Mid</TableHead>
-              <TableHead>Distal</TableHead>
-              <TableHead>Furcation</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {teeth.map(tooth => (
-              <TableRow key={`rec-${tooth.id}`}>
-                <TableCell className="font-medium text-center">{tooth.id}</TableCell>
-                
-                {/* Recession Cells */}
-                {[0, 1, 2].map(position => (
-                  <TableCell 
-                    key={`rec-${tooth.id}-${position}`}
-                    className={getColorForRecession(tooth.measurements.recession[selectedAspect][position])}
-                  >
-                    {inputMode === 'numeric' ? (
-                      <Input
-                        type="number"
-                        min="0"
-                        max="10"
-                        className="h-8 w-14 text-center"
-                        value={tooth.measurements.recession[selectedAspect][position] === null ? '' : tooth.measurements.recession[selectedAspect][position] || ''}
-                        onChange={(e) => updateRecession(tooth.id, selectedAspect, position, e.target.value)}
-                        disabled={readOnly}
-                      />
-                    ) : (
-                      <div
-                        onClick={() => {
-                          if (readOnly) return;
-                          const currentValue = tooth.measurements.recession[selectedAspect][position];
-                          let newValue = 1;
-                          if (currentValue !== null) {
-                            newValue = currentValue + 1;
-                            if (newValue > 10) newValue = 0;
-                          }
-                          updateRecession(tooth.id, selectedAspect, position, newValue.toString());
-                        }}
-                        className="cursor-pointer h-8 w-full flex items-center justify-center"
-                      >
-                        {tooth.measurements.recession[selectedAspect][position] === null ? '-' : tooth.measurements.recession[selectedAspect][position]}
-                      </div>
-                    )}
-                  </TableCell>
-                ))}
-                
-                {/* Furcation */}
-                <TableCell>
-                  <Select
-                    value={tooth.measurements.furcation[selectedAspect] === null ? '0' : tooth.measurements.furcation[selectedAspect]?.toString()}
-                    onValueChange={(value) => updateFurcation(tooth.id, selectedAspect, value)}
-                    disabled={readOnly}
-                  >
-                    <SelectTrigger className="w-14 h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">None</SelectItem>
-                      <SelectItem value="1">I</SelectItem>
-                      <SelectItem value="2">II</SelectItem>
-                      <SelectItem value="3">III</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+    return [...lowerRightTeeth, ...lowerLeftTeeth].map(tooth => (
+      <div key={`lower-tooth-${tooth}`} className="text-center font-medium text-xs">
+        {tooth}
       </div>
-    );
+    ));
   };
 
-  // Function to render the mobility and furcation table
-  const renderMobilityFurcationTable = () => {
-    const teeth = getCurrentTeeth();
+  // Function to render furcation values with symbols
+  const renderFurcation = (tooth: number) => {
+    const value = measurements[tooth]?.furcation;
     
-    return (
-      <div className="overflow-auto">
-        <Table>
-          <TableCaption className="mt-2 text-sm font-medium">
-            Mobility and Furcation Measurements
-          </TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-24">Tooth #</TableHead>
-              <TableHead>Mobility</TableHead>
-              <TableHead>Furc. (Facial)</TableHead>
-              <TableHead>Furc. (Lingual)</TableHead>
-              <TableHead>Furc. (Mesial)</TableHead>
-              <TableHead>Furc. (Distal)</TableHead>
-              <TableHead>Plaque</TableHead>
-              <TableHead>Calculus</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {teeth.map(tooth => (
-              <TableRow key={`mob-${tooth.id}`}>
-                <TableCell className="font-medium text-center">{tooth.id}</TableCell>
-                
-                {/* Mobility */}
-                <TableCell>
-                  <Select
-                    value={tooth.measurements.mobility === null ? '0' : tooth.measurements.mobility.toString()}
-                    onValueChange={(value) => updateMobility(tooth.id, value)}
-                    disabled={readOnly}
-                  >
-                    <SelectTrigger className="w-14 h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">None</SelectItem>
-                      <SelectItem value="1">1</SelectItem>
-                      <SelectItem value="2">2</SelectItem>
-                      <SelectItem value="3">3</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                
-                {/* Furcation Areas */}
-                {['facial', 'lingual', 'mesial', 'distal'].map(location => (
-                  <TableCell key={`furc-${tooth.id}-${location}`}>
-                    <Select
-                      value={tooth.measurements.furcation[location as keyof typeof tooth.measurements.furcation] === null ? '0' : tooth.measurements.furcation[location as keyof typeof tooth.measurements.furcation]?.toString()}
-                      onValueChange={(value) => updateFurcation(tooth.id, location as 'facial' | 'lingual' | 'mesial' | 'distal', value)}
-                      disabled={readOnly}
-                    >
-                      <SelectTrigger className="w-14 h-8">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">None</SelectItem>
-                        <SelectItem value="1">I</SelectItem>
-                        <SelectItem value="2">II</SelectItem>
-                        <SelectItem value="3">III</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                ))}
-                
-                {/* Plaque */}
-                <TableCell>
-                  <div className="flex justify-center">
-                    <Checkbox
-                      checked={tooth.measurements.plaque}
-                      onCheckedChange={() => togglePlaque(tooth.id)}
-                      disabled={readOnly}
-                      className={tooth.measurements.plaque ? 'bg-blue-100 text-blue-900' : ''}
-                    />
-                  </div>
-                </TableCell>
-                
-                {/* Calculus */}
-                <TableCell>
-                  <div className="flex justify-center">
-                    <Checkbox
-                      checked={tooth.measurements.calculus}
-                      onCheckedChange={() => toggleCalculus(tooth.id)}
-                      disabled={readOnly}
-                      className={tooth.measurements.calculus ? 'bg-gray-300 text-gray-900' : ''}
-                    />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    );
+    if (value === null) return null;
+    
+    // Return character based on furcation grade
+    if (value === 1) return <span className="text-yellow-500">○</span>; // Grade I
+    if (value === 2) return <span className="text-orange-500">◐</span>; // Grade II
+    if (value === 3) return <span className="text-red-500">●</span>; // Grade III
+    
+    return null;
   };
 
-  // Function to render the visual chart view
-  const renderVisualChart = () => {
-    return (
-      <div className="py-12 text-center text-gray-500">
-        <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-medium">Visual Chart View</h3>
-        <p className="max-w-md mx-auto">
-          Interactive visual dental chart will be displayed here,
-          showing teeth with color-coded measurements.
-        </p>
-      </div>
-    );
-  };
-
-  // Function to render the AI analysis panel
-  const renderAIAnalysisPanel = () => {
-    return (
-      <div className="w-full lg:w-80 p-4 border-l">
-        <h3 className="text-lg font-medium mb-4">AI Analysis</h3>
-        
-        <div className="space-y-6">
-          {/* Health Score */}
-          <div>
-            <div className="flex justify-between mb-1">
-              <span className="text-sm font-medium">Overall Health Score</span>
-              <span className={`text-sm font-bold ${aiAnalysis.healthScore > 70 ? 'text-green-600' : aiAnalysis.healthScore > 40 ? 'text-yellow-600' : 'text-red-600'}`}>
-                {aiAnalysis.healthScore}%
-              </span>
-            </div>
-            <Progress value={aiAnalysis.healthScore} className="h-2" />
-          </div>
-          
-          {/* Bleeding Index */}
-          <div>
-            <div className="flex justify-between mb-1">
-              <span className="text-sm font-medium">Bleeding Index</span>
-              <span className={`text-sm font-bold ${aiAnalysis.bleedingIndex < 15 ? 'text-green-600' : aiAnalysis.bleedingIndex < 30 ? 'text-yellow-600' : 'text-red-600'}`}>
-                {aiAnalysis.bleedingIndex}%
-              </span>
-            </div>
-            <Progress value={aiAnalysis.bleedingIndex} className="h-2" />
-          </div>
-          
-          {/* Severe Sites */}
-          <div>
-            <div className="flex justify-between mb-1">
-              <span className="text-sm font-medium">Severe Sites</span>
-              <span className={`text-sm font-bold ${aiAnalysis.severeSites < 2 ? 'text-green-600' : aiAnalysis.severeSites < 5 ? 'text-yellow-600' : 'text-red-600'}`}>
-                {aiAnalysis.severeSites}
-              </span>
-            </div>
-          </div>
-          
-          <Separator />
-          
-          {/* Key Findings */}
-          <div>
-            <h4 className="text-sm font-medium mb-2">Key Findings</h4>
-            <ul className="text-sm space-y-1 list-disc pl-5">
-              {aiAnalysis.findings.map((finding, index) => (
-                <li key={index}>{finding}</li>
-              ))}
-            </ul>
-          </div>
-          
-          {/* Recommendations */}
-          <div>
-            <h4 className="text-sm font-medium mb-2">Recommendations</h4>
-            <ul className="text-sm space-y-1 list-disc pl-5">
-              {aiAnalysis.recommendations.map((rec, index) => (
-                <li key={index}>{rec}</li>
-              ))}
-            </ul>
-          </div>
-          
-          <div className="pt-4">
-            <Button className="w-full" variant="outline">
-              <BarChart className="h-4 w-4 mr-2" />
-              Generate Complete Report
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  // Prepare teeth arrays using FDI/ISO system
+  // Upper teeth: right quadrant (18-11) followed by left quadrant (21-28)
+  const upperRightTeeth = Array.from({length: 8}, (_, i) => 18 - i);
+  const upperLeftTeeth = Array.from({length: 8}, (_, i) => 21 + i);
+  const upperTeeth = [...upperRightTeeth, ...upperLeftTeeth];
+  
+  // Lower teeth: right quadrant (48-41) followed by left quadrant (31-38)
+  const lowerRightTeeth = Array.from({length: 8}, (_, i) => 48 - i);
+  const lowerLeftTeeth = Array.from({length: 8}, (_, i) => 31 + i);
+  const lowerTeeth = [...lowerRightTeeth, ...lowerLeftTeeth];
 
   return (
-    <div className={`${isFullScreen ? 'fixed inset-0 z-50 bg-background p-6 overflow-auto' : ''}`}>
-      <Card className="w-full">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <div>
-            <CardTitle className="text-xl">Periodontal Chart</CardTitle>
-            <CardDescription>{patientName}</CardDescription>
+    <Card className={`w-full overflow-hidden ${fullScreen ? 'fixed inset-0 z-50 overflow-auto' : ''}`}>
+      <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-primary to-primary-600 p-2 sm:p-4">
+        <div>
+          <CardTitle className="text-base sm:text-lg text-white">Periodontal Chart</CardTitle>
+          <div className="text-xs sm:text-sm text-white opacity-80">
+            Patient: {patientName}
           </div>
-          <div className="flex space-x-2">
-            <Button variant="ghost" size="icon" onClick={() => setIsFullScreen(!isFullScreen)}>
-              <Maximize2 className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setShowAIPanel(!showAIPanel)}>
-              <PanelRight className="h-4 w-4" />
-            </Button>
-            {!readOnly && (
-              <Button onClick={handleSave}>
-                <Save className="h-4 w-4 mr-2" />
-                Save Chart
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div>
-              <Label htmlFor="exam-date">Exam Date</Label>
-              <Input
-                id="exam-date"
-                type="date"
-                value={chartData.date}
-                onChange={(e) => setChartData({ ...chartData, date: e.target.value })}
-                disabled={readOnly}
-              />
-            </div>
-            <div>
-              <Label htmlFor="examiner">Examiner</Label>
-              <Input
-                id="examiner"
-                type="text"
-                value={chartData.examiner}
-                onChange={(e) => setChartData({ ...chartData, examiner: e.target.value })}
-                disabled={readOnly}
-              />
-            </div>
-            <div>
-              <Label htmlFor="notes">Notes</Label>
-              <Input
-                id="notes"
-                type="text"
-                value={chartData.notes}
-                onChange={(e) => setChartData({ ...chartData, notes: e.target.value })}
-                disabled={readOnly}
-                placeholder="Add chart notes..."
-              />
-            </div>
-          </div>
-          
-          <div className="flex flex-wrap items-center justify-between gap-y-2 mb-4">
-            <div>
-              <ToggleGroup type="single" value={selectedArch} onValueChange={(value) => value && setSelectedArch(value as 'upper' | 'lower')}>
-                <ToggleGroupItem value="upper">Upper Arch</ToggleGroupItem>
-                <ToggleGroupItem value="lower">Lower Arch</ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-            
-            <div>
-              <ToggleGroup type="single" value={selectedAspect} onValueChange={(value) => value && setSelectedAspect(value as 'facial' | 'lingual')}>
-                <ToggleGroupItem value="facial">Facial</ToggleGroupItem>
-                <ToggleGroupItem value="lingual">Lingual</ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-            
-            <div>
-              <ToggleGroup type="single" value={inputMode} onValueChange={(value) => value && setInputMode(value as 'numeric' | 'click')}>
-                <ToggleGroupItem value="numeric" title="Numeric Input">
-                  <span className="mr-1.5">123</span>
-                </ToggleGroupItem>
-                <ToggleGroupItem value="click" title="Click Input">
-                  <span className="mr-1.5">👆</span>
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-          </div>
-          
-          <div className="flex">
-            <div className="flex-1 overflow-hidden">
-              <Tabs value={selectedTab} onValueChange={(value) => setSelectedTab(value as 'pocket' | 'recession' | 'mobility' | 'chart')}>
-                <TabsList className="mb-4">
-                  <TabsTrigger value="pocket">Pocket Depth</TabsTrigger>
-                  <TabsTrigger value="recession">Recession</TabsTrigger>
-                  <TabsTrigger value="mobility">Mobility/Furcation</TabsTrigger>
-                  <TabsTrigger value="chart">Visual Chart</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="pocket" className="pt-2">
-                  {renderPocketDepthTable()}
-                </TabsContent>
-                
-                <TabsContent value="recession" className="pt-2">
-                  {renderRecessionTable()}
-                </TabsContent>
-                
-                <TabsContent value="mobility" className="pt-2">
-                  {renderMobilityFurcationTable()}
-                </TabsContent>
-                
-                <TabsContent value="chart" className="pt-2">
-                  {renderVisualChart()}
-                </TabsContent>
-              </Tabs>
-            </div>
-            
-            {showAIPanel && renderAIAnalysisPanel()}
-          </div>
-          
-          {/* Legend */}
-          <div className="mt-6 pt-4 border-t">
-            <h3 className="text-sm font-medium mb-2">Legend</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <h4 className="text-xs font-semibold mb-1">Pocket Depth</h4>
-                <div className="space-y-1">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 mr-1 bg-green-100 border border-gray-300"></div>
-                    <span className="text-xs">1-3 mm (Healthy)</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 mr-1 bg-yellow-100 border border-gray-300"></div>
-                    <span className="text-xs">4-5 mm (Moderate)</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 mr-1 bg-red-100 border border-gray-300"></div>
-                    <span className="text-xs">6+ mm (Severe)</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="text-xs font-semibold mb-1">Recession</h4>
-                <div className="space-y-1">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 mr-1 bg-white border border-gray-300"></div>
-                    <span className="text-xs">0 mm (None)</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 mr-1 bg-yellow-100 border border-gray-300"></div>
-                    <span className="text-xs">1-2 mm (Mild)</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 mr-1 bg-red-100 border border-gray-300"></div>
-                    <span className="text-xs">3+ mm (Severe)</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="text-xs font-semibold mb-1">Indicators</h4>
-                <div className="space-y-1">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 mr-1 bg-red-500 rounded-full"></div>
-                    <span className="text-xs">Bleeding</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 mr-1 bg-yellow-500 rounded-full"></div>
-                    <span className="text-xs">Suppuration</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="text-xs font-semibold mb-1">Other</h4>
-                <div className="space-y-1">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 mr-1 bg-blue-100 border border-gray-300"></div>
-                    <span className="text-xs">Plaque</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 mr-1 bg-gray-300 border border-gray-300"></div>
-                    <span className="text-xs">Calculus</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-        
-        <CardFooter className="flex justify-between pt-4 border-t">
+        </div>
+        <div className="flex items-center gap-1">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Info className="h-4 w-4 mr-1" />
-                  <span>Input tips</span>
-                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setFullScreen(!fullScreen)}
+                  className="h-7 w-7 bg-white/20 text-white border-white/20 hover:bg-white/30 hover:text-white"
+                >
+                  <Maximize2 className="h-3 w-3" />
+                </Button>
               </TooltipTrigger>
-              <TooltipContent className="max-w-sm">
-                <p className="text-sm">
-                  For pocket depth and recession, enter values in millimeters. Toggle bleeding and suppuration
-                  indicators by clicking the colored dots. For mobility and furcation, select values from the dropdown.
-                </p>
+              <TooltipContent>
+                <p>{fullScreen ? 'Exit Fullscreen' : 'Fullscreen Mode'}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
           
-          <div className="flex space-x-2">
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-1" /> Export
+          {!readOnly && (
+            <Button onClick={handleSave} size="sm" className="h-7 text-xs bg-white/20 hover:bg-white/30 text-white">
+              <Save className="h-3 w-3 mr-1" />
+              Save
             </Button>
-            <Button variant="outline" size="sm">
-              <Upload className="h-4 w-4 mr-1" /> Import
-            </Button>
-            <Button variant="outline" size="sm">
-              <Printer className="h-4 w-4 mr-1" /> Print
-            </Button>
+          )}
+        </div>
+      </CardHeader>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="px-4 pt-4">
+          <TabsList className="w-full mb-4 bg-gray-100 grid grid-cols-3">
+            <TabsTrigger value="probingDepth" className={`data-[state=active]:bg-white`}>
+              Probing Depth
+            </TabsTrigger>
+            <TabsTrigger value="attachmentLoss" className={`data-[state=active]:bg-white`}>
+              Attachment Loss
+            </TabsTrigger>
+            <TabsTrigger value="overview" className={`data-[state=active]:bg-white`}>
+              Complete View
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="probingDepth" className="p-2 sm:p-4 overflow-auto">
+          <div className="space-y-4">
+            {/* Exam Type Selection */}
+            {!readOnly && (
+              <div className="flex flex-wrap gap-4 justify-start">
+                <Button 
+                  size="sm" 
+                  variant={examType === 'initial' ? 'default' : 'outline'}
+                  onClick={() => setExamType('initial')}
+                >
+                  Initial Exam
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant={examType === 'followup' ? 'default' : 'outline'}
+                  onClick={() => setExamType('followup')}
+                >
+                  Follow-up Visit
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant={examType === 'maintenance' ? 'default' : 'outline'}
+                  onClick={() => setExamType('maintenance')}
+                >
+                  Maintenance
+                </Button>
+              </div>
+            )}
+
+            {/* Value Selection Controls */}
+            {selectedTooth !== null && !readOnly && (
+              <div className="flex flex-wrap gap-2 items-center bg-gray-50 p-3 rounded-md">
+                <div className="text-xs font-medium">
+                  Tooth #{selectedTooth} {selectedSurface && selectedPosition && `${selectedSurface.charAt(0).toUpperCase() + selectedSurface.slice(1)} ${selectedPosition.charAt(0).toUpperCase() + selectedPosition.slice(1)}`}:
+                </div>
+                <div className="flex gap-1">
+                  {selectedMeasurementType === 'probingDepth' && selectedSurface && selectedPosition && (
+                    <>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(value => (
+                        <Button 
+                          key={value}
+                          size="sm"
+                          variant="outline"
+                          className={`h-6 w-6 p-0 ${measurements[selectedTooth]?.probingDepth[selectedSurface][selectedPosition] === value ? 'bg-green-50 font-bold border-green-600' : ''}`}
+                          onClick={() => updateProbingDepthValue(value)}
+                        >
+                          {value}
+                        </Button>
+                      ))}
+                    </>
+                  )}
+                </div>
+                
+                <div className="flex gap-1 ml-auto">
+                  <Button 
+                    size="sm"
+                    variant={measurements[selectedTooth]?.bleedingOnProbing ? 'destructive' : 'outline'}
+                    onClick={() => toggleBleeding(selectedTooth)}
+                  >
+                    Bleeding
+                  </Button>
+                  <Button 
+                    size="sm"
+                    variant={measurements[selectedTooth]?.plaque ? 'default' : 'outline'}
+                    onClick={() => togglePlaque(selectedTooth)}
+                  >
+                    Plaque
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="border rounded-lg overflow-hidden shadow-sm">
+              {/* Upper Arch */}
+              <div className="bg-white p-2">
+                <div className="border-b pb-1 mb-2">
+                  <h3 className="text-sm font-medium">Upper Arch</h3>
+                </div>
+                
+                {/* Teeth numbers */}
+                <div className="grid grid-cols-[8rem_repeat(16,minmax(1.5rem,1fr))] gap-1 text-xs">
+                  <div></div>
+                  {renderUpperTeethNumbers()}
+                </div>
+                
+                {/* Bleeding & Plaque Indicators */}
+                <div className="grid grid-cols-[8rem_repeat(16,minmax(1.5rem,1fr))] gap-1 text-xs mt-1">
+                  <div className="flex items-center font-medium">Bleeding</div>
+                  {upperTeeth.map(tooth => (
+                    <div key={`bleeding-${tooth}`} className="flex justify-center items-center h-6 border">
+                      {measurements[tooth]?.bleedingOnProbing && (
+                        <span className="text-red-500 font-bold">✓</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="grid grid-cols-[8rem_repeat(16,minmax(1.5rem,1fr))] gap-1 text-xs mt-1">
+                  <div className="flex items-center font-medium">Plaque</div>
+                  {upperTeeth.map(tooth => (
+                    <div key={`plaque-${tooth}`} className="flex justify-center items-center h-6 border">
+                      {measurements[tooth]?.plaque && (
+                        <span className="text-blue-500 font-bold">✓</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Tooth Visualizations */}
+                <div className="grid grid-cols-[8rem_repeat(16,minmax(1.5rem,1fr))] gap-1 text-xs mt-1">
+                  <div className="flex items-center font-medium">Buccal</div>
+                  {upperTeeth.map(tooth => (
+                    <div 
+                      key={`buccal-${tooth}`} 
+                      className={`flex justify-center ${selectedTooth === tooth ? 'border border-green-300 bg-green-50 rounded' : ''}`}
+                      onClick={() => !readOnly && handleToothClick(tooth)}
+                    >
+                      <ToothSvgBuccal
+                        toothNumber={tooth}
+                        width={24}
+                        height={40}
+                        className="cursor-pointer"
+                      />
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Probing Depths - Buccal */}
+                <div className="grid grid-cols-[8rem_repeat(16,minmax(1.5rem,1fr))] gap-1 text-xs">
+                  <div></div>
+                  {upperTeeth.map(tooth => (
+                    <div key={`buccal-pd-${tooth}`} className="grid grid-cols-3 gap-px">
+                      <div 
+                        className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.probingDepth.buccal.distal)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'distal' ? 'ring-2 ring-green-400' : ''}`}
+                        onClick={() => !readOnly && handlePositionClick(tooth, 'buccal', 'distal')}
+                      >
+                        {measurements[tooth]?.probingDepth.buccal.distal}
+                      </div>
+                      <div 
+                        className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.probingDepth.buccal.mid)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mid' ? 'ring-2 ring-green-400' : ''}`}
+                        onClick={() => !readOnly && handlePositionClick(tooth, 'buccal', 'mid')}
+                      >
+                        {measurements[tooth]?.probingDepth.buccal.mid}
+                      </div>
+                      <div 
+                        className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.probingDepth.buccal.mesial)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mesial' ? 'ring-2 ring-green-400' : ''}`}
+                        onClick={() => !readOnly && handlePositionClick(tooth, 'buccal', 'mesial')}
+                      >
+                        {measurements[tooth]?.probingDepth.buccal.mesial}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Furcation */}
+                <div className="grid grid-cols-[8rem_repeat(16,minmax(1.5rem,1fr))] gap-1 text-xs mt-2">
+                  <div className="flex items-center font-medium">Furcation</div>
+                  {upperTeeth.map(tooth => (
+                    <div 
+                      key={`furc-${tooth}`} 
+                      className="flex justify-center items-center h-6 border"
+                      onClick={() => !readOnly && selectedTooth === tooth && setFurcation(tooth, (measurements[tooth]?.furcation === null || measurements[tooth]?.furcation === 3) ? 1 : (measurements[tooth]?.furcation || 0) + 1)}
+                    >
+                      {renderFurcation(tooth)}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Mobility */}
+                <div className="grid grid-cols-[8rem_repeat(16,minmax(1.5rem,1fr))] gap-1 text-xs mt-1">
+                  <div className="flex items-center font-medium">Mobility</div>
+                  {upperTeeth.map(tooth => (
+                    <div 
+                      key={`mobility-${tooth}`} 
+                      className="flex justify-center items-center h-6 border"
+                      onClick={() => !readOnly && selectedTooth === tooth && setMobility(tooth, (measurements[tooth]?.mobility === null || measurements[tooth]?.mobility === 3) ? 0 : (measurements[tooth]?.mobility || 0) + 1)}
+                    >
+                      {measurements[tooth]?.mobility !== null ? measurements[tooth]?.mobility : ''}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Tooth Visualizations - Lingual */}
+                <div className="grid grid-cols-[8rem_repeat(16,minmax(1.5rem,1fr))] gap-1 text-xs mt-4">
+                  <div className="flex items-center font-medium">Lingual</div>
+                  {upperTeeth.map(tooth => (
+                    <div 
+                      key={`lingual-${tooth}`} 
+                      className={`flex justify-center ${selectedTooth === tooth ? 'border border-green-300 bg-green-50 rounded' : ''}`}
+                      onClick={() => !readOnly && handleToothClick(tooth)}
+                    >
+                      <ToothSvgLingual
+                        toothNumber={tooth}
+                        width={24}
+                        height={40}
+                        className="cursor-pointer"
+                      />
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Probing Depths - Lingual */}
+                <div className="grid grid-cols-[8rem_repeat(16,minmax(1.5rem,1fr))] gap-1 text-xs">
+                  <div></div>
+                  {upperTeeth.map(tooth => (
+                    <div key={`lingual-pd-${tooth}`} className="grid grid-cols-3 gap-px">
+                      <div 
+                        className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.probingDepth.lingual.distal)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'distal' ? 'ring-2 ring-green-400' : ''}`}
+                        onClick={() => !readOnly && handlePositionClick(tooth, 'lingual', 'distal')}
+                      >
+                        {measurements[tooth]?.probingDepth.lingual.distal}
+                      </div>
+                      <div 
+                        className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.probingDepth.lingual.mid)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mid' ? 'ring-2 ring-green-400' : ''}`}
+                        onClick={() => !readOnly && handlePositionClick(tooth, 'lingual', 'mid')}
+                      >
+                        {measurements[tooth]?.probingDepth.lingual.mid}
+                      </div>
+                      <div 
+                        className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.probingDepth.lingual.mesial)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mesial' ? 'ring-2 ring-green-400' : ''}`}
+                        onClick={() => !readOnly && handlePositionClick(tooth, 'lingual', 'mesial')}
+                      >
+                        {measurements[tooth]?.probingDepth.lingual.mesial}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            
+              {/* Lower Arch */}
+              <div className="bg-white p-2 mt-6">
+                <div className="border-b pb-1 mb-2">
+                  <h3 className="text-sm font-medium">Lower Arch</h3>
+                </div>
+                
+                {/* Probing Depths - Lingual (Lower) */}
+                <div className="grid grid-cols-[8rem_repeat(16,minmax(1.5rem,1fr))] gap-1 text-xs">
+                  <div></div>
+                  {lowerTeeth.map(tooth => (
+                    <div key={`lower-lingual-pd-${tooth}`} className="grid grid-cols-3 gap-px">
+                      <div 
+                        className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.probingDepth.lingual.distal)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'distal' ? 'ring-2 ring-green-400' : ''}`}
+                        onClick={() => !readOnly && handlePositionClick(tooth, 'lingual', 'distal')}
+                      >
+                        {measurements[tooth]?.probingDepth.lingual.distal}
+                      </div>
+                      <div 
+                        className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.probingDepth.lingual.mid)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mid' ? 'ring-2 ring-green-400' : ''}`}
+                        onClick={() => !readOnly && handlePositionClick(tooth, 'lingual', 'mid')}
+                      >
+                        {measurements[tooth]?.probingDepth.lingual.mid}
+                      </div>
+                      <div 
+                        className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.probingDepth.lingual.mesial)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mesial' ? 'ring-2 ring-green-400' : ''}`}
+                        onClick={() => !readOnly && handlePositionClick(tooth, 'lingual', 'mesial')}
+                      >
+                        {measurements[tooth]?.probingDepth.lingual.mesial}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Tooth Visualizations - Lingual (Lower) */}
+                <div className="grid grid-cols-[8rem_repeat(16,minmax(1.5rem,1fr))] gap-1 text-xs mt-1">
+                  <div className="flex items-center font-medium">Lingual</div>
+                  {lowerTeeth.map(tooth => (
+                    <div 
+                      key={`lower-lingual-${tooth}`} 
+                      className={`flex justify-center ${selectedTooth === tooth ? 'border border-green-300 bg-green-50 rounded' : ''}`}
+                      onClick={() => !readOnly && handleToothClick(tooth)}
+                    >
+                      <ToothSvgLingual
+                        toothNumber={tooth}
+                        width={24}
+                        height={40}
+                        className="cursor-pointer"
+                      />
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Furcation (Lower) */}
+                <div className="grid grid-cols-[8rem_repeat(16,minmax(1.5rem,1fr))] gap-1 text-xs mt-1">
+                  <div className="flex items-center font-medium">Furcation</div>
+                  {lowerTeeth.map(tooth => (
+                    <div 
+                      key={`lower-furc-${tooth}`} 
+                      className="flex justify-center items-center h-6 border"
+                      onClick={() => !readOnly && selectedTooth === tooth && setFurcation(tooth, (measurements[tooth]?.furcation === null || measurements[tooth]?.furcation === 3) ? 1 : (measurements[tooth]?.furcation || 0) + 1)}
+                    >
+                      {renderFurcation(tooth)}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Mobility (Lower) */}
+                <div className="grid grid-cols-[8rem_repeat(16,minmax(1.5rem,1fr))] gap-1 text-xs mt-1">
+                  <div className="flex items-center font-medium">Mobility</div>
+                  {lowerTeeth.map(tooth => (
+                    <div 
+                      key={`lower-mobility-${tooth}`} 
+                      className="flex justify-center items-center h-6 border"
+                      onClick={() => !readOnly && selectedTooth === tooth && setMobility(tooth, (measurements[tooth]?.mobility === null || measurements[tooth]?.mobility === 3) ? 0 : (measurements[tooth]?.mobility || 0) + 1)}
+                    >
+                      {measurements[tooth]?.mobility !== null ? measurements[tooth]?.mobility : ''}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Tooth Visualizations - Buccal (Lower) */}
+                <div className="grid grid-cols-[8rem_repeat(16,minmax(1.5rem,1fr))] gap-1 text-xs mt-2">
+                  <div className="flex items-center font-medium">Buccal</div>
+                  {lowerTeeth.map(tooth => (
+                    <div 
+                      key={`lower-buccal-${tooth}`} 
+                      className={`flex justify-center ${selectedTooth === tooth ? 'border border-green-300 bg-green-50 rounded' : ''}`}
+                      onClick={() => !readOnly && handleToothClick(tooth)}
+                    >
+                      <ToothSvgBuccal
+                        toothNumber={tooth}
+                        width={24}
+                        height={40}
+                        className="cursor-pointer"
+                      />
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Probing Depths - Buccal (Lower) */}
+                <div className="grid grid-cols-[8rem_repeat(16,minmax(1.5rem,1fr))] gap-1 text-xs">
+                  <div></div>
+                  {lowerTeeth.map(tooth => (
+                    <div key={`lower-buccal-pd-${tooth}`} className="grid grid-cols-3 gap-px">
+                      <div 
+                        className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.probingDepth.buccal.distal)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'distal' ? 'ring-2 ring-green-400' : ''}`}
+                        onClick={() => !readOnly && handlePositionClick(tooth, 'buccal', 'distal')}
+                      >
+                        {measurements[tooth]?.probingDepth.buccal.distal}
+                      </div>
+                      <div 
+                        className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.probingDepth.buccal.mid)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mid' ? 'ring-2 ring-green-400' : ''}`}
+                        onClick={() => !readOnly && handlePositionClick(tooth, 'buccal', 'mid')}
+                      >
+                        {measurements[tooth]?.probingDepth.buccal.mid}
+                      </div>
+                      <div 
+                        className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.probingDepth.buccal.mesial)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mesial' ? 'ring-2 ring-green-400' : ''}`}
+                        onClick={() => !readOnly && handlePositionClick(tooth, 'buccal', 'mesial')}
+                      >
+                        {measurements[tooth]?.probingDepth.buccal.mesial}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Bleeding & Plaque (Lower) */}
+                <div className="grid grid-cols-[8rem_repeat(16,minmax(1.5rem,1fr))] gap-1 text-xs mt-1">
+                  <div className="flex items-center font-medium">Plaque</div>
+                  {lowerTeeth.map(tooth => (
+                    <div key={`lower-plaque-${tooth}`} className="flex justify-center items-center h-6 border">
+                      {measurements[tooth]?.plaque && (
+                        <span className="text-blue-500 font-bold">✓</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="grid grid-cols-[8rem_repeat(16,minmax(1.5rem,1fr))] gap-1 text-xs mt-1">
+                  <div className="flex items-center font-medium">Bleeding</div>
+                  {lowerTeeth.map(tooth => (
+                    <div key={`lower-bleeding-${tooth}`} className="flex justify-center items-center h-6 border">
+                      {measurements[tooth]?.bleedingOnProbing && (
+                        <span className="text-red-500 font-bold">✓</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Teeth numbers (Lower) */}
+                <div className="grid grid-cols-[8rem_repeat(16,minmax(1.5rem,1fr))] gap-1 text-xs mt-1">
+                  <div></div>
+                  {renderLowerTeethNumbers()}
+                </div>
+              </div>
+            </div>
+            
+            {/* Legend */}
+            <div className="flex flex-wrap gap-2 mt-4 p-2 bg-gray-50 rounded-md text-xs">
+              <div className="font-medium">Legend:</div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 bg-green-100 mr-1"></div>
+                <span>1-2mm (Healthy)</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 bg-yellow-100 mr-1"></div>
+                <span>3-4mm (Gingivitis)</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 bg-orange-100 mr-1"></div>
+                <span>5-6mm (Moderate Periodontitis)</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 bg-red-100 mr-1"></div>
+                <span>7mm+ (Severe Periodontitis)</span>
+              </div>
+            </div>
           </div>
-        </CardFooter>
-      </Card>
-    </div>
+        </TabsContent>
+
+        <TabsContent value="attachmentLoss" className="p-2 sm:p-4 overflow-auto">
+          <div className="p-4 text-center">
+            <h3 className="text-lg font-medium">Attachment Loss Measurement</h3>
+            <p className="text-muted-foreground">
+              This tab will show the clinical attachment loss measurements, calculated as probing depth plus recession.
+            </p>
+            <Button className="mt-4">Load Attachment Loss Data</Button>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="overview" className="p-2 sm:p-4 overflow-auto">
+          <div className="p-4 text-center">
+            <h3 className="text-lg font-medium">Complete Periodontal Assessment</h3>
+            <p className="text-muted-foreground">
+              This view will show a comprehensive view of all periodontal measurements, including pocket depths, attachment loss, and other indicators.
+            </p>
+            <Button className="mt-4">Generate Complete Overview</Button>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Instructions for Users */}
+      {!readOnly && (
+        <div className="px-4 pb-4 text-xs text-muted-foreground">
+          <p>Click on a tooth or specific position to record measurements. Use the toolbar to toggle between different measurement types.</p>
+        </div>
+      )}
+    </Card>
   );
 }

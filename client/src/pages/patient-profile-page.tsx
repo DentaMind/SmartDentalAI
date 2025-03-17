@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { FixedEnhancedPerioChart } from "@/components/perio/fixed-enhanced-perio-chart";
 import {
   AlertCircle,
   Calendar,
@@ -412,23 +413,19 @@ export default function PatientProfilePage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <PerioChart 
-                        patientId={patientId}
-                        readOnly={false}
-                        onSave={(data) => {
-                          console.log('Perio chart saved:', data);
-                          // In a real app, you would call an API to save this data
-                        }}
-                      />
+                      <div className="p-4 bg-green-50 rounded-lg border border-green-200 mb-6">
+                        <p className="text-sm text-green-700">
+                          <strong>Updated Periodontal Chart:</strong> We've enhanced the periodontal chart with anatomically correct tooth visuals and clinically accurate color coding for better diagnosis.
+                        </p>
+                      </div>
                       
-                      <div className="mt-4">
-                        <h3 className="text-lg font-medium mb-4">Clinical Periodontal Chart</h3>
-                        <ClinicalPerioChart 
+                      <div className="mb-6">
+                        <FixedEnhancedPerioChart
                           patientId={patientId}
                           patientName={`${patient.user.firstName} ${patient.user.lastName}`}
                           readOnly={false}
                           onSave={(data) => {
-                            console.log('Clinical perio chart saved:', data);
+                            console.log('Enhanced perio chart saved:', data);
                             toast({
                               title: "Periodontal Chart Saved",
                               description: "Chart data has been saved successfully",
@@ -438,8 +435,8 @@ export default function PatientProfilePage() {
                         />
                       </div>
                       
-                      <div className="mt-8">
-                        <h3 className="text-lg font-medium mb-4">Improved Periodontal Chart (With Anatomical Teeth)</h3>
+                      <div className="mt-8 hidden">
+                        <h3 className="text-lg font-medium mb-4">Legacy Chart (For Reference)</h3>
                         <ImprovedPerioChart 
                           patientId={patientId}
                           patientName={`${patient.user.firstName} ${patient.user.lastName}`}

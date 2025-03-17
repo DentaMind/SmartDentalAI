@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { Maximize2, Save } from 'lucide-react';
+import { Maximize2, Save, Tooth, ArrowLeft, ArrowRight } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -10,27 +11,44 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { ToothSvgBuccal, ToothSvgLingual } from '../dental/tooth-illustrations';
 
+/**
+ * Enhanced periodontal assessment chart with realistic tooth visuals and clinically accurate color coding
+ */
+
+// Define an interface for the pocket depth measuring points
 interface PocketDepthMeasurement {
   mesial: number | null;
   mid: number | null;
   distal: number | null;
 }
 
+// Define comprehensive tooth measurements structure
 interface ToothMeasurements {
+  // General assessment
   mobility: 0 | 1 | 2 | 3 | null;
   bleeding: boolean;
   suppuration: boolean;
   plaque: boolean;
   calculus: boolean;
+  
+  // Pocket depth measurements
   buccal: PocketDepthMeasurement;
   lingual: PocketDepthMeasurement;
+  
+  // Additional periodontal assessments
   furcation: 0 | 1 | 2 | 3 | null;
   recession: PocketDepthMeasurement;
   attachmentLoss: PocketDepthMeasurement;
+  
+  // Tooth status (for visualization purposes)
+  missing: boolean;
+  implant: boolean;
 }
 
+// Component props definition
 interface PerioChartProps {
   patientId: number;
   patientName: string;
@@ -44,16 +62,17 @@ export function ClinicalPerioChart({
   readOnly = false,
   onSave
 }: PerioChartProps) {
+  // UI state management
   const [fullScreen, setFullScreen] = useState(false);
+  const [activeTab, setActiveTab] = useState('probingDepth');
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
   const [selectedPosition, setSelectedPosition] = useState<'mesial' | 'mid' | 'distal' | null>(null);
   const [selectedSurface, setSelectedSurface] = useState<'buccal' | 'lingual' | null>(null);
   const [selectedMeasurementType, setSelectedMeasurementType] = useState<'pocket' | 'recession' | 'attachment'>('pocket');
   const [measurements, setMeasurements] = useState<Record<number, ToothMeasurements>>({});
   
-  const [pretreatment, setPretreatment] = useState(true);
-  const [reevaluation, setReevaluation] = useState(false);
-  const [recall, setRecall] = useState(false);
+  // Exam type state
+  const [examType, setExamType] = useState<'initial' | 'followup' | 'maintenance'>('initial');
 
   // Initialize measurements for all teeth (1-32)
   React.useEffect(() => {
