@@ -1,5 +1,5 @@
 /**
- * AI Domains for Smart Dental AI
+ * AI Domains for DentaMind
  * 
  * This file defines the different specialized domains that the AI system
  * handles for comprehensive dental diagnosis and treatment planning.

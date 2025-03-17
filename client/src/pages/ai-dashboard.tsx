@@ -26,7 +26,7 @@ export function AIDashboardPage() {
         <h1 className="text-3xl font-bold tracking-tight">
           <span className="flex items-center gap-2">
             <Brain className="h-8 w-8 text-primary" />
-            {t("ai.dashboard.title", "Smart Dental AI")}
+            {t("ai.dashboard.title", "DentaMind AI")}
           </span>
         </h1>
         <p className="text-muted-foreground mt-1">
@@ -101,7 +101,7 @@ export function AIDashboardPage() {
                   </h2>
                   <div className="p-6 border rounded-lg bg-card text-card-foreground">
                     <p className="text-sm text-muted-foreground mb-4">
-                      View real-time performance metrics for Smart Dental AI systems, including accuracy rates, processing times, and usage statistics.
+                      View real-time performance metrics for DentaMind AI systems, including accuracy rates, processing times, and usage statistics.
                     </p>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="border rounded p-4 text-center">

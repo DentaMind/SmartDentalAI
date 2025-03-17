@@ -179,7 +179,7 @@ export default function SubscriptionPage() {
             <div className="p-2 rounded-xl bg-primary text-white shadow-lg">
               <Stethoscope className="h-8 w-8" />
             </div>
-            <h1 className="ml-3 text-3xl font-bold text-primary">Smart Dental AI</h1>
+            <h1 className="ml-3 text-3xl font-bold text-primary">DentaMind</h1>
           </div>
           <h2 className="text-2xl font-bold text-gray-800">
             {step === 'plan' ? 'Choose Your Subscription Plan' : 'Complete Your Subscription'}

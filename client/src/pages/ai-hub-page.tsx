@@ -76,7 +76,7 @@ export default function AIHubPage() {
     return (
       <div className="container py-10 space-y-6">
         <div className="flex flex-col items-center justify-center max-w-3xl mx-auto text-center">
-          <h1 className="text-3xl font-bold tracking-tight mb-6">Smart Dental AI Hub</h1>
+          <h1 className="text-3xl font-bold tracking-tight mb-6">DentaMind AI Hub</h1>
           <p className="text-muted-foreground mb-10">
             Select a patient to generate AI-powered diagnosis and treatment planning
           </p>

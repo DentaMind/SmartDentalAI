@@ -44,7 +44,7 @@ export default function DashboardPage() {
       <Sidebar />
       <main className="flex-1 overflow-y-auto">
         <PageHeader 
-          title="Smart Dental AI"
+          title="DentaMind"
           description={`Welcome back, ${user?.firstName || 'Doctor'}!`}
           actions={
             <Button onClick={() => handleAddAppointment()}>
