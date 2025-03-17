@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { FixedEnhancedPerioChart } from "@/components/perio/fixed-enhanced-perio-chart";
+import { FixedEnhancedPerioChart } from "@/components/perio";
 import {
   AlertCircle,
   Calendar,
@@ -311,14 +311,14 @@ export default function PatientProfilePage() {
 
               {/* Tabs for different sections */}
               <Tabs defaultValue="medical-history" className="w-full">
-                <TabsList className="grid grid-cols-7 mb-6 bg-primary">
-                  <TabsTrigger value="medical-history" className="text-white data-[state=active]:bg-primary-600">Medical History</TabsTrigger>
-                  <TabsTrigger value="dental-chart" className="text-white data-[state=active]:bg-primary-600">Dental Chart</TabsTrigger>
-                  <TabsTrigger value="perio-chart" className="text-white data-[state=active]:bg-primary-600">Perio Chart</TabsTrigger>
-                  <TabsTrigger value="xray" className="text-white data-[state=active]:bg-primary-600">X-rays</TabsTrigger>
-                  <TabsTrigger value="appointments" className="text-white data-[state=active]:bg-primary-600">Appointments</TabsTrigger>
-                  <TabsTrigger value="treatment-plans" className="text-white data-[state=active]:bg-primary-600">Treatment Plans</TabsTrigger>
-                  <TabsTrigger value="notes" className="text-white data-[state=active]:bg-primary-600">Clinical Notes</TabsTrigger>
+                <TabsList className="grid grid-cols-7 mb-6 border rounded-lg bg-gray-50 shadow-sm">
+                  <TabsTrigger value="medical-history" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Medical History</TabsTrigger>
+                  <TabsTrigger value="dental-chart" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Dental Chart</TabsTrigger>
+                  <TabsTrigger value="perio-chart" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Perio Chart</TabsTrigger>
+                  <TabsTrigger value="xray" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">X-rays</TabsTrigger>
+                  <TabsTrigger value="appointments" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Appointments</TabsTrigger>
+                  <TabsTrigger value="treatment-plans" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Treatment Plans</TabsTrigger>
+                  <TabsTrigger value="notes" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Clinical Notes</TabsTrigger>
                 </TabsList>
 
                 {/* Medical History Tab */}
@@ -458,10 +458,10 @@ export default function PatientProfilePage() {
                 {/* X-Ray Tab */}
                 <TabsContent value="xray">
                   <Tabs defaultValue="xray-analysis">
-                    <TabsList className="w-full mb-4 bg-primary">
-                      <TabsTrigger value="xray-analysis" className="text-white data-[state=active]:bg-primary-600">X-ray Analysis</TabsTrigger>
-                      <TabsTrigger value="intraoral-scanner" className="text-white data-[state=active]:bg-primary-600">Intraoral Scanner</TabsTrigger>
-                      <TabsTrigger value="multi-modal" className="text-white data-[state=active]:bg-primary-600">Multi-Modal AI Diagnosis</TabsTrigger>
+                    <TabsList className="w-full mb-4 border rounded-lg bg-gray-50">
+                      <TabsTrigger value="xray-analysis" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">X-ray Analysis</TabsTrigger>
+                      <TabsTrigger value="intraoral-scanner" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Intraoral Scanner</TabsTrigger>
+                      <TabsTrigger value="multi-modal" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Multi-Modal AI Diagnosis</TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="xray-analysis">
