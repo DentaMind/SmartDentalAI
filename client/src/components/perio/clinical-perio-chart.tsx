@@ -391,7 +391,7 @@ export function ClinicalPerioChart({
               {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
                 <div 
                   key={`facial-${tooth}`} 
-                  className={`flex justify-center ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                  className={`flex justify-center ${selectedTooth === tooth ? 'bg-green-50' : ''}`}
                   onClick={() => !readOnly && handleToothClick(tooth)}
                 >
                   <ToothSvgBuccal
@@ -423,19 +423,19 @@ export function ClinicalPerioChart({
               {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
                 <div key={`facial-pd-${tooth}`} className="grid grid-cols-3 gap-px">
                   <div 
-                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.buccal.distal)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'distal' ? 'bg-blue-200' : ''}`}
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.buccal.distal)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'distal' ? 'bg-green-200' : ''}`}
                     onClick={() => !readOnly && handlePositionClick(tooth, 'buccal', 'distal')}
                   >
                     {measurements[tooth]?.buccal.distal}
                   </div>
                   <div 
-                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.buccal.mid)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mid' ? 'bg-blue-200' : ''}`}
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.buccal.mid)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mid' ? 'bg-green-200' : ''}`}
                     onClick={() => !readOnly && handlePositionClick(tooth, 'buccal', 'mid')}
                   >
                     {measurements[tooth]?.buccal.mid}
                   </div>
                   <div 
-                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.buccal.mesial)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mesial' ? 'bg-blue-200' : ''}`}
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.buccal.mesial)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mesial' ? 'bg-green-200' : ''}`}
                     onClick={() => !readOnly && handlePositionClick(tooth, 'buccal', 'mesial')}
                   >
                     {measurements[tooth]?.buccal.mesial}
@@ -450,7 +450,7 @@ export function ClinicalPerioChart({
               {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
                 <div 
                   key={`lingual-${tooth}`} 
-                  className={`flex justify-center ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                  className={`flex justify-center ${selectedTooth === tooth ? 'bg-green-50' : ''}`}
                   onClick={() => !readOnly && handleToothClick(tooth)}
                 >
                   <ToothSvgLingual
@@ -469,19 +469,19 @@ export function ClinicalPerioChart({
               {Array.from({length: 16}, (_, i) => i + 1).map(tooth => (
                 <div key={`lingual-pd-${tooth}`} className="grid grid-cols-3 gap-px">
                   <div 
-                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.lingual.mesial)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mesial' ? 'bg-blue-200' : ''}`}
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.lingual.mesial)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mesial' ? 'bg-green-200' : ''}`}
                     onClick={() => !readOnly && handlePositionClick(tooth, 'lingual', 'mesial')}
                   >
                     {measurements[tooth]?.lingual.mesial}
                   </div>
                   <div 
-                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.lingual.mid)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mid' ? 'bg-blue-200' : ''}`}
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.lingual.mid)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mid' ? 'bg-green-200' : ''}`}
                     onClick={() => !readOnly && handlePositionClick(tooth, 'lingual', 'mid')}
                   >
                     {measurements[tooth]?.lingual.mid}
                   </div>
                   <div 
-                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.lingual.distal)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'distal' ? 'bg-blue-200' : ''}`}
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.lingual.distal)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'distal' ? 'bg-green-200' : ''}`}
                     onClick={() => !readOnly && handlePositionClick(tooth, 'lingual', 'distal')}
                   >
                     {measurements[tooth]?.lingual.distal}
@@ -553,7 +553,7 @@ export function ClinicalPerioChart({
               {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
                 <div 
                   key={`facial-${tooth}`} 
-                  className={`flex justify-center ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                  className={`flex justify-center ${selectedTooth === tooth ? 'bg-green-50' : ''}`}
                   onClick={() => !readOnly && handleToothClick(tooth)}
                 >
                   <ToothSvgBuccal
@@ -585,19 +585,19 @@ export function ClinicalPerioChart({
               {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
                 <div key={`facial-pd-${tooth}`} className="grid grid-cols-3 gap-px">
                   <div 
-                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.buccal.distal)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'distal' ? 'bg-blue-200' : ''}`}
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.buccal.distal)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'distal' ? 'bg-green-200' : ''}`}
                     onClick={() => !readOnly && handlePositionClick(tooth, 'buccal', 'distal')}
                   >
                     {measurements[tooth]?.buccal.distal}
                   </div>
                   <div 
-                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.buccal.mid)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mid' ? 'bg-blue-200' : ''}`}
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.buccal.mid)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mid' ? 'bg-green-200' : ''}`}
                     onClick={() => !readOnly && handlePositionClick(tooth, 'buccal', 'mid')}
                   >
                     {measurements[tooth]?.buccal.mid}
                   </div>
                   <div 
-                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.buccal.mesial)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mesial' ? 'bg-blue-200' : ''}`}
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.buccal.mesial)} ${selectedTooth === tooth && selectedSurface === 'buccal' && selectedPosition === 'mesial' ? 'bg-green-200' : ''}`}
                     onClick={() => !readOnly && handlePositionClick(tooth, 'buccal', 'mesial')}
                   >
                     {measurements[tooth]?.buccal.mesial}
@@ -612,7 +612,7 @@ export function ClinicalPerioChart({
               {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
                 <div 
                   key={`lingual-${tooth}`} 
-                  className={`flex justify-center ${selectedTooth === tooth ? 'bg-blue-50' : ''}`}
+                  className={`flex justify-center ${selectedTooth === tooth ? 'bg-green-50' : ''}`}
                   onClick={() => !readOnly && handleToothClick(tooth)}
                 >
                   <ToothSvgLingual
@@ -631,19 +631,19 @@ export function ClinicalPerioChart({
               {Array.from({length: 16}, (_, i) => i + 17).map(tooth => (
                 <div key={`lingual-pd-${tooth}`} className="grid grid-cols-3 gap-px">
                   <div 
-                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.lingual.mesial)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mesial' ? 'bg-blue-200' : ''}`}
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.lingual.mesial)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mesial' ? 'bg-green-200' : ''}`}
                     onClick={() => !readOnly && handlePositionClick(tooth, 'lingual', 'mesial')}
                   >
                     {measurements[tooth]?.lingual.mesial}
                   </div>
                   <div 
-                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.lingual.mid)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mid' ? 'bg-blue-200' : ''}`}
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.lingual.mid)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'mid' ? 'bg-green-200' : ''}`}
                     onClick={() => !readOnly && handlePositionClick(tooth, 'lingual', 'mid')}
                   >
                     {measurements[tooth]?.lingual.mid}
                   </div>
                   <div 
-                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.lingual.distal)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'distal' ? 'bg-blue-200' : ''}`}
+                    className={`h-6 flex justify-center items-center border ${getPocketDepthColor(measurements[tooth]?.lingual.distal)} ${selectedTooth === tooth && selectedSurface === 'lingual' && selectedPosition === 'distal' ? 'bg-green-200' : ''}`}
                     onClick={() => !readOnly && handlePositionClick(tooth, 'lingual', 'distal')}
                   >
                     {measurements[tooth]?.lingual.distal}

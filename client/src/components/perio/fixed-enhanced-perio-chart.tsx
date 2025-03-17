@@ -324,10 +324,10 @@ export function FixedEnhancedPerioChart({
 
   return (
     <Card className={`w-full overflow-hidden ${fullScreen ? 'fixed inset-0 z-50 overflow-auto' : ''}`}>
-      <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-primary to-primary-600 p-2 sm:p-4">
+      <CardHeader className="flex flex-row items-center justify-between bg-card border-b p-2 sm:p-4">
         <div>
-          <CardTitle className="text-base sm:text-lg text-white">Periodontal Chart</CardTitle>
-          <div className="text-xs sm:text-sm text-white opacity-80">
+          <CardTitle className="text-base sm:text-lg text-foreground">Periodontal Chart</CardTitle>
+          <div className="text-xs sm:text-sm text-muted-foreground">
             Patient: {patientName}
           </div>
         </div>
@@ -339,7 +339,7 @@ export function FixedEnhancedPerioChart({
                   variant="outline"
                   size="icon"
                   onClick={() => setFullScreen(!fullScreen)}
-                  className="h-7 w-7 bg-white/20 text-white border-white/20 hover:bg-white/30 hover:text-white"
+                  className="h-7 w-7"
                 >
                   <Maximize2 className="h-3 w-3" />
                 </Button>
@@ -351,7 +351,7 @@ export function FixedEnhancedPerioChart({
           </TooltipProvider>
           
           {!readOnly && (
-            <Button onClick={handleSave} size="sm" className="h-7 text-xs bg-white/20 hover:bg-white/30 text-white">
+            <Button onClick={handleSave} size="sm" className="h-7 text-xs">
               <Save className="h-3 w-3 mr-1" />
               Save
             </Button>
