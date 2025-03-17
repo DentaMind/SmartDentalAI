@@ -251,7 +251,7 @@ For more specific guidance, could you provide more details about what you're loo
         <CardHeader className="px-4 py-3 border-b flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-lg font-medium flex items-center gap-2">
             <Bot className="h-5 w-5 text-primary" />
-            DentaMind AI Assistant
+            Smart Dental AI Assistant
           </CardTitle>
           <div className="flex gap-2">
             {position !== 'full' && (
