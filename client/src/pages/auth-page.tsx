@@ -10,7 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Redirect } from "wouter";
-import { SmartDentalLogo } from "@/components/logo";
+// Import the logo directly to avoid potential issues
+import smartDentalLogo from "../assets/smart-dental-ai-logo.png";
 // Use a relative path for the dental smile image
 import dentalSmile from "../assets/dental-smile.jpg";
 
