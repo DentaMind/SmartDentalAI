@@ -135,7 +135,7 @@ export default function PatientProfilePage() {
           <div className="flex justify-between items-center">
             <PageHeader 
               title="DentaMind" 
-              description="Advanced Dental AI"
+              description="Advanced DentaMind AI"
               icon={<Stethoscope className="h-10 w-10" />}
             />
             

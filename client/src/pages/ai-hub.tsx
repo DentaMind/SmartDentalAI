@@ -190,7 +190,7 @@ export default function AIHub() {
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center">
                   <Bot className="h-5 w-5 mr-2 text-primary" />
-                  Dental AI Assistant
+                  DentaMind AI Assistant
                 </CardTitle>
                 <CardDescription>
                   Interactive AI assistant for dental queries
