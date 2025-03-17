@@ -38,11 +38,24 @@
     }
   }
   
+  @keyframes orbit {
+    0% {
+      transform: rotate(0deg) translateX(16px) rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg) translateX(16px) rotate(-360deg);
+    }
+  }
+  
   .animate-slow-pulse {
     animation: slow-pulse 3s ease-in-out infinite;
   }
   
   .animate-loading-progress {
     animation: loading-progress 2.5s ease-in-out infinite;
+  }
+  
+  .animate-orbit {
+    animation: orbit 3s linear infinite;
   }
 }

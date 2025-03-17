@@ -183,63 +183,73 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#333333] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Subtle background pattern */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:20px_20px]"></div>
+      </div>
+      
       <div className="w-full max-w-5xl grid md:grid-cols-2 gap-8">
         <div className="flex flex-col justify-center space-y-6 relative">
           <div className="flex flex-col items-center mb-4">
-            <div className="flex items-center justify-center mb-2">
+            {/* Enhanced logo with glow effect */}
+            <div className="flex items-center justify-center mb-2 relative">
+              <div className="absolute inset-0 rounded-full blur-md bg-blue-500/20"></div>
               <img 
                 src={dentaMindLogo} 
                 alt="DentaMind Logo" 
-                className="h-24 w-auto drop-shadow-lg"
+                className="h-32 w-auto drop-shadow-lg relative z-10"
               />
             </div>
-            <h1 className="text-3xl font-bold text-white mt-2 mb-2 font-sans tracking-wider">
+            <h1 className="text-4xl font-bold text-white mt-3 mb-3 font-sans tracking-wider">
               Dent<span className="text-blue-400">a</span>M<span className="text-blue-400">i</span>nd
             </h1>
-            <p className="text-xl text-gray-200 mt-2 text-center max-w-md">
+            <p className="text-lg text-blue-100 mt-2 text-center max-w-md leading-relaxed">
               Transforming dental practices with AI-driven diagnostics and intelligent patient management
             </p>
           </div>
           <div className="mt-4 space-y-6">
-            <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 p-6 rounded-xl border border-blue-200 shadow-md">
-              <h3 className="font-semibold text-blue-400 text-lg flex items-center mb-2">
+            {/* Enhanced info box with gradient and shadow */}
+            <div className="bg-gradient-to-r from-blue-500/15 to-cyan-500/15 p-6 rounded-xl border border-blue-300/20 shadow-lg backdrop-blur-sm">
+              <h3 className="font-semibold text-blue-300 text-lg flex items-center mb-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812a3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
                 AI-Powered Clinical Intelligence
               </h3>
-              <p className="text-gray-200">Advanced diagnostic assistance, treatment planning, and clinical decision support powered by our specialized multi-domain AI system.</p>
+              <p className="text-gray-100">Advanced diagnostic assistance, treatment planning, and clinical decision support powered by our specialized multi-domain AI system.</p>
             </div>
             
+            {/* Enhanced image container with better blending */}
             <div className="relative rounded-2xl overflow-hidden shadow-xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-blue-400/10"></div>
+              <div className="absolute inset-0 backdrop-blur-[1px]"></div>
               <img 
                 src={smileImage}
                 alt="Beautiful dental smile" 
-                className="w-full h-[240px] object-cover"
+                className="w-full h-[240px] object-cover mix-blend-overlay opacity-90"
               />
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900/80 to-transparent p-4">
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900/90 to-transparent p-5">
                 <p className="text-white text-sm font-medium">Achieve perfect smiles with our advanced AI-powered dentistry</p>
               </div>
             </div>
           </div>
         </div>
 
-        <Card className="w-full self-center bg-white shadow-2xl rounded-xl border border-blue-100">
+        <Card className="w-full self-center bg-white shadow-[0_10px_40px_-15px_rgba(59,130,246,0.3)] rounded-xl border border-blue-100">
           <CardContent className="pt-8 px-8 pb-10">
             <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-4 mb-8 bg-muted">
-                <TabsTrigger value="login" className="py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-white font-medium">
+              <TabsList className="grid w-full grid-cols-4 mb-8 bg-gray-50 rounded-lg shadow-sm">
+                <TabsTrigger value="login" className="py-3 text-foreground data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">
                   Sign In
                 </TabsTrigger>
-                <TabsTrigger value="patient" className="py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-white font-medium">
+                <TabsTrigger value="patient" className="py-3 text-foreground data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">
                   Patient Sign Up
                 </TabsTrigger>
-                <TabsTrigger value="provider" className="py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-white font-medium">
+                <TabsTrigger value="provider" className="py-3 text-foreground data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">
                   Provider Sign Up
                 </TabsTrigger>
-                <TabsTrigger value="staff" className="py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-white font-medium">
+                <TabsTrigger value="staff" className="py-3 text-foreground data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">
                   Staff Sign Up
                 </TabsTrigger>
               </TabsList>
@@ -267,7 +277,7 @@ export default function AuthPage() {
                           <FormControl>
                             <Input 
                               {...field} 
-                              className="h-12 px-4 rounded-lg border-gray-200 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400/20 transition-all" 
+                              className="h-12 px-4 rounded-lg border-gray-200 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400/20 transition-all hover:border-blue-300" 
                               placeholder="Enter your username" 
                             />
                           </FormControl>
@@ -308,7 +318,7 @@ export default function AuthPage() {
                     <div className="pt-4">
                       <Button 
                         type="submit" 
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 h-12 rounded-lg transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md" 
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold py-3 h-12 rounded-lg transition-all duration-300 hover:shadow-lg active:scale-[0.98] shadow-md" 
                         disabled={isLoading}
                       >
                         {isLoading ? (
