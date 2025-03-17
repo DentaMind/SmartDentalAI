@@ -179,53 +179,53 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 flex items-center justify-center p-4">
       <div className="w-full max-w-5xl grid md:grid-cols-2 gap-8">
-        <div className="flex flex-col justify-center space-y-6">
+        <div className="flex flex-col justify-center space-y-8">
           <div className="flex flex-col items-center mb-8">
             <div className="flex items-center">
               <img 
                 src="/images/dentamind-logo.svg" 
                 alt="DentaMind Logo" 
-                className="h-20 w-auto"
+                className="h-24 w-auto"
               />
-              <div className="ml-3">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-blue-700 bg-clip-text text-transparent">DentaMind</h1>
-                <div className="h-1 w-28 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full mt-1"></div>
+              <div className="ml-4">
+                <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">DentaMind</h1>
+                <div className="h-1.5 w-32 bg-gradient-to-r from-blue-500 to-blue-700 rounded-full mt-1.5"></div>
               </div>
             </div>
-            <p className="text-xl text-gray-600 mt-4">
+            <p className="text-xl text-gray-700 mt-6 text-center max-w-md">
               Experience next-generation dental care with AI assistance and advanced patient management.
             </p>
           </div>
-          <div className="relative mt-8 rounded-2xl overflow-hidden shadow-xl">
+          <div className="relative mt-8 rounded-2xl overflow-hidden shadow-2xl">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5"></div>
             <img 
               src={dentalSmile}
               alt="Professional dental clinic" 
-              className="w-full h-[300px] object-cover"
+              className="w-full h-[320px] object-cover"
             />
           </div>
         </div>
 
-        <Card className="w-full self-center bg-white shadow-lg">
-          <CardContent className="pt-6">
+        <Card className="w-full self-center bg-white shadow-xl rounded-xl border-0">
+          <CardContent className="pt-8 px-8">
             <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-3 mb-6">
-                <TabsTrigger value="login" className="text-gray-700 data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+              <TabsList className="grid w-full grid-cols-3 mb-8 bg-gray-100">
+                <TabsTrigger value="login" className="py-3 text-gray-700 data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">
                   Sign In
                 </TabsTrigger>
-                <TabsTrigger value="provider" className="text-gray-700 data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+                <TabsTrigger value="provider" className="py-3 text-gray-700 data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">
                   Provider Sign Up
                 </TabsTrigger>
-                <TabsTrigger value="staff" className="text-gray-700 data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+                <TabsTrigger value="staff" className="py-3 text-gray-700 data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">
                   Staff Sign Up
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="login">
                 {error && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
+                  <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm font-medium">
                     {error}
                   </div>
                 )}
@@ -236,15 +236,19 @@ export default function AuthPage() {
                     } catch (err) {
                       console.error("Login failed:", err);
                     }
-                  })} className="space-y-4">
+                  })} className="space-y-5">
                     <FormField
                       control={loginForm.control}
                       name="username"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t("auth.username")}</FormLabel>
+                          <FormLabel className="text-sm font-semibold text-gray-700">{t("auth.username")}</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input 
+                              {...field} 
+                              className="h-12 px-4 rounded-lg border-gray-200 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all" 
+                              placeholder="Enter your username" 
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -255,21 +259,46 @@ export default function AuthPage() {
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t("auth.password")}</FormLabel>
+                          <FormLabel className="text-sm font-semibold text-gray-700">{t("auth.password")}</FormLabel>
                           <FormControl>
-                            <Input type="password" {...field} />
+                            <Input 
+                              type="password" 
+                              {...field} 
+                              className="h-12 px-4 rounded-lg border-gray-200 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all"
+                              placeholder="Enter your password"
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-blue-500 hover:bg-blue-600 font-medium" 
-                      disabled={isLoading}
-                    >
-                      {isLoading ? t("common.loading") : t("auth.login")}
-                    </Button>
+                    
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="remember-me"
+                        className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      />
+                      <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                        Remember me
+                      </label>
+                    </div>
+                    
+                    <div className="pt-2">
+                      <Button 
+                        type="submit" 
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 h-12 rounded-lg transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md" 
+                        disabled={isLoading}
+                      >
+                        {isLoading ? t("common.loading") : t("auth.login")}
+                      </Button>
+                    </div>
+                    
+                    <div className="mt-4 text-center">
+                      <p className="text-sm text-gray-600">
+                        Don't have an account? Select "Provider Sign Up" or "Staff Sign Up"
+                      </p>
+                    </div>
                   </form>
                 </Form>
               </TabsContent>
@@ -512,22 +541,26 @@ export default function AuthPage() {
               </TabsContent>
               
               <TabsContent value="provider">
-                <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-700">
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                  <p className="text-sm text-blue-700 font-medium">
                     Sign up as a dental provider to access all DentaMind features. License number is required for verification.
                   </p>
                 </div>
                 <Form {...providerForm}>
-                  <form onSubmit={providerForm.handleSubmit(onProviderRegister)} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <form onSubmit={providerForm.handleSubmit(onProviderRegister)} className="space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <FormField
                         control={providerForm.control}
                         name="firstName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>First Name</FormLabel>
+                            <FormLabel className="text-sm font-semibold text-gray-700">First Name</FormLabel>
                             <FormControl>
-                              <Input {...field} />
+                              <Input 
+                                {...field} 
+                                className="h-12 px-4 rounded-lg border-gray-200 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all"
+                                placeholder="Enter first name"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -538,9 +571,13 @@ export default function AuthPage() {
                         name="lastName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Last Name</FormLabel>
+                            <FormLabel className="text-sm font-semibold text-gray-700">Last Name</FormLabel>
                             <FormControl>
-                              <Input {...field} />
+                              <Input 
+                                {...field} 
+                                className="h-12 px-4 rounded-lg border-gray-200 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all"
+                                placeholder="Enter last name"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
