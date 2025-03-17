@@ -12,8 +12,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Redirect } from "wouter";
 // Import the logo directly to avoid potential issues
 import dentaMindLogo from "../assets/dentamind-logo.png";
-// Use a relative path for the dental smile image
+// Import smile images
 import dentalSmile from "../assets/dental-smile.jpg";
+import smileImage from "../assets/iStock-526222203.jpg";
 
 type UserRegistrationData = {
   username: string;
@@ -182,21 +183,21 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#333333] flex items-center justify-center p-4">
       <div className="w-full max-w-5xl grid md:grid-cols-2 gap-8">
-        <div className="flex flex-col justify-center space-y-8">
-          <div className="flex flex-col items-center mb-6">
-            <div className="flex items-center justify-center">
+        <div className="flex flex-col justify-center space-y-6 relative">
+          <div className="flex flex-col items-center mb-4">
+            <div className="flex items-center justify-center mb-2">
               <img 
                 src={dentaMindLogo} 
                 alt="DentaMind Logo" 
-                className="h-28 w-auto"
+                className="h-24 w-auto drop-shadow-lg"
               />
             </div>
-            <h1 className="text-3xl font-bold text-cyan-500 mt-4 mb-2 font-sans tracking-wider">
-              DentaMind
+            <h1 className="text-3xl font-bold text-white mt-2 mb-2 font-sans tracking-wider">
+              Denta<span className="text-blue-400">M</span>ind
             </h1>
-            <p className="text-xl text-muted-foreground mt-2 text-center max-w-md">
+            <p className="text-xl text-gray-200 mt-2 text-center max-w-md">
               Transforming dental practices with AI-driven diagnostics and intelligent patient management
             </p>
           </div>
