@@ -159,7 +159,7 @@ export function Sidebar() {
             {!collapsed && (
               <div className="flex flex-col">
                 <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary-600 bg-clip-text text-transparent">
-                  DentaMind
+                  Smart Dental AI
                 </span>
                 <span className="text-xs text-gray-500 font-medium">
                   AI-Powered Dental Excellence
