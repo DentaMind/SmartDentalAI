@@ -159,7 +159,7 @@ export function Sidebar() {
             {!collapsed && (
               <div className="flex flex-col">
                 <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary-600 bg-clip-text text-transparent">
-                  Smart Dental AI
+                  DentaMind
                 </span>
                 <span className="text-xs text-gray-500 font-medium">
                   AI-Powered Dental Excellence
@@ -187,7 +187,7 @@ export function Sidebar() {
                         ${item.highlight && !collapsed ? 'bg-gradient-to-r from-primary/10 to-primary/5' : ''}
                         ${isActive
                           ? "bg-primary text-white shadow-md"
-                          : "text-gray-600 hover:bg-primary/10 hover:text-primary hover:shadow-sm"}
+                          : "text-white bg-primary/80 hover:bg-primary hover:shadow-sm"}
                       `}
                     >
                       <div className={`
@@ -230,11 +230,11 @@ export function Sidebar() {
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
-                className={`${collapsed ? 'w-full justify-center px-0' : 'w-full justify-start'} text-gray-600 hover:text-primary hover:bg-primary/10 ${collapsed ? '' : 'gap-3'}`}
+                className={`${collapsed ? 'w-full justify-center px-0' : 'w-full justify-start'} text-white bg-primary/80 hover:bg-primary ${collapsed ? '' : 'gap-3'}`}
                 onClick={() => logout()}
               >
-                <div className="p-1.5 rounded-md bg-primary/10">
-                  <LogOut className="h-5 w-5 text-primary" />
+                <div className="p-1.5 rounded-md bg-white/20">
+                  <LogOut className="h-5 w-5 text-white" />
                 </div>
                 {!collapsed && "Logout"}
               </Button>
@@ -258,8 +258,8 @@ export function Sidebar() {
               <Tooltip delayDuration={collapsed ? 100 : 1000}>
                 <TooltipTrigger asChild>
                   <Link href="/security">
-                    <div className={`flex items-center ${collapsed ? 'justify-center px-0' : 'px-4'} py-2 text-gray-700 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors cursor-pointer`}>
-                      <Shield className={`w-5 h-5 ${collapsed ? '' : 'mr-3'}`} />
+                    <div className={`flex items-center ${collapsed ? 'justify-center px-0' : 'px-4'} py-2 text-white bg-primary/80 hover:bg-primary rounded-md transition-colors cursor-pointer`}>
+                      <Shield className={`w-5 h-5 ${collapsed ? '' : 'mr-3'} text-white`} />
                       {!collapsed && "Security"}
                     </div>
                   </Link>
