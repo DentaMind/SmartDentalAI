@@ -509,7 +509,7 @@ export default function AuthPage() {
               <TabsContent value="provider">
                 <div className="mb-4 p-4 bg-blue-50 rounded-lg">
                   <p className="text-sm text-blue-700">
-                    Sign up as a dental provider to access all SmartDental AI features. License number is required for verification.
+                    Sign up as a dental provider to access all DentaMind features. License number is required for verification.
                   </p>
                 </div>
                 <Form {...providerForm}>
