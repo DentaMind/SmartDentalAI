@@ -182,6 +182,9 @@ app.get('/', (req, res, next) => {
     return;
   }
   
+  // Log that the root route was requested
+  console.log('Root route requested, method:', req.method, 'query:', req.query);
+  
   // For development mode, we'll let Vite middleware handle the request in index.ts
   // For production, we'd serve static files
   if (process.env.NODE_ENV === 'production') {
@@ -193,7 +196,32 @@ app.get('/', (req, res, next) => {
     }
   } else {
     // In development, pass to next middleware (which will be Vite)
+    console.log('Passing to next middleware (Vite) for development mode');
     next();
+  }
+});
+
+// Catch-all route to handle client-side routing
+app.get('*', (req, res, next) => {
+  // Skip API routes
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+  
+  // Log the catch-all route
+  console.log('Catch-all route handling:', req.path);
+  
+  // For development mode, we'll let Vite middleware handle the request
+  if (process.env.NODE_ENV !== 'production') {
+    return next();
+  }
+  
+  // For production, serve the index.html for client-side routing
+  const indexPath = path.resolve(__dirname, '..', 'client', 'dist', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(500).send('Application not built. Please run build script first.');
   }
 });
 
