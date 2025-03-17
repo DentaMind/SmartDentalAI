@@ -10,7 +10,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Redirect } from "wouter";
-import dentalSmile from "../../../attached_assets/iStock-526222203.jpg";
+import { DentamindLogo } from "@/components/logo";
+// Use a relative path for the dental smile image
+import dentalSmile from "../assets/dental-smile.jpg";
 
 type UserRegistrationData = {
   username: string;
@@ -183,16 +185,8 @@ export default function AuthPage() {
       <div className="w-full max-w-5xl grid md:grid-cols-2 gap-8">
         <div className="flex flex-col justify-center space-y-8">
           <div className="flex flex-col items-center mb-8">
-            <div className="flex items-center">
-              <img 
-                src="/images/dentamind-logo.svg" 
-                alt="DentaMind Logo" 
-                className="h-24 w-auto"
-              />
-              <div className="ml-4">
-                <h1 className="text-3xl md:text-4xl font-bold text-primary">DentaMind</h1>
-                <div className="h-1.5 w-32 bg-primary rounded-full mt-1.5"></div>
-              </div>
+            <div className="flex items-center justify-center">
+              <DentamindLogo size="lg" />
             </div>
             <p className="text-xl text-muted-foreground mt-6 text-center max-w-md">
               Experience next-generation dental care with AI assistance and advanced patient management.
