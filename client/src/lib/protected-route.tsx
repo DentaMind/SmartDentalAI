@@ -28,14 +28,34 @@ export function ProtectedRoute({
   if (isLoading) {
     return (
       <Route path={path}>
-        <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gradient-to-b from-blue-50 to-white">
-          <img 
-            src={dentaMindLogo} 
-            alt="DentaMind Logo" 
-            className="h-20 w-auto mb-4"
-          />
-          <LoadingAnimation />
-          <p className="text-gray-600 animate-pulse">Loading DentaMind...</p>
+        <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gradient-to-b from-blue-900 to-gray-900 relative overflow-hidden">
+          {/* Subtle animated pattern background */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:20px_20px] animate-slow-pulse"></div>
+          </div>
+          
+          {/* Logo with subtle glow effect */}
+          <div className="relative mb-6">
+            <div className="absolute inset-0 rounded-full blur-md bg-blue-500/20 animate-pulse"></div>
+            <img 
+              src={dentaMindLogo} 
+              alt="DentaMind Logo" 
+              className="h-24 w-auto relative z-10 drop-shadow-lg"
+            />
+          </div>
+          
+          <LoadingAnimation className="mb-4" />
+          
+          <div className="flex flex-col items-center space-y-2">
+            <p className="text-blue-400 font-medium text-lg animate-pulse">Initializing AI Systems...</p>
+            
+            {/* Progress bar */}
+            <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden mt-2">
+              <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 animate-loading-progress rounded-full"></div>
+            </div>
+            
+            <p className="text-gray-400 text-sm mt-1">Preparing your experience</p>
+          </div>
         </div>
       </Route>
     );
@@ -58,13 +78,24 @@ export function ProtectedRoute({
       console.log("[protected-route] Skipping redirect to prevent loop");
       return (
         <Route path={path}>
-          <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gradient-to-b from-blue-50 to-white">
-            <img 
-              src={dentaMindLogo} 
-              alt="DentaMind Logo" 
-              className="h-20 w-auto mb-4"
-            />
-            <p className="text-red-600">Please log in to access this page.</p>
+          <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gradient-to-b from-blue-900 to-gray-900 relative overflow-hidden">
+            {/* Subtle animated pattern background */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:20px_20px]"></div>
+            </div>
+            
+            {/* Logo with subtle glow effect */}
+            <div className="relative mb-6">
+              <div className="absolute inset-0 rounded-full blur-md bg-blue-500/20"></div>
+              <img 
+                src={dentaMindLogo} 
+                alt="DentaMind Logo" 
+                className="h-24 w-auto relative z-10 drop-shadow-lg"
+              />
+            </div>
+            
+            <p className="text-white text-lg font-medium mb-2">Authentication Required</p>
+            <p className="text-blue-300">Please log in to access this page.</p>
           </div>
         </Route>
       );
