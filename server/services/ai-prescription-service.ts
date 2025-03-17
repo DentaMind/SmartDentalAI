@@ -64,7 +64,7 @@ export async function generateAiPrescription(input: PrescriptionInput): Promise<
     
     // Queue the request with the appropriate service type and priority
     const aiResponse = await aiRequestQueue.enqueueRequest(
-      AIServiceType.TREATMENT,
+      AIServiceType.TREATMENT_PLANNING,
       () => aiServiceManager.generateTreatmentNote(prompt),
       8 // Medium-high priority
     );
@@ -149,7 +149,7 @@ export async function checkMedicationSafety(
     
     // Queue the request with appropriate priority
     const aiResponse = await aiRequestQueue.enqueueRequest(
-      AIServiceType.TREATMENT,
+      AIServiceType.TREATMENT_PLANNING,
       () => aiServiceManager.generateTreatmentNote(prompt),
       9 // High priority for safety checks
     );

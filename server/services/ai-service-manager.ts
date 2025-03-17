@@ -219,10 +219,10 @@ class AIServiceManager {
     try {
       // Use request queue with appropriate priority
       return await aiRequestQueue.enqueueRequest(
-        AIServiceType.TREATMENT,
+        AIServiceType.TREATMENT_PLANNING,
         async () => {
-          const client = this.getOpenAIClient(AIServiceType.TREATMENT);
-          const config = getOptimalAIConfig(AIServiceType.TREATMENT);
+          const client = this.getOpenAIClient(AIServiceType.TREATMENT_PLANNING);
+          const config = getOptimalAIConfig(AIServiceType.TREATMENT_PLANNING);
 
           const response = await client.chat.completions.create({
             model: config.model || 'gpt-4',
@@ -241,7 +241,7 @@ class AIServiceManager {
           });
 
           // Track API usage for monitoring
-          trackAPIUsage(AIServiceType.TREATMENT, response.usage?.total_tokens || 0);
+          trackAPIUsage(AIServiceType.TREATMENT_PLANNING, response.usage?.total_tokens || 0);
           
           return response.choices[0].message.content || '';
         },
