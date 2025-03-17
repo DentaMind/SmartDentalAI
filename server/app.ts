@@ -12,6 +12,7 @@ import { financialService } from "./services/financial";
 import insuranceRoutes from './routes/insurance-routes';
 import treatmentRoutes from './routes/treatment-routes';
 import medicalNotesRoutes from './routes/medical-notes-routes';
+import prescriptionRoutes from './routes/prescription-routes';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -155,6 +156,7 @@ app.use("/api", router);
 app.use("/api", insuranceRoutes);
 app.use("/api", treatmentRoutes);
 app.use("/api", medicalNotesRoutes);
+app.use("/api", prescriptionRoutes);
 
 // Add a route for static demo version
 app.get('/static', (req, res) => {
