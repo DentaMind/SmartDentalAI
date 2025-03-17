@@ -338,6 +338,35 @@ export const legalDocuments = pgTable("legal_documents", {
   metadata: jsonb("metadata"),
 });
 
+// Prescription table for medication orders
+export const prescriptions = pgTable("prescriptions", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  doctorId: integer("doctor_id").notNull(),
+  date: timestamp("date").defaultNow(),
+  drugName: text("drug_name").notNull(),
+  dosage: text("dosage").notNull(),
+  frequency: text("frequency").notNull(),
+  duration: text("duration").notNull(),
+  quantity: text("quantity").notNull(),
+  refills: integer("refills").default(0),
+  dispensedAs: text("dispensed_as").notNull(),
+  notes: text("notes"),
+  instructions: text("instructions"),
+  status: text("status", {
+    enum: ["active", "completed", "cancelled", "on_hold"]
+  }).notNull().default("active"),
+  reasonForPrescription: text("reason_for_prescription"),
+  allergiesChecked: boolean("allergies_checked").default(false),
+  interactionsChecked: boolean("interactions_checked").default(false),
+  signedBy: integer("signed_by"),
+  signedAt: timestamp("signed_at"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  relatedMedicalNoteId: integer("related_medical_note_id"),
+  aiGenerationPrompt: text("ai_generation_prompt"), // Store prompt used for AI generation
+  aiGeneratedText: text("ai_generated_text"),       // Store AI generated prescription text
+});
+
 // Compliance tracking table
 export const complianceRecords = pgTable("compliance_records", {
   id: serial("id").primaryKey(),
@@ -463,6 +492,7 @@ export const insertFinancialTransactionSchema = createInsertSchema(financialTran
 export const insertRestorativeChartSchema = createInsertSchema(restorativeCharts);
 export const insertLegalDocumentSchema = createInsertSchema(legalDocuments);
 export const insertComplianceRecordSchema = createInsertSchema(complianceRecords);
+export const insertPrescriptionSchema = createInsertSchema(prescriptions);
 
 // Insert schemas for new tables
 export const insertTimeClockSchema = createInsertSchema(timeClock).extend({
@@ -598,6 +628,14 @@ export type InsuranceClaim = typeof insuranceClaims.$inferSelect;
 export type InsertInsuranceClaim = z.infer<typeof insertInsuranceClaimSchema>;
 export type FinancialTransaction = typeof financialTransactions.$inferSelect;
 export type InsertFinancialTransaction = z.infer<typeof insertFinancialTransactionSchema>;
+export type RestorativeChart = typeof restorativeCharts.$inferSelect;
+export type InsertRestorativeChart = z.infer<typeof insertRestorativeChartSchema>;
+export type LegalDocument = typeof legalDocuments.$inferSelect;
+export type InsertLegalDocument = z.infer<typeof insertLegalDocumentSchema>;
+export type ComplianceRecord = typeof complianceRecords.$inferSelect;
+export type InsertComplianceRecord = z.infer<typeof insertComplianceRecordSchema>;
+export type Prescription = typeof prescriptions.$inferSelect;
+export type InsertPrescription = z.infer<typeof insertPrescriptionSchema>;
 
 // New types for the additional tables
 export type TimeClock = typeof timeClock.$inferSelect;
