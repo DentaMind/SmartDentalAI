@@ -29,7 +29,7 @@ export function ProtectedRoute({
       <Route path={path}>
         <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gradient-to-b from-blue-50 to-white">
           <img 
-            src="/src/assets/smart-dental-ai-logo.png" 
+            src="./src/assets/smart-dental-ai-logo.png" 
             alt="SmartDental AI Logo" 
             className="h-16 w-auto mb-4"
           />
@@ -59,7 +59,7 @@ export function ProtectedRoute({
         <Route path={path}>
           <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gradient-to-b from-blue-50 to-white">
             <img 
-              src="/src/assets/smart-dental-ai-logo.png" 
+              src="./src/assets/smart-dental-ai-logo.png" 
               alt="SmartDental AI Logo" 
               className="h-16 w-auto mb-4"
             />

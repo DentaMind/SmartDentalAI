@@ -25,23 +25,65 @@
         <p>Please enable JavaScript in your browser settings to use this application.</p>
       </div>
     </noscript>
-    <div id="app-loading-indicator" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; position:absolute; top:0; left:0; background:#f8fafc;">
-      <img src="/src/assets/smart-dental-ai-logo.png" alt="SmartDental AI Logo" style="width:240px; margin-bottom:20px;" />
+    <div id="app-loading-indicator" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; position:absolute; top:0; left:0; background:#f8fafc; z-index:1000;">
+      <img src="./src/assets/smart-dental-ai-logo.png" alt="SmartDental AI Logo" style="width:240px; margin-bottom:20px;" />
       <p style="font-family:system-ui,-apple-system,sans-serif; font-size:16px; color:#64748b;">Loading SmartDental AI...</p>
+      <div style="margin-top:20px; width:50px; height:50px; border:5px solid #f3f3f3; border-top:5px solid #3498db; border-radius:50%; animation:spin 1s linear infinite;"></div>
     </div>
+    <style>
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
     <script>
       // Remove loading indicator when app loads
       window.addEventListener('load', function() {
         window.APP_DEBUG.initSteps.push('Window load event fired');
+        
+        // Check DOM immediately
+        console.log('Initial DOM check:', {
+          loadingIndicator: document.getElementById('app-loading-indicator'),
+          rootChildren: document.querySelector('#root').children.length,
+          rootContent: document.querySelector('#root').innerHTML
+        });
+        
+        function checkAndHideLoader() {
+          var loadingIndicator = document.getElementById('app-loading-indicator');
+          if (loadingIndicator) {
+            console.log('Hiding loading indicator');
+            loadingIndicator.style.display = 'none';
+            window.APP_DEBUG.initSteps.push('Loading indicator hidden');
+          }
+        }
+        
+        // First check after a short delay
+        setTimeout(checkAndHideLoader, 500);
+        
+        // Second check with longer delay in case the first one didn't work
+        setTimeout(checkAndHideLoader, 1500);
+        
+        // Force hide after 3 seconds regardless
         setTimeout(function() {
           var loadingIndicator = document.getElementById('app-loading-indicator');
-          if (loadingIndicator && document.querySelector('#root').children.length > 0) {
+          if (loadingIndicator && loadingIndicator.style.display !== 'none') {
+            console.log('Force hiding loading indicator after timeout');
             loadingIndicator.style.display = 'none';
-            window.APP_DEBUG.initSteps.push('Loading indicator hidden after React render');
-          } else {
-            window.APP_DEBUG.initSteps.push('React did not render in time - keeping loading indicator');
+            window.APP_DEBUG.initSteps.push('Force hiding loading indicator after timeout');
+            
+            // Since React might not be rendering, display a static message in the root element
+            var rootElement = document.querySelector('#root');
+            if (rootElement && rootElement.children.length === 0) {
+              rootElement.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:system-ui,-apple-system,sans-serif;">
+                  <img src="./src/assets/smart-dental-ai-logo.png" alt="SmartDental AI Logo" style="width:240px; margin-bottom:20px;" />
+                  <h2 style="color:#3b82f6; margin-bottom:10px">SmartDental AI</h2>
+                  <p style="margin-bottom:20px">Please sign in to continue</p>
+                  <a href="/auth" style="background:#3b82f6; color:white; padding:10px 20px; border-radius:5px; text-decoration:none;">Go to Login</a>
+                </div>`;
+            }
           }
-        }, 2000);
+        }, 3000);
       });
     </script>
   </body>

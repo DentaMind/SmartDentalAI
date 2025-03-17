@@ -180,8 +180,19 @@ const prepare = () => {
 let root;
 try {
   console.log("[main] Starting application preparation");
-  root = prepare();
-  console.log("[main] Application preparation completed");
+  try {
+    root = prepare();
+    console.log("[main] Application preparation completed successfully");
+  } catch (err) {
+    console.error("[main] Application preparation failed with error:", err);
+    // Display additional debugging info
+    console.log("[main] Environment details:", {
+      windowLocation: window.location.href,
+      rootElement: document.getElementById("root") ? "Found" : "Not found",
+      currentTime: new Date().toISOString()
+    });
+    throw err;
+  }
 } catch (startupError) {
   console.error("[main] Fatal error during application startup:", startupError);
   

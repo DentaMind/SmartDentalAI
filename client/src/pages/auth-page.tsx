@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Redirect } from "wouter";
-import { DentamindLogo } from "@/components/logo";
+import { SmartDentalLogo } from "@/components/logo";
 // Use a relative path for the dental smile image
 import dentalSmile from "../assets/dental-smile.jpg";
 
@@ -186,7 +186,7 @@ export default function AuthPage() {
         <div className="flex flex-col justify-center space-y-8">
           <div className="flex flex-col items-center mb-6">
             <div className="flex items-center justify-center">
-              <DentamindLogo size="lg" />
+              <SmartDentalLogo size="lg" />
             </div>
             <p className="text-xl text-muted-foreground mt-6 text-center max-w-md">
               Transforming dental practices with AI-driven diagnostics and intelligent patient management
