@@ -186,14 +186,11 @@ export default function AuthPage() {
             <img 
               src="/images/dentamind-logo.webp" 
               alt="DentaMind Logo" 
-              className="h-20 w-auto"
+              className="h-16 w-auto"
             />
-            <div className="ml-4">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">DentaMind</h1>
-              <div className="h-1 w-32 bg-gradient-to-r from-blue-500 to-blue-700 rounded-full mt-1"></div>
-            </div>
+            <h1 className="text-2xl font-bold text-blue-600 ml-3">DentaMind</h1>
           </div>
-          <p className="text-xl text-gray-700 mt-4 leading-relaxed">
+          <p className="text-xl text-gray-600">
             Experience next-generation dental care with AI assistance and advanced patient management.
           </p>
           <div className="relative mt-8 rounded-2xl overflow-hidden shadow-xl">
