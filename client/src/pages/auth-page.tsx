@@ -309,7 +309,7 @@ export default function AuthPage() {
                             <Input 
                               type="password" 
                               {...field} 
-                              className="h-12 px-4 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all hover:border-blue-400 bg-white text-gray-900"
+                              className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95 text-gray-900 text-base"
                               placeholder="Enter your password"
                             />
                           </FormControl>
