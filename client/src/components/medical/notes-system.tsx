@@ -1,15 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
 } from '@/components/ui/card';
 import {
   Form,
@@ -27,886 +35,627 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from '@/components/ui/tabs';
-import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import {
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+  Table,
 } from '@/components/ui/table';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
-import { toast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
-import { formatDate } from '@/lib/utils';
-import { AlertTriangle, CheckCircle2, Pencil, FileSignature, FileText, Plus, Search, Lock, Edit, ChevronDown, ChevronRight, Microphone } from 'lucide-react';
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Pencil, Check, FileText, Clock, AlertCircle, Search, Mic, Download } from 'lucide-react';
+import { AiTreatmentNoteGenerator } from './ai-treatment-note-generator';
 
-// Types for medical notes
-export interface MedicalNote {
-  id?: number;
-  patientId: number;
-  doctorId: number;
-  content: string;
-  category: 'general' | 'periodontal' | 'endodontic' | 'orthodontic' | 'restorative' | 'surgical' | 'prosthodontic' | 'pediatric' | null;
-  createdAt: Date;
-  updatedAt: Date;
-  signedAt: Date | null;
-  signedBy: number | null;
-  signedByName: string | null;
-  attachments: string[] | null;
-  visibility: 'private' | 'team' | 'patient';
-  tags: string[] | null;
-  followUpRequired: boolean;
-  followUpDate: Date | null;
-  aiAnalysis: Record<string, any> | null;
-  treatmentPlanId: number | null;
-  medicationRecommendations: string[] | null;
-  contraindicationDetected: boolean;
-  contraindicationDetails: string | null;
-}
-
-// Schema for form validation
-const medicalNoteSchema = z.object({
+// Define schema for the note form
+const noteFormSchema = z.object({
+  title: z.string().min(3, { message: "Title must be at least 3 characters" }),
   content: z.string().min(1, { message: "Note content is required" }),
-  category: z.enum(['general', 'periodontal', 'endodontic', 'orthodontic', 'restorative', 'surgical', 'prosthodontic', 'pediatric']),
-  visibility: z.enum(['private', 'team', 'patient']).default('team'),
-  followUpRequired: z.boolean().default(false),
-  followUpDate: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  medicationRecommendations: z.array(z.string()).optional(),
+  category: z.string().min(1, { message: "Category is required" }),
 });
 
-// Category options for the dropdown
-const categoryOptions = [
-  { value: 'general', label: 'General' },
-  { value: 'periodontal', label: 'Periodontal' },
-  { value: 'endodontic', label: 'Endodontic' },
-  { value: 'orthodontic', label: 'Orthodontic' },
-  { value: 'restorative', label: 'Restorative' },
-  { value: 'surgical', label: 'Surgical' },
-  { value: 'prosthodontic', label: 'Prosthodontic' },
-  { value: 'pediatric', label: 'Pediatric' },
-];
+type NoteFormValues = z.infer<typeof noteFormSchema>;
 
-// Common medical note templates
-const noteTemplates = {
-  periodontal: `Patient presents with signs of periodontal disease. Observed bleeding upon probing in quadrants 1 and 2. Probing depths range from 3-5mm. Recommended scaling and root planing.
-
-Treatment plan: 
-- Full mouth debridement
-- Re-evaluation in 4-6 weeks
-- Maintenance plan with 3-month recall
-
-Home care instructions:
-- Electric toothbrush recommended
-- Daily flossing
-- Antimicrobial rinse twice daily`,
-
-  restorative: `Examination reveals dental caries on tooth #30 (occlusal surface). Tooth is tender to percussion. Radiographs show carious lesion approaching pulp.
-
-Treatment plan:
-- Composite restoration for tooth #30
-- Consider possible need for endodontic treatment if symptoms persist
-
-Post-operative instructions:
-- Avoid chewing on treated side for 24 hours
-- Sensitivity may occur and should subside within 1-2 weeks
-- Return if persistent pain occurs`,
-
-  general: `Routine examination completed. Patient reports no specific concerns. Oral hygiene status is satisfactory.
-
-Recommendations:
-- Continue current oral hygiene regimen
-- Regular 6-month recall appointment
-- Fluoride treatment completed today`,
-};
-
-// Voice recognition templates for mock implementation
-const voiceRecognitionTemplates = [
-  "Patient reports mild pain in lower right quadrant. Visual examination reveals inflammation around tooth #30. Percussion test positive. Radiograph shows periapical radiolucency. Diagnosis: acute periapical periodontitis. Treatment plan: root canal therapy on tooth #30.",
-  "New patient examination completed. Moderate generalized gingivitis present. No caries detected. Full mouth series radiographs taken and reviewed. Recommended professional cleaning and improved home care techniques.",
-  "Follow-up for recent extraction of tooth #8. Healing is progressing as expected. No signs of infection. Discussed restorative options including implant, fixed bridge, and removable partial denture. Patient leaning toward implant option.",
-];
-
-// Component for managing medical notes
-const NotesSystem: React.FC<{
+// Define Medical Note interface
+interface MedicalNote {
+  id: number;
   patientId: number;
-  doctorId: number;
-  doctorName: string;
-  defaultCategory?: string;
-  onNoteAdded?: (note: MedicalNote) => void;
-}> = ({ 
-  patientId, 
-  doctorId, 
-  doctorName, 
-  defaultCategory = 'general',
-  onNoteAdded
-}) => {
-  // State for UI management
-  const [selectedTab, setSelectedTab] = useState<string>('view');
-  const [currentTemplate, setCurrentTemplate] = useState<string>('');
-  const [isListening, setIsListening] = useState(false);
-  const [editNoteId, setEditNoteId] = useState<number | null>(null);
-  const [signDialogOpen, setSignDialogOpen] = useState(false);
-  const [noteToSign, setNoteToSign] = useState<MedicalNote | null>(null);
-  const [confirmationText, setConfirmationText] = useState('');
-  const [voiceToTextResult, setVoiceToTextResult] = useState('');
-  const [expandedNotes, setExpandedNotes] = useState<Set<number>>(new Set());
-  const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  userId: number;
+  title: string;
+  content: string;
+  category: string;
+  createdAt: string;
+  updatedAt: string;
+  signedBy?: number;
+  signedAt?: string;
+  signedByName?: string;
+}
+
+interface NotesSystemProps {
+  patientId: number;
+  userId: number; // Current user ID
+  userRole: string; // 'doctor' or 'staff'
+  doctorId?: number; // If staff creating note, need to assign to a doctor
+  doctorName?: string; // Doctor's name for display
+}
+
+export function NotesSystem({
+  patientId,
+  userId,
+  userRole,
+  doctorId,
+  doctorName,
+}: NotesSystemProps) {
+  const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [selectedNote, setSelectedNote] = useState<MedicalNote | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSigningNote, setIsSigningNote] = useState(false);
+  const [showVoiceTranscript, setShowVoiceTranscript] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
 
-  // Setup form with validation
-  const form = useForm<z.infer<typeof medicalNoteSchema>>({
-    resolver: zodResolver(medicalNoteSchema),
+  // Fetch patient's medical notes
+  const { data: notes = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ['/api/patients', patientId, 'medical-notes'],
+    queryFn: async () => {
+      const data = await apiRequest(`/api/patients/${patientId}/medical-notes`);
+      return data as MedicalNote[];
+    },
+  });
+
+  // Create note form
+  const form = useForm<NoteFormValues>({
+    resolver: zodResolver(noteFormSchema),
     defaultValues: {
+      title: '',
       content: '',
-      category: defaultCategory as any,
-      visibility: 'team',
-      followUpRequired: false,
-      followUpDate: '',
-      tags: [],
-      medicationRecommendations: [],
+      category: 'general',
     },
   });
 
-  // Query to fetch medical notes
-  const { data: notes, isLoading } = useQuery({
-    queryKey: [`/api/patients/${patientId}/medical-notes`],
-    queryFn: async () => await apiRequest<MedicalNote[]>(`/api/patients/${patientId}/medical-notes`),
-  });
-
-  // Mutation to add a new medical note
-  const addNoteMutation = useMutation({
-    mutationFn: async (data: Partial<MedicalNote>) => {
-      return await apiRequest<MedicalNote>(`/api/patients/${patientId}/medical-notes`, {
+  // Create a new medical note mutation
+  const createNoteMutation = useMutation({
+    mutationFn: async (data: NoteFormValues) => {
+      return await apiRequest(`/api/patients/${patientId}/medical-notes`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/patients/${patientId}/medical-notes`] });
-      toast({
-        title: 'Note added',
-        description: 'Medical note has been successfully added.',
-      });
-      if (onNoteAdded) {
-        onNoteAdded(data);
-      }
-      form.reset({
-        content: '',
-        category: defaultCategory as any,
-        visibility: 'team',
-        followUpRequired: false,
-        followUpDate: '',
-        tags: [],
-        medicationRecommendations: [],
-      });
-      setSelectedTab('view');
-    },
-    onError: (error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Error adding note',
-        description: 'There was an error adding the medical note. Please try again.',
-      });
-      console.error('Error adding medical note:', error);
-    },
-  });
-
-  // Mutation to update a medical note
-  const updateNoteMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number, data: Partial<MedicalNote> }) => {
-      return await apiRequest<MedicalNote>(`/api/patients/${patientId}/medical-notes/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          userId,
+          doctorId: userRole === 'doctor' ? userId : doctorId,
+        }),
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/patients/${patientId}/medical-notes`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/patients', patientId, 'medical-notes'] });
       toast({
-        title: 'Note updated',
-        description: 'Medical note has been successfully updated.',
+        title: 'Note created',
+        description: 'The medical note has been created successfully.',
       });
-      setEditNoteId(null);
       form.reset();
     },
     onError: (error) => {
       toast({
         variant: 'destructive',
-        title: 'Error updating note',
-        description: 'There was an error updating the medical note. Please try again.',
+        title: 'Failed to create note',
+        description: 'There was a problem creating the medical note.',
       });
-      console.error('Error updating medical note:', error);
+      console.error('Error creating note:', error);
     },
   });
 
-  // Mutation to sign a medical note
+  // Sign a medical note mutation
   const signNoteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      return await apiRequest<MedicalNote>(`/api/patients/${patientId}/medical-notes/${id}/sign`, {
+    mutationFn: async (noteId: number) => {
+      return await apiRequest(`/api/patients/${patientId}/medical-notes/${noteId}/sign`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ doctorId, doctorName }),
+        body: JSON.stringify({
+          userId,
+          signedByName: doctorName || 'Doctor',
+        }),
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/patients/${patientId}/medical-notes`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/patients', patientId, 'medical-notes'] });
       toast({
         title: 'Note signed',
-        description: 'Medical note has been successfully signed and locked.',
+        description: 'The medical note has been signed successfully.',
       });
-      setSignDialogOpen(false);
-      setNoteToSign(null);
-      setConfirmationText('');
+      setIsSigningNote(false);
+      setSelectedNote(null);
     },
     onError: (error) => {
       toast({
         variant: 'destructive',
-        title: 'Error signing note',
-        description: 'There was an error signing the medical note. Please try again.',
+        title: 'Failed to sign note',
+        description: 'There was a problem signing the medical note.',
       });
-      console.error('Error signing medical note:', error);
+      console.error('Error signing note:', error);
+      setIsSigningNote(false);
     },
   });
 
-  // Handle form submission
-  const onSubmit = async (values: z.infer<typeof medicalNoteSchema>) => {
-    // Convert follow-up date to proper format if it exists
-    const followUpDate = values.followUpRequired && values.followUpDate
-      ? new Date(values.followUpDate).toISOString()
-      : null;
-    
-    // Prepare data for API call
-    const noteData: Partial<MedicalNote> = {
-      patientId,
-      doctorId,
-      content: values.content,
-      category: values.category,
-      visibility: values.visibility,
-      followUpRequired: values.followUpRequired,
-      followUpDate: followUpDate ? new Date(followUpDate) : null,
-      tags: values.tags?.length ? values.tags : null,
-      medicationRecommendations: values.medicationRecommendations?.length ? values.medicationRecommendations : null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      signedAt: null,
-      signedBy: null,
-      signedByName: null,
-      attachments: null,
-      aiAnalysis: null,
-      treatmentPlanId: null,
-      contraindicationDetected: false,
-      contraindicationDetails: null,
-    };
-    
-    // If editing, update note; otherwise add new note
-    if (editNoteId) {
-      updateNoteMutation.mutate({ id: editNoteId, data: noteData });
-    } else {
-      addNoteMutation.mutate(noteData);
-    }
-  };
-
-  // Handle template selection
-  const handleTemplateChange = (templateKey: string) => {
-    setCurrentTemplate(templateKey);
-    const templateContent = noteTemplates[templateKey as keyof typeof noteTemplates] || '';
-    form.setValue('content', templateContent);
-    
-    // Also set the category based on template
-    if (templateKey === 'periodontal') {
-      form.setValue('category', 'periodontal');
-    } else if (templateKey === 'restorative') {
-      form.setValue('category', 'restorative');
-    } else {
-      form.setValue('category', 'general');
-    }
-  };
-
-  // Handle voice recognition
-  const handleVoiceRecognition = () => {
-    setIsListening(true);
-    
-    // Simulate voice recognition with a random template (in a real app, this would use the Web Speech API)
-    const randomIndex = Math.floor(Math.random() * voiceRecognitionTemplates.length);
-    const recognizedText = voiceRecognitionTemplates[randomIndex];
-    
-    // Simulate processing delay
-    setTimeout(() => {
-      setVoiceToTextResult(recognizedText);
-      form.setValue('content', recognizedText);
-      setIsListening(false);
-      
-      toast({
-        title: 'Voice transcription complete',
-        description: 'Your dictation has been successfully transcribed.',
+  // Update a medical note mutation
+  const updateNoteMutation = useMutation({
+    mutationFn: async (data: { id: number; note: Partial<NoteFormValues> }) => {
+      return await apiRequest(`/api/patients/${patientId}/medical-notes/${data.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data.note),
       });
-    }, 2000);
-  };
-
-  // Handle note editing
-  const handleEditNote = (note: MedicalNote) => {
-    // Can't edit signed notes
-    if (note.signedAt) {
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/patients', patientId, 'medical-notes'] });
+      toast({
+        title: 'Note updated',
+        description: 'The medical note has been updated successfully.',
+      });
+      setIsEditing(false);
+      setSelectedNote(null);
+    },
+    onError: (error) => {
       toast({
         variant: 'destructive',
-        title: 'Cannot edit signed note',
-        description: 'This note has been signed and cannot be modified.',
+        title: 'Failed to update note',
+        description: 'There was a problem updating the medical note.',
       });
-      return;
-    }
+      console.error('Error updating note:', error);
+    },
+  });
+
+  // Filter notes based on activeTab and search term
+  const filteredNotes = notes.filter((note) => {
+    const matchesTab = activeTab === 'all' || note.category === activeTab;
+    const matchesSearch = 
+      searchTerm === '' || 
+      note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      note.content.toLowerCase().includes(searchTerm.toLowerCase());
     
-    setEditNoteId(note.id || null);
-    form.reset({
-      content: note.content,
-      category: note.category || 'general',
-      visibility: note.visibility || 'team',
-      followUpRequired: note.followUpRequired || false,
-      followUpDate: note.followUpDate ? new Date(note.followUpDate).toISOString().split('T')[0] : '',
-      tags: note.tags || [],
-      medicationRecommendations: note.medicationRecommendations || [],
-    });
-    setSelectedTab('create');
+    return matchesTab && matchesSearch;
+  });
+
+  // Handle note submission
+  const onSubmit = (data: NoteFormValues) => {
+    if (isEditing && selectedNote) {
+      updateNoteMutation.mutate({ id: selectedNote.id, note: data });
+    } else {
+      createNoteMutation.mutate(data);
+    }
   };
 
   // Handle note signing
   const handleSignNote = (note: MedicalNote) => {
-    setNoteToSign(note);
-    setSignDialogOpen(true);
-  };
-
-  // Confirm note signing
-  const confirmSignNote = () => {
-    if (noteToSign && confirmationText === 'sign') {
-      signNoteMutation.mutate(noteToSign.id as number);
-    } else {
+    if (userRole !== 'doctor') {
       toast({
         variant: 'destructive',
-        title: 'Confirmation failed',
-        description: 'Please type "sign" to confirm.',
+        title: 'Permission denied',
+        description: 'Only doctors can sign medical notes.',
       });
+      return;
     }
-  };
-
-  // Toggle note expansion in the list view
-  const toggleNoteExpansion = (noteId: number) => {
-    const newExpanded = new Set(expandedNotes);
-    if (newExpanded.has(noteId)) {
-      newExpanded.delete(noteId);
-    } else {
-      newExpanded.add(noteId);
-    }
-    setExpandedNotes(newExpanded);
-  };
-
-  // Filter notes based on category and search query
-  const filteredNotes = notes?.filter(note => {
-    const matchesCategory = filterCategory === 'all' || note.category === filterCategory;
-    const matchesSearch = searchQuery === '' || 
-      note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (note.tags && note.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())));
     
-    return matchesCategory && matchesSearch;
-  }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    setIsSigningNote(true);
+    signNoteMutation.mutate(note.id);
+  };
+
+  // Handle note editing
+  const handleEditNote = (note: MedicalNote) => {
+    setSelectedNote(note);
+    setIsEditing(true);
+    
+    form.reset({
+      title: note.title,
+      content: note.content,
+      category: note.category,
+    });
+  };
+
+  // Handle voice dictation
+  const startVoiceDictation = () => {
+    setIsRecording(true);
+    setShowVoiceTranscript(true);
+    
+    // Simulate voice dictation - in a real implementation, this would use the Web Speech API
+    setTimeout(() => {
+      const transcript = "Patient presented with symptoms of tooth sensitivity in the upper right quadrant. Clinical examination revealed deep occlusal caries on tooth 16. Advised composite restoration and provided oral hygiene instructions.";
+      setVoiceTranscript(transcript);
+      setIsRecording(false);
+    }, 2000);
+  };
+
+  // Add voice transcript to note content
+  const addTranscriptToNote = () => {
+    const currentContent = form.getValues('content');
+    form.setValue('content', currentContent + (currentContent ? '\n\n' : '') + voiceTranscript);
+    setShowVoiceTranscript(false);
+    setVoiceTranscript('');
+    
+    toast({
+      title: 'Transcript added',
+      description: 'Voice transcript has been added to your note.',
+    });
+  };
+
+  // Handle note generation from AI
+  const handleAiGeneratedNote = (noteContent: string, category: string) => {
+    const titleSuggestion = `${category.charAt(0).toUpperCase() + category.slice(1)} Treatment Note - ${new Date().toLocaleDateString()}`;
+    
+    form.setValue('title', titleSuggestion);
+    form.setValue('content', noteContent);
+    form.setValue('category', category);
+  };
+
+  // Reset form when editing is cancelled
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setSelectedNote(null);
+    form.reset({
+      title: '',
+      content: '',
+      category: 'general',
+    });
+  };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle>Medical Notes</CardTitle>
-          <CardDescription>
-            Manage patient medical notes and documentation
-          </CardDescription>
-        </CardHeader>
-        
-        <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <CardContent>
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="view">
-                <FileText className="h-4 w-4 mr-2" />
-                View Notes
-              </TabsTrigger>
-              <TabsTrigger value="create">
-                <Plus className="h-4 w-4 mr-2" />
-                {editNoteId ? 'Edit Note' : 'Add Note'}
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="view" className="space-y-4">
-              <div className="flex justify-between mb-4">
-                <div className="flex space-x-2">
-                  <Select value={filterCategory} onValueChange={setFilterCategory}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Filter by category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      {categoryOptions.map((category) => (
-                        <SelectItem key={category.value} value={category.value}>
-                          {category.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                    <Input
-                      type="search"
-                      placeholder="Search notes..."
-                      className="pl-8"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                </div>
-                
-                <Button onClick={() => { setSelectedTab('create'); setEditNoteId(null); form.reset(); }}>
-                  <Plus className="h-4 w-4 mr-2" /> Add New Note
-                </Button>
-              </div>
-              
-              {isLoading ? (
-                <div className="flex justify-center p-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              ) : filteredNotes && filteredNotes.length > 0 ? (
-                <div className="space-y-4">
-                  {filteredNotes.map((note) => (
-                    <Card key={note.id} className={`overflow-hidden ${note.contraindicationDetected ? 'border-red-300' : ''}`}>
-                      <div className="border-l-4 pl-4 py-4 pr-6 flex justify-between items-start" style={{ borderLeftColor: note.contraindicationDetected ? '#f87171' : '#e2e8f0' }}>
-                        <div className="flex-grow">
-                          <div className="flex items-center mb-2">
-                            <button 
-                              onClick={() => toggleNoteExpansion(note.id as number)}
-                              className="mr-2 text-gray-500 hover:text-gray-700"
-                            >
-                              {expandedNotes.has(note.id as number) ? (
-                                <ChevronDown className="h-5 w-5" />
-                              ) : (
-                                <ChevronRight className="h-5 w-5" />
-                              )}
-                            </button>
-                            <div className="text-base font-medium">
-                              {note.category && note.category.charAt(0).toUpperCase() + note.category.slice(1)} Note
-                            </div>
-                            <div className="ml-3 text-sm text-gray-500">
-                              {formatDate(note.createdAt)}
-                            </div>
-                            {note.signedAt && (
-                              <Badge variant="outline" className="ml-3 flex items-center text-green-600 border-green-200 bg-green-50">
-                                <CheckCircle2 className="mr-1 h-3 w-3" /> Signed
-                              </Badge>
-                            )}
-                            {note.contraindicationDetected && (
-                              <Badge variant="destructive" className="ml-3">
-                                <AlertTriangle className="mr-1 h-3 w-3" /> Contraindication
-                              </Badge>
-                            )}
-                            {note.followUpRequired && (
-                              <Badge variant="outline" className="ml-3 flex items-center text-amber-600 border-amber-200 bg-amber-50">
-                                Follow-up: {formatDate(note.followUpDate as Date)}
-                              </Badge>
-                            )}
-                          </div>
-                          
-                          {/* Preview of note content, limited to first 100 characters if not expanded */}
-                          <div className="text-sm">
-                            {expandedNotes.has(note.id as number) 
-                              ? note.content 
-                              : `${note.content.slice(0, 100)}${note.content.length > 100 ? '...' : ''}`}
-                          </div>
-                          
-                          {/* Show additional information when expanded */}
-                          {expandedNotes.has(note.id as number) && (
-                            <div className="mt-4 space-y-3">
-                              {note.tags && note.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1">
-                                  {note.tags.map((tag, index) => (
-                                    <Badge key={index} variant="secondary" className="text-xs">
-                                      {tag}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              )}
-                              
-                              {note.medicationRecommendations && note.medicationRecommendations.length > 0 && (
-                                <div className="mt-2">
-                                  <div className="text-sm font-medium">Medication Recommendations:</div>
-                                  <ul className="list-disc list-inside text-sm ml-2">
-                                    {note.medicationRecommendations.map((med, index) => (
-                                      <li key={index}>{med}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                              
-                              {note.contraindicationDetected && note.contraindicationDetails && (
-                                <div className="mt-2 p-3 bg-red-50 border border-red-100 rounded-md">
-                                  <div className="text-sm font-medium text-red-700 flex items-center">
-                                    <AlertTriangle className="h-4 w-4 mr-1" /> Contraindication Detected:
-                                  </div>
-                                  <div className="text-sm text-red-600 ml-5">
-                                    {note.contraindicationDetails}
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {note.signedAt && (
-                                <div className="mt-2 text-sm text-gray-500">
-                                  Signed by {note.signedByName} on {formatDate(note.signedAt)}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="flex space-x-2">
-                          {!note.signedAt && (
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={() => handleEditNote(note)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
-                          
-                          {!note.signedAt && (
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleSignNote(note)}
-                            >
-                              <FileSignature className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center p-8 border rounded-md bg-gray-50">
-                  <FileText className="mx-auto h-10 w-10 text-gray-400 mb-3" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">No notes found</h3>
-                  <p className="text-gray-500 mb-4">
-                    {filterCategory !== 'all' || searchQuery !== '' 
-                      ? 'No notes match your current filters.' 
-                      : 'There are no medical notes for this patient yet.'}
-                  </p>
-                  <Button onClick={() => setSelectedTab('create')}>
-                    <Plus className="h-4 w-4 mr-2" /> Add First Note
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="create">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="category"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Category</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a category" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {categoryOptions.map((category) => (
-                                <SelectItem key={category.value} value={category.value}>
-                                  {category.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Medical Notes</h2>
+        <div className="flex space-x-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search notes..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 w-[200px]"
+            />
+          </div>
+          {!isEditing && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={startVoiceDictation}
+              disabled={isRecording}
+              className="gap-1"
+            >
+              <Mic className="h-4 w-4" />
+              {isRecording ? 'Recording...' : 'Dictate'}
+            </Button>
+          )}
+          {userRole === 'doctor' && !isEditing && (
+            <AiTreatmentNoteGenerator
+              patientId={patientId}
+              doctorId={userId}
+              doctorName={doctorName || ''}
+              onNoteGenerated={handleAiGeneratedNote}
+            />
+          )}
+        </div>
+      </div>
 
-                    <FormField
-                      control={form.control}
-                      name="visibility"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Visibility</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select visibility" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="private">Private (Provider Only)</SelectItem>
-                              <SelectItem value="team">Team (All Providers)</SelectItem>
-                              <SelectItem value="patient">Patient Visible</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <FormLabel>Template</FormLabel>
-                    <div className="flex space-x-2">
-                      <Button 
-                        type="button" 
-                        variant={currentTemplate === 'general' ? 'default' : 'outline'} 
-                        onClick={() => handleTemplateChange('general')}
-                      >
-                        General
-                      </Button>
-                      <Button 
-                        type="button" 
-                        variant={currentTemplate === 'periodontal' ? 'default' : 'outline'} 
-                        onClick={() => handleTemplateChange('periodontal')}
-                      >
-                        Periodontal
-                      </Button>
-                      <Button 
-                        type="button" 
-                        variant={currentTemplate === 'restorative' ? 'default' : 'outline'} 
-                        onClick={() => handleTemplateChange('restorative')}
-                      >
-                        Restorative
-                      </Button>
-                    </div>
-                    <FormDescription>
-                      Select a template or start typing your note below
-                    </FormDescription>
-                  </div>
-                  
-                  <div className="relative">
-                    <FormField
-                      control={form.control}
-                      name="content"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Note Content</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Textarea 
-                                placeholder="Enter detailed clinical notes here..." 
-                                className="min-h-[200px]"
-                                {...field} 
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="absolute right-2 bottom-2"
-                                onClick={handleVoiceRecognition}
-                                disabled={isListening}
-                              >
-                                {isListening ? (
-                                  <>
-                                    <div className="animate-pulse rounded-full h-3 w-3 bg-red-500 mr-2"></div>
-                                    Recording...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Microphone className="h-4 w-4 mr-2" /> Voice Dictation
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    {voiceToTextResult && (
-                      <div className="mt-2 p-3 bg-blue-50 border border-blue-100 rounded-md">
-                        <div className="text-sm text-blue-700">
-                          <div className="font-medium mb-1">Transcription Result:</div>
-                          {voiceToTextResult}
-                        </div>
-                      </div>
+      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="all">All Notes</TabsTrigger>
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="periodontal">Periodontal</TabsTrigger>
+          <TabsTrigger value="restorative">Restorative</TabsTrigger>
+          <TabsTrigger value="endodontic">Endodontic</TabsTrigger>
+          <TabsTrigger value="surgical">Surgical</TabsTrigger>
+        </TabsList>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Note Editor */}
+          <Card className="md:col-span-1">
+            <CardHeader>
+              <CardTitle>{isEditing ? 'Edit Note' : 'New Note'}</CardTitle>
+              <CardDescription>
+                {isEditing 
+                  ? 'Edit and update the existing medical note' 
+                  : 'Create a new medical note for this patient'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Title</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Note title" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="followUpRequired"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
                           <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
                           </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>Follow-up Required</FormLabel>
-                            <FormDescription>
-                              Schedule a follow-up for this note
-                            </FormDescription>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    {form.watch('followUpRequired') && (
-                      <FormField
-                        control={form.control}
-                        name="followUpDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Follow-up Date</FormLabel>
-                            <FormControl>
-                              <Input type="date" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                          <SelectContent>
+                            <SelectItem value="general">General</SelectItem>
+                            <SelectItem value="periodontal">Periodontal</SelectItem>
+                            <SelectItem value="restorative">Restorative</SelectItem>
+                            <SelectItem value="endodontic">Endodontic</SelectItem>
+                            <SelectItem value="surgical">Surgical</SelectItem>
+                            <SelectItem value="orthodontic">Orthodontic</SelectItem>
+                            <SelectItem value="prosthodontic">Prosthodontic</SelectItem>
+                            <SelectItem value="pediatric">Pediatric</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                  </div>
-                  
-                  <div className="mt-6 flex justify-end space-x-2">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => {
-                        setSelectedTab('view');
-                        setEditNoteId(null);
-                        form.reset();
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={addNoteMutation.isPending || updateNoteMutation.isPending}>
-                      {addNoteMutation.isPending || updateNoteMutation.isPending
-                        ? 'Saving...'
-                        : editNoteId ? 'Update Note' : 'Save Note'}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="content"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Note Content</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Enter detailed note content here..."
+                            className="min-h-[200px] font-mono text-sm"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Include all relevant details about the procedure, findings, and recommendations.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="flex justify-end space-x-2 pt-2">
+                    {isEditing && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={cancelEdit}
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                    <Button type="submit" disabled={createNoteMutation.isPending || updateNoteMutation.isPending}>
+                      {isEditing ? 'Update Note' : 'Save Note'}
                     </Button>
                   </div>
                 </form>
               </Form>
-            </TabsContent>
-          </CardContent>
-        </Tabs>
-        
-        <CardFooter className="text-sm text-gray-500 border-t pt-6">
-          <div className="flex items-start space-x-2">
-            <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
-            <p>
-              Notes are analyzed by AI for potential contraindications and medication interactions.
-              Once signed, notes cannot be modified for HIPAA compliance.
-            </p>
-          </div>
-        </CardFooter>
-      </Card>
-      
-      {/* Sign Note Dialog */}
-      <AlertDialog open={signDialogOpen} onOpenChange={setSignDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Sign Medical Note</AlertDialogTitle>
-            <AlertDialogDescription>
-              You are about to digitally sign this medical note. Once signed, the note cannot be modified.
-              This action is equivalent to a legal signature and will be recorded with a timestamp.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          
-          <div className="border rounded-md p-4 mt-2 mb-4 bg-gray-50 text-sm">
-            <div className="font-medium mb-1">
-              {noteToSign?.category && noteToSign.category.charAt(0).toUpperCase() + noteToSign.category.slice(1)} Note
-            </div>
-            <div>Created on: {noteToSign ? formatDate(noteToSign.createdAt) : ''}</div>
-            <div className="mt-2 text-gray-700">{noteToSign?.content}</div>
-          </div>
-          
-          <div className="space-y-2 mb-4">
-            <div className="text-sm font-medium">Type "sign" to confirm:</div>
-            <Input 
-              value={confirmationText} 
-              onChange={(e) => setConfirmationText(e.target.value)} 
-              placeholder="sign"
-            />
-          </div>
-          
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                setSignDialogOpen(false);
-                setNoteToSign(null);
-                setConfirmationText('');
-              }}
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                confirmSignNote();
-              }}
-              disabled={confirmationText !== 'sign' || signNoteMutation.isPending}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              {signNoteMutation.isPending ? 'Signing...' : 'Sign Note'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              
+              {showVoiceTranscript && (
+                <div className="mt-4 border rounded-md p-3 bg-muted/20">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-sm font-medium">Voice Transcript</h3>
+                    <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200">
+                      {isRecording ? 'Recording...' : 'Ready to Add'}
+                    </Badge>
+                  </div>
+                  <p className="text-sm mb-2">{voiceTranscript || 'Waiting for transcript...'}</p>
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setShowVoiceTranscript(false);
+                        setVoiceTranscript('');
+                      }}
+                    >
+                      Discard
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={addTranscriptToNote}
+                      disabled={!voiceTranscript || isRecording}
+                    >
+                      Add to Note
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Notes List */}
+          <Card className="md:col-span-2">
+            <CardHeader className="pb-3">
+              <CardTitle>Patient Notes History</CardTitle>
+              <CardDescription>
+                View and manage all medical notes for this patient
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex items-center justify-center p-8">
+                  <p>Loading notes...</p>
+                </div>
+              ) : isError ? (
+                <div className="flex items-center justify-center p-8 text-red-500">
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  <p>Error loading notes. Please try again.</p>
+                </div>
+              ) : filteredNotes.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                  <p>No medical notes found.</p>
+                  <p className="text-sm">Create a new note to get started.</p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[450px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredNotes.map((note) => (
+                        <TableRow key={note.id}>
+                          <TableCell className="font-medium truncate max-w-[150px]" title={note.title}>
+                            {note.title}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="capitalize">
+                              {note.category}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(note.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            {note.signedBy ? (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                      <Check className="h-3 w-3 mr-1" />
+                                      Signed
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Signed by {note.signedByName} on {new Date(note.signedAt!).toLocaleDateString()}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : (
+                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Pending
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end space-x-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setSelectedNote(note);
+                                  setIsEditing(false);
+                                }}
+                              >
+                                <FileText className="h-4 w-4" />
+                              </Button>
+                              
+                              {!note.signedBy && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEditNote(note)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              )}
+                              
+                              {!note.signedBy && userRole === 'doctor' && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleSignNote(note)}
+                                  disabled={isSigningNote}
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                              )}
+                              
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              )}
+            </CardContent>
+            
+            {selectedNote && !isEditing && (
+              <CardFooter className="flex-col items-start pt-0">
+                <div className="w-full border-t pt-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-semibold">{selectedNote.title}</h3>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant="outline" className="capitalize">
+                        {selectedNote.category}
+                      </Badge>
+                      {selectedNote.signedBy && (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          Signed by {selectedNote.signedByName}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-sm text-muted-foreground mb-2">
+                    Created: {new Date(selectedNote.createdAt).toLocaleString()}
+                    {selectedNote.signedAt && (
+                      <> | Signed: {new Date(selectedNote.signedAt).toLocaleString()}</>
+                    )}
+                  </div>
+                  <ScrollArea className="h-[150px] w-full rounded-md border p-4">
+                    <pre className="text-sm whitespace-pre-wrap font-sans">{selectedNote.content}</pre>
+                  </ScrollArea>
+                  
+                  <div className="flex justify-end space-x-2 mt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedNote(null)}
+                    >
+                      Close
+                    </Button>
+                    {!selectedNote.signedBy && userRole === 'doctor' && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleSignNote(selectedNote)}
+                        disabled={isSigningNote}
+                      >
+                        Sign Note
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardFooter>
+            )}
+          </Card>
+        </div>
+      </Tabs>
     </div>
   );
-};
-
-export default NotesSystem;
+}

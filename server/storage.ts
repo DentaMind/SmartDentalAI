@@ -332,6 +332,27 @@ export class MemStorage implements IStorage {
       (note) => note.patientId === patientId && (userRole === "doctor" || !note.private)
     );
   }
+  
+  async getMedicalNote(noteId: number): Promise<MedicalNote | undefined> {
+    return this.medicalNotes.get(noteId);
+  }
+  
+  async updateMedicalNote(noteId: number, updates: Partial<MedicalNote>): Promise<MedicalNote | undefined> {
+    const note = this.medicalNotes.get(noteId);
+    if (!note) return undefined;
+    
+    const updatedNote = { ...note, ...updates };
+    this.medicalNotes.set(noteId, updatedNote);
+    return updatedNote;
+  }
+  
+  async getPatientMedicalNotesByCategory(patientId: number, category: string, userRole: string): Promise<MedicalNote[]> {
+    return Array.from(this.medicalNotes.values()).filter(
+      (note) => note.patientId === patientId && 
+                note.category === category && 
+                (userRole === "doctor" || !note.private)
+    );
+  }
 
   async createXray(insertXray: InsertXray): Promise<Xray> {
     const id = this.currentId++;
