@@ -29,12 +29,12 @@ export function ProtectedRoute({
       <Route path={path}>
         <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gradient-to-b from-blue-50 to-white">
           <img 
-            src="/images/dentamind-logo.webp" 
-            alt="DentaMind Logo" 
+            src="/src/assets/smart-dental-ai-logo.png" 
+            alt="SmartDental AI Logo" 
             className="h-16 w-auto mb-4"
           />
           <LoadingAnimation />
-          <p className="text-gray-600 animate-pulse">Loading DentaMind...</p>
+          <p className="text-gray-600 animate-pulse">Loading SmartDental AI...</p>
         </div>
       </Route>
     );
@@ -59,8 +59,8 @@ export function ProtectedRoute({
         <Route path={path}>
           <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gradient-to-b from-blue-50 to-white">
             <img 
-              src="/images/dentamind-logo.webp" 
-              alt="DentaMind Logo" 
+              src="/src/assets/smart-dental-ai-logo.png" 
+              alt="SmartDental AI Logo" 
               className="h-16 w-auto mb-4"
             />
             <p className="text-red-600">Please log in to access this page.</p>

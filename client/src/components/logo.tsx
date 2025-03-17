@@ -7,7 +7,7 @@ interface LogoProps {
   showText?: boolean;
 }
 
-export function DentamindLogo({ className = "", size = "md", showText = true }: LogoProps) {
+export function SmartDentalLogo({ className = "", size = "md", showText = true }: LogoProps) {
   const sizeMap = {
     sm: "h-10 w-auto",
     md: "h-14 w-auto",
