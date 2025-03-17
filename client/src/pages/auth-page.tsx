@@ -183,10 +183,10 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Subtle background gradient pattern - changed from dots to gradient */}
+    <div className="min-h-screen bg-gradient-to-b from-gray-800 to-gray-700 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Subtle background gradient pattern - lightened for better contrast */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/5 via-gray-900/90 to-gray-900/90"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-800/10 via-gray-800/80 to-gray-800/80"></div>
       </div>
       
       <div className="w-full max-w-5xl grid md:grid-cols-2 gap-10 mx-auto">
@@ -234,7 +234,7 @@ export default function AuthPage() {
           </div>
         </div>
 
-        <Card className="w-full self-center bg-white shadow-[0_15px_50px_-12px_rgba(20,30,70,0.2)] rounded-xl border border-gray-100">
+        <Card className="w-full self-center bg-white shadow-[0_20px_60px_-15px_rgba(20,30,70,0.3)] rounded-xl border border-gray-100">
           <CardContent className="pt-8 px-8 pb-10">
             <Tabs defaultValue="login">
               <TabsList className="grid w-full grid-cols-4 mb-8 bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 p-1 gap-1">
@@ -305,7 +305,7 @@ export default function AuthPage() {
                             <Input 
                               type="password" 
                               {...field} 
-                              className="h-12 px-4 rounded-lg border-gray-200 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400/20 transition-all"
+                              className="h-12 px-4 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all hover:border-blue-400 bg-white text-gray-900"
                               placeholder="Enter your password"
                             />
                           </FormControl>
