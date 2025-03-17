@@ -310,14 +310,14 @@ export default function PatientProfilePage() {
 
               {/* Tabs for different sections */}
               <Tabs defaultValue="medical-history" className="w-full">
-                <TabsList className="grid grid-cols-7 mb-6">
-                  <TabsTrigger value="medical-history">Medical History</TabsTrigger>
-                  <TabsTrigger value="dental-chart">Dental Chart</TabsTrigger>
-                  <TabsTrigger value="perio-chart">Perio Chart</TabsTrigger>
-                  <TabsTrigger value="xray">X-rays</TabsTrigger>
-                  <TabsTrigger value="appointments">Appointments</TabsTrigger>
-                  <TabsTrigger value="treatment-plans">Treatment Plans</TabsTrigger>
-                  <TabsTrigger value="notes">Clinical Notes</TabsTrigger>
+                <TabsList className="grid grid-cols-7 mb-6 bg-primary">
+                  <TabsTrigger value="medical-history" className="text-white data-[state=active]:bg-primary-600">Medical History</TabsTrigger>
+                  <TabsTrigger value="dental-chart" className="text-white data-[state=active]:bg-primary-600">Dental Chart</TabsTrigger>
+                  <TabsTrigger value="perio-chart" className="text-white data-[state=active]:bg-primary-600">Perio Chart</TabsTrigger>
+                  <TabsTrigger value="xray" className="text-white data-[state=active]:bg-primary-600">X-rays</TabsTrigger>
+                  <TabsTrigger value="appointments" className="text-white data-[state=active]:bg-primary-600">Appointments</TabsTrigger>
+                  <TabsTrigger value="treatment-plans" className="text-white data-[state=active]:bg-primary-600">Treatment Plans</TabsTrigger>
+                  <TabsTrigger value="notes" className="text-white data-[state=active]:bg-primary-600">Clinical Notes</TabsTrigger>
                 </TabsList>
 
                 {/* Medical History Tab */}
@@ -461,10 +461,10 @@ export default function PatientProfilePage() {
                 {/* X-Ray Tab */}
                 <TabsContent value="xray">
                   <Tabs defaultValue="xray-analysis">
-                    <TabsList className="w-full mb-4">
-                      <TabsTrigger value="xray-analysis">X-ray Analysis</TabsTrigger>
-                      <TabsTrigger value="intraoral-scanner">Intraoral Scanner</TabsTrigger>
-                      <TabsTrigger value="multi-modal">Multi-Modal AI Diagnosis</TabsTrigger>
+                    <TabsList className="w-full mb-4 bg-primary">
+                      <TabsTrigger value="xray-analysis" className="text-white data-[state=active]:bg-primary-600">X-ray Analysis</TabsTrigger>
+                      <TabsTrigger value="intraoral-scanner" className="text-white data-[state=active]:bg-primary-600">Intraoral Scanner</TabsTrigger>
+                      <TabsTrigger value="multi-modal" className="text-white data-[state=active]:bg-primary-600">Multi-Modal AI Diagnosis</TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="xray-analysis">
