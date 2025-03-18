@@ -113,8 +113,31 @@ export default function AuthPage() {
         ...data,
         role: "patient"
       });
+      console.log("Patient registration successful");
     } catch (err) {
       console.error("Registration failed:", err);
+      
+      // If the error is about username/email already existing
+      if (err instanceof Error && err.message.includes("already exists")) {
+        registerForm.setError("username", { 
+          type: "manual", 
+          message: "This username already exists. Please choose another." 
+        });
+      } else if (err instanceof Error && err.message.includes("email")) {
+        registerForm.setError("email", { 
+          type: "manual", 
+          message: "This email is already registered." 
+        });
+      } else {
+        // Generic error handling
+        const errorMessage = err instanceof Error ? err.message : "Registration failed. Please try again.";
+        console.error("Registration error:", errorMessage);
+        // Create a form error at the form level
+        registerForm.setError("root", { 
+          type: "manual", 
+          message: errorMessage 
+        });
+      }
     }
   };
 
@@ -125,8 +148,35 @@ export default function AuthPage() {
         ...data,
         role: "doctor"
       });
+      console.log("Provider registration successful");
     } catch (err) {
       console.error("Registration failed:", err);
+      
+      // If the error is about username/email already existing
+      if (err instanceof Error && err.message.includes("already exists")) {
+        providerForm.setError("username", { 
+          type: "manual", 
+          message: "This username already exists. Please choose another." 
+        });
+      } else if (err instanceof Error && err.message.includes("email")) {
+        providerForm.setError("email", { 
+          type: "manual", 
+          message: "This email is already registered." 
+        });
+      } else if (err instanceof Error && err.message.includes("license")) {
+        providerForm.setError("licenseNumber", { 
+          type: "manual", 
+          message: "Please provide a valid professional license number." 
+        });
+      } else {
+        // Generic error handling
+        const errorMessage = err instanceof Error ? err.message : "Registration failed. Please try again.";
+        console.error("Provider registration error:", errorMessage);
+        providerForm.setError("root", { 
+          type: "manual", 
+          message: errorMessage 
+        });
+      }
     }
   };
   
@@ -159,6 +209,23 @@ export default function AuthPage() {
         staffForm.setError("licenseNumber", { 
           type: "manual", 
           message: "License number not found in our system. Please contact administration." 
+        });
+      } else if (errorMessage.includes("username") || errorMessage.includes("already exists")) {
+        staffForm.setError("username", { 
+          type: "manual", 
+          message: "This username already exists. Please choose another." 
+        });
+      } else if (errorMessage.includes("email")) {
+        staffForm.setError("email", { 
+          type: "manual", 
+          message: "This email is already registered." 
+        });
+      } else {
+        // Generic error handling
+        console.error("Staff registration error:", errorMessage);
+        staffForm.setError("root", { 
+          type: "manual", 
+          message: errorMessage 
         });
       }
     }
