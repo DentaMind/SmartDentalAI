@@ -128,8 +128,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Format error message for user-friendly display
       let message = 'Login failed. Please check your credentials.';
       
-      if (isAxiosError(err) && err.response?.data?.message) {
-        message = err.response.data.message;
+      if (isAxiosError(err)) {
+        if (err.response?.status === 401) {
+          message = 'Invalid username or password. Please try again.';
+        } else if (err.response?.status === 429) {
+          message = 'Too many login attempts. Please try again later.';
+        } else if (err.response?.status === 403) {
+          message = 'Your account is locked. Please contact an administrator.';
+        } else if (err.response?.data?.message) {
+          message = err.response.data.message;
+        }
       } else if (err instanceof Error) {
         if (err.message === 'MFA_REQUIRED') {
           message = 'Multi-factor authentication required';
@@ -162,8 +170,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err: unknown) {
       let message = 'Registration failed. Please try again.';
       
-      if (isAxiosError(err) && err.response?.data?.message) {
-        message = err.response.data.message;
+      if (isAxiosError(err)) {
+        if (err.response?.status === 409) {
+          message = 'Username or email already exists. Please try another.';
+        } else if (err.response?.status === 400) {
+          message = err.response?.data?.message || 'Invalid registration data. Please check all fields.';
+        } else if (err.response?.data?.message) {
+          message = err.response.data.message;
+        }
       } else if (err instanceof Error && err.message) {
         message = err.message;
       }
