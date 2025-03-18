@@ -825,91 +825,130 @@ export default function AuthPage() {
                       />
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={providerForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input type="email" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={providerForm.control}
-                        name="phoneNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Phone Number</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                    {/* Account information section */}
+                    <div className="pt-2">
+                      <h3 className="text-sm font-medium text-gray-700 mb-3">Account Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <FormField
+                          control={providerForm.control}
+                          name="username"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-semibold text-gray-700">Username</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
+                                  placeholder="Create a username"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={providerForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-semibold text-gray-700">Password</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="password" 
+                                  {...field} 
+                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
+                                  placeholder="Create a strong password"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Contact information section */}
+                    <div className="pt-2">
+                      <h3 className="text-sm font-medium text-gray-700 mb-3">Contact Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={providerForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-semibold text-gray-700">Email</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="email" 
+                                  {...field} 
+                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
+                                  placeholder="Your professional email"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={providerForm.control}
+                          name="phoneNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-semibold text-gray-700">Phone Number</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
+                                  placeholder="Your phone number"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={providerForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Username</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={providerForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Password</FormLabel>
-                            <FormControl>
-                              <Input type="password" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={providerForm.control}
-                        name="specialization"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Specialization</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="e.g., General Dentistry, Orthodontics" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={providerForm.control}
-                        name="licenseNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>License Number *</FormLabel>
-                            <FormControl>
-                              <Input {...field} required />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                    {/* Professional information section */}
+                    <div className="pt-2">
+                      <h3 className="text-sm font-medium text-gray-700 mb-3">Professional Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={providerForm.control}
+                          name="specialization"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-semibold text-gray-700">Specialization</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
+                                  placeholder="e.g., General Dentistry, Orthodontics"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={providerForm.control}
+                          name="licenseNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-semibold text-gray-700">License Number *</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
+                                  placeholder="Format: 2 letters followed by 6 digits"
+                                  required
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
                     </div>
                     
                     <div className="mt-8 border-t pt-6">
