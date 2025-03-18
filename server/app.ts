@@ -151,8 +151,10 @@ router.get('/docs', (req, res) => {
   });
 });
 
-// Mount all routes under /api prefix
-app.use("/api", router);
+// Mount auth routes directly (no /api prefix)
+app.use(router);
+
+// Mount other routes under /api prefix
 app.use("/api", insuranceRoutes);
 app.use("/api", treatmentRoutes);
 app.use("/api", medicalNotesRoutes);

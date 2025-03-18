@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check the server session status regardless of local storage
     (async () => {
       try {
-        const response = await api.get('/api/user');
+        const response = await api.get('/user');
         if (response.status === 200) {
           // Update user from server data, which is the source of truth
           setUser(response.data);
@@ -192,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshAuth = async () => {
     try {
       // For session-based auth, we just need to check if the session is still valid
-      const response = await api.get('/api/user');
+      const response = await api.get('/user');
       
       if (response.status === 200) {
         setUser(response.data);
@@ -216,7 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const setupMFA = async (): Promise<MFASetupData> => {
     try {
-      const response = await api.post('/api/auth/mfa/setup');
+      const response = await api.post('/auth/mfa/setup');
       return response.data;
     } catch (err: unknown) {
       let message = 'MFA setup failed';
@@ -234,7 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const enableMFA = async (verificationCode: string): Promise<void> => {
     try {
-      await api.post('/api/auth/mfa/enable', { verificationCode });
+      await api.post('/auth/mfa/enable', { verificationCode });
     } catch (err: unknown) {
       let message = 'Failed to enable MFA';
       
@@ -251,7 +251,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const disableMFA = async (password: string): Promise<void> => {
     try {
-      await api.post('/api/auth/mfa/disable', { password });
+      await api.post('/auth/mfa/disable', { password });
     } catch (err: unknown) {
       let message = 'Failed to disable MFA';
       
@@ -268,7 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
     try {
-      await api.post('/api/auth/password/change', { 
+      await api.post('/auth/password/change', { 
         currentPassword, 
         newPassword 
       });
