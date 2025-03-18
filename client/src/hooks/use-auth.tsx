@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear any existing auth flags to prevent UI issues
       sessionStorage.removeItem("inAuthPage");
       
-      const response = await api.post('/api/auth/login', { 
+      const response = await api.post('/auth/login', { 
         username, 
         password,
         mfaCode
@@ -151,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     
     try {
-      const response = await api.post('/api/auth/register', userData);
+      const response = await api.post('/auth/register', userData);
       const data = response.data;
       
       // Store user data
@@ -179,7 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try {
       // Call the logout endpoint
-      await api.post('/api/auth/logout');
+      await api.post('/auth/logout');
     } catch (err: unknown) {
       console.error('Logout error:', err);
     } finally {
