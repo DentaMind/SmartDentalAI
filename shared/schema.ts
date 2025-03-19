@@ -17,6 +17,10 @@ export const SupplyCategoryEnum = z.enum([
   'ppe', 'office_supplies', 'other'
 ]);
 
+export const InsuranceVerificationStatusEnum = z.enum([
+  'verified', 'pending', 'failed', 'expired', 'not_covered'
+]);
+
 export const OrthodonticCaseStatusEnum = z.enum([
   'evaluation', 'planning', 'aligner_production', 'active_treatment',
   'refinement', 'retention', 'completed', 'discontinued'
@@ -37,6 +41,7 @@ export const reminderTypeSchema = z.object({
 export type LabCaseStatusType = z.infer<typeof LabCaseStatusEnum>;
 export type SupplyOrderStatusType = z.infer<typeof SupplyOrderStatusEnum>;
 export type SupplyCategoryType = z.infer<typeof SupplyCategoryEnum>;
+export type InsuranceVerificationStatusType = z.infer<typeof InsuranceVerificationStatusEnum>;
 export type OrthodonticCaseStatusType = z.infer<typeof OrthodonticCaseStatusEnum>;
 
 
@@ -236,6 +241,34 @@ export const xrays = pgTable("xrays", {
   analysisDate: timestamp("analysis_date"),
   pathologyDetected: boolean("pathology_detected").default(false),
   comparisonResult: jsonb("comparison_result"), // Progression or stability compared to previous
+});
+
+// Insurance verification records
+export const insuranceVerifications = pgTable("insurance_verifications", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  verificationDate: timestamp("verification_date").defaultNow(),
+  status: text("status", { 
+    enum: ["verified", "pending", "failed", "expired", "not_covered"] 
+  }).notNull().default("pending"),
+  insuranceProvider: text("insurance_provider").notNull(),
+  memberId: text("member_id").notNull(),
+  groupNumber: text("group_number"),
+  subscriberName: text("subscriber_name"),
+  subscriberRelationship: text("subscriber_relationship"),
+  planType: text("plan_type"),
+  coverage: jsonb("coverage"), // Store coverage details as JSON
+  effectiveDate: timestamp("effective_date"),
+  terminationDate: timestamp("termination_date"),
+  remainingBenefits: jsonb("remaining_benefits"),
+  deductible: jsonb("deductible"),
+  verificationDetails: jsonb("verification_details"),
+  transactionId: text("transaction_id"),
+  verifiedBy: integer("verified_by"),
+  nextVerificationDate: timestamp("next_verification_date"),
+  alertSent: boolean("alert_sent").default(false),
+  alertDate: timestamp("alert_date"),
+  notes: text("notes"),
 });
 
 // Periodontal chart data
@@ -523,6 +556,7 @@ export const insertAppointmentSchema = createInsertSchema(appointments);
 export const insertTreatmentPlanSchema = createInsertSchema(treatmentPlans);
 export const insertMedicalNoteSchema = createInsertSchema(medicalNotes);
 export const insertXraySchema = createInsertSchema(xrays);
+export const insertInsuranceVerificationSchema = createInsertSchema(insuranceVerifications);
 export const insertPeriodontalChartSchema = createInsertSchema(periodontalCharts);
 export const insertPaymentSchema = createInsertSchema(payments);
 export const insertInsuranceClaimSchema = createInsertSchema(insuranceClaims);
@@ -660,6 +694,8 @@ export type MedicalNote = typeof medicalNotes.$inferSelect;
 export type InsertMedicalNote = z.infer<typeof insertMedicalNoteSchema>;
 export type Xray = typeof xrays.$inferSelect;
 export type InsertXray = z.infer<typeof insertXraySchema>;
+export type InsuranceVerification = typeof insuranceVerifications.$inferSelect;
+export type InsertInsuranceVerification = z.infer<typeof insertInsuranceVerificationSchema>;
 export type PeriodontalChart = typeof periodontalCharts.$inferSelect;
 export type InsertPeriodontalChart = z.infer<typeof insertPeriodontalChartSchema>;
 export type Payment = typeof payments.$inferSelect;
