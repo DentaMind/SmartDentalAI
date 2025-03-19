@@ -790,7 +790,6 @@ export class MemStorage implements IStorage {
       }
     };
   }
-};
 
   // Insurance verification methods
   async createInsuranceVerification(verification: InsertInsuranceVerification): Promise<InsuranceVerification> {
