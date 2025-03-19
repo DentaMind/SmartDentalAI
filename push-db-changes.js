@@ -253,7 +253,7 @@ async function main() {
     console.error('Error during migration:', error);
   } finally {
     // Close the connection
-    await client.end();
+    await sql.end();
     console.log('Database connection closed');
   }
 }
