@@ -25,7 +25,9 @@ import {
   Bot,
   Activity,
   FileImage,
-  AlertTriangle
+  AlertTriangle,
+  ClipboardCheck,
+  FileWarning
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { IntraoralScanner } from "@/components/imaging/intraoral-scanner";
@@ -48,6 +50,7 @@ import { Contraindications } from "@/components/medical/contraindications";
 import { DiseaseInformation } from "@/components/medical/disease-information";
 import { ChatHelper } from "@/components/ui/chat-helper";
 import { useAuth } from "@/hooks/use-auth";
+import PostOpInstructions from "@/components/patients/post-op-instructions";
 
 // Define the full patient type including user data
 type PatientWithUser = Patient & {
@@ -311,7 +314,7 @@ export default function PatientProfilePage() {
 
               {/* Tabs for different sections */}
               <Tabs defaultValue="medical-history" className="w-full">
-                <TabsList className="grid grid-cols-7 mb-6 border rounded-lg bg-gray-50 shadow-sm">
+                <TabsList className="grid grid-cols-8 mb-6 border rounded-lg bg-gray-50 shadow-sm">
                   <TabsTrigger value="medical-history" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Medical History</TabsTrigger>
                   <TabsTrigger value="dental-chart" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Dental Chart</TabsTrigger>
                   <TabsTrigger value="perio-chart" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Perio Chart</TabsTrigger>
@@ -319,6 +322,12 @@ export default function PatientProfilePage() {
                   <TabsTrigger value="appointments" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Appointments</TabsTrigger>
                   <TabsTrigger value="treatment-plans" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Treatment Plans</TabsTrigger>
                   <TabsTrigger value="notes" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Clinical Notes</TabsTrigger>
+                  <TabsTrigger value="post-op" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                    <div className="flex items-center gap-1">
+                      <ClipboardCheck className="h-4 w-4" />
+                      <span>Post-Op Care</span>
+                    </div>
+                  </TabsTrigger>
                 </TabsList>
 
                 {/* Medical History Tab */}
@@ -814,6 +823,27 @@ export default function PatientProfilePage() {
                           <p className="mt-4 text-muted-foreground">No medical notes found for this patient.</p>
                         </div>
                       )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                {/* Post-Op Instructions Tab */}
+                <TabsContent value="post-op">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <ClipboardCheck className="h-5 w-5 text-primary" />
+                        Post-Operative Instructions
+                      </CardTitle>
+                      <CardDescription>
+                        Manage detailed post-operative care instructions for this patient
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <PostOpInstructions 
+                        patientId={patientId}
+                        patientName={`${patient.user.firstName} ${patient.user.lastName}`}
+                      />
                     </CardContent>
                   </Card>
                 </TabsContent>
