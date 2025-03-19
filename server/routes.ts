@@ -1,4 +1,5 @@
 import express from "express";
+import OpenAI from "openai";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { predictFromSymptoms } from "./services/ai-prediction";
@@ -11,6 +12,9 @@ import schedulerRoutes from './routes/scheduler-routes';
 import translationRoutes from './routes/translation-routes';
 import path from 'path';
 import { PatientMedicalHistory } from '../shared/schema';
+
+// Create OpenAI instance for diagnosis refinement
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY_DIAGNOSIS });
 import { seedDatabase } from './seed-data';
 
 const app = express();
@@ -233,6 +237,92 @@ router.post("/ai/predict", requireAuth, async (req, res) => {
   } catch (error) {
     console.error("AI Prediction error:", error);
     res.status(500).json({ message: error instanceof Error ? error.message : "Failed to generate prediction" });
+  }
+});
+
+// AI Diagnosis Refinement - Handles follow-up questions and responses
+router.post("/ai/refine-diagnosis", requireAuth, async (req, res) => {
+  try {
+    const { 
+      initialSymptoms, 
+      patientResponse, 
+      question, 
+      previousDiagnosis, 
+      conversationHistory, 
+      patientContext 
+    } = req.body;
+
+    if (!initialSymptoms || !patientResponse || !question || !previousDiagnosis) {
+      return res.status(400).json({ message: "Missing required information for diagnosis refinement" });
+    }
+
+    // Format conversation for the AI
+    const formattedConversation = conversationHistory.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }));
+
+    // Add the current Q&A
+    formattedConversation.push(
+      { role: "assistant", content: question },
+      { role: "user", content: patientResponse }
+    );
+
+    // Prepare context
+    const context = {
+      initialSymptoms,
+      previousDiagnosis,
+      conversation: formattedConversation,
+      patientHistory: patientContext?.patientHistory || "",
+      vitalSigns: patientContext?.vitalSigns || {},
+      relevantTests: patientContext?.relevantTests || []
+    };
+
+    // Send to OpenAI via aiServiceManager
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert dental diagnostician. A patient has provided their symptoms and answered follow-up questions. 
+            Refine your diagnosis based on this new information. Return a JSON response with:
+            1. refinedDiagnosis: An updated SymptomPrediction object with refined conditions, confidences, and recommendations
+            2. nextQuestion: The next follow-up question to ask (or null if no more questions needed)
+            3. reasoning: Explanation of how the new information changed your assessment`
+          },
+          {
+            role: "user",
+            content: JSON.stringify(context)
+          }
+        ],
+        response_format: { type: "json_object" }
+      });
+
+      if (!response.choices[0].message.content) {
+        throw new Error("Failed to get response from AI");
+      }
+
+      // Parse and send the refined diagnosis
+      const refinedResult = JSON.parse(response.choices[0].message.content);
+      res.json(refinedResult);
+    } catch (error) {
+      console.error("OpenAI API error:", error);
+      
+      // Fallback response if API fails
+      const fallbackResponse = {
+        refinedDiagnosis: previousDiagnosis,
+        nextQuestion: null,
+        reasoning: "Unable to refine diagnosis due to service limitations. Using previous assessment."
+      };
+      
+      res.json(fallbackResponse);
+    }
+  } catch (error) {
+    console.error("Diagnosis refinement error:", error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : "Failed to refine diagnosis" 
+    });
   }
 });
 
