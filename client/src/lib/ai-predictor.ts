@@ -140,46 +140,8 @@ export interface PredictionContext {
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 export async function predictDentalCondition(context: PredictionContext): Promise<SymptomPrediction> {
   try {
-    // Format the prediction request with structured dental knowledge
-    const promptData = {
-      type: "dental_diagnosis",
-      context: {
-        ...context,
-        format_version: "1.0",
-        // Add dental-specific context based on the guide
-        symptomCategories: {
-          pain: ["lingering", "sharp", "dull", "throbbing"],
-          xrayFindings: ["radiolucency", "radiopacity", "bone_loss"],
-          clinicalSigns: ["swelling", "mobility", "sensitivity"],
-          periodontal: ["bleeding", "recession", "pocket_depth"],
-          endodontic: ["pulp_vitality", "percussion", "thermal_response"],
-          restorative: ["fracture", "decay", "wear"],
-          prosthodontic: ["occlusion", "wear_patterns", "adaptation"],
-          oralSurgery: ["impaction", "pathology", "bone_quality"]
-        },
-        // Add medical guidelines reference
-        guidelines: [
-          "ADA Clinical Practice Guidelines",
-          "AAP Periodontal Disease Classification",
-          "AAE Endodontic Case Difficulty Assessment",
-          "Evidence-based Dentistry Principles"
-        ],
-        // Add diagnostic criteria based on symptoms
-        diagnosticCriteria: {
-          pulpitis: {
-            reversible: ["short-duration pain", "pain with stimulus only"],
-            irreversible: ["spontaneous pain", "lingering pain", "nocturnal pain"]
-          },
-          periodontitis: {
-            early: ["bleeding on probing", "pocket depths 4-5mm"],
-            moderate: ["pocket depths 5-7mm", "bone loss 15-33%"],
-            severe: ["pocket depths >7mm", "bone loss >33%"]
-          }
-        }
-      }
-    };
-
-    const response = await apiRequest("POST", "/api/ai/predict", promptData);
+    // Use our new /api/ai/diagnosis endpoint
+    const response = await apiRequest("POST", "/api/ai/diagnosis", context);
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Failed to analyze symptoms");
@@ -191,6 +153,43 @@ export async function predictDentalCondition(context: PredictionContext): Promis
       throw new Error("Our AI service is temporarily unavailable. Please try again in a moment.");
     }
     throw new Error(error instanceof Error ? error.message : "Failed to analyze symptoms. Please try again.");
+  }
+}
+
+// Interactive diagnosis with refinement
+export interface RefinementRequest {
+  initialSymptoms: string;
+  patientResponse: string;
+  question: string;
+  previousDiagnosis: SymptomPrediction;
+  conversationHistory: Array<{
+    role: 'user' | 'assistant';
+    content: string;
+  }>;
+  patientContext?: {
+    age?: number;
+    gender?: string;
+    medicalHistory?: string[];
+  };
+}
+
+export interface RefinementResponse {
+  refinedDiagnosis: SymptomPrediction;
+  nextQuestion: string | null;
+  processingDetails: string;
+}
+
+export async function refineDiagnosis(request: RefinementRequest): Promise<RefinementResponse> {
+  try {
+    const response = await apiRequest("POST", "/api/ai/refine-diagnosis", request);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to refine diagnosis");
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Diagnosis refinement failed:", error);
+    throw new Error(error instanceof Error ? error.message : "Failed to refine diagnosis. Please try again.");
   }
 }
 

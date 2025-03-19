@@ -656,6 +656,195 @@ router.get('/financial/patient-cost-estimate/:treatmentPlanId', requireAuth, asy
   }
 });
 
+// AI Interactive Diagnosis Routes
+router.post('/ai/diagnosis', requireAuth, async (req, res) => {
+  try {
+    const { symptoms, patientHistory, vitalSigns, relevantTests, dentalRecords } = req.body;
+    
+    // In a production environment, this would call OpenAI or another AI provider
+    // For now, we'll create a sample diagnosis response
+    
+    // Simulate processing time
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Generate a realistic AI response
+    const diagnosis = {
+      possibleConditions: [
+        {
+          condition: "Pulpitis",
+          description: "Inflammation of the dental pulp tissue, often caused by deep decay or trauma.",
+          confidence: 0.82,
+          urgencyLevel: "medium",
+          recommendations: [
+            "Schedule endodontic evaluation within 1-2 weeks",
+            "Take ibuprofen 600mg every 6 hours for pain as needed",
+            "Avoid extremely hot or cold foods and beverages"
+          ],
+          specialistReferral: null
+        },
+        {
+          condition: "Cracked Tooth Syndrome",
+          description: "A partial fracture of the tooth that may extend into the dentin and occasionally the pulp.",
+          confidence: 0.65,
+          urgencyLevel: "medium",
+          recommendations: [
+            "Avoid chewing on the affected side",
+            "Consider crown placement to prevent fracture propagation",
+            "Further evaluation with transillumination"
+          ],
+          specialistReferral: null
+        },
+        {
+          condition: "Periapical Abscess",
+          description: "Collection of pus at the root tip, typically resulting from bacterial infection.",
+          confidence: 0.38,
+          urgencyLevel: "high",
+          recommendations: [
+            "Immediate endodontic evaluation or extraction",
+            "Antibiotic therapy may be required",
+            "Drainage if significant swelling is present"
+          ],
+          specialistReferral: {
+            type: "Endodontist",
+            reason: "For specialized root canal treatment if abscess is confirmed"
+          }
+        }
+      ],
+      aiDomains: {
+        endodontic: {
+          findings: [
+            "Possible pulpal involvement based on symptom duration and intensity",
+            "Risk of infection spreading to periapical tissues",
+            "Pulp vitality testing recommended"
+          ],
+          recommendations: [
+            "Consider pulp vitality testing",
+            "Evaluate for possible root canal therapy",
+            "Monitor for signs of periapical pathology"
+          ],
+          confidenceLevel: 0.81
+        },
+        periodontic: {
+          findings: [
+            "No significant periodontal involvement indicated from symptoms",
+            "Consider evaluating periodontal status around affected tooth"
+          ],
+          recommendations: [
+            "Evaluate probing depths around affected tooth",
+            "Rule out vertical root fracture if symptoms persist"
+          ],
+          confidenceLevel: 0.45
+        },
+        restorative: {
+          findings: [
+            "Potential need for crown if cracked tooth confirmed",
+            "Evaluate existing restorations for recurrent decay",
+            "Consider occlusal factors contributing to symptoms"
+          ],
+          recommendations: [
+            "Evaluate occlusal forces and potential need for adjustment",
+            "Consider protective restoration after endodontic treatment if needed",
+            "Evaluate for parafunctional habits causing enamel fractures"
+          ],
+          confidenceLevel: 0.68
+        }
+      },
+      generalAdvice: "Based on your symptoms, it's important to have a comprehensive evaluation soon. Meanwhile, avoid chewing on the affected side, take over-the-counter pain medication as directed, and maintain good oral hygiene. If pain increases significantly or swelling develops, seek immediate care.",
+      followUpQuestions: [
+        "Can you describe the intensity of the pain on a scale from 1-10?",
+        "Does the pain wake you up at night?",
+        "Have you noticed any swelling or unusual taste in your mouth?",
+        "Are your symptoms affected by hot or cold food and drinks?",
+        "Have you had any recent dental work done on the affected area?"
+      ]
+    };
+    
+    // Return the diagnosis with confidence levels and recommendations
+    res.json(diagnosis);
+  } catch (error) {
+    console.error('Diagnosis error:', error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : 'Failed to generate diagnosis'
+    });
+  }
+});
+
+router.post('/ai/refine-diagnosis', requireAuth, async (req, res) => {
+  try {
+    const {
+      initialSymptoms,
+      patientResponse,
+      question,
+      previousDiagnosis,
+      conversationHistory,
+      patientContext
+    } = req.body;
+
+    // Log the incoming request
+    console.log('Refining diagnosis with follow-up response:', {
+      question,
+      response: patientResponse
+    });
+
+    // In a production environment, this would be integrated with OpenAI or another AI provider
+    // For now, we'll simulate the AI refinement with a mock response
+    
+    // Simulate processing time
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Create a refined diagnosis based on the previous diagnosis and the new information
+    const refinedDiagnosis = { ...previousDiagnosis };
+    
+    // Increase confidence of highest confidence condition based on user response
+    if (refinedDiagnosis.possibleConditions && refinedDiagnosis.possibleConditions.length > 0) {
+      // Find the highest confidence condition
+      const highestConfidenceIndex = refinedDiagnosis.possibleConditions
+        .reduce((maxIndex, condition, index, array) => 
+          condition.confidence > array[maxIndex].confidence ? index : maxIndex, 0);
+      
+      // Increase confidence slightly (capped at 0.95)
+      const currentConfidence = refinedDiagnosis.possibleConditions[highestConfidenceIndex].confidence;
+      refinedDiagnosis.possibleConditions[highestConfidenceIndex].confidence = 
+        Math.min(currentConfidence + 0.1, 0.95);
+    }
+    
+    // Determine if we need another follow-up question
+    let nextQuestion = null;
+    const followupQuestions = [
+      "Can you describe the intensity of the pain on a scale from 1-10?",
+      "Does the pain wake you up at night?",
+      "Have you noticed any swelling or unusual taste in your mouth?",
+      "Are your symptoms affected by hot or cold food and drinks?",
+      "Have you had any recent dental work done on the affected area?"
+    ];
+    
+    // Check if there are follow-up questions in the conversation history
+    const askedQuestions = conversationHistory
+      .filter(msg => msg.role === "assistant")
+      .map(msg => msg.content);
+    
+    // Find a question we haven't asked yet
+    const remainingQuestions = followupQuestions.filter(q => !askedQuestions.includes(q));
+    
+    // Decide if we need another question (max 3 questions)
+    if (remainingQuestions.length > 0 && askedQuestions.length < 3) {
+      nextQuestion = remainingQuestions[0];
+    }
+    
+    // Send back the refined diagnosis and next question (if any)
+    res.json({
+      refinedDiagnosis,
+      nextQuestion,
+      processingDetails: "Patient response analyzed and diagnosis refined"
+    });
+  } catch (error) {
+    console.error('Diagnosis refinement error:', error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : 'Failed to refine diagnosis'
+    });
+  }
+});
+
 // Mount all routes under /api prefix
 app.use("/api", router);
 

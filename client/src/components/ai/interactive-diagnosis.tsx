@@ -23,11 +23,12 @@ import {
 } from "lucide-react";
 import {
   predictDentalCondition,
+  refineDiagnosis,
   type SymptomPrediction,
-  type PredictionContext
+  type PredictionContext,
+  type RefinementRequest
 } from "@/lib/ai-predictor";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { apiRequest } from "@/lib/queryClient";
 
 interface Props {
   patientHistory?: string;
@@ -103,23 +104,20 @@ export function InteractiveDiagnosis({ patientHistory, vitalSigns, relevantTests
     }) => {
       setIsAnalyzing(true);
       try {
-        return await apiRequest({
-          method: "POST",
-          url: "/api/ai/refine-diagnosis",
-          body: {
-            initialSymptoms: symptoms,
-            patientResponse: response.answer,
-            question: response.question,
-            previousDiagnosis: response.previousDiagnosis,
-            conversationHistory: response.conversationHistory,
-            patientContext: {
-              patientHistory,
-              vitalSigns,
-              relevantTests,
-              dentalRecords
-            }
+        const refinementRequest: RefinementRequest = {
+          initialSymptoms: symptoms,
+          patientResponse: response.answer,
+          question: response.question,
+          previousDiagnosis: response.previousDiagnosis,
+          conversationHistory: response.conversationHistory,
+          patientContext: {
+            age: 35, // Default value, could be replaced with actual patient data
+            gender: 'unknown',
+            medicalHistory: patientHistory ? [patientHistory] : []
           }
-        });
+        };
+        
+        return await refineDiagnosis(refinementRequest);
       } catch (error) {
         console.error("Refining diagnosis error:", error);
         throw error;
