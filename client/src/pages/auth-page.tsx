@@ -335,12 +335,13 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-gray-800 to-gray-900 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Enhanced background with multiple gradient layers */}
+    <div className="min-h-screen bg-gradient-to-b from-gray-800 to-gray-700 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Enhanced background with multiple gradient layers matching dashboard */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-800/20 via-indigo-900/10 to-gray-900/30 backdrop-blur-3xl"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_70%)]"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.08),transparent_70%)]"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-800/10 via-gray-800/70 to-gray-800/70 backdrop-blur-3xl"></div>
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:20px_20px]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.1),transparent_70%)]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.1),transparent_70%)]"></div>
       </div>
       
       <div className="w-full max-w-5xl grid md:grid-cols-2 gap-10 mx-auto">
@@ -364,7 +365,7 @@ export default function AuthPage() {
           </div>
           <div className="mt-4 space-y-6">
             {/* Enhanced info box with gradient and shadow */}
-            <div className="bg-gradient-to-r from-blue-500/15 to-cyan-500/15 p-6 rounded-xl border border-blue-300/20 shadow-lg backdrop-blur-sm">
+            <div className="bg-gradient-to-r from-blue-500/20 to-blue-400/15 p-6 rounded-xl border border-blue-300/20 shadow-lg backdrop-blur-sm">
               <h3 className="font-semibold text-blue-300 text-lg flex items-center mb-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -396,7 +397,7 @@ export default function AuthPage() {
               <TabsList className="grid w-full grid-cols-3 mb-8 bg-white/80 backdrop-blur-sm rounded-xl shadow-md overflow-hidden border border-blue-100/50 p-1.5 gap-3">
                 <TabsTrigger 
                   value="login" 
-                  className="py-3 px-0 text-gray-700 text-sm tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
+                  className="py-3 px-0 text-gray-700 text-sm tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-600 data-[state=active]:to-blue-500 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-600 rounded-md"
                 >
                   <div className="flex flex-col items-center w-full px-4">
                     <span className="whitespace-nowrap">Login</span>
@@ -404,7 +405,7 @@ export default function AuthPage() {
                 </TabsTrigger>
                 <TabsTrigger 
                   value="provider" 
-                  className="py-3 px-0 text-gray-700 text-xs leading-tight tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
+                  className="py-3 px-0 text-gray-700 text-xs leading-tight tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-600 data-[state=active]:to-blue-500 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-600 rounded-md"
                 >
                   <div className="flex flex-col items-center w-full px-4">
                     <span className="whitespace-nowrap">Provider</span>
@@ -413,7 +414,7 @@ export default function AuthPage() {
                 </TabsTrigger>
                 <TabsTrigger 
                   value="staff" 
-                  className="py-3 px-0 text-gray-700 text-xs leading-tight tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
+                  className="py-3 px-0 text-gray-700 text-xs leading-tight tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-600 data-[state=active]:to-blue-500 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-600 rounded-md"
                 >
                   <div className="flex flex-col items-center w-full px-4">
                     <span className="whitespace-nowrap">Staff</span>
