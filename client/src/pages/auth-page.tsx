@@ -365,8 +365,8 @@ export default function AuthPage() {
           </div>
           <div className="mt-4 space-y-6">
             {/* Enhanced info box with gradient and shadow */}
-            <div className="bg-gradient-to-r from-blue-500/20 to-blue-400/15 p-6 rounded-xl border border-blue-300/20 shadow-lg backdrop-blur-sm">
-              <h3 className="font-semibold text-blue-300 text-lg flex items-center mb-2">
+            <div className="bg-gradient-to-r from-green-500/20 to-green-400/15 p-6 rounded-xl border border-green-300/20 shadow-lg backdrop-blur-sm">
+              <h3 className="font-semibold text-green-300 text-lg flex items-center mb-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
@@ -397,7 +397,7 @@ export default function AuthPage() {
               <TabsList className="grid w-full grid-cols-3 mb-8 bg-white/80 backdrop-blur-sm rounded-xl shadow-md overflow-hidden border border-blue-100/50 p-1.5 gap-3">
                 <TabsTrigger 
                   value="login" 
-                  className="py-3 px-0 text-gray-700 text-sm tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-600 data-[state=active]:to-blue-500 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-600 rounded-md"
+                  className="py-3 px-0 text-gray-700 text-sm tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-600 data-[state=active]:to-green-500 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-green-50/80 hover:text-green-600 rounded-md"
                 >
                   <div className="flex flex-col items-center w-full px-4">
                     <span className="whitespace-nowrap">Login</span>
@@ -405,7 +405,7 @@ export default function AuthPage() {
                 </TabsTrigger>
                 <TabsTrigger 
                   value="provider" 
-                  className="py-3 px-0 text-gray-700 text-xs leading-tight tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-600 data-[state=active]:to-blue-500 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-600 rounded-md"
+                  className="py-3 px-0 text-gray-700 text-xs leading-tight tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-600 data-[state=active]:to-green-500 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-green-50/80 hover:text-green-600 rounded-md"
                 >
                   <div className="flex flex-col items-center w-full px-4">
                     <span className="whitespace-nowrap">Provider</span>
@@ -414,7 +414,7 @@ export default function AuthPage() {
                 </TabsTrigger>
                 <TabsTrigger 
                   value="staff" 
-                  className="py-3 px-0 text-gray-700 text-xs leading-tight tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-600 data-[state=active]:to-blue-500 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-600 rounded-md"
+                  className="py-3 px-0 text-gray-700 text-xs leading-tight tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-600 data-[state=active]:to-green-500 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-green-50/80 hover:text-green-600 rounded-md"
                 >
                   <div className="flex flex-col items-center w-full px-4">
                     <span className="whitespace-nowrap">Staff</span>
@@ -509,7 +509,7 @@ export default function AuthPage() {
                     <div className="pt-4">
                       <Button 
                         type="submit" 
-                        className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold py-3 h-14 rounded-lg transition-all duration-300 hover:shadow-xl hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_0_rgba(59,130,246,0.4)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.6)] text-[16px]" 
+                        className="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-semibold py-3 h-14 rounded-lg transition-all duration-300 hover:shadow-xl hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_0_rgba(40,199,111,0.4)] hover:shadow-[0_6px_20px_rgba(40,199,111,0.6)] text-[16px]" 
                         disabled={isLoading}
                       >
                         {isLoading ? (
@@ -674,7 +674,7 @@ export default function AuthPage() {
                     
                     <Button 
                       type="submit" 
-                      className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold py-3 h-12 rounded-lg transition-all duration-300 hover:shadow-xl active:scale-[0.98] shadow-[0_4px_14px_0_rgba(59,130,246,0.3)] hover:shadow-[0_6px_16px_rgba(59,130,246,0.5)]" 
+                      className="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-semibold py-3 h-12 rounded-lg transition-all duration-300 hover:shadow-xl active:scale-[0.98] shadow-[0_4px_14px_0_rgba(40,199,111,0.3)] hover:shadow-[0_6px_16px_rgba(40,199,111,0.5)]" 
                       disabled={isLoading}
                     >
                       {isLoading ? t("common.loading") : "Register as Staff Member"}
