@@ -684,4 +684,233 @@ export type InsertVendorProfile = z.infer<typeof insertVendorProfileSchema>;
 export type OrthodonticCase = typeof orthodonticCases.$inferSelect;
 export type InsertOrthodonticCase = z.infer<typeof insertOrthodonticCaseSchema>;
 export type OrthodonticTelehealthSession = typeof orthodonticTelehealthSessions.$inferSelect;
-export type InsertOrthodonticTelehealthSession = z.infer<typeof insertOrthodonticTelehealthSessionSchema>;
+export type InsertOrthodonticTelehealthSession = z.infer<typeof insertOrthodonticTelehealthSessionSchema>;// LAB AND SUPPLY ORDERING TABLES
+
+// Table for dental lab cases
+export const labCases = pgTable("lab_cases", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  doctorId: integer("doctor_id").notNull(),
+  caseNumber: text("case_number").notNull(),
+  labId: integer("lab_id").notNull(), // Reference to the vendor_profiles table
+  status: text("status").notNull(), // Using LabCaseStatusEnum values
+  submissionDate: timestamp("submission_date").defaultNow(),
+  dueDate: timestamp("due_date").notNull(),
+  receivedDate: timestamp("received_date"),
+  completedDate: timestamp("completed_date"),
+  rushOrder: boolean("rush_order").default(false),
+  caseType: text("case_type", { 
+    enum: ["crown", "bridge", "denture", "partial", "nightguard", "implant", "veneer", "other"] 
+  }).notNull(),
+  shade: text("shade"),
+  material: text("material"),
+  impressionType: text("impression_type", { 
+    enum: ["physical", "digital", "cad_cam"] 
+  }),
+  teethInvolved: jsonb("teeth_involved"), // Array of tooth numbers
+  specialInstructions: text("special_instructions"),
+  attachments: jsonb("attachments"), // Files like scans or photos
+  cost: integer("cost"),
+  trackingNumber: text("tracking_number"),
+  shippingProvider: text("shipping_provider"),
+  qualityRating: integer("quality_rating"), // 1-5 rating after receipt
+  remakeRequired: boolean("remake_required").default(false),
+  remakeReason: text("remake_reason"),
+  notes: text("notes"),
+  aiEstimatedCompletionTime: text("ai_estimated_completion_time"),
+  treatmentPlanId: integer("treatment_plan_id"),
+});
+
+// Table for supply inventory items
+export const supplyItems = pgTable("supply_items", {
+  id: serial("id").primaryKey(),
+  itemName: text("item_name").notNull(),
+  sku: text("sku"),
+  description: text("description"),
+  category: text("category").notNull(), // Using SupplyCategoryEnum values
+  currentStock: integer("current_stock").notNull().default(0),
+  minimumStockLevel: integer("minimum_stock_level").notNull().default(1),
+  reorderPoint: integer("reorder_point").notNull().default(5),
+  unitOfMeasure: text("unit_of_measure").notNull(),
+  unitPrice: integer("unit_price"),
+  preferredVendorId: integer("preferred_vendor_id"), // Reference to vendor_profiles
+  alternativeVendorIds: jsonb("alternative_vendor_ids"), // Array of vendor IDs
+  locationInOffice: text("location_in_office"),
+  expirationDate: date("expiration_date"),
+  batchNumber: text("batch_number"),
+  lotNumber: text("lot_number"),
+  lastOrderDate: timestamp("last_order_date"),
+  tags: jsonb("tags"), // Array of tags for searching/filtering
+  imageUrl: text("image_url"),
+  itemWeight: integer("item_weight"),
+  itemDimensions: text("item_dimensions"),
+  autoReorder: boolean("auto_reorder").default(false),
+  isActive: boolean("is_active").default(true), // Flag for discontinued items
+  notes: text("notes"),
+  usageFrequency: text("usage_frequency", { 
+    enum: ["daily", "weekly", "monthly", "rarely"] 
+  }),
+  usageHistory: jsonb("usage_history"), // Track usage over time
+  aiReorderRecommendation: boolean("ai_reorder_recommendation").default(false),
+});
+
+// Table for supply orders
+export const supplyOrders = pgTable("supply_orders", {
+  id: serial("id").primaryKey(),
+  orderNumber: text("order_number").notNull(),
+  vendorId: integer("vendor_id").notNull(), // Reference to vendor_profiles
+  orderedBy: integer("ordered_by").notNull(), // User ID
+  orderDate: timestamp("order_date").defaultNow(),
+  status: text("status").notNull(), // Using SupplyOrderStatusEnum values
+  items: jsonb("items").notNull(), // Array of { supplyItemId, quantity, unitPrice, notes }
+  totalAmount: integer("total_amount").notNull(),
+  discountAmount: integer("discount_amount").default(0),
+  taxAmount: integer("tax_amount").default(0),
+  shippingAmount: integer("shipping_amount").default(0),
+  finalAmount: integer("final_amount").notNull(),
+  paymentMethod: text("payment_method"),
+  paymentTerms: text("payment_terms"),
+  paymentStatus: text("payment_status", { 
+    enum: ["unpaid", "partially_paid", "paid", "refunded"] 
+  }).default("unpaid"),
+  shippingMethod: text("shipping_method"),
+  trackingNumber: text("tracking_number"),
+  estimatedDeliveryDate: date("estimated_delivery_date"),
+  actualDeliveryDate: date("actual_delivery_date"),
+  shippingAddress: text("shipping_address").notNull(),
+  billingAddress: text("billing_address").notNull(),
+  notes: text("notes"),
+  attachments: jsonb("attachments"), // Invoices, packing slips, etc.
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  isBulkOrder: boolean("is_bulk_order").default(false),
+  isRecurringOrder: boolean("is_recurring_order").default(false),
+  recurringSchedule: text("recurring_schedule"), // Monthly, quarterly, etc.
+  isAiGenerated: boolean("is_ai_generated").default(false),
+});
+
+// Table for supply receipts (uploaded by users)
+export const supplyReceipts = pgTable("supply_receipts", {
+  id: serial("id").primaryKey(),
+  uploadedBy: integer("uploaded_by").notNull(), // User ID
+  uploadDate: timestamp("upload_date").defaultNow(),
+  receiptImage: text("receipt_image").notNull(), // URL or base64 image
+  ocrProcessed: boolean("ocr_processed").default(false),
+  extractedText: text("extracted_text"),
+  extractedData: jsonb("extracted_data"), // Structured data from OCR
+  totalAmount: integer("total_amount"),
+  receiptDate: date("receipt_date"),
+  vendorName: text("vendor_name"),
+  vendorId: integer("vendor_id"), // May be linked to a vendor profile
+  categories: jsonb("categories"), // Extracted categories of items
+  items: jsonb("items"), // Extracted individual items
+  verified: boolean("verified").default(false), // User verified OCR accuracy
+  linkedToOrder: boolean("linked_to_order").default(false),
+  supplyOrderId: integer("supply_order_id"), // If linked to an order
+  notes: text("notes"),
+  tags: jsonb("tags"),
+});
+
+// Table for vendor profiles
+export const vendorProfiles = pgTable("vendor_profiles", {
+  id: serial("id").primaryKey(),
+  vendorName: text("vendor_name").notNull(),
+  vendorType: text("vendor_type", { 
+    enum: ["supplies", "lab", "equipment", "service", "other"] 
+  }).notNull(),
+  contactPerson: text("contact_person"),
+  email: text("email"),
+  phone: text("phone"),
+  website: text("website"),
+  address: text("address"),
+  accountNumber: text("account_number"),
+  taxId: text("tax_id"),
+  paymentTerms: text("payment_terms"),
+  discountTerms: text("discount_terms"),
+  shippingTerms: text("shipping_terms"),
+  returnPolicy: text("return_policy"),
+  preferredVendor: boolean("preferred_vendor").default(false),
+  rating: integer("rating"), // 1-5 rating
+  categories: jsonb("categories"), // Categories of items they supply
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  logos: text("logos"),
+  active: boolean("active").default(true),
+  apiIntegrationEnabled: boolean("api_integration_enabled").default(false),
+  apiCredentials: jsonb("api_credentials"),
+  apiEndpoints: jsonb("api_endpoints"),
+});
+
+// ORTHODONTIC TELEHEALTH TABLES
+
+// Table for orthodontic cases
+export const orthodonticCases = pgTable("orthodontic_cases", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  doctorId: integer("doctor_id").notNull(),
+  caseNumber: text("case_number").notNull(),
+  status: text("status").notNull(), // Using OrthodonticCaseStatusEnum values
+  startDate: timestamp("start_date").defaultNow(),
+  estimatedCompletionDate: date("estimated_completion_date"),
+  actualCompletionDate: date("actual_completion_date"),
+  treatmentType: text("treatment_type", { 
+    enum: ["invisalign", "braces", "clear_aligners", "retainers", "other"] 
+  }).notNull(),
+  treatmentPlan: jsonb("treatment_plan"), // Detailed treatment steps
+  currentAligner: integer("current_aligner"),
+  totalAligners: integer("total_aligners"),
+  alignerChangeFrequency: integer("aligner_change_frequency"), // Days
+  lastAlignmentChange: timestamp("last_alignment_change"),
+  nextAlignmentChange: timestamp("next_alignment_change"),
+  initialScans: jsonb("initial_scans"), // URLs to initial scans/images
+  progressionScans: jsonb("progression_scans"), // Array of { date, urls, notes }
+  reminderSettings: jsonb("reminder_settings"), // Patient alignment reminders
+  patientCompliance: text("patient_compliance", {
+    enum: ["excellent", "good", "fair", "poor"]
+  }),
+  complianceData: jsonb("compliance_data"), // Tracked aligner wear data
+  notes: text("notes"),
+  attachments: jsonb("attachments"),
+  aiProgressAnalysis: jsonb("ai_progress_analysis"), // AI analysis of progress
+  nextCheckupRequired: boolean("next_checkup_required").default(false),
+  isInPerson: boolean("is_in_person").default(true),
+  isTelehealth: boolean("is_telehealth").default(false),
+  treatmentPlanId: integer("treatment_plan_id"),
+  labCaseId: integer("lab_case_id"),
+});
+
+// Table for orthodontic telehealth sessions
+export const orthodonticTelehealthSessions = pgTable("orthodontic_telehealth_sessions", {
+  id: serial("id").primaryKey(),
+  orthodonticCaseId: integer("orthodontic_case_id").notNull(),
+  patientId: integer("patient_id").notNull(), 
+  doctorId: integer("doctor_id").notNull(),
+  sessionDate: timestamp("session_date").notNull(),
+  status: text("status", {
+    enum: ["scheduled", "completed", "cancelled", "no_show", "rescheduled"]
+  }).notNull().default("scheduled"),
+  sessionType: text("session_type", {
+    enum: ["regular_checkup", "emergency", "adjustment", "final_review"]
+  }).notNull(),
+  patientSubmittedImages: jsonb("patient_submitted_images"), // URLs to images
+  patientReportedIssues: text("patient_reported_issues"),
+  doctorNotes: text("doctor_notes"),
+  aiAnalysisResults: jsonb("ai_analysis_results"), // AI analysis of photos
+  alignerFit: text("aligner_fit", {
+    enum: ["excellent", "good", "fair", "poor", "not_assessed"]
+  }),
+  treatmentProgress: text("treatment_progress", {
+    enum: ["ahead", "on_track", "slightly_behind", "significantly_behind"]
+  }),
+  adjustmentsRequired: boolean("adjustments_required").default(false),
+  adjustmentDetails: text("adjustment_details"),
+  inPersonVisitRequired: boolean("in_person_visit_required").default(false),
+  nextSessionDate: timestamp("next_session_date"),
+  videoChatUrl: text("video_chat_url"),
+  videoChatRecording: text("video_chat_recording"),
+  sessionDuration: integer("session_duration"), // Minutes
+  followUpActions: jsonb("follow_up_actions"),
+  reminderSent: boolean("reminder_sent").default(false),
+  feedback: jsonb("feedback"), // Patient feedback after session
+});
