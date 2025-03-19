@@ -103,25 +103,23 @@ export function InteractiveDiagnosis({ patientHistory, vitalSigns, relevantTests
     }) => {
       setIsAnalyzing(true);
       try {
-        const result = await apiRequest("POST", "/api/ai/refine-diagnosis", {
-          initialSymptoms: symptoms,
-          patientResponse: response.answer,
-          question: response.question,
-          previousDiagnosis: response.previousDiagnosis,
-          conversationHistory: response.conversationHistory,
-          patientContext: {
-            patientHistory,
-            vitalSigns,
-            relevantTests,
-            dentalRecords
+        return await apiRequest({
+          method: "POST",
+          url: "/api/ai/refine-diagnosis",
+          body: {
+            initialSymptoms: symptoms,
+            patientResponse: response.answer,
+            question: response.question,
+            previousDiagnosis: response.previousDiagnosis,
+            conversationHistory: response.conversationHistory,
+            patientContext: {
+              patientHistory,
+              vitalSigns,
+              relevantTests,
+              dentalRecords
+            }
           }
         });
-        
-        if (!result.ok) {
-          throw new Error("Failed to refine diagnosis");
-        }
-        
-        return await result.json();
       } catch (error) {
         console.error("Refining diagnosis error:", error);
         throw error;
