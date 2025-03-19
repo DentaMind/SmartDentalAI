@@ -51,6 +51,7 @@
   }
 
   /* DentaMind theme utility classes */
+  /* Button styles */
   .dentamind-blue-btn {
     @apply bg-[var(--dentamind-blue)] text-white hover:bg-[var(--dentamind-blue-dark)] transition-colors;
   }
@@ -62,13 +63,30 @@
   .dentamind-orange-btn {
     @apply bg-[var(--dentamind-orange)] text-white hover:bg-[var(--dentamind-orange-dark)] transition-colors;
   }
+
+  .dentamind-blue-outline-btn {
+    @apply border-[var(--dentamind-blue)] text-[var(--dentamind-blue)] hover:bg-[var(--dentamind-blue)] hover:text-white transition-colors border;
+  }
   
+  .dentamind-green-outline-btn {
+    @apply border-[var(--dentamind-green)] text-[var(--dentamind-green)] hover:bg-[var(--dentamind-green)] hover:text-white transition-colors border;
+  }
+  
+  .dentamind-orange-outline-btn {
+    @apply border-[var(--dentamind-orange)] text-[var(--dentamind-orange)] hover:bg-[var(--dentamind-orange)] hover:text-white transition-colors border;
+  }
+  
+  /* Text and border styles */
   .dentamind-blue-text {
     @apply text-[var(--dentamind-blue)];
   }
   
   .dentamind-green-text {
     @apply text-[var(--dentamind-green)];
+  }
+
+  .dentamind-orange-text {
+    @apply text-[var(--dentamind-orange)];
   }
   
   .dentamind-blue-border {
@@ -78,13 +96,52 @@
   .dentamind-green-border {
     @apply border-[var(--dentamind-green)];
   }
+
+  .dentamind-orange-border {
+    @apply border-[var(--dentamind-orange)];
+  }
   
+  /* Component styles */
   .dentamind-card {
     @apply rounded-lg border shadow-sm p-4 bg-card text-card-foreground;
   }
+
+  .dentamind-green-card {
+    @apply rounded-lg border border-[var(--dentamind-green)] border-opacity-20 bg-[var(--dentamind-green)] bg-opacity-5 p-4 shadow-sm;
+  }
+
+  .dentamind-blue-card {
+    @apply rounded-lg border border-[var(--dentamind-blue)] border-opacity-20 bg-[var(--dentamind-blue)] bg-opacity-5 p-4 shadow-sm;
+  }
+
+  .dentamind-orange-card {
+    @apply rounded-lg border border-[var(--dentamind-orange)] border-opacity-20 bg-[var(--dentamind-orange)] bg-opacity-5 p-4 shadow-sm;
+  }
   
+  /* Typography */
   .dentamind-header {
     @apply text-xl font-semibold tracking-tight;
+  }
+
+  .dentamind-green-header {
+    @apply text-xl font-semibold tracking-tight text-[var(--dentamind-green)];
+  }
+
+  .dentamind-blue-header {
+    @apply text-xl font-semibold tracking-tight text-[var(--dentamind-blue)];
+  }
+
+  /* Status indicators */
+  .dentamind-success-badge {
+    @apply bg-[var(--dentamind-green)] bg-opacity-10 text-[var(--dentamind-green)] px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .dentamind-warning-badge {
+    @apply bg-[var(--dentamind-orange)] bg-opacity-10 text-[var(--dentamind-orange)] px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .dentamind-info-badge {
+    @apply bg-[var(--dentamind-blue)] bg-opacity-10 text-[var(--dentamind-blue)] px-2 py-0.5 rounded-full text-xs font-medium;
   }
   
   /* Custom animations for loading screen */

@@ -435,6 +435,13 @@ export default function AuthPage() {
                   <form onSubmit={loginForm.handleSubmit(async (data) => {
                     try {
                       console.log("Attempting login for:", data.username);
+                      
+                      // Adding debug info
+                      if (data.username === 'patient1' && data.password === 'patient123') {
+                        console.log("Using test credentials for patient1");
+                      }
+                      
+                      // Attempt login
                       await login(data.username, data.password);
                       console.log("Login successful");
                     } catch (err) {
