@@ -282,7 +282,7 @@ export default function AuthPage() {
             <div className="bg-gradient-to-r from-blue-500/15 to-cyan-500/15 p-6 rounded-xl border border-blue-300/20 shadow-lg backdrop-blur-sm">
               <h3 className="font-semibold text-blue-300 text-lg flex items-center mb-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812a3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
                 AI-Powered Clinical Intelligence
               </h3>
@@ -308,21 +308,12 @@ export default function AuthPage() {
             {/* Subtle card pattern */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0)_0%,rgba(255,255,255,0.4)_100%)] opacity-30 pointer-events-none rounded-xl"></div>
             <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-4 mb-8 bg-white/80 backdrop-blur-sm rounded-xl shadow-md overflow-hidden border border-blue-100/50 p-1.5 gap-3">
+              <TabsList className="grid w-full grid-cols-3 mb-8 bg-white/80 backdrop-blur-sm rounded-xl shadow-md overflow-hidden border border-blue-100/50 p-1.5 gap-3">
                 <TabsTrigger 
                   value="login" 
                   className="py-3 px-0 text-gray-700 text-sm tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
                 >
                   Login
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="patient" 
-                  className="py-3 px-0 text-gray-700 text-xs leading-tight tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
-                >
-                  <div className="flex flex-col items-center">
-                    <span>Patient</span>
-                    <span className="text-[10px] opacity-70">Register</span>
-                  </div>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="provider" 
@@ -447,231 +438,15 @@ export default function AuthPage() {
                     
                     <div className="mt-4 text-center">
                       <p className="text-sm text-gray-600">
-                        Don't have an account? Select "Patient", "Provider", or "Staff" to register
+                        Don't have an account? Select "Provider" or "Staff" to register
                       </p>
                     </div>
                   </form>
                 </Form>
               </TabsContent>
 
-              <TabsContent value="patient">
-                <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-100">
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0 mt-0.5">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-blue-800">Patient Registration</h3>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Register as a patient to access your dental records, appointment scheduling, and personalized care plans.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <Form {...registerForm}>
-                  <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-6">
-                    {/* Username and Password section */}
-                    <div className="space-y-4">
-                      <FormField
-                        control={registerForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-semibold text-gray-700">{t("auth.username")}</FormLabel>
-                            <FormControl>
-                              <Input 
-                                {...field} 
-                                className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95 text-gray-900"
-                                placeholder="Create a username"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={registerForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-semibold text-gray-700">{t("auth.password")}</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="password" 
-                                {...field} 
-                                className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95 text-gray-900"
-                                placeholder="Create a strong password"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    {/* Personal Information section */}
-                    <div className="pt-2">
-                      <h3 className="text-sm font-medium text-gray-700 mb-3">Personal Information</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={registerForm.control}
-                          name="firstName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-semibold text-gray-700">First Name</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  {...field} 
-                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
-                                  placeholder="Your first name"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={registerForm.control}
-                          name="lastName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-semibold text-gray-700">Last Name</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  {...field} 
-                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
-                                  placeholder="Your last name"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Contact Information section */}
-                    <div className="pt-2">
-                      <h3 className="text-sm font-medium text-gray-700 mb-3">Contact Information</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={registerForm.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-semibold text-gray-700">Email</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="email" 
-                                  {...field}
-                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
-                                  placeholder="Your email address"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={registerForm.control}
-                          name="phoneNumber"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-semibold text-gray-700">Phone Number</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  {...field} 
-                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
-                                  placeholder="Your phone number"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Additional Information section */}
-                    <div className="pt-2">
-                      <h3 className="text-sm font-medium text-gray-700 mb-3">Additional Information</h3>
-                      <FormField
-                        control={registerForm.control}
-                        name="dateOfBirth"
-                        render={({ field }) => (
-                          <FormItem className="mb-4">
-                            <FormLabel className="text-sm font-semibold text-gray-700">Date of Birth</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="date" 
-                                {...field} 
-                                className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={registerForm.control}
-                          name="insuranceProvider"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-semibold text-gray-700">Insurance Provider</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  {...field} 
-                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
-                                  placeholder="Your insurance provider"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={registerForm.control}
-                          name="insuranceNumber"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-semibold text-gray-700">Insurance Number</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  {...field} 
-                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
-                                  placeholder="Your insurance number"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold py-3 h-12 rounded-lg transition-all duration-300 hover:shadow-xl active:scale-[0.98] shadow-[0_4px_14px_0_rgba(59,130,246,0.4)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.6)]" 
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <span className="flex items-center justify-center">
-                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          {t("common.loading")}
-                        </span>
-                      ) : (
-                        t("auth.register")
-                      )}
-                    </Button>
-                  </form>
-                </Form>
-              </TabsContent>
+              {/* Patient tab was removed as per the new workflow 
+                  where patients are registered by providers/staff */}
 
               <TabsContent value="staff">
                 <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
@@ -777,6 +552,30 @@ export default function AuthPage() {
                         )}
                       />
                     </div>
+                    
+                    <FormField
+                      control={staffForm.control}
+                      name="licenseNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            <span className="flex items-center">
+                              Provider's License Number
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                              </svg>
+                            </span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Enter the license number of the provider you work for" />
+                          </FormControl>
+                          <FormMessage />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Required to verify your connection to a dental provider.
+                          </p>
+                        </FormItem>
+                      )}
+                    />
                     
                     <Button 
                       type="submit" 
@@ -959,97 +758,56 @@ export default function AuthPage() {
                                 <Input 
                                   {...field} 
                                   className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
-                                  placeholder="Format: 2 letters followed by 6 digits"
+                                  placeholder="Format: AB123456"
                                   required
                                 />
                               </FormControl>
                               <FormMessage />
+                              <p className="text-xs text-gray-500 mt-1">Required for verification purposes.</p>
                             </FormItem>
                           )}
                         />
                       </div>
                     </div>
                     
-                    <div className="mt-8 border-t pt-6">
-                      <h3 className="text-lg font-medium mb-4">Subscription Plan</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div className="border rounded-lg p-4 hover:border-primary hover:bg-blue-50 cursor-pointer relative">
-                          <input type="radio" name="plan" className="absolute right-2 top-2" defaultChecked />
-                          <h4 className="font-medium mb-1">Basic</h4>
-                          <p className="text-xl font-bold mb-2">$499<span className="text-sm font-normal">/month</span></p>
-                          <ul className="text-sm space-y-1 text-gray-600">
-                            <li>• Up to 500 patients</li>
-                            <li>• Basic AI diagnostics</li>
-                            <li>• Email support</li>
-                          </ul>
+                    {/* Terms and conditions */}
+                    <div className="mt-2">
+                      <div className="flex items-start">
+                        <div className="flex items-center h-5">
+                          <input
+                            id="terms"
+                            type="checkbox"
+                            className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                          />
                         </div>
-                        <div className="border rounded-lg p-4 hover:border-primary hover:bg-blue-50 cursor-pointer relative">
-                          <input type="radio" name="plan" className="absolute right-2 top-2" />
-                          <h4 className="font-medium mb-1">Professional</h4>
-                          <p className="text-xl font-bold mb-2">$699<span className="text-sm font-normal">/month</span></p>
-                          <ul className="text-sm space-y-1 text-gray-600">
-                            <li>• Unlimited patients</li>
-                            <li>• Advanced AI tools</li>
-                            <li>• Priority support</li>
-                          </ul>
+                        <div className="ml-3 text-sm">
+                          <label htmlFor="terms" className="font-medium text-gray-700">
+                            I agree to the 
+                            <a href="#" className="text-blue-600 hover:text-blue-800"> Terms of Service</a>
+                            {' '}and{' '}
+                            <a href="#" className="text-blue-600 hover:text-blue-800">Privacy Policy</a>
+                          </label>
                         </div>
-                        <div className="border rounded-lg p-4 hover:border-primary hover:bg-blue-50 cursor-pointer relative">
-                          <input type="radio" name="plan" className="absolute right-2 top-2" />
-                          <h4 className="font-medium mb-1">Enterprise</h4>
-                          <p className="text-xl font-bold mb-2">$1499<span className="text-sm font-normal">/month</span></p>
-                          <ul className="text-sm space-y-1 text-gray-600">
-                            <li>• Multi-location support</li>
-                            <li>• Full AI suite access</li>
-                            <li>• 24/7 dedicated support</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="border-t pt-6">
-                      <h3 className="text-lg font-medium mb-4">Payment Method</h3>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <FormItem>
-                            <FormLabel>Card Number</FormLabel>
-                            <FormControl>
-                              <Input placeholder="•••• •••• •••• ••••" />
-                            </FormControl>
-                          </FormItem>
-                          <div className="grid grid-cols-2 gap-4">
-                            <FormItem>
-                              <FormLabel>Expiry Date</FormLabel>
-                              <FormControl>
-                                <Input placeholder="MM/YY" />
-                              </FormControl>
-                            </FormItem>
-                            <FormItem>
-                              <FormLabel>CVC</FormLabel>
-                              <FormControl>
-                                <Input placeholder="•••" />
-                              </FormControl>
-                            </FormItem>
-                          </div>
-                        </div>
-                        <FormItem>
-                          <FormLabel>Cardholder Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Name as it appears on card" />
-                          </FormControl>
-                        </FormItem>
                       </div>
                     </div>
                     
                     <Button 
                       type="submit" 
-                      className="w-full mt-6 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold py-3 h-12 rounded-lg transition-all duration-300 hover:shadow-xl active:scale-[0.98] shadow-[0_4px_14px_0_rgba(59,130,246,0.3)] hover:shadow-[0_6px_16px_rgba(59,130,246,0.5)]" 
+                      className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold py-3 h-12 rounded-lg transition-all duration-300 hover:shadow-xl active:scale-[0.98] shadow-[0_4px_14px_0_rgba(59,130,246,0.4)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.6)]" 
                       disabled={isLoading}
                     >
-                      {isLoading ? "Processing..." : "Complete Sign Up & Subscribe"}
+                      {isLoading ? (
+                        <span className="flex items-center justify-center">
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          {t("common.loading")}
+                        </span>
+                      ) : (
+                        "Register as Provider"
+                      )}
                     </Button>
-                    <p className="text-center text-xs text-gray-500 mt-2">
-                      By signing up, you agree to our Terms of Service and Privacy Policy
-                    </p>
                   </form>
                 </Form>
               </TabsContent>
