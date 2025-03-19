@@ -380,7 +380,7 @@ export const prescriptions = pgTable("prescriptions", {
   notes: text("notes"),
   instructions: text("instructions"),
   status: text("status", {
-    enum: ["active", "completed", "cancelled", "on_hold"]
+    enum: ["active", "completed", "cancelled", "on_hold", "sent_to_pharmacy", "filled"]
   }).notNull().default("active"),
   reasonForPrescription: text("reason_for_prescription"),
   allergiesChecked: boolean("allergies_checked").default(false),
@@ -391,6 +391,17 @@ export const prescriptions = pgTable("prescriptions", {
   relatedMedicalNoteId: integer("related_medical_note_id"),
   aiGenerationPrompt: text("ai_generation_prompt"), // Store prompt used for AI generation
   aiGeneratedText: text("ai_generated_text"),       // Store AI generated prescription text
+  // E-Prescription fields
+  pharmacyId: integer("pharmacy_id"),
+  ePrescriptionSent: boolean("e_prescription_sent").default(false),
+  ePrescriptionSentAt: timestamp("e_prescription_sent_at"),
+  ePrescriptionResponse: text("e_prescription_response"),
+  ePrescriptionConfirmationCode: text("e_prescription_confirmation_code"),
+  controlled: boolean("controlled").default(false),
+  controlledSubstanceSchedule: text("controlled_substance_schedule"),
+  // Digital signature fields for EPCS (Electronic Prescribing of Controlled Substances)
+  digitalSignature: text("digital_signature"),
+  digitalSignatureTimestamp: timestamp("digital_signature_timestamp"),
 });
 
 // Compliance tracking table
@@ -666,6 +677,14 @@ export type InsertComplianceRecord = z.infer<typeof insertComplianceRecordSchema
 export type Prescription = typeof prescriptions.$inferSelect;
 export type InsertPrescription = z.infer<typeof insertPrescriptionSchema>;
 
+// Pharmacy and e-prescription types
+export type Pharmacy = typeof pharmacies.$inferSelect;
+export type InsertPharmacy = z.infer<typeof insertPharmacySchema>;
+export type FavoritePharmacy = typeof favoritePharmacies.$inferSelect;
+export type InsertFavoritePharmacy = z.infer<typeof insertFavoritePharmacySchema>;
+export type PrescriptionLog = typeof prescriptionLogs.$inferSelect;
+export type InsertPrescriptionLog = z.infer<typeof insertPrescriptionLogSchema>;
+
 // New types for the additional tables
 export type TimeClock = typeof timeClock.$inferSelect;
 export type InsertTimeClock = z.infer<typeof insertTimeClockSchema>;
@@ -693,7 +712,56 @@ export type InsertVendorProfile = z.infer<typeof insertVendorProfileSchema>;
 export type OrthodonticCase = typeof orthodonticCases.$inferSelect;
 export type InsertOrthodonticCase = z.infer<typeof insertOrthodonticCaseSchema>;
 export type OrthodonticTelehealthSession = typeof orthodonticTelehealthSessions.$inferSelect;
-export type InsertOrthodonticTelehealthSession = z.infer<typeof insertOrthodonticTelehealthSessionSchema>;// LAB AND SUPPLY ORDERING TABLES
+export type InsertOrthodonticTelehealthSession = z.infer<typeof insertOrthodonticTelehealthSessionSchema>;// PHARMACY AND E-PRESCRIPTION TABLES
+export const pharmacies = pgTable("pharmacies", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  zipCode: text("zip_code").notNull(),
+  phone: text("phone").notNull(),
+  fax: text("fax"),
+  email: text("email"),
+  npi: text("npi"), // National Provider Identifier
+  ncpdpId: text("ncpdp_id"), // National Council for Prescription Drug Programs ID
+  isActive: boolean("is_active").notNull().default(true),
+  supportsEPrescription: boolean("supports_e_prescription").default(false),
+  supportedEPrescriptionSystem: text("supported_e_prescription_system"),
+  apiEndpoint: text("api_endpoint"),
+  apiCredentials: jsonb("api_credentials"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const favoritePharmacies = pgTable("favorite_pharmacies", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  pharmacyId: integer("pharmacy_id").notNull(),
+  isPrimary: boolean("is_primary").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const prescriptionLogs = pgTable("prescription_logs", {
+  id: serial("id").primaryKey(),
+  prescriptionId: integer("prescription_id").notNull(),
+  action: text("action", {
+    enum: ["created", "updated", "sent", "filled", "cancelled", "refilled"]
+  }).notNull(),
+  performedBy: integer("performed_by").notNull(),
+  performedAt: timestamp("performed_at").defaultNow(),
+  details: jsonb("details"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+});
+
+// Define insert schemas for pharmacy-related tables
+export const insertPharmacySchema = createInsertSchema(pharmacies);
+export const insertFavoritePharmacySchema = createInsertSchema(favoritePharmacies);
+export const insertPrescriptionLogSchema = createInsertSchema(prescriptionLogs);
+
+// LAB AND SUPPLY ORDERING TABLES
 
 // Table for dental lab cases
 export const labCases = pgTable("lab_cases", {
