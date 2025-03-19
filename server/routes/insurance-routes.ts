@@ -2,8 +2,15 @@ import express, { Request, Response } from 'express';
 import { requireAuth, requireRole } from '../middleware/auth';
 import { z } from 'zod';
 import { db } from '../db';
-import { patients, insuranceClaims } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { 
+  patients, 
+  insuranceClaims, 
+  insuranceVerifications, 
+  insertInsuranceVerificationSchema,
+  InsertInsuranceVerification,
+  InsuranceVerificationStatusEnum
+} from '@shared/schema';
+import { eq, and, desc, or } from 'drizzle-orm';
 import { securityService } from '../services/security';
 
 const router = express.Router();
@@ -358,5 +365,260 @@ function getLimitationsForCategory(category: string, limitations: any) {
   
   return categoryLimitations;
 }
+
+// Schema for insurance verification status check
+const statusCheckSchema = z.object({
+  patientId: z.number(),
+  appointmentId: z.number().optional(),
+  insuranceProvider: z.string().optional(),
+  insuranceMemberId: z.string().optional()
+});
+
+// Create a new insurance verification record
+router.post('/verifications', requireAuth, async (req: Request, res: Response) => {
+  try {
+    // Validate the request body
+    const verification = insertInsuranceVerificationSchema.parse(req.body);
+    
+    // Create a new verification record
+    const newVerification = await db.insert(insuranceVerifications).values({
+      ...verification,
+      verifiedBy: req.user!.id,
+      verificationDate: new Date(),
+      status: 'pending' as any, // Using the enum value
+    }).returning();
+
+    // Create audit trail
+    await securityService.createAuditLog({
+      userId: req.user!.id,
+      action: 'create_insurance_verification',
+      resource: `verification/${newVerification[0].id}`,
+      result: 'success',
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] || 'unknown',
+      details: {
+        patientId: verification.patientId,
+        insuranceProvider: verification.insuranceProvider
+      }
+    });
+
+    return res.status(201).json(newVerification[0]);
+  } catch (error: any) {
+    console.error('Error creating insurance verification:', error);
+    return res.status(400).json({
+      error: 'Failed to create insurance verification',
+      message: error.message
+    });
+  }
+});
+
+// Get all insurance verifications for a patient
+router.get('/verifications/patient/:patientId', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const patientId = parseInt(req.params.patientId);
+    
+    // Get all verifications for this patient, ordered by most recent first
+    const verifications = await db.query.insuranceVerifications.findMany({
+      where: eq(insuranceVerifications.patientId, patientId),
+      orderBy: [desc(insuranceVerifications.verificationDate)]
+    });
+    
+    return res.json(verifications);
+  } catch (error: any) {
+    console.error('Error retrieving insurance verifications:', error);
+    return res.status(400).json({
+      error: 'Failed to retrieve insurance verifications',
+      message: error.message
+    });
+  }
+});
+
+// Update an insurance verification status
+router.patch('/verifications/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const updates = req.body;
+    
+    // Ensure only allowed fields are updated
+    const allowedUpdates = ['status', 'verificationResponse', 'notes'];
+    const filteredUpdates: Record<string, any> = {};
+    
+    Object.keys(updates).forEach(key => {
+      if (allowedUpdates.includes(key)) {
+        filteredUpdates[key] = updates[key];
+      }
+    });
+    
+    // Add last updated timestamp
+    filteredUpdates.lastUpdated = new Date();
+    
+    // Update the verification record
+    const updatedVerification = await db
+      .update(insuranceVerifications)
+      .set(filteredUpdates)
+      .where(eq(insuranceVerifications.id, id))
+      .returning();
+    
+    if (!updatedVerification.length) {
+      return res.status(404).json({
+        error: 'Verification not found',
+        message: 'The specified verification record does not exist'
+      });
+    }
+    
+    // Create audit trail
+    await securityService.createAuditLog({
+      userId: req.user!.id,
+      action: 'update_insurance_verification',
+      resource: `verification/${id}`,
+      result: 'success',
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] || 'unknown',
+      details: {
+        updates: filteredUpdates
+      }
+    });
+    
+    return res.json(updatedVerification[0]);
+  } catch (error: any) {
+    console.error('Error updating insurance verification:', error);
+    return res.status(400).json({
+      error: 'Failed to update insurance verification',
+      message: error.message
+    });
+  }
+});
+
+// Check real-time status of insurance policy
+router.post('/check-status', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { patientId, appointmentId, insuranceProvider, insuranceMemberId } = statusCheckSchema.parse(req.body);
+    
+    // Get the patient's insurance information if not provided
+    let provider = insuranceProvider;
+    let memberId = insuranceMemberId;
+    
+    if (!provider || !memberId) {
+      const patientData = await db.query.patients.findFirst({
+        where: eq(patients.id, patientId)
+      });
+      
+      if (!patientData) {
+        return res.status(404).json({ error: 'Patient not found' });
+      }
+      
+      // Handle null or undefined values from the database
+      provider = patientData.insuranceProvider ? patientData.insuranceProvider : undefined;
+      memberId = patientData.insuranceNumber ? patientData.insuranceNumber : undefined;
+      
+      if (!provider || !memberId) {
+        return res.status(400).json({
+          error: 'Missing insurance information',
+          message: 'Patient does not have insurance provider or member ID information'
+        });
+      }
+    }
+    
+    // In a production environment, this would connect to an insurance verification API
+    // to check the real-time status of the insurance policy
+    
+    // Simulate a real verification response
+    const verificationResponse = {
+      status: 'active',
+      policyNumber: memberId,
+      provider: provider,
+      effectiveDate: '2023-01-01',
+      terminationDate: null,
+      coverageDetails: {
+        deductibleMet: true,
+        annualMaximum: 1500,
+        usedAmount: 350,
+        eligibleFor: ['preventive', 'basic', 'major']
+      },
+      subscriber: {
+        name: 'Test Patient',
+        relationship: 'self',
+        employerName: 'Example Corp'
+      },
+      verificationTimestamp: new Date().toISOString()
+    };
+    
+    // Save verification information
+    const verificationDetails = {
+      planType: 'PPO',
+      coverage: {
+        preventive: 100,
+        basic: 80,
+        major: 50,
+        annual_maximum: 1500,
+        remaining: 1150
+      },
+      deductible: {
+        individual: 50,
+        family: 150,
+        met: true
+      }
+    };
+    
+    // Create a verification record if appointmentId is provided
+    if (appointmentId) {
+      // Note: We need to match the schema fields exactly
+      const verificationData: InsertInsuranceVerification = {
+        patientId,
+        insuranceProvider: provider,
+        memberId: memberId,
+        status: 'verified' as any, // Cast to match enum
+        verificationDate: new Date(),
+        verificationDetails: verificationResponse,
+        verifiedBy: req.user!.id,
+        subscriberName: 'Test Patient',
+        subscriberRelationship: 'self',
+        planType: 'PPO',
+        coverage: verificationDetails.coverage,
+        deductible: verificationDetails.deductible
+      };
+      
+      await db.insert(insuranceVerifications).values(verificationData);
+    }
+    
+    // Return the verification results
+    return res.json({
+      verified: true,
+      ...verificationResponse
+    });
+    
+  } catch (error: any) {
+    console.error('Insurance status check error:', error);
+    return res.status(400).json({
+      error: 'Status check failed',
+      message: error.message || 'Could not verify insurance status'
+    });
+  }
+});
+
+// Get all active insurance verifications for dashboard
+router.get('/active-verifications', requireAuth, requireRole(['admin', 'manager', 'assistant']), async (req: Request, res: Response) => {
+  try {
+    // Get pending and in-progress verifications
+    const activeVerifications = await db.query.insuranceVerifications.findMany({
+      where: (insuranceVerifications) => {
+        return or(
+          eq(insuranceVerifications.status, 'pending' as any),
+          eq(insuranceVerifications.status, 'in_progress' as any)
+        );
+      },
+      orderBy: [desc(insuranceVerifications.verificationDate)],
+      limit: 100 // Limit to prevent excessive data
+    });
+    
+    return res.json(activeVerifications);
+  } catch (error: any) {
+    console.error('Error retrieving active verifications:', error);
+    return res.status(400).json({
+      error: 'Failed to retrieve active verifications',
+      message: error.message
+    });
+  }
+});
 
 export default router;
