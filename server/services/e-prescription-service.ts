@@ -8,12 +8,17 @@
  * - Handling digital signatures for controlled substances
  */
 
-import axios from 'axios';
 import { db } from '../db';
-import { prescriptions, prescriptionLogs, pharmacies } from '../../shared/schema';
-import { Prescription, InsertPrescriptionLog } from '../../shared/schema';
-import { eq, and } from 'drizzle-orm';
-import { aiRequestQueue } from './ai-request-queue';
+import { 
+  prescriptions, 
+  pharmacies, 
+  favoritePharmacies, 
+  prescriptionLogs,
+  insertPrescriptionLogSchema 
+} from '../../shared/schema';
+import { eq, and, inArray } from 'drizzle-orm';
+import { InsertPrescriptionLog, Prescription } from '../../shared/schema';
+import { aiServiceManager } from './ai-service-manager';
 import { AIServiceType } from './ai-service-types';
 
 interface EPrescriptionResponse {
@@ -34,7 +39,7 @@ export class EPrescriptionService {
     userId: number
   ): Promise<EPrescriptionResponse> {
     try {
-      // Get prescription and pharmacy data
+      // Get the prescription
       const prescription = await db.query.prescriptions.findFirst({
         where: eq(prescriptions.id, prescriptionId)
       });
@@ -42,11 +47,12 @@ export class EPrescriptionService {
       if (!prescription) {
         return {
           success: false,
-          message: "Prescription not found",
-          errorCode: "PRESCRIPTION_NOT_FOUND"
+          message: 'Prescription not found',
+          errorCode: 'PRESCRIPTION_NOT_FOUND'
         };
       }
 
+      // Get the pharmacy
       const pharmacy = await db.query.pharmacies.findFirst({
         where: eq(pharmacies.id, pharmacyId)
       });
@@ -54,76 +60,80 @@ export class EPrescriptionService {
       if (!pharmacy) {
         return {
           success: false,
-          message: "Pharmacy not found",
-          errorCode: "PHARMACY_NOT_FOUND"
+          message: 'Pharmacy not found',
+          errorCode: 'PHARMACY_NOT_FOUND'
         };
       }
 
+      // Check if pharmacy supports e-prescriptions
       if (!pharmacy.supportsEPrescription) {
         return {
           success: false,
-          message: "This pharmacy does not support e-prescriptions",
-          errorCode: "EPRESCRIPTION_NOT_SUPPORTED"
+          message: 'This pharmacy does not support e-prescriptions',
+          errorCode: 'PHARMACY_NO_EPRESCRIPTION_SUPPORT'
         };
       }
 
-      // Check if the prescription is for a controlled substance
-      if (prescription.controlled) {
-        // Verify digital signature requirements are met
-        if (!prescription.digitalSignature || !prescription.digitalSignatureTimestamp) {
-          return {
-            success: false,
-            message: "Controlled substance prescriptions require digital signatures",
-            errorCode: "MISSING_DIGITAL_SIGNATURE"
-          };
+      // If it's a controlled substance, check if it has been digitally signed
+      if (prescription.controlled && !prescription.digitalSignature) {
+        return {
+          success: false,
+          message: 'Controlled substance prescriptions must be digitally signed before sending',
+          errorCode: 'MISSING_DIGITAL_SIGNATURE'
+        };
+      }
+
+      // Simulate sending to pharmacy (in a real implementation, this would be an API call to a pharmacy system)
+      const pharmacyResult = await this.simulatePharmacyApiCall(prescription, pharmacy);
+
+      if (!pharmacyResult.success) {
+        return pharmacyResult;
+      }
+
+      // Update prescription status
+      await db.update(prescriptions)
+        .set({
+          status: 'sent_to_pharmacy',
+          pharmacyId: pharmacyId,
+          ePrescriptionSent: true,
+          ePrescriptionSentAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(prescriptions.id, prescriptionId));
+
+      // Create a log entry
+      const logEntry: InsertPrescriptionLog = {
+        prescriptionId,
+        action: "sent", // Using the allowed enum value
+        performedBy: userId,
+        performedAt: new Date(),
+        details: {
+          pharmacyId,
+          pharmacyName: pharmacy.name,
+          confirmationCode: pharmacyResult.confirmationCode
         }
-      }
+      };
 
-      // For demo purposes, we'll simulate the API call to the pharmacy
-      // In production, this would integrate with actual pharmacy APIs
-      // like Surescripts, RxChange, etc.
-      
-      // Simulated API response - in production this would be an actual integration
-      const apiResponse = await this.simulatePharmacyApiCall(prescription, pharmacy);
+      await db.insert(prescriptionLogs).values(logEntry);
 
-      // If successful, update the prescription status
-      if (apiResponse.success) {
-        await db.update(prescriptions)
-          .set({
-            status: "sent_to_pharmacy",
-            ePrescriptionSent: true,
-            ePrescriptionSentAt: new Date(),
-            ePrescriptionResponse: JSON.stringify(apiResponse),
-            ePrescriptionConfirmationCode: apiResponse.confirmationCode,
-            pharmacyId: pharmacyId,
-            updatedAt: new Date()
-          })
-          .where(eq(prescriptions.id, prescriptionId));
-
-        // Log the action
-        const logEntry: InsertPrescriptionLog = {
-          prescriptionId,
-          action: "sent",
-          performedBy: userId,
-          performedAt: new Date(),
-          details: {
-            pharmacyId,
-            confirmationCode: apiResponse.confirmationCode,
-            response: apiResponse
+      return {
+        success: true,
+        message: `Prescription successfully sent to ${pharmacy.name}`,
+        confirmationCode: pharmacyResult.confirmationCode,
+        details: {
+          pharmacy: {
+            name: pharmacy.name,
+            address: pharmacy.address,
+            phone: pharmacy.phone
           }
-        };
-
-        await db.insert(prescriptionLogs).values(logEntry);
-      }
-
-      return apiResponse;
+        }
+      };
     } catch (error) {
-      console.error("Error sending prescription to pharmacy:", error);
+      console.error('Error sending prescription to pharmacy:', error);
       return {
         success: false,
-        message: "Failed to send prescription to pharmacy",
-        errorCode: "API_ERROR",
-        details: error
+        message: 'Failed to send prescription to pharmacy',
+        errorCode: 'SEND_ERROR'
       };
     }
   }
@@ -133,6 +143,7 @@ export class EPrescriptionService {
    */
   async checkPrescriptionStatus(prescriptionId: number): Promise<any> {
     try {
+      // Get the prescription
       const prescription = await db.query.prescriptions.findFirst({
         where: eq(prescriptions.id, prescriptionId)
       });
@@ -140,36 +151,58 @@ export class EPrescriptionService {
       if (!prescription) {
         return {
           success: false,
-          message: "Prescription not found",
-          errorCode: "PRESCRIPTION_NOT_FOUND"
+          message: 'Prescription not found',
+          errorCode: 'PRESCRIPTION_NOT_FOUND'
         };
       }
 
+      // If the prescription hasn't been sent to a pharmacy, return the local status
       if (!prescription.ePrescriptionSent) {
         return {
-          success: false,
-          message: "Prescription has not been sent electronically",
-          errorCode: "NOT_SENT_ELECTRONICALLY"
+          success: true,
+          status: prescription.status,
+          details: {
+            lastUpdated: prescription.updatedAt
+          }
         };
       }
 
-      // In production, this would check status with pharmacy API
+      // Get the pharmacy
+      const pharmacy = prescription.pharmacyId ? 
+        await db.query.pharmacies.findFirst({
+          where: eq(pharmacies.id, prescription.pharmacyId)
+        }) : null;
+
+      // Get the latest log entry
+      const latestLog = await db.query.prescriptionLogs.findFirst({
+        where: eq(prescriptionLogs.prescriptionId, prescriptionId),
+        orderBy: (logs, { desc }) => [desc(logs.performedAt)]
+      });
+
+      // In a real implementation, you would make an API call to the pharmacy system
+      // to get the current status of the prescription
+      // For now, we'll just return the current status from our database
       return {
         success: true,
-        message: "Prescription status retrieved",
         status: prescription.status,
         details: {
-          sentAt: prescription.ePrescriptionSentAt,
-          confirmationCode: prescription.ePrescriptionConfirmationCode
+          lastUpdated: prescription.updatedAt,
+          pharmacy: pharmacy ? {
+            name: pharmacy.name,
+            phone: pharmacy.phone
+          } : null,
+          lastAction: latestLog ? {
+            action: latestLog.action,
+            timestamp: latestLog.performedAt
+          } : null
         }
       };
     } catch (error) {
-      console.error("Error checking prescription status:", error);
+      console.error('Error checking prescription status:', error);
       return {
         success: false,
-        message: "Failed to check prescription status",
-        errorCode: "STATUS_CHECK_FAILED",
-        details: error
+        message: 'Failed to check prescription status',
+        errorCode: 'STATUS_CHECK_ERROR'
       };
     }
   }
@@ -179,11 +212,12 @@ export class EPrescriptionService {
    */
   async updatePrescriptionStatus(
     prescriptionId: number,
-    status: "active" | "completed" | "cancelled" | "on_hold" | "sent_to_pharmacy" | "filled",
+    status: Prescription['status'],
     userId: number,
     notes?: string
-  ): Promise<any> {
+  ): Promise<EPrescriptionResponse> {
     try {
+      // Get the prescription
       const prescription = await db.query.prescriptions.findFirst({
         where: eq(prescriptions.id, prescriptionId)
       });
@@ -191,28 +225,27 @@ export class EPrescriptionService {
       if (!prescription) {
         return {
           success: false,
-          message: "Prescription not found",
-          errorCode: "PRESCRIPTION_NOT_FOUND"
+          message: 'Prescription not found',
+          errorCode: 'PRESCRIPTION_NOT_FOUND'
         };
       }
 
-      // Update the prescription status
+      // Update prescription status
       await db.update(prescriptions)
         .set({
           status,
-          notes: notes ? (prescription.notes ? `${prescription.notes}\n\n${notes}` : notes) : prescription.notes,
           updatedAt: new Date()
         })
         .where(eq(prescriptions.id, prescriptionId));
 
-      // Log the action
+      // Create a log entry
       const logEntry: InsertPrescriptionLog = {
         prescriptionId,
-        action: status === "filled" ? "filled" : "updated",
+        action: "updated", // Using the allowed enum value
         performedBy: userId,
         performedAt: new Date(),
         details: {
-          oldStatus: prescription.status,
+          previousStatus: prescription.status,
           newStatus: status,
           notes
         }
@@ -222,19 +255,14 @@ export class EPrescriptionService {
 
       return {
         success: true,
-        message: `Prescription status updated to ${status}`,
-        details: {
-          prescriptionId,
-          status
-        }
+        message: `Prescription status updated to ${status}`
       };
     } catch (error) {
-      console.error("Error updating prescription status:", error);
+      console.error('Error updating prescription status:', error);
       return {
         success: false,
-        message: "Failed to update prescription status",
-        errorCode: "STATUS_UPDATE_FAILED",
-        details: error
+        message: 'Failed to update prescription status',
+        errorCode: 'UPDATE_STATUS_ERROR'
       };
     }
   }
@@ -246,8 +274,9 @@ export class EPrescriptionService {
     prescriptionId: number,
     userId: number,
     signature: string
-  ): Promise<any> {
+  ): Promise<EPrescriptionResponse> {
     try {
+      // Get the prescription
       const prescription = await db.query.prescriptions.findFirst({
         where: eq(prescriptions.id, prescriptionId)
       });
@@ -255,31 +284,38 @@ export class EPrescriptionService {
       if (!prescription) {
         return {
           success: false,
-          message: "Prescription not found",
-          errorCode: "PRESCRIPTION_NOT_FOUND"
+          message: 'Prescription not found',
+          errorCode: 'PRESCRIPTION_NOT_FOUND'
         };
       }
 
-      // Update the prescription with digital signature
+      // Verify that the prescription is for a controlled substance
+      if (!prescription.controlled) {
+        return {
+          success: false,
+          message: 'Only controlled substances require digital signatures',
+          errorCode: 'NOT_CONTROLLED_SUBSTANCE'
+        };
+      }
+
+      // Update prescription with digital signature
       await db.update(prescriptions)
         .set({
           digitalSignature: signature,
-          digitalSignatureTimestamp: new Date(),
-          signedBy: userId,
-          signedAt: new Date(),
+          digitalSignatureTimestamp: new Date(), // Using the correct field name
           updatedAt: new Date()
         })
         .where(eq(prescriptions.id, prescriptionId));
 
-      // Log the action
+      // Create a log entry
       const logEntry: InsertPrescriptionLog = {
         prescriptionId,
-        action: "updated",
+        action: "updated", // Using a valid enum value
         performedBy: userId,
         performedAt: new Date(),
         details: {
-          action: "digital_signature_added",
-          timestamp: new Date()
+          type: "digital_signature",
+          signatureDate: new Date().toISOString()
         }
       };
 
@@ -287,19 +323,14 @@ export class EPrescriptionService {
 
       return {
         success: true,
-        message: "Prescription digitally signed successfully",
-        details: {
-          prescriptionId,
-          signedAt: new Date()
-        }
+        message: 'Prescription has been digitally signed'
       };
     } catch (error) {
-      console.error("Error digitally signing prescription:", error);
+      console.error('Error digitally signing prescription:', error);
       return {
         success: false,
-        message: "Failed to digitally sign prescription",
-        errorCode: "DIGITAL_SIGNATURE_FAILED",
-        details: error
+        message: 'Failed to digitally sign prescription',
+        errorCode: 'SIGNING_ERROR'
       };
     }
   }
@@ -309,31 +340,29 @@ export class EPrescriptionService {
    */
   async findNearbyPharmacies(query: string, limit: number = 10): Promise<any> {
     try {
-      // In production, this would integrate with a pharmacy directory
-      // or geocoding service to find nearby pharmacies
-      
-      // For demo purposes, search pharmacies by name, city, or zip
-      const results = await db.query.pharmacies.findMany({
+      // In a real implementation, this would use a geocoding API and search for pharmacies
+      // based on geographic proximity
+      // For this implementation, we'll just do a simple search based on name, city, or zip code
+      const searchResults = await db.query.pharmacies.findMany({
         where: (pharmacies, { or, like }) => or(
           like(pharmacies.name, `%${query}%`),
           like(pharmacies.city, `%${query}%`),
-          like(pharmacies.zipCode, `%${query}%`)
+          like(pharmacies.zipCode, `%${query}%`),
+          like(pharmacies.state, `%${query}%`)
         ),
         limit
       });
 
       return {
         success: true,
-        message: `Found ${results.length} pharmacies`,
-        pharmacies: results
+        pharmacies: searchResults
       };
     } catch (error) {
-      console.error("Error finding nearby pharmacies:", error);
+      console.error('Error finding nearby pharmacies:', error);
       return {
         success: false,
-        message: "Failed to find nearby pharmacies",
-        errorCode: "PHARMACY_SEARCH_FAILED",
-        details: error
+        message: 'Failed to find nearby pharmacies',
+        errorCode: 'PHARMACY_SEARCH_ERROR'
       };
     }
   }
@@ -343,26 +372,43 @@ export class EPrescriptionService {
    */
   async getPatientFavoritePharmacies(patientId: number): Promise<any> {
     try {
-      // Query favorite pharmacies and join with pharmacy details
-      const results = await db.query.favoritePharmacies.findMany({
-        where: eq(favoritePharmacies.patientId, patientId),
-        with: {
-          pharmacy: true
-        }
+      // In a real database join, you would use db.select to join the two tables
+      // For simplicity, we'll use two separate queries
+      const favorites = await db.select().from(favoritePharmacies)
+        .where(eq(favoritePharmacies.patientId, patientId));
+
+      if (!favorites.length) {
+        return {
+          success: true,
+          pharmacies: []
+        };
+      }
+
+      // Get the pharmacy details
+      const pharmacyIds = favorites.map(fav => fav.pharmacyId);
+      const pharmacyDetails = await db.select().from(pharmacies)
+        .where(inArray(pharmacies.id, pharmacyIds));
+
+      // Combine the pharmacy details with the favorite information
+      const detailedFavorites = pharmacyDetails.map(pharmacy => {
+        const favorite = favorites.find(fav => fav.pharmacyId === pharmacy.id);
+        return {
+          ...pharmacy,
+          isPrimary: favorite?.isPrimary || false,
+          addedDate: favorite?.createdAt
+        };
       });
 
       return {
         success: true,
-        message: `Found ${results.length} favorite pharmacies`,
-        pharmacies: results
+        pharmacies: detailedFavorites
       };
     } catch (error) {
-      console.error("Error retrieving favorite pharmacies:", error);
+      console.error('Error getting patient favorite pharmacies:', error);
       return {
         success: false,
-        message: "Failed to retrieve favorite pharmacies",
-        errorCode: "FAVORITE_PHARMACY_RETRIEVAL_FAILED",
-        details: error
+        message: 'Failed to get patient favorite pharmacies',
+        errorCode: 'FAVORITE_PHARMACY_ERROR'
       };
     }
   }
@@ -374,9 +420,47 @@ export class EPrescriptionService {
     patientId: number,
     pharmacyId: number,
     isPrimary: boolean = false
-  ): Promise<any> {
+  ): Promise<EPrescriptionResponse> {
     try {
-      // If setting as primary, update any existing primary pharmacy
+      // Check if the pharmacy exists
+      const pharmacy = await db.select().from(pharmacies)
+        .where(eq(pharmacies.id, pharmacyId))
+        .limit(1);
+
+      if (!pharmacy.length) {
+        return {
+          success: false,
+          message: 'Pharmacy not found',
+          errorCode: 'PHARMACY_NOT_FOUND'
+        };
+      }
+
+      // Check if already a favorite
+      const existingFavorites = await db.select().from(favoritePharmacies)
+        .where(and(
+          eq(favoritePharmacies.patientId, patientId),
+          eq(favoritePharmacies.pharmacyId, pharmacyId)
+        ))
+        .limit(1);
+
+      if (existingFavorites.length > 0) {
+        const existingFavorite = existingFavorites[0];
+        // If it's already a favorite, just update the isPrimary flag if needed
+        if (existingFavorite.isPrimary !== isPrimary) {
+          await db.update(favoritePharmacies)
+            .set({ isPrimary: isPrimary })
+            .where(eq(favoritePharmacies.id, existingFavorite.id));
+        }
+
+        return {
+          success: true,
+          message: isPrimary 
+            ? 'Pharmacy set as primary favorite' 
+            : 'Pharmacy preference updated'
+        };
+      }
+
+      // If setting as primary, update any existing primary favorites
       if (isPrimary) {
         await db.update(favoritePharmacies)
           .set({ isPrimary: false })
@@ -386,31 +470,25 @@ export class EPrescriptionService {
           ));
       }
 
-      // Add the new favorite pharmacy
+      // Add the new favorite
       await db.insert(favoritePharmacies).values({
-        patientId,
-        pharmacyId,
-        isPrimary,
+        patientId: patientId,
+        pharmacyId: pharmacyId,
+        isPrimary: isPrimary,
         createdAt: new Date(),
         updatedAt: new Date()
       });
 
       return {
         success: true,
-        message: "Pharmacy added to favorites",
-        details: {
-          patientId,
-          pharmacyId,
-          isPrimary
-        }
+        message: 'Pharmacy added to favorites'
       };
     } catch (error) {
-      console.error("Error adding favorite pharmacy:", error);
+      console.error('Error adding pharmacy to favorites:', error);
       return {
         success: false,
-        message: "Failed to add favorite pharmacy",
-        errorCode: "FAVORITE_PHARMACY_ADD_FAILED",
-        details: error
+        message: 'Failed to add pharmacy to favorites',
+        errorCode: 'ADD_FAVORITE_ERROR'
       };
     }
   }
@@ -423,36 +501,33 @@ export class EPrescriptionService {
     prescription: Prescription,
     pharmacy: any
   ): Promise<EPrescriptionResponse> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      // Simulate API latency
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Generate a random confirmation code
-    const confirmationCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+      // Generate a random confirmation code
+      const confirmationCode = Math.random().toString(36).substring(2, 10).toUpperCase();
 
-    // Simulate success with 95% probability, error with 5%
-    const success = Math.random() > 0.05;
+      // Simulate a 5% chance of failure for demo purposes
+      if (Math.random() < 0.05) {
+        return {
+          success: false,
+          message: 'Pharmacy system temporarily unavailable',
+          errorCode: 'PHARMACY_SYSTEM_UNAVAILABLE'
+        };
+      }
 
-    if (success) {
       return {
         success: true,
-        message: "Prescription successfully sent to pharmacy",
-        confirmationCode,
-        details: {
-          pharmacyName: pharmacy.name,
-          pharmacyPhone: pharmacy.phone,
-          estimatedProcessingTime: "1-2 hours",
-          prescriptionId: prescription.id
-        }
+        message: 'Prescription sent successfully',
+        confirmationCode
       };
-    } else {
+    } catch (error) {
+      console.error('Error in pharmacy API simulation:', error);
       return {
         success: false,
-        message: "Pharmacy system temporarily unavailable",
-        errorCode: "PHARMACY_SYSTEM_UNAVAILABLE",
-        details: {
-          retryAfter: "15 minutes",
-          pharmacyName: pharmacy.name
-        }
+        message: 'Error communicating with pharmacy system',
+        errorCode: 'PHARMACY_API_ERROR'
       };
     }
   }
