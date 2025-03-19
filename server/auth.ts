@@ -163,6 +163,56 @@ export function setupAuth(router: express.Router) {
         specialization: req.body.specialization || null,
         licenseNumber: req.body.licenseNumber || null,
       };
+
+      // Process subscription data for provider accounts
+      if (req.body.role === "doctor" && req.body.subscriptionPlan) {
+        console.log(`Provider registration with subscription plan: ${req.body.subscriptionPlan}`);
+        
+        // In a production environment, this would integrate with a payment processor
+        // like Stripe to handle the payment details and create a subscription
+        
+        // Payment information verification would happen here
+        const paymentData = {
+          cardName: req.body.cardName,
+          cardNumber: req.body.cardNumber,
+          expirationDate: req.body.expirationDate,
+          cvv: req.body.cvv,
+          billingAddress: req.body.billingAddress,
+          city: req.body.city,
+          state: req.body.state,
+          zipCode: req.body.zipCode
+        };
+        
+        // For security reasons, we don't want to log full card details
+        console.log("Processing payment for subscription:", {
+          plan: req.body.subscriptionPlan,
+          cardName: paymentData.cardName,
+          // Only log last 4 digits if card number exists
+          lastFourDigits: paymentData.cardNumber ? 
+            paymentData.cardNumber.slice(-4) : 'none'
+        });
+        
+        // For demo purposes, we'll simulate a successful subscription creation
+        const subscriptionDetails = {
+          plan: req.body.subscriptionPlan,
+          startDate: new Date(),
+          status: 'active',
+          // Calculate end date as 30 days from now
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        };
+        
+        // In a real app, we would store the subscription in the database
+        console.log("Created subscription:", subscriptionDetails);
+        
+        // Extend the user object with subscription information
+        // This would be added to the user profile in a real app
+        userToCreate.metadata = {
+          subscription: {
+            plan: subscriptionDetails.plan,
+            status: subscriptionDetails.status,
+          }
+        };
+      }
       
       const user = await storage.createUser(userToCreate);
 

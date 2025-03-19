@@ -80,6 +80,7 @@ export const users = pgTable("users", {
   insuranceNumber: text("insurance_number"),
   specialization: text("specialization"),
   licenseNumber: text("license_number"),
+  metadata: jsonb("metadata"), // For storing subscription data and other flexible attributes
 });
 
 export const medicalNotes = pgTable("medical_notes", {
@@ -497,6 +498,7 @@ export const insertUserSchema = createInsertSchema(users).extend({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address"),
+  metadata: z.any().optional(), // For storing subscription and other flexible data
   phoneNumber: z.string().nullable().optional(),
   dateOfBirth: z.string().nullable().optional(),
   insuranceProvider: z.string().nullable().optional(),

@@ -45,6 +45,16 @@ interface RegisterData {
   role: string;
   specialization?: string;
   licenseNumber?: string;
+  // Added fields for provider subscription
+  subscriptionPlan?: string;
+  cardName?: string;
+  cardNumber?: string;
+  expirationDate?: string;
+  cvv?: string;
+  billingAddress?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
