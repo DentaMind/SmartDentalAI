@@ -308,30 +308,39 @@ export default function AuthPage() {
             {/* Subtle card pattern */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0)_0%,rgba(255,255,255,0.4)_100%)] opacity-30 pointer-events-none rounded-xl"></div>
             <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-4 mb-8 bg-white/80 backdrop-blur-sm rounded-xl shadow-md overflow-hidden border border-blue-100/50 p-1.5 gap-1.5">
+              <TabsList className="grid w-full grid-cols-4 mb-8 bg-white/80 backdrop-blur-sm rounded-xl shadow-md overflow-hidden border border-blue-100/50 p-1.5 gap-3">
                 <TabsTrigger 
                   value="login" 
-                  className="py-3 px-2 text-gray-700 text-sm tracking-wide data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
+                  className="py-3 px-0 text-gray-700 text-sm tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
                 >
-                  Sign In
+                  Login
                 </TabsTrigger>
                 <TabsTrigger 
                   value="patient" 
-                  className="py-3 px-1 text-gray-700 text-[13px] tracking-wide data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
+                  className="py-3 px-0 text-gray-700 text-xs leading-tight tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
                 >
-                  Patient Sign Up
+                  <div className="flex flex-col items-center">
+                    <span>Patient</span>
+                    <span className="text-[10px] opacity-70">Register</span>
+                  </div>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="provider" 
-                  className="py-3 px-1 text-gray-700 text-[13px] tracking-wide data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
+                  className="py-3 px-0 text-gray-700 text-xs leading-tight tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
                 >
-                  Provider Sign Up
+                  <div className="flex flex-col items-center">
+                    <span>Provider</span>
+                    <span className="text-[10px] opacity-70">Register</span>
+                  </div>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="staff" 
-                  className="py-3 px-1 text-gray-700 text-sm tracking-wide data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
+                  className="py-3 px-0 text-gray-700 text-xs leading-tight tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
                 >
-                  Staff Sign Up
+                  <div className="flex flex-col items-center">
+                    <span>Staff</span>
+                    <span className="text-[10px] opacity-70">Register</span>
+                  </div>
                 </TabsTrigger>
               </TabsList>
 
@@ -438,7 +447,7 @@ export default function AuthPage() {
                     
                     <div className="mt-4 text-center">
                       <p className="text-sm text-gray-600">
-                        Don't have an account? Select "Patient Sign Up", "Provider Sign Up", or "Staff Sign Up"
+                        Don't have an account? Select "Patient", "Provider", or "Staff" to register
                       </p>
                     </div>
                   </form>
