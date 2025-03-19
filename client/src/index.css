@@ -13,13 +13,20 @@
 
   /* DentaMind brand color variables */
   :root {
-    /* Current blue theme */
-    --dentamind-blue: #3366CC;     /* Primary brand color - trust, professionalism */
-    --dentamind-blue-dark: #2851A3; /* Darker shade for hover states */
-    --dentamind-green: #28C76F;    /* New bright green - health, growth, vitality */
+    /* Primary brand themes */
+    --dentamind-blue: #3366CC;     /* Traditional theme - trust, professionalism */
+    --dentamind-blue-dark: #2851A3; /* Darker blue for hover states */
+    --dentamind-blue-light: #6690E0; /* Lighter blue for accents */
+    
+    --dentamind-green: #28C76F;    /* New vibrant theme - health, growth, vitality */
     --dentamind-green-dark: #1EA65A; /* Darker green for hover states */
+    --dentamind-green-light: #5DDDA0; /* Lighter green for accents */
+    
+    /* Supporting colors */
     --dentamind-gray: #F2F2F2;     /* Secondary/neutral color - clean, professional */
-    --dentamind-orange: #FF8C42;   /* Call-to-action color - urgency, action */
+    --dentamind-gray-dark: #DDDDDD; /* Darker gray for borders and separators */
+    --dentamind-orange: #FF8C42;   /* Alert/warning color - urgency, action */
+    --dentamind-orange-dark: #E67A30; /* Darker orange for hover states */
     --dentamind-cyan: #4ADE80;     /* Subtle neon cyan for highlights */
     --dentamind-deep-blue: #1E293B; /* Deep blue for backgrounds and gradients */
     --dentamind-soft-white: #F9FAFB; /* Soft white for readability */
@@ -41,6 +48,43 @@
   
   .input-field {
     @apply h-[50px] px-3 py-2 mb-4 rounded-md;
+  }
+
+  /* DentaMind theme utility classes */
+  .dentamind-blue-btn {
+    @apply bg-[var(--dentamind-blue)] text-white hover:bg-[var(--dentamind-blue-dark)] transition-colors;
+  }
+  
+  .dentamind-green-btn {
+    @apply bg-[var(--dentamind-green)] text-white hover:bg-[var(--dentamind-green-dark)] transition-colors;
+  }
+  
+  .dentamind-orange-btn {
+    @apply bg-[var(--dentamind-orange)] text-white hover:bg-[var(--dentamind-orange-dark)] transition-colors;
+  }
+  
+  .dentamind-blue-text {
+    @apply text-[var(--dentamind-blue)];
+  }
+  
+  .dentamind-green-text {
+    @apply text-[var(--dentamind-green)];
+  }
+  
+  .dentamind-blue-border {
+    @apply border-[var(--dentamind-blue)];
+  }
+  
+  .dentamind-green-border {
+    @apply border-[var(--dentamind-green)];
+  }
+  
+  .dentamind-card {
+    @apply rounded-lg border shadow-sm p-4 bg-card text-card-foreground;
+  }
+  
+  .dentamind-header {
+    @apply text-xl font-semibold tracking-tight;
   }
   
   /* Custom animations for loading screen */

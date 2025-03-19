@@ -272,6 +272,7 @@ export function PostOpInstructions({ patientId, patientName }: PostOpInstruction
         <Button 
           onClick={() => window.location.reload()}
           variant="outline"
+          className="border-[var(--dentamind-green)] text-[var(--dentamind-green)] hover:bg-[var(--dentamind-green)] hover:text-white"
         >
           Try Again
         </Button>
