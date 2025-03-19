@@ -39,9 +39,10 @@ interface PostOpInstruction {
 
 interface PostOpInstructionsProps {
   patientId: number;
+  patientName: string;
 }
 
-export function PostOpInstructions({ patientId }: PostOpInstructionsProps) {
+export function PostOpInstructions({ patientId, patientName }: PostOpInstructionsProps) {
   // Fetch post-operative instructions for this patient
   const { data: instructions, isLoading, error } = useQuery({
     queryKey: ['/api/patients', patientId, 'post-op-instructions'],
