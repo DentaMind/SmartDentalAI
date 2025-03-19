@@ -34,6 +34,11 @@ export const reminderTypeSchema = z.object({
   method: ReminderMethod,
   template: z.string().optional(),
 });
+export type LabCaseStatusType = z.infer<typeof LabCaseStatusEnum>;
+export type SupplyOrderStatusType = z.infer<typeof SupplyOrderStatusEnum>;
+export type SupplyCategoryType = z.infer<typeof SupplyCategoryEnum>;
+export type OrthodonticCaseStatusType = z.infer<typeof OrthodonticCaseStatusEnum>;
+
 
 // Schema for complete reminder settings
 export const reminderSettingsSchema = z.object({
@@ -523,6 +528,8 @@ export const insertLocationSchema = createInsertSchema(locations);
 export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans);
 export const insertSubscriptionSchema = createInsertSchema(subscriptions);
 
+// Insert schemas for lab & supply ordering tables
+
 // Appointment request schema
 export const appointmentRequestSchema = z.object({
   patientId: z.number(),
@@ -913,4 +920,11 @@ export const orthodonticTelehealthSessions = pgTable("orthodontic_telehealth_ses
   followUpActions: jsonb("follow_up_actions"),
   reminderSent: boolean("reminder_sent").default(false),
   feedback: jsonb("feedback"), // Patient feedback after session
-});
+});// Create insertion schemas for lab & supply tables
+export const insertLabCaseSchema = createInsertSchema(labCases);
+export const insertSupplyItemSchema = createInsertSchema(supplyItems);
+export const insertSupplyOrderSchema = createInsertSchema(supplyOrders);
+export const insertSupplyReceiptSchema = createInsertSchema(supplyReceipts);
+export const insertVendorProfileSchema = createInsertSchema(vendorProfiles);
+export const insertOrthodonticCaseSchema = createInsertSchema(orthodonticCases);
+export const insertOrthodonticTelehealthSessionSchema = createInsertSchema(orthodonticTelehealthSessions);
