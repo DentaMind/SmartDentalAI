@@ -23,7 +23,8 @@ import {
   UserPlus,
   Settings,
   Globe,
-  Edit
+  Edit,
+  Pill
 } from 'lucide-react';
 
 // Import components
@@ -35,6 +36,7 @@ import { PaymentProcessing } from '@/components/financial/payment-processing';
 import { AIMarketingSystem } from '@/components/marketing/ai-marketing-system';
 import { MultilingualReferralSettings } from '@/components/settings/multilingual-referral-settings';
 import { MultilingualPatientCommunication } from '@/components/communication/multilingual-patient-communication';
+import EPrescriptionManager from '@/components/prescriptions/e-prescription-manager';
 
 export default function DentalAIHub() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -70,6 +72,14 @@ export default function DentalAIHub() {
       name: 'Voice Dictation',
       description: 'AI-powered real-time transcription of clinical notes and SOAP format',
       icon: <MessageSquare className="h-8 w-8 text-cyan-500" />,
+      badge: 'Active',
+      badgeClass: 'bg-green-50 text-green-700 border-green-200'
+    },
+    {
+      id: 'e-prescriptions',
+      name: 'E-Prescriptions',
+      description: 'AI-assisted electronic prescription with drug interaction checks',
+      icon: <Pill className="h-8 w-8 text-pink-500" />,
       badge: 'Active',
       badgeClass: 'bg-green-50 text-green-700 border-green-200'
     },
@@ -134,6 +144,8 @@ export default function DentalAIHub() {
         return <PatientEducation />;
       case 'voice-dictation':
         return <VoiceDictation />;
+      case 'e-prescriptions':
+        return <EPrescriptionManager />;
       case 'payment-processing':
         return <PaymentProcessing />;
       case 'marketing':
@@ -278,6 +290,10 @@ export default function DentalAIHub() {
             <TabsTrigger value="voice-dictation" className="px-4">
               <MessageSquare className="h-4 w-4 mr-2" />
               Voice Dictation
+            </TabsTrigger>
+            <TabsTrigger value="e-prescriptions" className="px-4">
+              <Pill className="h-4 w-4 mr-2" />
+              E-Prescriptions
             </TabsTrigger>
             <TabsTrigger value="payment-processing" className="px-4">
               <CreditCard className="h-4 w-4 mr-2" />
