@@ -61,6 +61,13 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // DentaMind branded colors
+        dentamind: {
+          blue: "var(--dentamind-blue)",
+          green: "var(--dentamind-green)",
+          gray: "var(--dentamind-gray)",
+          orange: "var(--dentamind-orange)",
+        },
       },
       keyframes: {
         "accordion-down": {

@@ -10,9 +10,33 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+
+  /* DentaMind brand color variables */
+  :root {
+    --dentamind-blue: #3366CC;     /* Primary brand color - trust, professionalism */
+    --dentamind-green: #00BFA5;    /* Action & health color - approval, success */
+    --dentamind-gray: #F2F2F2;     /* Secondary/neutral color - clean, professional */
+    --dentamind-orange: #FF8C42;   /* Call-to-action color - urgency, action */
+  }
 }
 
 @layer utilities {
+  /* Enhanced button and input styles for better UX */
+  .clickable-area {
+    @apply px-6 py-3; /* Larger padding for easier clicking */
+    @apply w-4/5 mx-auto; /* Width at 80% of container with auto margins */
+    @apply rounded-lg; /* Rounded corners for modern look */
+    @apply transition-transform hover:scale-105; /* Hover effect */
+  }
+  
+  .form-container {
+    @apply flex flex-col gap-5 max-w-md mx-auto;
+  }
+  
+  .input-field {
+    @apply h-[50px] px-3 py-2 mb-4 rounded-md;
+  }
+  
   /* Custom animations for loading screen */
   @keyframes slow-pulse {
     0% {

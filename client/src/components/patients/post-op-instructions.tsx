@@ -101,7 +101,7 @@ export function PostOpInstructions({ patientId, patientName }: PostOpInstruction
               padding: 20px;
             }
             h1, h2, h3 {
-              color: #2563eb;
+              color: #3366CC; /* DentaMind brand blue */
             }
             .header {
               text-align: center;
@@ -282,7 +282,7 @@ export function PostOpInstructions({ patientId, patientName }: PostOpInstruction
   if (instructions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center p-4">
-        <div className="bg-blue-50 text-blue-700 p-3 rounded-full mb-4">
+        <div className="bg-opacity-10 bg-[var(--dentamind-blue)] text-[var(--dentamind-blue)] p-3 rounded-full mb-4">
           <Clock className="h-6 w-6" />
         </div>
         <h3 className="text-lg font-medium">No Post-Operative Instructions</h3>
@@ -337,7 +337,7 @@ export function PostOpInstructions({ patientId, patientName }: PostOpInstruction
                     {instruction.lastViewed && (
                       <>
                         <span>•</span>
-                        <div className="flex items-center text-green-600">
+                        <div className="flex items-center text-[var(--dentamind-green)]">
                           <Check className="h-3 w-3 mr-1" />
                           <span>Read on {new Date(instruction.lastViewed).toLocaleDateString()}</span>
                         </div>
@@ -346,11 +346,21 @@ export function PostOpInstructions({ patientId, patientName }: PostOpInstruction
                   </div>
                 </div>
                 <div className="flex space-x-2">
-                  <Button size="sm" variant="outline" onClick={() => printInstructions(instruction)}>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="border-[var(--dentamind-blue)] text-[var(--dentamind-blue)] hover:bg-[var(--dentamind-blue)] hover:text-white"
+                    onClick={() => printInstructions(instruction)}
+                  >
                     <Printer className="h-4 w-4 mr-1" />
                     Print
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => emailInstructions(instruction.id)}>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="border-[var(--dentamind-blue)] text-[var(--dentamind-blue)] hover:bg-[var(--dentamind-blue)] hover:text-white"
+                    onClick={() => emailInstructions(instruction.id)}
+                  >
                     <Mail className="h-4 w-4 mr-1" />
                     Email
                   </Button>
@@ -385,7 +395,7 @@ export function PostOpInstructions({ patientId, patientName }: PostOpInstruction
                         {instruction.medications.map((med, index) => (
                           <div 
                             key={index} 
-                            className="bg-muted/50 p-3 rounded-md"
+                            className="bg-muted/50 p-3 rounded-md border border-[var(--dentamind-blue)] border-opacity-10"
                           >
                             <div className="flex justify-between">
                               <h4 className="font-medium">{med.name}</h4>
@@ -433,12 +443,12 @@ export function PostOpInstructions({ patientId, patientName }: PostOpInstruction
                         
                         <div>
                           <h3 className="font-medium text-lg mb-2">Follow-Up</h3>
-                          <div className="bg-blue-50 border border-blue-100 p-4 rounded-md">
-                            <p className="font-medium text-blue-700">
+                          <div className="bg-opacity-10 bg-[var(--dentamind-blue)] border border-opacity-20 border-[var(--dentamind-blue)] p-4 rounded-md">
+                            <p className="font-medium text-[var(--dentamind-blue)]">
                               {instruction.followUpTimeline}
                             </p>
                             {instruction.followUpDetails && (
-                              <p className="mt-2 text-blue-600">
+                              <p className="mt-2 text-[var(--dentamind-blue)] text-opacity-80">
                                 {instruction.followUpDetails}
                               </p>
                             )}
@@ -451,8 +461,8 @@ export function PostOpInstructions({ patientId, patientName }: PostOpInstruction
                     
                     <div>
                       <h3 className="font-medium text-lg mb-2">Emergency Contact</h3>
-                      <div className="bg-red-50 border border-red-100 p-4 rounded-md">
-                        <p className="text-red-700">
+                      <div className="bg-opacity-10 bg-[var(--dentamind-orange)] border border-opacity-20 border-[var(--dentamind-orange)] p-4 rounded-md">
+                        <p className="text-[var(--dentamind-orange)] font-medium">
                           {instruction.emergencyContact}
                         </p>
                       </div>
@@ -460,7 +470,10 @@ export function PostOpInstructions({ patientId, patientName }: PostOpInstruction
                     
                     <div className="pt-4 flex justify-center">
                       {!instruction.lastViewed && (
-                        <Button onClick={() => markAsRead(instruction.id)}>
+                        <Button 
+                          onClick={() => markAsRead(instruction.id)}
+                          className="bg-[var(--dentamind-blue)] hover:bg-[var(--dentamind-blue-dark)]"
+                        >
                           Mark as Read
                         </Button>
                       )}
