@@ -154,7 +154,9 @@ router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (r
       // to avoid orphaned user accounts
       try {
         // Here we would ideally delete the user we just created
-        console.log("Would delete user:", user.id);
+        if (user) {
+          console.log("Would delete user:", user.id);
+        }
       } catch (cleanupError) {
         console.error("Error cleaning up user after patient creation failure:", cleanupError);
       }
@@ -257,7 +259,7 @@ router.post("/ai/refine-diagnosis", requireAuth, async (req, res) => {
     }
 
     // Format conversation for the AI
-    const formattedConversation = conversationHistory.map(msg => ({
+    const formattedConversation = conversationHistory.map((msg: {role: string, content: string}) => ({
       role: msg.role,
       content: msg.content
     }));
@@ -799,7 +801,7 @@ router.post('/ai/refine-diagnosis', requireAuth, async (req, res) => {
     if (refinedDiagnosis.possibleConditions && refinedDiagnosis.possibleConditions.length > 0) {
       // Find the highest confidence condition
       const highestConfidenceIndex = refinedDiagnosis.possibleConditions
-        .reduce((maxIndex, condition, index, array) => 
+        .reduce((maxIndex: number, condition: any, index: number, array: any[]) => 
           condition.confidence > array[maxIndex].confidence ? index : maxIndex, 0);
       
       // Increase confidence slightly (capped at 0.95)
@@ -820,8 +822,8 @@ router.post('/ai/refine-diagnosis', requireAuth, async (req, res) => {
     
     // Check if there are follow-up questions in the conversation history
     const askedQuestions = conversationHistory
-      .filter(msg => msg.role === "assistant")
-      .map(msg => msg.content);
+      .filter((msg: {role: string, content: string}) => msg.role === "assistant")
+      .map((msg: {role: string, content: string}) => msg.content);
     
     // Find a question we haven't asked yet
     const remainingQuestions = followupQuestions.filter(q => !askedQuestions.includes(q));
