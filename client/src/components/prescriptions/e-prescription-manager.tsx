@@ -4,6 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
+import { Patient as PatientSchema } from "@shared/schema";
 
 // UI Components
 import {
@@ -85,6 +86,8 @@ import {
   StarHalf,
   CheckCircle2,
   Sparkles,
+  BrainCircuit,
+  ListChecks,
 } from "lucide-react";
 
 interface Prescription {
@@ -113,14 +116,7 @@ interface Prescription {
   patientName?: string;
 }
 
-interface Patient {
-  id: number;
-  firstName: string;
-  lastName: string;
-  dateOfBirth?: string;
-  email?: string;
-  phoneNumber?: string;
-}
+// Using the Patient interface imported from schema
 
 interface Pharmacy {
   id: number;
@@ -227,12 +223,13 @@ export default function EPrescriptionManager({ patientId }: { patientId?: number
   const [isSigningDialogOpen, setIsSigningDialogOpen] = useState(false);
   const [isPharmacyDialogOpen, setIsPharmacyDialogOpen] = useState(false);
   const [isPatientSelectDialogOpen, setIsPatientSelectDialogOpen] = useState(false);
+  const [isCommonMedsDialogOpen, setIsCommonMedsDialogOpen] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
   const [signature, setSignature] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [patientSearchQuery, setPatientSearchQuery] = useState("");
   const [selectedPharmacy, setSelectedPharmacy] = useState<Pharmacy | null>(null);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<PatientSchema | null>(null);
   const [aiGenerating, setAiGenerating] = useState(false);
   
   // Form data for new prescription
@@ -521,7 +518,7 @@ export default function EPrescriptionManager({ patientId }: { patientId?: number
   };
   
   // Handle patient selection
-  const handlePatientSelect = (patient: Patient) => {
+  const handlePatientSelect = (patient: PatientSchema) => {
     setSelectedPatient(patient);
     setPrescriptionFormData(prev => ({
       ...prev,
@@ -839,6 +836,38 @@ export default function EPrescriptionManager({ patientId }: { patientId?: number
               </div>
               
               <div className="space-y-4">
+                {/* AI Recommendation and Common Medication Buttons */}
+                <div className="flex gap-2 mb-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full flex items-center gap-2 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                    onClick={handleGenerateAIRecommendation}
+                    disabled={aiGenerating || !prescriptionFormData.patientId}
+                  >
+                    {aiGenerating ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        {t("Generating...")}
+                      </>
+                    ) : (
+                      <>
+                        <BrainCircuit className="h-4 w-4" />
+                        {t("AI Recommendation")}
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full flex items-center gap-2"
+                    onClick={() => setIsCommonMedsDialogOpen(true)}
+                  >
+                    <ListChecks className="h-4 w-4" />
+                    {t("Common Medications")}
+                  </Button>
+                </div>
+                
                 <div className="space-y-2">
                   <Label htmlFor="dispensedAs">
                     {t("Dispense As")} <span className="text-red-500">*</span>
@@ -1135,24 +1164,20 @@ export default function EPrescriptionManager({ patientId }: { patientId?: number
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            {patientsQuery.isLoading ? (
+            {isLoadingPatients ? (
               <div className="space-y-2">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
-            ) : patientsQuery.isError ? (
-              <div className="text-center text-red-500 py-4">
-                {t("Error loading patients. Please try again.")}
-              </div>
-            ) : !patientsQuery.data?.length ? (
+            ) : !patients || patients.length === 0 ? (
               <div className="text-center py-4">
                 <p>{t("No patients found.")}</p>
               </div>
             ) : (
               <ScrollArea className="h-[300px]">
                 <div className="space-y-2">
-                  {patientsQuery.data?.map((patient) => (
+                  {patients?.map((patient) => (
                     <Button
                       key={patient.id}
                       variant="outline"
@@ -1164,7 +1189,7 @@ export default function EPrescriptionManager({ patientId }: { patientId?: number
                           {patient.firstName} {patient.lastName}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {t("DOB")}: {new Date(patient.dateOfBirth).toLocaleDateString()} | {t("ID")}: {patient.id}
+                          {t("DOB")}: {patient.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString() : 'N/A'} | {t("ID")}: {patient.id}
                         </div>
                       </div>
                     </Button>
