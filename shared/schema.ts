@@ -1,6 +1,26 @@
-import { pgTable, text, serial, integer, timestamp, boolean, jsonb, date } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, jsonb, date, decimal, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// Lab and Supply Ordering - Enum types
+export const LabCaseStatusEnum = z.enum([
+  'draft', 'submitted', 'in_progress', 'shipped', 'delivered', 'completed', 'on_hold', 'cancelled'
+]);
+
+export const SupplyOrderStatusEnum = z.enum([
+  'draft', 'pending', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'
+]);
+
+export const SupplyCategoryEnum = z.enum([
+  'restorative_materials', 'implant_components', 'orthodontic_supplies',
+  'endodontic_materials', 'impression_materials', 'instruments', 'sterilization',
+  'ppe', 'office_supplies', 'other'
+]);
+
+export const OrthodonticCaseStatusEnum = z.enum([
+  'evaluation', 'planning', 'aligner_production', 'active_treatment',
+  'refinement', 'retention', 'completed', 'discontinued'
+]);
 
 // ReminderType enum types
 export const ReminderTimeframe = z.enum(['24h', '48h', '1week']);
@@ -649,3 +669,19 @@ export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema
 export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
 export type AppointmentRequest = z.infer<typeof appointmentRequestSchema>;
+
+// New types for Lab & Supply Management
+export type LabCase = typeof labCases.$inferSelect;
+export type InsertLabCase = z.infer<typeof insertLabCaseSchema>;
+export type SupplyItem = typeof supplyItems.$inferSelect;
+export type InsertSupplyItem = z.infer<typeof insertSupplyItemSchema>;
+export type SupplyOrder = typeof supplyOrders.$inferSelect;
+export type InsertSupplyOrder = z.infer<typeof insertSupplyOrderSchema>;
+export type SupplyReceipt = typeof supplyReceipts.$inferSelect;
+export type InsertSupplyReceipt = z.infer<typeof insertSupplyReceiptSchema>;
+export type VendorProfile = typeof vendorProfiles.$inferSelect;
+export type InsertVendorProfile = z.infer<typeof insertVendorProfileSchema>;
+export type OrthodonticCase = typeof orthodonticCases.$inferSelect;
+export type InsertOrthodonticCase = z.infer<typeof insertOrthodonticCaseSchema>;
+export type OrthodonticTelehealthSession = typeof orthodonticTelehealthSessions.$inferSelect;
+export type InsertOrthodonticTelehealthSession = z.infer<typeof insertOrthodonticTelehealthSessionSchema>;
