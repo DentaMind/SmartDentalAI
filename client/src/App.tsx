@@ -22,6 +22,7 @@ import { WebSocketProvider } from "./hooks/use-websocket";
 import { AIAssistant } from "@/components/ui/ai-assistant";
 import AIHubPage from "@/pages/ai-hub-page";
 import AIRecommendationsPage from "@/pages/ai-recommendations";
+import PrescriptionsPage from "@/pages/prescriptions";
 
 // Lazy-loaded components
 const AIHub = lazy(() => import('./pages/ai-hub'));
@@ -63,6 +64,7 @@ function Router() {
         <ProtectedRoute path="/ai-recommendations" component={AIRecommendationsPage} />
         <ProtectedRoute path="/financial" component={FinancialDashboardPage} />
         <ProtectedRoute path="/financial-dashboard" component={FinancialDashboardPage} />
+        <ProtectedRoute path="/prescriptions" component={PrescriptionsPage} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
