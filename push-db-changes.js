@@ -1,5 +1,3 @@
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
-import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
 async function main() {
@@ -13,8 +11,7 @@ async function main() {
   }
   
   // Connect to the database
-  const client = postgres(connectionString);
-  const db = drizzle(client);
+  const sql = postgres(connectionString);
   
   try {
     console.log('Connected to database. Pushing changes...');
@@ -26,7 +23,7 @@ async function main() {
     console.log('Creating new tables...');
     
     // Lab cases table
-    await client.query(`
+    await sql.unsafe(`
       CREATE TABLE IF NOT EXISTS lab_cases (
         id SERIAL PRIMARY KEY,
         patient_id INTEGER NOT NULL,
@@ -60,7 +57,7 @@ async function main() {
     console.log('Created lab_cases table');
     
     // Supply items table
-    await client.query(`
+    await sql.unsafe(`
       CREATE TABLE IF NOT EXISTS supply_items (
         id SERIAL PRIMARY KEY,
         item_name TEXT NOT NULL,
@@ -94,7 +91,7 @@ async function main() {
     console.log('Created supply_items table');
     
     // Supply orders table
-    await client.query(`
+    await sql.unsafe(`
       CREATE TABLE IF NOT EXISTS supply_orders (
         id SERIAL PRIMARY KEY,
         order_number TEXT NOT NULL,
@@ -130,7 +127,7 @@ async function main() {
     console.log('Created supply_orders table');
     
     // Supply receipts table
-    await client.query(`
+    await sql.unsafe(`
       CREATE TABLE IF NOT EXISTS supply_receipts (
         id SERIAL PRIMARY KEY,
         uploaded_by INTEGER NOT NULL,
@@ -155,7 +152,7 @@ async function main() {
     console.log('Created supply_receipts table');
     
     // Vendor profiles table
-    await client.query(`
+    await sql.unsafe(`
       CREATE TABLE IF NOT EXISTS vendor_profiles (
         id SERIAL PRIMARY KEY,
         vendor_name TEXT NOT NULL,
@@ -187,7 +184,7 @@ async function main() {
     console.log('Created vendor_profiles table');
     
     // Orthodontic cases table
-    await client.query(`
+    await sql.unsafe(`
       CREATE TABLE IF NOT EXISTS orthodontic_cases (
         id SERIAL PRIMARY KEY,
         patient_id INTEGER NOT NULL,
@@ -222,7 +219,7 @@ async function main() {
     console.log('Created orthodontic_cases table');
     
     // Orthodontic telehealth sessions table
-    await client.query(`
+    await sql.unsafe(`
       CREATE TABLE IF NOT EXISTS orthodontic_telehealth_sessions (
         id SERIAL PRIMARY KEY,
         orthodontic_case_id INTEGER NOT NULL,
