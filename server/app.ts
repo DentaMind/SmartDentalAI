@@ -160,6 +160,7 @@ app.use("/api", insuranceRoutes);
 app.use("/api", treatmentRoutes);
 app.use("/api", medicalNotesRoutes);
 app.use("/api", prescriptionRoutes);
+app.use("/api", postOpRoutes);
 
 // Add a route for static demo version
 app.get('/static', (req, res) => {
