@@ -23,6 +23,7 @@ import { AIAssistant } from "@/components/ui/ai-assistant";
 import AIHubPage from "@/pages/ai-hub-page";
 import AIRecommendationsPage from "@/pages/ai-recommendations";
 import PrescriptionsPage from "@/pages/prescriptions";
+import PostOpInstructionsPage from "@/pages/post-op-instructions-page";
 
 // Lazy-loaded components
 const AIHub = lazy(() => import('./pages/ai-hub'));
@@ -65,6 +66,7 @@ function Router() {
         <ProtectedRoute path="/financial" component={FinancialDashboardPage} />
         <ProtectedRoute path="/financial-dashboard" component={FinancialDashboardPage} />
         <ProtectedRoute path="/prescriptions" component={PrescriptionsPage} />
+        <ProtectedRoute path="/post-op-instructions" component={PostOpInstructionsPage} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>

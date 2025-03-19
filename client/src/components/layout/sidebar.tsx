@@ -115,9 +115,9 @@ export function Sidebar() {
     const patientItems: NavigationItem[] = [
       { name: "My Appointments", href: "/appointments", icon: Calendar },
       { name: "Treatment Plans", href: "/treatment-plans", icon: FileText },
-      { name: "My Records", href: "/xrays", icon: ClipboardList },
+      { name: "Post-Op Instructions", href: "/post-op-instructions", icon: ClipboardList },
+      { name: "My Records", href: "/xrays", icon: Image },
       { name: "Medical History", href: "/medical-history", icon: FileText },
-      { name: "Billing & Payments", href: "/billing", icon: DollarSign },
     ];
 
     const financialItems: NavigationItem[] = [
@@ -130,7 +130,7 @@ export function Sidebar() {
       case "staff":
         return [...baseItems, ...staffItems, ...financialItems];
       case "patient":
-        return [...baseItems, ...patientItems, ...financialItems];
+        return [...baseItems, ...patientItems]; // No financial items for patients
       default:
         return [...baseItems, ...financialItems];
     }
