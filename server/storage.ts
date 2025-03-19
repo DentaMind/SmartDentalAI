@@ -74,6 +74,7 @@ export class MemStorage implements IStorage {
   private xrays: Map<number, Xray>;
   private financialTransactions: Map<number, FinancialTransaction>;
   private insuranceClaims: Map<number, InsuranceClaim>;
+  private insuranceVerifications: Map<number, InsuranceVerification>;
   sessionStore: session.Store;
   currentId: number;
 
@@ -87,6 +88,7 @@ export class MemStorage implements IStorage {
     this.xrays = new Map();
     this.financialTransactions = new Map();
     this.insuranceClaims = new Map();
+    this.insuranceVerifications = new Map();
     this.currentId = 1;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,

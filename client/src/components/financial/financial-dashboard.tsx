@@ -121,6 +121,26 @@ export function FinancialDashboard({ userId, initialTab = 'tax' }: FinancialDash
             </div>
           </div>
         );
+      case 'insurance':
+        return (
+          <div className="space-y-2">
+            <h3 className="font-medium">Insurance Verification</h3>
+            <p className="text-sm text-muted-foreground">
+              Manage real-time insurance eligibility checks, track verification statuses, and ensure 
+              proper coverage for patient procedures. This module automates the verification process 
+              to reduce claim denials and improve practice cash flow.
+            </p>
+            <div className="text-sm text-muted-foreground mt-2">
+              <span className="font-medium">Key Features:</span>
+              <ul className="list-disc pl-4 mt-1 space-y-1">
+                <li>Real-time eligibility verification</li>
+                <li>Coverage detail tracking</li>
+                <li>Automated status monitoring</li>
+                <li>Pre-appointment verification alerts</li>
+              </ul>
+            </div>
+          </div>
+        );
       case 'accounting':
         return (
           <div className="space-y-2">
@@ -291,6 +311,10 @@ export function FinancialDashboard({ userId, initialTab = 'tax' }: FinancialDash
               
               {activeTab === 'revenue' && (
                 <RevenueCalculator userId={userId} />
+              )}
+              
+              {activeTab === 'insurance' && (
+                <InsuranceVerificationDashboard />
               )}
               
               {activeTab === 'accounting' && (

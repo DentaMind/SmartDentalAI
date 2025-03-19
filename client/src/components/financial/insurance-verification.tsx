@@ -7,9 +7,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
 import { toast } from "@/hooks/use-toast";
-import { InsuranceVerificationStatusType } from "@shared/schema";
+import { InsuranceVerificationStatusEnum, InsuranceVerificationStatusType } from "@shared/schema";
 import { Loader2 } from "lucide-react";
 
+// Use the proper enum values from the schema
 export type VerificationStatus = InsuranceVerificationStatusType;
 
 interface InsuranceVerification {
@@ -31,13 +32,13 @@ export function InsuranceVerificationDashboard() {
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
   
   // Get all active insurance verifications
-  const { data: activeVerifications, isLoading, error, refetch } = useQuery({
+  const { data: activeVerifications, isLoading, error, refetch } = useQuery<InsuranceVerification[]>({
     queryKey: ['/insurance/active-verifications'],
     refetchInterval: 60000, // Refresh every minute
   });
 
   // Mutation for initiating a verification
-  const verifyMutation = useMutation({
+  const verifyMutation = useMutation<any, Error, number>({
     mutationFn: async (patientId: number) => {
       return apiRequest(`/insurance/status-check`, {
         method: 'POST',
@@ -67,12 +68,12 @@ export function InsuranceVerificationDashboard() {
 
   // Format verification status for display
   const formatStatus = (status: VerificationStatus) => {
-    const statusMap: Record<VerificationStatus, { label: string, variant: "default" | "secondary" | "destructive" | "outline" }> = {
-      "pending": { label: "Pending", variant: "secondary" },
-      "in_progress": { label: "In Progress", variant: "default" },
-      "verified": { label: "Verified", variant: "default" },
-      "expired": { label: "Expired", variant: "destructive" },
-      "inactive": { label: "Inactive", variant: "outline" },
+    const statusMap: Record<string, { label: string, variant: "default" | "secondary" | "destructive" | "outline" }> = {
+      [InsuranceVerificationStatusEnum.enum.pending]: { label: "Pending", variant: "secondary" },
+      [InsuranceVerificationStatusEnum.enum.verified]: { label: "Verified", variant: "default" },
+      [InsuranceVerificationStatusEnum.enum.expired]: { label: "Expired", variant: "destructive" },
+      [InsuranceVerificationStatusEnum.enum.not_covered]: { label: "Not Covered", variant: "outline" },
+      [InsuranceVerificationStatusEnum.enum.failed]: { label: "Failed", variant: "destructive" },
     };
     
     const { label, variant } = statusMap[status] || { label: status, variant: "outline" };
@@ -138,12 +139,12 @@ export function InsuranceVerificationDashboard() {
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled={verification.status === 'in_progress'}
+                          disabled={verifyMutation.isPending}
                           onClick={() => initiateVerification(verification.patientId)}
                         >
-                          {verification.status === 'in_progress' 
+                          {verifyMutation.isPending && verifyMutation.variables === verification.patientId
                             ? 'Checking...' 
-                            : verification.status === 'pending' 
+                            : verification.status === InsuranceVerificationStatusEnum.enum.pending
                               ? 'Verify Now' 
                               : 'Refresh'}
                         </Button>
