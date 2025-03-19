@@ -311,25 +311,25 @@ export default function AuthPage() {
               <TabsList className="grid w-full grid-cols-4 mb-8 bg-white/80 backdrop-blur-sm rounded-xl shadow-md overflow-hidden border border-blue-100/50 p-1.5 gap-1.5">
                 <TabsTrigger 
                   value="login" 
-                  className="py-3 px-1 text-gray-700 data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
+                  className="py-3 px-2 text-gray-700 text-sm tracking-wide data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
                 >
                   Sign In
                 </TabsTrigger>
                 <TabsTrigger 
                   value="patient" 
-                  className="py-3 px-1 text-gray-700 data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
+                  className="py-3 px-1 text-gray-700 text-[13px] tracking-wide data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
                 >
                   Patient Sign Up
                 </TabsTrigger>
                 <TabsTrigger 
                   value="provider" 
-                  className="py-3 px-1 text-gray-700 data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
+                  className="py-3 px-1 text-gray-700 text-[13px] tracking-wide data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
                 >
                   Provider Sign Up
                 </TabsTrigger>
                 <TabsTrigger 
                   value="staff" 
-                  className="py-3 px-1 text-gray-700 data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
+                  className="py-3 px-1 text-gray-700 text-sm tracking-wide data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
                 >
                   Staff Sign Up
                 </TabsTrigger>
@@ -368,7 +368,7 @@ export default function AuthPage() {
                           <FormControl>
                             <Input 
                               {...field} 
-                              className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95 text-gray-900 text-base" 
+                              className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-3 focus:ring-blue-500/50 transition-all hover:border-blue-400 bg-white/95 text-gray-900 text-[15px] font-medium" 
                               placeholder="Enter your username"
                             />
                           </FormControl>
@@ -386,11 +386,16 @@ export default function AuthPage() {
                             <Input 
                               type="password" 
                               {...field} 
-                              className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95 text-gray-900 text-base"
+                              className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-3 focus:ring-blue-500/50 transition-all hover:border-blue-400 bg-white/95 text-gray-900 text-[15px] font-medium"
                               placeholder="Enter your password"
                             />
                           </FormControl>
                           <FormMessage />
+                          <div className="mt-1 text-right">
+                            <a href="#" className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors">
+                              Forgot Password?
+                            </a>
+                          </div>
                         </FormItem>
                       )}
                     />
@@ -409,7 +414,7 @@ export default function AuthPage() {
                     <div className="pt-4">
                       <Button 
                         type="submit" 
-                        className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold py-3 h-12 rounded-lg transition-all duration-300 hover:shadow-xl active:scale-[0.98] shadow-[0_4px_14px_0_rgba(59,130,246,0.4)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.6)]" 
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold py-3 h-14 rounded-lg transition-all duration-300 hover:shadow-xl hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_0_rgba(59,130,246,0.4)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.6)] text-[16px]" 
                         disabled={isLoading}
                       >
                         {isLoading ? (
@@ -421,7 +426,12 @@ export default function AuthPage() {
                             {t("common.loading")}
                           </span>
                         ) : (
-                          t("auth.login")
+                          <span className="flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            {t("auth.login")}
+                          </span>
                         )}
                       </Button>
                     </div>
