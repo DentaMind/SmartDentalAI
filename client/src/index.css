@@ -13,10 +13,16 @@
 
   /* DentaMind brand color variables */
   :root {
+    /* Current blue theme */
     --dentamind-blue: #3366CC;     /* Primary brand color - trust, professionalism */
-    --dentamind-green: #00BFA5;    /* Action & health color - approval, success */
+    --dentamind-blue-dark: #2851A3; /* Darker shade for hover states */
+    --dentamind-green: #28C76F;    /* New bright green - health, growth, vitality */
+    --dentamind-green-dark: #1EA65A; /* Darker green for hover states */
     --dentamind-gray: #F2F2F2;     /* Secondary/neutral color - clean, professional */
     --dentamind-orange: #FF8C42;   /* Call-to-action color - urgency, action */
+    --dentamind-cyan: #4ADE80;     /* Subtle neon cyan for highlights */
+    --dentamind-deep-blue: #1E293B; /* Deep blue for backgrounds and gradients */
+    --dentamind-soft-white: #F9FAFB; /* Soft white for readability */
   }
 }
 

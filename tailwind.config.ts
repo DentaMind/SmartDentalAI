@@ -64,9 +64,14 @@ export default {
         // DentaMind branded colors
         dentamind: {
           blue: "var(--dentamind-blue)",
+          "blue-dark": "var(--dentamind-blue-dark)",
           green: "var(--dentamind-green)",
+          "green-dark": "var(--dentamind-green-dark)",
           gray: "var(--dentamind-gray)",
           orange: "var(--dentamind-orange)",
+          cyan: "var(--dentamind-cyan)",
+          "deep-blue": "var(--dentamind-deep-blue)",
+          "soft-white": "var(--dentamind-soft-white)",
         },
       },
       keyframes: {
