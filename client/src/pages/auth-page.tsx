@@ -408,7 +408,7 @@ export default function AuthPage() {
                 >
                   <div className="flex flex-col items-center w-full px-4">
                     <span className="whitespace-nowrap">Provider</span>
-                    <span className="text-[10px] opacity-70 whitespace-nowrap">Register & Subscribe</span>
+                    <span className="text-[10px] opacity-70 whitespace-nowrap">Register</span>
                   </div>
                 </TabsTrigger>
                 <TabsTrigger 
@@ -669,7 +669,7 @@ export default function AuthPage() {
                       className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold py-3 h-12 rounded-lg transition-all duration-300 hover:shadow-xl active:scale-[0.98] shadow-[0_4px_14px_0_rgba(59,130,246,0.3)] hover:shadow-[0_6px_16px_rgba(59,130,246,0.5)]" 
                       disabled={isLoading}
                     >
-                      {isLoading ? t("common.loading") : "Register as Staff"}
+                      {isLoading ? t("common.loading") : "Register as Staff Member"}
                     </Button>
                   </form>
                 </Form>
@@ -755,7 +755,7 @@ export default function AuthPage() {
                       </div>
                       <div className="mb-2 text-center mt-4">
                         <h4 className="font-medium text-gray-700">Professional</h4>
-                        <div className="mt-2 text-xl font-bold text-blue-600">$199<span className="text-sm font-normal text-gray-500">/month</span></div>
+                        <div className="mt-2 text-xl font-bold text-blue-600">$299<span className="text-sm font-normal text-gray-500">/month</span></div>
                       </div>
                       <ul className="mt-3 space-y-2 flex-grow">
                         <li className="flex items-start">
@@ -806,7 +806,7 @@ export default function AuthPage() {
                     <div className="p-4 flex flex-col h-full">
                       <div className="mb-2 text-center">
                         <h4 className="font-medium text-gray-700">Enterprise</h4>
-                        <div className="mt-2 text-xl font-bold text-blue-600">$349<span className="text-sm font-normal text-gray-500">/month</span></div>
+                        <div className="mt-2 text-xl font-bold text-blue-600">$549<span className="text-sm font-normal text-gray-500">/month</span></div>
                       </div>
                       <ul className="mt-3 space-y-2 flex-grow">
                         <li className="flex items-start">
@@ -1216,7 +1216,7 @@ export default function AuthPage() {
                           {t("common.loading")}
                         </span>
                       ) : (
-                        "Subscribe & Create Account"
+                        "Subscribe & Create Provider Account"
                       )}
                     </Button>
                   </form>
