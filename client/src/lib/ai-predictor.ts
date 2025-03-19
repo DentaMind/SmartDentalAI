@@ -141,12 +141,11 @@ export interface PredictionContext {
 export async function predictDentalCondition(context: PredictionContext): Promise<SymptomPrediction> {
   try {
     // Use our new /api/ai/diagnosis endpoint
-    const response = await apiRequest("POST", "/api/ai/diagnosis", context);
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to analyze symptoms");
-    }
-    return await response.json();
+    return await apiRequest<SymptomPrediction>({
+      method: "POST",
+      url: "/api/ai/diagnosis",
+      body: context
+    });
   } catch (error) {
     console.error("AI Prediction failed:", error);
     if (error instanceof Error && error.message.includes("OpenAI")) {
@@ -181,12 +180,11 @@ export interface RefinementResponse {
 
 export async function refineDiagnosis(request: RefinementRequest): Promise<RefinementResponse> {
   try {
-    const response = await apiRequest("POST", "/api/ai/refine-diagnosis", request);
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to refine diagnosis");
-    }
-    return await response.json();
+    return await apiRequest<RefinementResponse>({
+      method: "POST",
+      url: "/api/ai/refine-diagnosis",
+      body: request
+    });
   } catch (error) {
     console.error("Diagnosis refinement failed:", error);
     throw new Error(error instanceof Error ? error.message : "Failed to refine diagnosis. Please try again.");
