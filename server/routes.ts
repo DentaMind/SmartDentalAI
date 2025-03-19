@@ -10,6 +10,7 @@ import { financialService } from './services/financial';
 import { aiServiceManager } from './services/ai-service-manager';
 import schedulerRoutes from './routes/scheduler-routes';
 import translationRoutes from './routes/translation-routes';
+import insuranceRoutes from './routes/insurance-routes';
 import path from 'path';
 import { PatientMedicalHistory } from '../shared/schema';
 

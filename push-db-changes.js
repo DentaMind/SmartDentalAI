@@ -248,6 +248,35 @@ async function main() {
     `);
     console.log('Created orthodontic_telehealth_sessions table');
     
+    // Insurance verifications table
+    await sql.unsafe(`
+      CREATE TABLE IF NOT EXISTS insurance_verifications (
+        id SERIAL PRIMARY KEY,
+        patient_id INTEGER NOT NULL,
+        verification_date TIMESTAMP DEFAULT NOW(),
+        status TEXT CHECK (status IN ('verified', 'pending', 'failed', 'expired', 'not_covered')) NOT NULL DEFAULT 'pending',
+        insurance_provider TEXT NOT NULL,
+        member_id TEXT NOT NULL,
+        group_number TEXT,
+        subscriber_name TEXT,
+        subscriber_relationship TEXT,
+        plan_type TEXT,
+        coverage JSONB,
+        effective_date TIMESTAMP,
+        termination_date TIMESTAMP,
+        remaining_benefits JSONB,
+        deductible JSONB,
+        verification_details JSONB,
+        transaction_id TEXT,
+        verified_by INTEGER,
+        next_verification_date TIMESTAMP,
+        alert_sent BOOLEAN DEFAULT FALSE,
+        alert_date TIMESTAMP,
+        notes TEXT
+      );
+    `);
+    console.log('Created insurance_verifications table');
+    
     console.log('Database migration completed successfully!');
   } catch (error) {
     console.error('Error during migration:', error);
