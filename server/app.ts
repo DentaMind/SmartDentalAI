@@ -13,6 +13,7 @@ import insuranceRoutes from './routes/insurance-routes';
 import treatmentRoutes from './routes/treatment-routes';
 import medicalNotesRoutes from './routes/medical-notes-routes';
 import prescriptionRoutes from './routes/prescription-routes';
+import postOpRoutes from './routes/post-op-routes';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';

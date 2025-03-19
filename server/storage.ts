@@ -816,7 +816,7 @@ export class MemStorage implements IStorage {
     // Get verifications that are not expired or failed
     return Array.from(this.insuranceVerifications.values()).filter(
       (verification) => verification.status !== InsuranceVerificationStatusEnum.enum.expired &&
-                         verification.status !== InsuranceVerificationStatusEnum.enum.failed
+                       verification.status !== InsuranceVerificationStatusEnum.enum.failed
     );
   }
 

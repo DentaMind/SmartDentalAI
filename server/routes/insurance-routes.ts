@@ -15,7 +15,7 @@ const insuranceStatusCheckSchema = z.object({
 // Get all active insurance verifications
 router.get('/active-verifications', async (req, res) => {
   try {
-    if (!req.session.user) {
+    if (!req.session || !req.session.userId) {
       return res.status(401).json({ message: 'Not authenticated' });
     }
 
@@ -51,9 +51,9 @@ router.post('/status-check', async (req, res) => {
       appointmentId: validatedData.appointmentId,
       status: InsuranceVerificationStatusEnum.enum.pending as InsuranceVerificationStatusType,
       verificationDate: new Date().toISOString(),
-      verifiedBy: req.session.user.id,
+      verifiedBy: req.session.user?.id,
       insuranceProvider: patient.insuranceProvider || 'Unknown',
-      insuranceMemberId: patient.insuranceMemberId || 'Unknown',
+      memberId: patient.insuranceNumber || 'Unknown',
     };
 
     const verification = await storage.createInsuranceVerification(newVerification);
