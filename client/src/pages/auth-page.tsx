@@ -702,7 +702,7 @@ export default function AuthPage() {
                     <div className="p-4 flex flex-col h-full border-r border-blue-100">
                       <div className="mb-2 text-center">
                         <h4 className="font-medium text-gray-700">Standard</h4>
-                        <div className="mt-2 text-xl font-bold text-blue-600">$99<span className="text-sm font-normal text-gray-500">/month</span></div>
+                        <div className="mt-2 text-xl font-bold text-blue-600">$199<span className="text-sm font-normal text-gray-500">/month</span></div>
                       </div>
                       <ul className="mt-3 space-y-2 flex-grow">
                         <li className="flex items-start">
