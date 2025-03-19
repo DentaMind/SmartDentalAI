@@ -6,10 +6,11 @@ import { AIHubDashboard } from '@/components/ai-hub/ai-hub-dashboard';
 import { usePatient } from '@/hooks/use-patient';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, User, ArrowRight } from 'lucide-react';
+import { Search, User, ArrowRight, Brain, Stethoscope, Zap } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Link } from 'wouter';
 
 export default function AIHubPage() {
   const [location, setLocation] = useLocation();
@@ -77,9 +78,29 @@ export default function AIHubPage() {
       <div className="container py-10 space-y-6">
         <div className="flex flex-col items-center justify-center max-w-3xl mx-auto text-center">
           <h1 className="text-3xl font-bold tracking-tight mb-6">DentaMind AI Hub</h1>
-          <p className="text-muted-foreground mb-10">
+          <p className="text-muted-foreground mb-6">
             Select a patient to generate AI-powered diagnosis and treatment planning
           </p>
+          
+          <div className="w-full bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <div className="p-3 bg-blue-100 rounded-full mr-4">
+                <Brain className="h-6 w-6 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium text-blue-800 text-lg">Interactive Diagnosis Assistant</h3>
+                <p className="text-blue-700 text-sm">
+                  Our new AI-powered interactive diagnosis tool with follow-up questions
+                </p>
+              </div>
+              <Button asChild>
+                <Link href="/interactive-diagnosis">
+                  <Zap className="mr-2 h-4 w-4" />
+                  Try Now
+                </Link>
+              </Button>
+            </div>
+          </div>
           
           <div className="w-full flex mb-8">
             <Input

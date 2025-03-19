@@ -11,6 +11,7 @@ import PatientsPage from "@/pages/patients-page";
 import AppointmentsPage from "@/pages/appointments-page";
 import TreatmentPlansPage from "@/pages/treatment-plans-page";
 import AIDiagnosticsPage from "@/pages/ai-diagnostics";
+import InteractiveDiagnosisPage from "@/pages/interactive-diagnosis";
 import BillingPage from "@/pages/billing";
 import TimeClockPage from "@/pages/time-clock-page";
 import { ProtectedRoute } from "./lib/protected-route";
@@ -51,6 +52,7 @@ function Router() {
         <ProtectedRoute path="/appointments" component={AppointmentsPage} />
         <ProtectedRoute path="/treatment-plans" component={TreatmentPlansPage} />
         <ProtectedRoute path="/ai-diagnostics" component={AIDiagnosticsPage} />
+        <ProtectedRoute path="/interactive-diagnosis" component={InteractiveDiagnosisPage} />
         <ProtectedRoute path="/billing" component={BillingPage} />
         <ProtectedRoute path="/time-clock" component={TimeClockPage} />
         <ProtectedRoute path="/ai-hub" component={AIHubPage} />

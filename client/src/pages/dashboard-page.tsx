@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Calendar, Plus, ChevronDown, ArrowRight, Grid, BarChart3, Settings } from "lucide-react";
+import { Calendar, Plus, ChevronDown, ArrowRight, Grid, BarChart3, Settings, Brain, Zap } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import type { Appointment } from "../../../shared/schema";
 
@@ -82,6 +82,29 @@ export default function DashboardPage() {
                 />
               </CardContent>
             </Card>
+          </div>
+          
+          {/* New Feature Banner */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-900 rounded-lg shadow-lg p-5 mt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-white/20 rounded-full">
+                  <Brain className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">New: Interactive Diagnosis Assistant</h3>
+                  <p className="text-blue-100">
+                    Our advanced AI now responds to your questions and provides more accurate diagnoses.
+                  </p>
+                </div>
+              </div>
+              <Button asChild className="bg-white hover:bg-blue-50 text-blue-600 hover:text-blue-700">
+                <Link href="/interactive-diagnosis">
+                  <Zap className="mr-2 h-4 w-4" />
+                  Try Now
+                </Link>
+              </Button>
+            </div>
           </div>
           
           {/* Quick Action Cards */}
