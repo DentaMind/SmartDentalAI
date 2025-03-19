@@ -28,6 +28,16 @@ type UserRegistrationData = {
   insuranceNumber?: string;
   specialization?: string;
   licenseNumber?: string;
+  // Additional fields for provider payment
+  cardName?: string;
+  cardNumber?: string;
+  expirationDate?: string;
+  cvv?: string;
+  billingAddress?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  subscriptionPlan?: string;
 };
 
 export default function AuthPage() {
@@ -85,7 +95,17 @@ export default function AuthPage() {
     },
   });
 
-  const providerForm = useForm<UserRegistrationData>({
+  const providerForm = useForm<UserRegistrationData & {
+    cardName?: string;
+    cardNumber?: string;
+    expirationDate?: string;
+    cvv?: string;
+    billingAddress?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    subscriptionPlan?: string;
+  }>({
     resolver: zodResolver(
       insertUserSchema.omit({ 
         role: true,
@@ -103,6 +123,15 @@ export default function AuthPage() {
       phoneNumber: "",
       specialization: "",
       licenseNumber: "",
+      cardName: "",
+      cardNumber: "",
+      expirationDate: "",
+      cvv: "",
+      billingAddress: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      subscriptionPlan: "professional", // Default to professional plan
     },
   });
 
@@ -143,12 +172,62 @@ export default function AuthPage() {
 
   const onProviderRegister = async (data: UserRegistrationData) => {
     console.log("Registering provider with data:", data);
+
+    // Get the selected subscription plan from radio buttons
+    const selectedPlan = document.querySelector('input[name="plan"]:checked') as HTMLInputElement;
+    let subscriptionPlan = selectedPlan ? selectedPlan.id.replace('-plan', '') : 'professional';
+    
+    // Validate payment information
+    if (!data.cardName || !data.cardNumber || !data.expirationDate || !data.cvv) {
+      providerForm.setError("root", {
+        type: "manual",
+        message: "Please complete all payment information fields"
+      });
+      return;
+    }
+
+    // Credit card validation (basic checks)
+    const ccNumberRegex = /^\d{13,19}$/;
+    if (data.cardNumber && !ccNumberRegex.test(data.cardNumber.replace(/\s/g, ''))) {
+      providerForm.setError("cardNumber", {
+        type: "manual",
+        message: "Please enter a valid credit card number"
+      });
+      return;
+    }
+
+    const expiryRegex = /^(0[1-9]|1[0-2])\/([0-9]{2})$/;
+    if (data.expirationDate && !expiryRegex.test(data.expirationDate)) {
+      providerForm.setError("expirationDate", {
+        type: "manual",
+        message: "Please use MM/YY format"
+      });
+      return;
+    }
+
+    // Check if terms are accepted
+    const termsCheckbox = document.getElementById('terms') as HTMLInputElement;
+    if (!termsCheckbox || !termsCheckbox.checked) {
+      providerForm.setError("root", {
+        type: "manual",
+        message: "You must agree to the Terms of Service and Privacy Policy"
+      });
+      return;
+    }
+
     try {
+      // Process subscription first (in a real app, this would connect to a payment gateway)
+      console.log(`Processing ${subscriptionPlan} subscription plan...`);
+      
+      // Create the provider account with the subscription plan details
       await register({
         ...data,
-        role: "doctor"
+        role: "doctor",
+        subscriptionPlan: subscriptionPlan
       });
-      console.log("Provider registration successful");
+      
+      // Display success with subscription details
+      console.log(`Provider registration successful with ${subscriptionPlan} plan`);
     } catch (err) {
       console.error("Registration failed:", err);
       
@@ -167,6 +246,12 @@ export default function AuthPage() {
         providerForm.setError("licenseNumber", { 
           type: "manual", 
           message: "Please provide a valid professional license number." 
+        });
+      } else if (err instanceof Error && err.message.includes("payment") || err instanceof Error && err.message.includes("card")) {
+        // Payment specific errors
+        providerForm.setError("cardNumber", { 
+          type: "manual", 
+          message: "There was an issue with your payment information. Please check and try again." 
         });
       } else {
         // Generic error handling
@@ -313,24 +398,26 @@ export default function AuthPage() {
                   value="login" 
                   className="py-3 px-0 text-gray-700 text-sm tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
                 >
-                  Login
+                  <div className="flex flex-col items-center w-full px-4">
+                    <span className="whitespace-nowrap">Login</span>
+                  </div>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="provider" 
                   className="py-3 px-0 text-gray-700 text-xs leading-tight tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
                 >
-                  <div className="flex flex-col items-center">
-                    <span>Provider</span>
-                    <span className="text-[10px] opacity-70">Register</span>
+                  <div className="flex flex-col items-center w-full px-4">
+                    <span className="whitespace-nowrap">Provider</span>
+                    <span className="text-[10px] opacity-70 whitespace-nowrap">Register & Subscribe</span>
                   </div>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="staff" 
                   className="py-3 px-0 text-gray-700 text-xs leading-tight tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 rounded-md"
                 >
-                  <div className="flex flex-col items-center">
-                    <span>Staff</span>
-                    <span className="text-[10px] opacity-70">Register</span>
+                  <div className="flex flex-col items-center w-full px-4">
+                    <span className="whitespace-nowrap">Staff</span>
+                    <span className="text-[10px] opacity-70 whitespace-nowrap">Register</span>
                   </div>
                 </TabsTrigger>
               </TabsList>
@@ -599,8 +686,170 @@ export default function AuthPage() {
                     <div className="ml-3">
                       <h3 className="text-sm font-medium text-blue-800">Provider Registration</h3>
                       <p className="text-sm text-gray-600 mt-1">
-                        Register as a dental professional to access all DentaMind features including AI diagnostics and advanced treatment planning. License number is required for verification.
+                        Register as a dental professional to access all DentaMind features including AI diagnostics and advanced treatment planning. Each provider gets a private isolated instance of DentaMind for their practice.
                       </p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Subscription Plans */}
+                <div className="mb-8 border border-blue-100 rounded-lg overflow-hidden">
+                  <div className="bg-blue-50 p-3">
+                    <h3 className="text-blue-700 font-medium text-center">Select Your Subscription Plan</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border-t border-blue-100">
+                    {/* Standard Plan */}
+                    <div className="p-4 flex flex-col h-full border-r border-blue-100">
+                      <div className="mb-2 text-center">
+                        <h4 className="font-medium text-gray-700">Standard</h4>
+                        <div className="mt-2 text-xl font-bold text-blue-600">$99<span className="text-sm font-normal text-gray-500">/month</span></div>
+                      </div>
+                      <ul className="mt-3 space-y-2 flex-grow">
+                        <li className="flex items-start">
+                          <svg className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                          </svg>
+                          <span className="text-sm text-gray-600">Patient Management</span>
+                        </li>
+                        <li className="flex items-start">
+                          <svg className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                          </svg>
+                          <span className="text-sm text-gray-600">Scheduling</span>
+                        </li>
+                        <li className="flex items-start">
+                          <svg className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                          </svg>
+                          <span className="text-sm text-gray-600">Dental Charting</span>
+                        </li>
+                        <li className="flex items-start opacity-50">
+                          <svg className="h-5 w-5 text-gray-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                          </svg>
+                          <span className="text-sm text-gray-400">AI Diagnosis</span>
+                        </li>
+                      </ul>
+                      <div className="mt-2">
+                        <div className="flex items-center">
+                          <input
+                            id="standard-plan"
+                            name="plan"
+                            type="radio"
+                            className="h-4 w-4 text-blue-600 rounded-full"
+                            onChange={() => {
+                              providerForm.setValue('subscriptionPlan', 'standard');
+                            }}
+                          />
+                          <label htmlFor="standard-plan" className="ml-2 text-sm text-gray-700">
+                            Select
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Professional Plan */}
+                    <div className="p-4 flex flex-col h-full border-r border-blue-100 bg-blue-50 relative">
+                      <div className="absolute -top-1 right-0 left-0 flex justify-center">
+                        <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full font-medium">POPULAR</span>
+                      </div>
+                      <div className="mb-2 text-center mt-4">
+                        <h4 className="font-medium text-gray-700">Professional</h4>
+                        <div className="mt-2 text-xl font-bold text-blue-600">$199<span className="text-sm font-normal text-gray-500">/month</span></div>
+                      </div>
+                      <ul className="mt-3 space-y-2 flex-grow">
+                        <li className="flex items-start">
+                          <svg className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                          </svg>
+                          <span className="text-sm text-gray-600">Everything in Standard</span>
+                        </li>
+                        <li className="flex items-start">
+                          <svg className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                          </svg>
+                          <span className="text-sm text-gray-600">AI Diagnosis</span>
+                        </li>
+                        <li className="flex items-start">
+                          <svg className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                          </svg>
+                          <span className="text-sm text-gray-600">AI Treatment Planning</span>
+                        </li>
+                        <li className="flex items-start">
+                          <svg className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                          </svg>
+                          <span className="text-sm text-gray-600">e-Prescriptions</span>
+                        </li>
+                      </ul>
+                      <div className="mt-2">
+                        <div className="flex items-center">
+                          <input
+                            id="professional-plan"
+                            name="plan"
+                            type="radio"
+                            className="h-4 w-4 text-blue-600 rounded-full" 
+                            defaultChecked
+                            onChange={() => {
+                              providerForm.setValue('subscriptionPlan', 'professional');
+                            }}
+                          />
+                          <label htmlFor="professional-plan" className="ml-2 text-sm text-gray-700">
+                            Select
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Enterprise Plan */}
+                    <div className="p-4 flex flex-col h-full">
+                      <div className="mb-2 text-center">
+                        <h4 className="font-medium text-gray-700">Enterprise</h4>
+                        <div className="mt-2 text-xl font-bold text-blue-600">$349<span className="text-sm font-normal text-gray-500">/month</span></div>
+                      </div>
+                      <ul className="mt-3 space-y-2 flex-grow">
+                        <li className="flex items-start">
+                          <svg className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                          </svg>
+                          <span className="text-sm text-gray-600">Everything in Professional</span>
+                        </li>
+                        <li className="flex items-start">
+                          <svg className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                          </svg>
+                          <span className="text-sm text-gray-600">Supply Ordering</span>
+                        </li>
+                        <li className="flex items-start">
+                          <svg className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                          </svg>
+                          <span className="text-sm text-gray-600">Telehealth</span>
+                        </li>
+                        <li className="flex items-start">
+                          <svg className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                          </svg>
+                          <span className="text-sm text-gray-600">Insurance Verification</span>
+                        </li>
+                      </ul>
+                      <div className="mt-2">
+                        <div className="flex items-center">
+                          <input
+                            id="enterprise-plan"
+                            name="plan"
+                            type="radio"
+                            className="h-4 w-4 text-blue-600 rounded-full"
+                            onChange={() => {
+                              providerForm.setValue('subscriptionPlan', 'enterprise');
+                            }}
+                          />
+                          <label htmlFor="enterprise-plan" className="ml-2 text-sm text-gray-700">
+                            Select
+                          </label>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -770,8 +1019,169 @@ export default function AuthPage() {
                       </div>
                     </div>
                     
+                    {/* Payment Details */}
+                    <div className="pt-6 pb-2">
+                      <h3 className="text-sm font-medium text-gray-700 mb-3">Payment Information</h3>
+                      <div className="bg-blue-50 p-3 rounded-lg mb-4">
+                        <div className="flex items-center mb-2">
+                          <svg className="h-5 w-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                          </svg>
+                          <span className="text-sm font-medium text-blue-700">Your subscription will begin immediately</span>
+                        </div>
+                        <p className="text-xs text-gray-600">Each provider gets their own isolated instance of DentaMind. Your patients and staff will only have access to your practice's data.</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <FormField
+                          control={providerForm.control}
+                          name="cardName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-semibold text-gray-700">Name on Card</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
+                                  placeholder="Name as it appears on card"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={providerForm.control}
+                          name="cardNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-semibold text-gray-700">Card Number</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
+                                  placeholder="•••• •••• •••• ••••"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <FormField
+                          control={providerForm.control}
+                          name="expirationDate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-semibold text-gray-700">Expiration Date</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
+                                  placeholder="MM/YY"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={providerForm.control}
+                          name="cvv"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-semibold text-gray-700">Security Code</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="password"
+                                  {...field} 
+                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
+                                  placeholder="CVV"
+                                  maxLength={4}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="mb-4">
+                        <FormField
+                          control={providerForm.control}
+                          name="billingAddress"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-semibold text-gray-700">Billing Address</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
+                                  placeholder="Street address"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-4">
+                        <FormField
+                          control={providerForm.control}
+                          name="city"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-semibold text-gray-700">City</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={providerForm.control}
+                          name="state"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-semibold text-gray-700">State</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={providerForm.control}
+                          name="zipCode"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-semibold text-gray-700">ZIP Code</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
                     {/* Terms and conditions */}
-                    <div className="mt-2">
+                    <div className="mt-6">
                       <div className="flex items-start">
                         <div className="flex items-center h-5">
                           <input
@@ -789,11 +1199,12 @@ export default function AuthPage() {
                           </label>
                         </div>
                       </div>
+                      <p className="text-xs text-gray-500 mt-2">By subscribing, you authorize DentaMind to charge your card for the selected plan until you cancel. You can cancel anytime through your account settings or by contacting support.</p>
                     </div>
                     
                     <Button 
                       type="submit" 
-                      className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold py-3 h-12 rounded-lg transition-all duration-300 hover:shadow-xl active:scale-[0.98] shadow-[0_4px_14px_0_rgba(59,130,246,0.4)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.6)]" 
+                      className="w-full mt-6 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold py-3 h-12 rounded-lg transition-all duration-300 hover:shadow-xl active:scale-[0.98] shadow-[0_4px_14px_0_rgba(59,130,246,0.4)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.6)]" 
                       disabled={isLoading}
                     >
                       {isLoading ? (
@@ -805,7 +1216,7 @@ export default function AuthPage() {
                           {t("common.loading")}
                         </span>
                       ) : (
-                        "Register as Provider"
+                        "Subscribe & Create Account"
                       )}
                     </Button>
                   </form>
