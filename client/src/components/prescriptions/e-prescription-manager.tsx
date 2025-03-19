@@ -226,10 +226,14 @@ export default function EPrescriptionManager({ patientId }: { patientId?: number
   const [isPrescriptionDialogOpen, setIsPrescriptionDialogOpen] = useState(false);
   const [isSigningDialogOpen, setIsSigningDialogOpen] = useState(false);
   const [isPharmacyDialogOpen, setIsPharmacyDialogOpen] = useState(false);
+  const [isPatientSelectDialogOpen, setIsPatientSelectDialogOpen] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
   const [signature, setSignature] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [patientSearchQuery, setPatientSearchQuery] = useState("");
   const [selectedPharmacy, setSelectedPharmacy] = useState<Pharmacy | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [aiGenerating, setAiGenerating] = useState(false);
   
   // Form data for new prescription
   const [prescriptionFormData, setPrescriptionFormData] = useState<PrescriptionFormData>({
@@ -245,6 +249,18 @@ export default function EPrescriptionManager({ patientId }: { patientId?: number
     reasonForPrescription: "",
     controlled: false,
   });
+  
+  // Common dental medication abbreviations
+  const commonMedications = [
+    { name: "Amoxicillin", dosage: "500mg", frequency: "TID", duration: "7 days", quantity: "21", instructions: "Take 1 capsule by mouth three times daily until completed." },
+    { name: "Amoxicillin/Clavulanate (Augmentin)", dosage: "875/125mg", frequency: "BID", duration: "7 days", quantity: "14", instructions: "Take 1 tablet by mouth twice daily until completed." },
+    { name: "Clindamycin", dosage: "300mg", frequency: "QID", duration: "7 days", quantity: "28", instructions: "Take 1 capsule by mouth four times daily until completed." },
+    { name: "Penicillin VK", dosage: "500mg", frequency: "QID", duration: "7 days", quantity: "28", instructions: "Take 1 tablet by mouth four times daily until completed." },
+    { name: "Ibuprofen", dosage: "800mg", frequency: "TID", duration: "5 days", quantity: "15", instructions: "Take 1 tablet by mouth three times daily with food as needed for pain." },
+    { name: "Acetaminophen/Codeine (Tylenol #3)", dosage: "300/30mg", frequency: "q4-6h", duration: "3 days", quantity: "12", instructions: "Take 1-2 tablets by mouth every 4-6 hours as needed for pain.", controlled: true, controlledSubstanceSchedule: "III" },
+    { name: "Azithromycin (Z-Pak)", dosage: "250mg", frequency: "Daily per instructions", duration: "5 days", quantity: "6", instructions: "Take 2 tablets on first day, then 1 tablet daily for 4 more days." },
+    { name: "Chlorhexidine Gluconate", dosage: "0.12%", frequency: "BID", duration: "14 days", quantity: "1 bottle (473ml)", instructions: "Rinse with 15ml for 30 seconds twice daily. Do not swallow." },
+  ];
   
   // Fetch prescriptions - if patientId is provided, fetch only that patient's prescriptions
   const { data: prescriptions, isLoading } = useQuery({
@@ -367,6 +383,60 @@ export default function EPrescriptionManager({ patientId }: { patientId?: number
     enabled: searchQuery.length > 2 && isPharmacyDialogOpen,
   });
   
+  // Search for patients
+  const { data: patients, isLoading: isLoadingPatients } = useQuery({
+    queryKey: ['patients', patientSearchQuery],
+    queryFn: () => apiRequest(`/patients/search?query=${encodeURIComponent(patientSearchQuery)}`),
+    enabled: patientSearchQuery.length > 2 && isPatientSelectDialogOpen,
+  });
+  
+  // Fetch patient details
+  const { data: patientDetails, isLoading: isLoadingPatientDetails } = useQuery({
+    queryKey: ['patient', prescriptionFormData.patientId],
+    queryFn: () => apiRequest(`/patients/${prescriptionFormData.patientId}`),
+    enabled: !!prescriptionFormData.patientId && prescriptionFormData.patientId > 0,
+  });
+  
+  // AI Prescription Recommendation - This will send patient data to get recommendations
+  const aiPrescriptionMutation = useMutation({
+    mutationFn: (patientId: number) => 
+      apiRequest('/ai/prescription-recommendation', { 
+        method: 'POST', 
+        body: JSON.stringify({ patientId }),
+        headers: { 'Content-Type': 'application/json' }
+      }),
+    onSuccess: (data) => {
+      const recommendation = data.recommendation;
+      setPrescriptionFormData(prev => ({
+        ...prev,
+        drugName: recommendation.drugName || prev.drugName,
+        dosage: recommendation.dosage || prev.dosage,
+        frequency: recommendation.frequency || prev.frequency,
+        duration: recommendation.duration || prev.duration,
+        quantity: recommendation.quantity || prev.quantity,
+        refills: recommendation.refills || prev.refills,
+        instructions: recommendation.instructions || prev.instructions,
+        reasonForPrescription: recommendation.reasonForPrescription || prev.reasonForPrescription,
+        controlled: recommendation.controlled || prev.controlled,
+        controlledSubstanceSchedule: recommendation.controlledSubstanceSchedule || prev.controlledSubstanceSchedule,
+      }));
+      
+      toast({
+        title: "AI Recommendation Generated",
+        description: "The prescription has been pre-filled based on patient history and procedures.",
+      });
+      setAiGenerating(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to generate AI recommendation. Falling back to manual entry.",
+        variant: "destructive",
+      });
+      setAiGenerating(false);
+    }
+  });
+  
   // Reset prescription form
   const resetPrescriptionForm = () => {
     setPrescriptionFormData({
@@ -450,6 +520,51 @@ export default function EPrescriptionManager({ patientId }: { patientId?: number
     updatePrescriptionStatusMutation.mutate({ id, status, notes });
   };
   
+  // Handle patient selection
+  const handlePatientSelect = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setPrescriptionFormData(prev => ({
+      ...prev,
+      patientId: patient.id
+    }));
+    setIsPatientSelectDialogOpen(false);
+    
+    // Generate AI recommendations if a patient is selected
+    if (patient.id) {
+      setAiGenerating(true);
+      aiPrescriptionMutation.mutate(patient.id);
+    }
+  };
+  
+  // Handle medication selection from common medications
+  const handleMedicationSelect = (medication: any) => {
+    setPrescriptionFormData(prev => ({
+      ...prev,
+      drugName: medication.name,
+      dosage: medication.dosage,
+      frequency: medication.frequency,
+      duration: medication.duration,
+      quantity: medication.quantity,
+      instructions: medication.instructions,
+      controlled: medication.controlled || false,
+      controlledSubstanceSchedule: medication.controlledSubstanceSchedule || "",
+    }));
+  };
+  
+  // Generate AI recommendations
+  const handleGenerateAIRecommendation = () => {
+    if (prescriptionFormData.patientId) {
+      setAiGenerating(true);
+      aiPrescriptionMutation.mutate(prescriptionFormData.patientId);
+    } else {
+      toast({
+        title: "Error",
+        description: "Please select a patient first to generate AI recommendations.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   return (
     <div className="space-y-6">
       <Card>
@@ -469,7 +584,19 @@ export default function EPrescriptionManager({ patientId }: { patientId?: number
             <Button
               variant="default"
               className="flex items-center gap-2"
-              onClick={() => setIsPrescriptionDialogOpen(true)}
+              onClick={() => {
+                if (!patientId) {
+                  setIsPatientSelectDialogOpen(true);
+                } else {
+                  setPrescriptionFormData(prev => ({
+                    ...prev,
+                    patientId: patientId
+                  }));
+                  setIsPrescriptionDialogOpen(true);
+                  setAiGenerating(true);
+                  aiPrescriptionMutation.mutate(patientId);
+                }
+              }}
             >
               <FilePlus className="h-4 w-4" />
               {t("New Prescription")}
@@ -993,6 +1120,103 @@ export default function EPrescriptionManager({ patientId }: { patientId?: number
                   {t("Send to")} {selectedPharmacy?.name || t("Pharmacy")}
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Patient Selection Dialog */}
+      <Dialog open={isPatientSelectDialogOpen} onOpenChange={setIsPatientSelectDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("Select Patient")}</DialogTitle>
+            <DialogDescription>
+              {t("Select a patient to create a prescription for")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {patientsQuery.isLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : patientsQuery.isError ? (
+              <div className="text-center text-red-500 py-4">
+                {t("Error loading patients. Please try again.")}
+              </div>
+            ) : !patientsQuery.data?.length ? (
+              <div className="text-center py-4">
+                <p>{t("No patients found.")}</p>
+              </div>
+            ) : (
+              <ScrollArea className="h-[300px]">
+                <div className="space-y-2">
+                  {patientsQuery.data?.map((patient) => (
+                    <Button
+                      key={patient.id}
+                      variant="outline"
+                      className="w-full justify-start text-left h-auto py-3"
+                      onClick={() => handlePatientSelect(patient)}
+                    >
+                      <div>
+                        <div className="font-medium">
+                          {patient.firstName} {patient.lastName}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {t("DOB")}: {new Date(patient.dateOfBirth).toLocaleDateString()} | {t("ID")}: {patient.id}
+                        </div>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPatientSelectDialogOpen(false)}>
+              {t("Cancel")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Common Medications Dialog */}
+      <Dialog open={isCommonMedsDialogOpen} onOpenChange={setIsCommonMedsDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("Common Dental Medications")}</DialogTitle>
+            <DialogDescription>
+              {t("Select a common medication to quickly fill the prescription form")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-2">
+                {commonMedications.map((medication, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    className="w-full justify-start text-left h-auto py-3"
+                    onClick={() => {
+                      handleMedicationSelect(medication);
+                      setIsCommonMedsDialogOpen(false);
+                    }}
+                  >
+                    <div>
+                      <div className="font-medium">{medication.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {medication.dosage} | {medication.frequency}
+                      </div>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCommonMedsDialogOpen(false)}>
+              {t("Cancel")}
             </Button>
           </DialogFooter>
         </DialogContent>
