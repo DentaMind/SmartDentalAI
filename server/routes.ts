@@ -488,6 +488,9 @@ router.post("/ai/medical-analysis", requireAuth, async (req, res) => {
 // Use scheduler routes
 router.use('/scheduler', schedulerRoutes);
 
+// Use insurance routes
+router.use('/insurance', insuranceRoutes);
+
 // Use translation routes
 router.use('/api', translationRoutes);
 

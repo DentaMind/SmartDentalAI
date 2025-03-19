@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TaxOptimization } from "./tax-optimization";
 import { RevenueCalculator } from "./revenue-calculator";
+import { InsuranceVerificationDashboard } from "./insurance-verification";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,13 +19,14 @@ import {
   BookOpen,
   LucideProps,
   Shield,
-  ArrowLeft
+  ArrowLeft,
+  CheckCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
 // Type for the dashboard mode
-type DashboardMode = 'tax' | 'revenue' | 'accounting' | 'legal';
+type DashboardMode = 'tax' | 'revenue' | 'insurance' | 'accounting' | 'legal';
 
 // Interface for the props
 interface FinancialDashboardProps {
@@ -195,6 +197,14 @@ export function FinancialDashboard({ userId, initialTab = 'tax' }: FinancialDash
                 >
                   <PiggyBank className="h-4 w-4 mr-2" />
                   Revenue Calculator
+                </Button>
+                <Button 
+                  variant={activeTab === 'insurance' ? "default" : "ghost"} 
+                  className="justify-start rounded-none h-11"
+                  onClick={() => setActiveTab('insurance')}
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Insurance Verification
                 </Button>
                 <Button 
                   variant={activeTab === 'accounting' ? "default" : "ghost"} 
