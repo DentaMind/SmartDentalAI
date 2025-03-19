@@ -140,7 +140,7 @@ export function AppointmentRequestForm() {
       // Send request to the server
       await apiRequest('/api/appointments/request', {
         method: 'POST',
-        body: requestData
+        body: JSON.stringify(requestData)
       });
       
       toast({

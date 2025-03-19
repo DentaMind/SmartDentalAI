@@ -114,6 +114,7 @@ export function Sidebar() {
 
     const patientItems: NavigationItem[] = [
       { name: "My Appointments", href: "/appointments", icon: Calendar },
+      { name: "Request Appointment", href: "/appointment-request", icon: Calendar, highlight: true },
       { name: "Treatment Plans", href: "/treatment-plans", icon: FileText },
       { name: "Post-Op Instructions", href: "/post-op-instructions", icon: ClipboardList },
       { name: "My Records", href: "/xrays", icon: Image },

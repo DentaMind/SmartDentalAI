@@ -4,7 +4,9 @@ import {
   Patient,
   InsertPatient,
   InsuranceVerification,
-  InsertInsuranceVerification
+  InsertInsuranceVerification,
+  Appointment,
+  InsertAppointment
 } from "@shared/schema";
 
 export interface IStorage {
@@ -17,6 +19,15 @@ export interface IStorage {
   getPatient(id: number): Promise<(Patient & { user: User }) | undefined>;
   createPatient(patient: InsertPatient): Promise<Patient>;
   getAllPatients(): Promise<(Patient & { user: User })[]>;
+  getPatientByUserId(userId: number): Promise<Patient | undefined>;
+  
+  // Appointment management
+  createAppointment(appointment: InsertAppointment): Promise<Appointment>;
+  getAppointment(appointmentId: number): Promise<Appointment | undefined>;
+  updateAppointment(appointmentId: number, updates: Partial<InsertAppointment>): Promise<Appointment | undefined>;
+  getDoctorAppointments(doctorId: number): Promise<Appointment[]>;
+  getPatientAppointments(patientId: number): Promise<Appointment[]>;
+  getAllAppointments(): Promise<Appointment[]>;
   
   // Insurance verification management
   createInsuranceVerification(verification: InsertInsuranceVerification): Promise<InsuranceVerification>;
