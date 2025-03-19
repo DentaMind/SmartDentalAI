@@ -18,6 +18,9 @@ import {
   InsertFinancialTransaction,
   InsuranceClaim,
   InsertInsuranceClaim,
+  InsuranceVerification,
+  InsertInsuranceVerification,
+  InsuranceVerificationStatusEnum,
 } from "@shared/schema";
 import createMemoryStore from "memorystore";
 import session from "express-session";
@@ -788,5 +791,41 @@ export class MemStorage implements IStorage {
     };
   }
 };
+
+  // Insurance verification methods
+  async createInsuranceVerification(verification: InsertInsuranceVerification): Promise<InsuranceVerification> {
+    const id = this.currentId++;
+    const newVerification = { id, ...verification };
+    this.insuranceVerifications.set(id, newVerification);
+    return newVerification;
+  }
+
+  async getInsuranceVerification(id: number): Promise<InsuranceVerification | undefined> {
+    return this.insuranceVerifications.get(id);
+  }
+
+  async updateInsuranceVerification(id: number, updates: Partial<InsuranceVerification>): Promise<InsuranceVerification | undefined> {
+    const verification = this.insuranceVerifications.get(id);
+    if (!verification) return undefined;
+    
+    const updatedVerification = { ...verification, ...updates };
+    this.insuranceVerifications.set(id, updatedVerification);
+    return updatedVerification;
+  }
+
+  async getActiveInsuranceVerifications(): Promise<InsuranceVerification[]> {
+    // Get verifications that are not expired or failed
+    return Array.from(this.insuranceVerifications.values()).filter(
+      (verification) => verification.status !== InsuranceVerificationStatusEnum.enum.expired &&
+                         verification.status !== InsuranceVerificationStatusEnum.enum.failed
+    );
+  }
+
+  async getPatientInsuranceVerificationHistory(patientId: number): Promise<InsuranceVerification[]> {
+    return Array.from(this.insuranceVerifications.values()).filter(
+      (verification) => verification.patientId === patientId
+    );
+  }
+}
 
 export const storage = new MemStorage();
