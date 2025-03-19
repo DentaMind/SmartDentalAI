@@ -491,6 +491,21 @@ export class MemStorage implements IStorage {
     return updatedAppointment;
   }
 
+  async getPatientByUserId(userId: number): Promise<Patient | undefined> {
+    const patients = Array.from(this.patients.values());
+    return patients.find(patient => patient.userId === userId);
+  }
+  
+  async getPatientAppointments(patientId: number): Promise<Appointment[]> {
+    return Array.from(this.appointments.values()).filter(
+      appointment => appointment.patientId === patientId
+    );
+  }
+  
+  async getAllAppointments(): Promise<Appointment[]> {
+    return Array.from(this.appointments.values());
+  }
+
   async createAvailabilitySlot(slot: any) {
     //Simulate creating an availability slot. Replace with actual DB call in production.
     const id = this.currentId++;
