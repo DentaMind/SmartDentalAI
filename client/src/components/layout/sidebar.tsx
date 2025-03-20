@@ -29,6 +29,7 @@ import {
   PanelLeftOpen,
   ChevronRight,
   Lightbulb,
+  Mail,
 } from "lucide-react";
 import { ToothDoctorIcon } from "../icons/tooth-doctor-icon";
 import { LucideIcon } from "lucide-react";
@@ -75,20 +76,17 @@ export function Sidebar() {
         icon: ToothDoctorIcon,
         highlight: true 
       },
+      { name: "Patients", href: "/patients", icon: Users },
+      { name: "Schedule", href: "/appointments", icon: Calendar },
+      { name: "Clinical Tools", href: "/dental-ai-hub", icon: Stethoscope },
+      { name: "Email AI", href: "/email-ai", icon: Mail, highlight: true },
+      { name: "Staff Management", href: "/time-clock", icon: Clock },
       { 
         name: "AI Recommendations", 
         href: "/ai-recommendations", 
         icon: Lightbulb,
         highlight: true 
-      },
-      { name: "Patients", href: "/patients", icon: Users },
-      { name: "Schedule", href: "/appointments", icon: Calendar },
-      { name: "Treatment Planning", href: "/treatment-plans", icon: FileText },
-      { name: "Clinical Tools", href: "/dental-ai-hub", icon: Stethoscope },
-      { name: "Financial", href: "/billing", icon: DollarSign },
-      { name: "Staff Management", href: "/time-clock", icon: Clock },
-      { name: "Perio Analysis", href: "/perio-dashboard", icon: ActivitySquare, highlight: true },
-      { name: "Intraoral Scanner", href: "/orthodontic-dashboard", icon: Image, highlight: true }
+      }
     ];
 
     const staffItems: NavigationItem[] = [
@@ -98,18 +96,17 @@ export function Sidebar() {
         icon: ToothDoctorIcon,
         highlight: true 
       },
+      { name: "Patients", href: "/patients", icon: Users },
+      { name: "Schedule", href: "/appointments", icon: Calendar },
+      { name: "Time Management", href: "/time-clock", icon: Clock },
+      { name: "Clinical Tools", href: "/dental-ai-hub", icon: Stethoscope },
+      { name: "Email AI", href: "/email-ai", icon: Mail, highlight: true },
       { 
         name: "AI Recommendations", 
         href: "/ai-recommendations", 
         icon: Lightbulb,
         highlight: true 
-      },
-      { name: "Patients", href: "/patients", icon: Users },
-      { name: "Schedule", href: "/appointments", icon: Calendar },
-      { name: "Financial", href: "/billing", icon: DollarSign },
-      { name: "Time Management", href: "/time-clock", icon: Clock },
-      { name: "Clinical Tools", href: "/dental-ai-hub", icon: Stethoscope },
-      { name: "Intraoral Scanner", href: "/orthodontic-dashboard", icon: Image, highlight: true }
+      }
     ];
 
     const patientItems: NavigationItem[] = [
