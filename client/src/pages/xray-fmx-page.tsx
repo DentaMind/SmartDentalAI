@@ -211,24 +211,38 @@ const XRayFMXPage: React.FC<XRayFMXPageProps> = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-4">
+        <TabsList className="grid w-full grid-cols-3 mb-4">
           <TabsTrigger value="fmx" className="gap-2">
             <Grid3X3 className="h-4 w-4" />
             FMX Layout
           </TabsTrigger>
-          <TabsTrigger value="analysis" className="gap-2">
-            <Brain className="h-4 w-4" />
-            AI Analysis
-          </TabsTrigger>
-          <TabsTrigger value="history" className="gap-2">
-            <History className="h-4 w-4" />
-            X-ray History
-          </TabsTrigger>
-          <TabsTrigger value="search" className="gap-2">
+          <TabsTrigger value="pax" className="gap-2">
             <FileSearch className="h-4 w-4" />
-            Search by Tooth
+            Panoramic
+          </TabsTrigger>
+          <TabsTrigger value="advanced" className="gap-2">
+            <Brain className="h-4 w-4" />
+            Advanced Imaging
           </TabsTrigger>
         </TabsList>
+        
+        {/* Second row of tabs for advanced options */}
+        {activeTab === 'advanced' && (
+          <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsTrigger value="cbct" className="gap-2">
+              CBCT
+            </TabsTrigger>
+            <TabsTrigger value="endo" className="gap-2">
+              Endodontic
+            </TabsTrigger>
+            <TabsTrigger value="analysis" className="gap-2">
+              AI Analysis
+            </TabsTrigger>
+            <TabsTrigger value="history" className="gap-2">
+              History
+            </TabsTrigger>
+          </TabsList>
+        )}
         
         <TabsContent value="fmx" className="pt-2">
           <FMXLayout
@@ -357,6 +371,200 @@ const XRayFMXPage: React.FC<XRayFMXPageProps> = () => {
                 </div>
               ))
             }
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="pax" className="pt-2">
+          <div className="space-y-4">
+            <div className="p-4 border rounded-lg">
+              <h3 className="text-lg font-medium mb-4">Panoramic X-ray</h3>
+              
+              {patientXRays.filter(x => x.type === 'panoramic').length > 0 ? (
+                <div className="grid grid-cols-1 gap-4">
+                  {patientXRays
+                    .filter(x => x.type === 'panoramic')
+                    .sort((a, b) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime())
+                    .map(xray => (
+                      <div 
+                        key={xray.id}
+                        className="border rounded-md overflow-hidden hover:border-primary cursor-pointer transition-colors"
+                        onClick={() => handleXRaySelected(xray)}
+                      >
+                        <div className="h-64 bg-black relative">
+                          <img 
+                            src={xray.imageUrl} 
+                            alt="Panoramic X-ray" 
+                            className="w-full h-full object-contain"
+                          />
+                          <div className="absolute top-2 right-2 flex gap-1">
+                            <Button 
+                              size="icon" 
+                              variant="secondary" 
+                              className="h-6 w-6 rounded-full"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedForAI(xray);
+                              }}
+                            >
+                              <Brain className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="p-3">
+                          <div className="flex justify-between items-center mb-1">
+                            <div className="font-medium">Panoramic X-ray</div>
+                            <div className="text-xs text-muted-foreground">
+                              {new Date(xray.date || '').toLocaleDateString()}
+                            </div>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {xray.notes || 'No additional notes'}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  }
+                </div>
+              ) : (
+                <div className="text-center p-8 border border-dashed rounded-lg">
+                  <h4 className="text-lg font-medium mb-2">No Panoramic X-rays Found</h4>
+                  <p className="text-muted-foreground mb-4">Upload a panoramic X-ray to view it here.</p>
+                  <Button onClick={() => console.log('Upload panoramic X-ray')}>
+                    Upload Panoramic X-ray
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="cbct" className="pt-2">
+          <div className="space-y-4">
+            <div className="p-4 border rounded-lg">
+              <h3 className="text-lg font-medium mb-4">CBCT Imaging</h3>
+              
+              {patientXRays.filter(x => x.type === 'cbct').length > 0 ? (
+                <div className="grid grid-cols-1 gap-4">
+                  {patientXRays
+                    .filter(x => x.type === 'cbct')
+                    .sort((a, b) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime())
+                    .map(xray => (
+                      <div 
+                        key={xray.id}
+                        className="border rounded-md overflow-hidden hover:border-primary cursor-pointer transition-colors"
+                        onClick={() => handleXRaySelected(xray)}
+                      >
+                        <div className="h-64 bg-black relative">
+                          <img 
+                            src={xray.imageUrl} 
+                            alt="CBCT X-ray" 
+                            className="w-full h-full object-contain"
+                          />
+                          <div className="absolute top-2 right-2 flex gap-1">
+                            <Button 
+                              size="icon" 
+                              variant="secondary" 
+                              className="h-6 w-6 rounded-full"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedForAI(xray);
+                              }}
+                            >
+                              <Brain className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="p-3">
+                          <div className="flex justify-between items-center mb-1">
+                            <div className="font-medium">CBCT Scan</div>
+                            <div className="text-xs text-muted-foreground">
+                              {new Date(xray.date || '').toLocaleDateString()}
+                            </div>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {xray.notes || 'No additional notes'}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  }
+                </div>
+              ) : (
+                <div className="text-center p-8 border border-dashed rounded-lg">
+                  <h4 className="text-lg font-medium mb-2">No CBCT Scans Found</h4>
+                  <p className="text-muted-foreground mb-4">Upload a CBCT scan to view it here.</p>
+                  <Button onClick={() => console.log('Upload CBCT scan')}>
+                    Upload CBCT Scan
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="endo" className="pt-2">
+          <div className="space-y-4">
+            <div className="p-4 border rounded-lg">
+              <h3 className="text-lg font-medium mb-4">Endodontic X-rays</h3>
+              
+              {patientXRays.filter(x => x.type === 'endodontic').length > 0 ? (
+                <div className="grid grid-cols-2 gap-4">
+                  {patientXRays
+                    .filter(x => x.type === 'endodontic')
+                    .sort((a, b) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime())
+                    .map(xray => (
+                      <div 
+                        key={xray.id}
+                        className="border rounded-md overflow-hidden hover:border-primary cursor-pointer transition-colors"
+                        onClick={() => handleXRaySelected(xray)}
+                      >
+                        <div className="h-48 bg-black relative">
+                          <img 
+                            src={xray.imageUrl} 
+                            alt="Endodontic X-ray" 
+                            className="w-full h-full object-contain"
+                          />
+                          <div className="absolute top-2 right-2 flex gap-1">
+                            <Button 
+                              size="icon" 
+                              variant="secondary" 
+                              className="h-6 w-6 rounded-full"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedForAI(xray);
+                              }}
+                            >
+                              <Brain className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="p-3">
+                          <div className="flex justify-between items-center mb-1">
+                            <div className="font-medium">
+                              Endodontic X-ray - Tooth #{xray.teeth.join(', ')}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {new Date(xray.date || '').toLocaleDateString()}
+                            </div>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {xray.notes || 'No additional notes'}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  }
+                </div>
+              ) : (
+                <div className="text-center p-8 border border-dashed rounded-lg">
+                  <h4 className="text-lg font-medium mb-2">No Endodontic X-rays Found</h4>
+                  <p className="text-muted-foreground mb-4">Upload an endodontic X-ray to view it here.</p>
+                  <Button onClick={() => console.log('Upload endodontic X-ray')}>
+                    Upload Endodontic X-ray
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </TabsContent>
         
