@@ -1,941 +1,1272 @@
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  Mail, 
+  Settings, 
+  Inbox, 
+  Send, 
+  Loader2, 
+  CheckCircle, 
+  AlertTriangle, 
+  RotateCw, 
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  Brain,
+  FileText
+} from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger
-} from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import { Check, X, Mail, RefreshCw, Calendar, File, FileText, AlertTriangle } from 'lucide-react';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 
-// Email provider schema
-const emailProviderSchema = z.object({
-  type: z.enum(['gmail', 'outlook', 'smtp']),
-  email: z.string().email(),
-  authType: z.enum(['oauth2', 'password']).default('oauth2'),
-  name: z.string().min(1, "Name is required"),
-  description: z.string().optional()
-});
+interface EmailTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
+  type: string;
+  aiGenerated: boolean;
+  lastUsed?: string;
+}
 
-// Email template schema
-const emailTemplateSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().min(1, "Template name is required"),
-  subject: z.string().min(1, "Subject is required"),
-  body: z.string().min(1, "Body is required"),
-  category: z.enum([
-    'appointment', 
-    'lab_update', 
-    'insurance', 
-    'prescription', 
-    'patient_education',
-    'marketing',
-    'follow_up',
-    'billing'
-  ]),
-  variables: z.array(z.string()).optional(),
-});
+interface EmailProvider {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  username: string;
+  useSSL: boolean;
+  isDefault: boolean;
+  connected: boolean;
+}
 
-// Email test schema
-const testEmailSchema = z.object({
-  to: z.string().email("A valid email address is required"),
-  templateId: z.string().min(1, "Template selection is required"),
-  data: z.record(z.string()).optional()
-});
-
-type EmailProvider = z.infer<typeof emailProviderSchema>;
-type EmailTemplate = z.infer<typeof emailTemplateSchema>;
-type TestEmail = z.infer<typeof testEmailSchema>;
+interface EmailMonitorStatus {
+  status: 'connected' | 'disconnected' | 'error';
+  lastCheck: string;
+  unreadCount: number;
+  monitoredFolders: string[];
+  emailsProcessed: number;
+  aiAnalyzed: number;
+}
 
 export function EmailAIManagement() {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('config');
-
-  // Load email configuration
-  const { 
-    data: configData, 
-    isLoading: configLoading, 
-    error: configError,
-    refetch: refetchConfig
-  } = useQuery({
-    queryKey: ['/api/email/configuration'],
-    retry: false,
+  const [activeTab, setActiveTab] = useState("settings");
+  const [isConfiguring, setIsConfiguring] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [providers, setProviders] = useState<EmailProvider[]>([]);
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [monitorStatus, setMonitorStatus] = useState<EmailMonitorStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showNewProvider, setShowNewProvider] = useState(false);
+  const [showNewTemplate, setShowNewTemplate] = useState(false);
+  const [editingProvider, setEditingProvider] = useState<EmailProvider | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
+  const [testEmail, setTestEmail] = useState('');
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [monitorSettings, setMonitorSettings] = useState({
+    enableMonitoring: false,
+    checkIntervalMinutes: 5,
+    monitoredFolders: 'INBOX',
+    enableAutoResponder: false,
+    processAttachments: true
   });
 
-  // Load email templates
-  const { 
-    data: templatesData, 
-    isLoading: templatesLoading, 
-    error: templatesError,
-    refetch: refetchTemplates
-  } = useQuery({
-    queryKey: ['/api/email/templates'],
-    retry: false,
+  // New provider form state
+  const [newProvider, setNewProvider] = useState({
+    name: '',
+    host: '',
+    port: 587,
+    username: '',
+    password: '',
+    useSSL: true,
+    isDefault: false
   });
 
-  // Load email providers
-  const { 
-    data: providersData, 
-    isLoading: providersLoading, 
-    error: providersError,
-    refetch: refetchProviders
-  } = useQuery({
-    queryKey: ['/api/email/providers'],
-    retry: false,
+  // New template form state
+  const [newTemplate, setNewTemplate] = useState({
+    name: '',
+    subject: '',
+    body: '',
+    type: 'general',
+    aiGenerated: false
   });
 
-  // Handle template creation/update
-  const templateMutation = useMutation({
-    mutationFn: (template: EmailTemplate) => {
-      return apiRequest('/api/email/templates', {
-        method: 'POST',
-        data: template
-      });
-    },
-    onSuccess: () => {
-      toast({
-        title: "Template saved",
-        description: "Email template has been saved successfully",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/email/templates'] });
-      templateForm.reset();
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error saving template",
-        description: error.message || "Failed to save email template",
-        variant: "destructive",
-      });
-    }
-  });
+  useEffect(() => {
+    // Fetch configuration data
+    fetchData();
+  }, []);
 
-  // Handle provider configuration
-  const providerMutation = useMutation({
-    mutationFn: (provider: EmailProvider) => {
-      return apiRequest('/api/email/providers', {
-        method: 'POST',
-        data: provider
-      });
-    },
-    onSuccess: () => {
-      toast({
-        title: "Provider configured",
-        description: "Email provider has been configured successfully",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/email/providers'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/email/configuration'] });
-      providerForm.reset();
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error configuring provider",
-        description: error.message || "Failed to configure email provider",
-        variant: "destructive",
-      });
-    }
-  });
-
-  // Handle test email sending
-  const testEmailMutation = useMutation({
-    mutationFn: (testData: TestEmail) => {
-      return apiRequest('/api/email/send', {
-        method: 'POST',
-        data: {
-          templateId: testData.templateId,
-          to: testData.to,
-          data: testData.data || {}
-        }
-      });
-    },
-    onSuccess: () => {
-      toast({
-        title: "Test email sent",
-        description: "The test email has been sent successfully",
-      });
-      testEmailForm.reset();
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error sending test email",
-        description: error.message || "Failed to send test email",
-        variant: "destructive",
-      });
-    }
-  });
-
-  // Setup forms
-  const providerForm = useForm<EmailProvider>({
-    resolver: zodResolver(emailProviderSchema),
-    defaultValues: {
-      type: 'gmail',
-      email: '',
-      authType: 'oauth2',
-      name: '',
-      description: ''
-    }
-  });
-
-  const templateForm = useForm<EmailTemplate>({
-    resolver: zodResolver(emailTemplateSchema),
-    defaultValues: {
-      name: '',
-      subject: '',
-      body: '',
-      category: 'appointment',
-      variables: []
-    }
-  });
-
-  const testEmailForm = useForm<TestEmail>({
-    resolver: zodResolver(testEmailSchema),
-    defaultValues: {
-      to: '',
-      templateId: '',
-      data: {}
-    }
-  });
-
-  // Handlers
-  const handleProviderSubmit = (data: EmailProvider) => {
-    providerMutation.mutate(data);
-  };
-
-  const handleTemplateSubmit = (data: EmailTemplate) => {
-    templateMutation.mutate(data);
-  };
-
-  const handleTestEmailSubmit = (data: TestEmail) => {
-    testEmailMutation.mutate(data);
-  };
-
-  const handleRefreshConfig = () => {
-    refetchConfig();
-    refetchTemplates();
-    refetchProviders();
-    toast({
-      title: "Refreshed",
-      description: "Configuration data has been refreshed",
-    });
-  };
-
-  // Select a template for editing
-  const handleSelectTemplate = (template: EmailTemplate) => {
-    templateForm.reset(template);
-    setActiveTab('templates');
-  };
-
-  // Generate placeholder template form data by category
-  const handleTemplateCategory = (category: string) => {
-    const placeholders: Record<string, { subject: string, variables: string[] }> = {
-      appointment: {
-        subject: 'Your upcoming appointment with {{doctorName}}',
-        variables: ['patientName', 'doctorName', 'appointmentDate', 'appointmentTime']
-      },
-      lab_update: {
-        subject: 'Update on your lab case',
-        variables: ['patientName', 'labStatus', 'completionDate', 'caseNumber']
-      },
-      insurance: {
-        subject: 'Insurance claim status update',
-        variables: ['patientName', 'claimNumber', 'insuranceProvider', 'status', 'amount']
-      },
-      prescription: {
-        subject: 'Your prescription information',
-        variables: ['patientName', 'doctorName', 'medicationName', 'dosage', 'frequency', 'duration']
-      },
-      patient_education: {
-        subject: 'Information about your dental condition',
-        variables: ['patientName', 'conditionName', 'treatmentOptions', 'preventionTips']
-      },
-      marketing: {
-        subject: 'Special offer from DentaMind',
-        variables: ['patientName', 'offerDetails', 'expirationDate', 'savings']
-      },
-      follow_up: {
-        subject: 'Follow-up on your recent dental visit',
-        variables: ['patientName', 'doctorName', 'visitDate', 'procedureName']
-      },
-      billing: {
-        subject: 'Your recent invoice from DentaMind',
-        variables: ['patientName', 'invoiceNumber', 'invoiceDate', 'dueDate', 'amount']
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch email providers
+      const providersResponse = await fetch('/api/email-ai/providers');
+      if (providersResponse.ok) {
+        const providersData = await providersResponse.json();
+        setProviders(providersData);
       }
-    };
 
-    if (placeholders[category]) {
-      templateForm.setValue('subject', placeholders[category].subject);
-      templateForm.setValue('variables', placeholders[category].variables);
-      
-      // Generate a sample body with variables
-      const variables = placeholders[category].variables;
-      let sampleBody = `Dear {{${variables[0] || 'patientName'}}},\n\n`;
-      
-      sampleBody += `This is a sample template for ${category.replace('_', ' ')} emails.\n\n`;
-      
-      variables.forEach(variable => {
-        sampleBody += `{{${variable}}}\n`;
+      // Fetch email templates
+      const templatesResponse = await fetch('/api/email-ai/templates');
+      if (templatesResponse.ok) {
+        const templatesData = await templatesResponse.json();
+        setTemplates(templatesData);
+      }
+
+      // Fetch monitor status
+      const statusResponse = await fetch('/api/email-ai/status');
+      if (statusResponse.ok) {
+        const statusData = await statusResponse.json();
+        setMonitorStatus(statusData);
+        
+        // Update settings
+        setMonitorSettings({
+          enableMonitoring: statusData.monitoring?.enabled || false,
+          checkIntervalMinutes: statusData.monitoring?.checkInterval || 5,
+          monitoredFolders: statusData.monitoring?.folders?.join(',') || 'INBOX',
+          enableAutoResponder: statusData.autoResponder?.enabled || false,
+          processAttachments: statusData.monitoring?.processAttachments || true
+        });
+        
+        setAiEnabled(statusData.aiEnabled || false);
+      }
+    } catch (error) {
+      console.error('Error fetching email configuration:', error);
+      toast({
+        title: "Failed to load configuration",
+        description: "There was an error loading the email AI configuration.",
+        variant: "destructive"
       });
-      
-      sampleBody += '\n\nBest regards,\nThe DentaMind Team';
-      
-      templateForm.setValue('body', sampleBody);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const saveProvider = async () => {
+    setIsConfiguring(true);
+    try {
+      const data = editingProvider || newProvider;
+      const method = editingProvider ? 'PUT' : 'POST';
+      const endpoint = editingProvider ? `/api/email-ai/providers/${editingProvider.id}` : '/api/email-ai/providers';
+      
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        data: JSON.stringify(data)
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Provider saved",
+          description: editingProvider ? "Email provider updated successfully" : "New email provider added successfully",
+        });
+        
+        // Refresh data
+        fetchData();
+        
+        // Reset forms
+        setEditingProvider(null);
+        setNewProvider({
+          name: '',
+          host: '',
+          port: 587,
+          username: '',
+          password: '',
+          useSSL: true,
+          isDefault: false
+        });
+        setShowNewProvider(false);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save provider');
+      }
+    } catch (error) {
+      console.error('Error saving provider:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save email provider",
+        variant: "destructive"
+      });
+    } finally {
+      setIsConfiguring(false);
+    }
+  };
+
+  const saveTemplate = async () => {
+    setIsConfiguring(true);
+    try {
+      const data = editingTemplate || newTemplate;
+      const method = editingTemplate ? 'PUT' : 'POST';
+      const endpoint = editingTemplate ? `/api/email-ai/templates/${editingTemplate.id}` : '/api/email-ai/templates';
+      
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        data: JSON.stringify(data)
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Template saved",
+          description: editingTemplate ? "Email template updated successfully" : "New email template added successfully",
+        });
+        
+        // Refresh data
+        fetchData();
+        
+        // Reset forms
+        setEditingTemplate(null);
+        setNewTemplate({
+          name: '',
+          subject: '',
+          body: '',
+          type: 'general',
+          aiGenerated: false
+        });
+        setShowNewTemplate(false);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save template');
+      }
+    } catch (error) {
+      console.error('Error saving template:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save email template",
+        variant: "destructive"
+      });
+    } finally {
+      setIsConfiguring(false);
+    }
+  };
+
+  const testConnection = async (providerId: string) => {
+    setIsTesting(true);
+    try {
+      const response = await fetch(`/api/email-ai/providers/${providerId}/test`, {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Connection successful",
+          description: "Successfully connected to the email server",
+        });
+        fetchData(); // Refresh connection status
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Connection test failed');
+      }
+    } catch (error) {
+      console.error('Error testing connection:', error);
+      toast({
+        title: "Connection failed",
+        description: error.message || "Failed to connect to the email server",
+        variant: "destructive"
+      });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const deleteProvider = async (providerId: string) => {
+    if (!confirm("Are you sure you want to delete this email provider?")) return;
+    
+    try {
+      const response = await fetch(`/api/email-ai/providers/${providerId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Provider deleted",
+          description: "Email provider has been deleted successfully",
+        });
+        fetchData(); // Refresh data
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete provider');
+      }
+    } catch (error) {
+      console.error('Error deleting provider:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete email provider",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteTemplate = async (templateId: string) => {
+    if (!confirm("Are you sure you want to delete this email template?")) return;
+    
+    try {
+      const response = await fetch(`/api/email-ai/templates/${templateId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Template deleted",
+          description: "Email template has been deleted successfully",
+        });
+        fetchData(); // Refresh data
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete template');
+      }
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete email template",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const saveMonitorSettings = async () => {
+    setIsConfiguring(true);
+    try {
+      const response = await fetch('/api/email-ai/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        data: JSON.stringify({
+          monitoring: {
+            enabled: monitorSettings.enableMonitoring,
+            checkInterval: monitorSettings.checkIntervalMinutes,
+            folders: monitorSettings.monitoredFolders.split(',').map(f => f.trim()),
+            processAttachments: monitorSettings.processAttachments
+          },
+          autoResponder: {
+            enabled: monitorSettings.enableAutoResponder
+          },
+          aiEnabled: aiEnabled
+        })
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Settings saved",
+          description: "Email monitoring settings have been updated",
+        });
+        fetchData(); // Refresh data
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save settings');
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save email monitoring settings",
+        variant: "destructive"
+      });
+    } finally {
+      setIsConfiguring(false);
+    }
+  };
+
+  const sendTestEmail = async () => {
+    if (!testEmail) {
+      toast({
+        title: "Missing information",
+        description: "Please enter a valid email address",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsTesting(true);
+    try {
+      const response = await fetch('/api/email-ai/test-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        data: JSON.stringify({ email: testEmail })
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Test email sent",
+          description: `A test email has been sent to ${testEmail}`,
+        });
+        setTestEmail('');
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to send test email');
+      }
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send test email",
+        variant: "destructive"
+      });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const refreshStatus = async () => {
+    try {
+      const response = await fetch('/api/email-ai/status');
+      if (response.ok) {
+        const statusData = await response.json();
+        setMonitorStatus(statusData);
+        
+        toast({
+          title: "Status refreshed",
+          description: "Email AI monitoring status has been updated",
+        });
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to refresh status');
+      }
+    } catch (error) {
+      console.error('Error refreshing status:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to refresh status",
+        variant: "destructive"
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+        <span>Loading Email AI Configuration...</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Email AI Management</h2>
-          <p className="text-muted-foreground">
-            Configure email integration and AI for automated communications
-          </p>
-        </div>
-        <Button onClick={handleRefreshConfig} variant="outline" size="icon">
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {configError && (
-        <Card className="mb-6 border-destructive">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center text-destructive">
-              <AlertTriangle className="h-5 w-5 mr-2" />
-              Configuration Error
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>{configError instanceof Error ? configError.message : 'Failed to load configuration'}</p>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" onClick={() => refetchConfig()}>
-              Retry
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Email Status</CardTitle>
-              <CardDescription>
-                Current configuration status
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {configLoading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="h-4 w-4 rounded-full animate-pulse bg-primary"></div>
-                  <span>Checking configuration...</span>
-                </div>
-              ) : configData ? (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span>Email provider:</span>
-                    {configData.configured ? (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-50">
-                        <Check className="h-3 w-3 mr-1" /> Configured
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-yellow-50 text-yellow-700 hover:bg-yellow-50">
-                        <X className="h-3 w-3 mr-1" /> Not configured
-                      </Badge>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span>Templates:</span>
-                    {templatesData && templatesData.length > 0 ? (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-50">
-                        {templatesData.length} available
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-yellow-50 text-yellow-700 hover:bg-yellow-50">
-                        None defined
-                      </Badge>
-                    )}
-                  </div>
-                  
-                  <div className="text-xs text-muted-foreground mt-2">
-                    {configData.status}
-                  </div>
-                </>
-              ) : (
-                <div className="text-muted-foreground">
-                  Configuration status not available
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {templatesData && templatesData.length > 0 && (
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle>Templates</CardTitle>
-                <CardDescription>
-                  Available email templates
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {templatesData.map((template: any) => (
-                  <div 
-                    key={template.id}
-                    className="flex items-center justify-between p-2 rounded-md hover:bg-muted cursor-pointer"
-                    onClick={() => handleSelectTemplate(template)}
-                  >
-                    <div>
-                      <div className="font-medium text-sm">{template.name}</div>
-                      <div className="text-xs text-muted-foreground">{template.category}</div>
-                    </div>
-                    <Badge variant="outline" className="text-xs">{template.id}</Badge>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-        </div>
-        
-        <div className="md:col-span-3">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-3 mb-6">
-              <TabsTrigger value="config">
-                <Mail className="h-4 w-4 mr-2" />
-                Configuration
-              </TabsTrigger>
-              <TabsTrigger value="templates">
-                <FileText className="h-4 w-4 mr-2" />
-                Templates
-              </TabsTrigger>
-              <TabsTrigger value="test">
-                <File className="h-4 w-4 mr-2" />
-                Test Email
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="config">
-              <Card>
+    <div className="container mx-auto mb-10">
+      <div className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-6 grid w-full grid-cols-3">
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Configuration
+            </TabsTrigger>
+            <TabsTrigger value="templates" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Email Templates
+            </TabsTrigger>
+            <TabsTrigger value="monitor" className="flex items-center gap-2">
+              <Inbox className="h-4 w-4" />
+              Email Monitoring
+            </TabsTrigger>
+          </TabsList>
+          
+          {/* Configuration Tab */}
+          <TabsContent value="settings">
+            <div className="space-y-6">
+              <Card className="border border-gray-200 bg-card text-card-foreground shadow-sm">
                 <CardHeader>
-                  <CardTitle>Email Provider Configuration</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="h-5 w-5" />
+                    Email Provider Configuration
+                  </CardTitle>
                   <CardDescription>
-                    Configure your email provider for sending emails from DentaMind
+                    Configure the email providers for AI integration and automation
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Form {...providerForm}>
-                    <form onSubmit={providerForm.handleSubmit(handleProviderSubmit)} className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={providerForm.control}
-                          name="type"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Provider Type</FormLabel>
-                              <Select 
-                                onValueChange={field.onChange} 
-                                defaultValue={field.value}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select provider type" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="gmail">Gmail</SelectItem>
-                                  <SelectItem value="outlook">Outlook / Office 365</SelectItem>
-                                  <SelectItem value="smtp">Custom SMTP</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormDescription>
-                                Select your email service provider
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={providerForm.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Email Address</FormLabel>
-                              <FormControl>
-                                <Input placeholder="notifications@dentamind.com" {...field} />
-                              </FormControl>
-                              <FormDescription>
-                                Email address used for sending notifications
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={providerForm.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Provider Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="DentaMind Notifications" {...field} />
-                              </FormControl>
-                              <FormDescription>
-                                Display name for outgoing emails
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={providerForm.control}
-                          name="authType"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Authentication Type</FormLabel>
-                              <Select 
-                                onValueChange={field.onChange} 
-                                defaultValue={field.value}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select authentication type" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="oauth2">OAuth 2.0 (Recommended)</SelectItem>
-                                  <SelectItem value="password">Password (Less Secure)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormDescription>
-                                How to authenticate with the email provider
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <FormField
-                        control={providerForm.control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Description (Optional)</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="Main notification email for patient communications"
-                                className="resize-none"
-                                rows={3}
-                                {...field} 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="flex flex-col space-y-3">
-                        <div className="flex items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <label
-                              htmlFor="ai-email-processing"
-                              className="font-medium text-sm"
-                            >
-                              AI Email Processing
-                            </label>
-                            <p className="text-xs text-muted-foreground">
-                              Allow AI to read and process incoming emails
-                            </p>
-                          </div>
-                          <Switch
-                            id="ai-email-processing"
-                            checked={true}
-                            onCheckedChange={() => {}}
-                          />
-                        </div>
-                        
-                        <div className="flex items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <label
-                              htmlFor="ai-auto-response"
-                              className="font-medium text-sm"
-                            >
-                              AI Auto-Response
-                            </label>
-                            <p className="text-xs text-muted-foreground">
-                              Allow AI to automatically respond to patient inquiries
-                            </p>
-                          </div>
-                          <Switch
-                            id="ai-auto-response"
-                            checked={true}
-                            onCheckedChange={() => {}}
-                          />
-                        </div>
-
-                        <div className="flex items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <label
-                              htmlFor="hipaa-compliance"
-                              className="font-medium text-sm"
-                            >
-                              HIPAA Compliance
-                            </label>
-                            <p className="text-xs text-muted-foreground">
-                              Enable HIPAA-compliant email processing and storage
-                            </p>
-                          </div>
-                          <Switch
-                            id="hipaa-compliance"
-                            checked={true}
-                            onCheckedChange={() => {}}
-                          />
-                        </div>
-                      </div>
-
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-medium">Email Providers</h3>
                       <Button 
-                        type="submit" 
-                        className="w-full" 
-                        disabled={providerMutation.isPending}
+                        variant="outline" 
+                        onClick={() => setShowNewProvider(true)}
+                        className="flex items-center gap-2"
                       >
-                        {providerMutation.isPending ? "Saving..." : "Save Configuration"}
+                        <Plus className="h-4 w-4" />
+                        Add Provider
                       </Button>
-                    </form>
-                  </Form>
+                    </div>
+                    
+                    {providers.length === 0 ? (
+                      <div className="mt-4 p-6 border border-dashed rounded-lg text-center">
+                        <p className="text-muted-foreground mb-2">No email providers configured</p>
+                        <Button 
+                          variant="default" 
+                          onClick={() => setShowNewProvider(true)}
+                          className="mt-2"
+                        >
+                          Configure Email Provider
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="mt-4 space-y-4">
+                        {providers.map((provider) => (
+                          <Card key={provider.id} className="border border-gray-100 shadow-sm">
+                            <CardHeader className="p-4 pb-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <CardTitle className="text-base">{provider.name}</CardTitle>
+                                  {provider.isDefault && (
+                                    <Badge className="bg-green-500 hover:bg-green-600">Default</Badge>
+                                  )}
+                                  {provider.connected ? (
+                                    <Badge className="bg-green-500 hover:bg-green-600">Connected</Badge>
+                                  ) : (
+                                    <Badge className="bg-red-500 hover:bg-red-600">Disconnected</Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => setEditingProvider(provider)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => deleteProvider(provider.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </div>
+                              </div>
+                              <CardDescription>
+                                {provider.host}:{provider.port}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-2">
+                              <div className="text-sm text-muted-foreground">
+                                <p>Username: {provider.username}</p>
+                                <p>SSL: {provider.useSSL ? 'Enabled' : 'Disabled'}</p>
+                              </div>
+                            </CardContent>
+                            <CardFooter className="p-4 border-t justify-end gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                disabled={isTesting}
+                                onClick={() => testConnection(provider.id)}
+                              >
+                                {isTesting ? (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                  <CheckCircle className="mr-2 h-4 w-4" />
+                                )}
+                                Test Connection
+                              </Button>
+                            </CardFooter>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+                <CardFooter className="border-t px-6 py-4">
+                  <div className="w-full flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Switch 
+                        id="ai-enabled" 
+                        checked={aiEnabled}
+                        onCheckedChange={setAiEnabled}
+                      />
+                      <Label htmlFor="ai-enabled" className="flex items-center gap-2">
+                        <Brain className="h-4 w-4" />
+                        Enable AI Email Integration
+                      </Label>
+                    </div>
+                    <Button onClick={saveMonitorSettings} disabled={isConfiguring}>
+                      {isConfiguring ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                      )}
+                      Save Configuration
+                    </Button>
+                  </div>
+                </CardFooter>
+              </Card>
+              
+              <Card className="border border-gray-200 bg-card text-card-foreground shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Send className="h-5 w-5" />
+                    Send Test Email
+                  </CardTitle>
+                  <CardDescription>
+                    Test your email configuration by sending a test message
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <Label htmlFor="test-email">Recipient Email Address</Label>
+                      <Input 
+                        id="test-email" 
+                        placeholder="email@example.com" 
+                        className="mt-1"
+                        value={testEmail}
+                        onChange={(e) => setTestEmail(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button 
+                        variant="default" 
+                        disabled={isTesting || !testEmail}
+                        onClick={sendTestEmail}
+                      >
+                        {isTesting ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="mr-2 h-4 w-4" />
+                        )}
+                        Send Test Email
+                      </Button>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-            
-            <TabsContent value="templates">
-              <Card>
+            </div>
+          </TabsContent>
+          
+          {/* Templates Tab */}
+          <TabsContent value="templates">
+            <div className="space-y-6">
+              <Card className="border border-gray-200 bg-card text-card-foreground shadow-sm">
                 <CardHeader>
-                  <CardTitle>Email Template</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Email Templates
+                  </CardTitle>
                   <CardDescription>
-                    Create or edit email templates for automated communications
+                    Manage email templates for automated responses and notifications
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Form {...templateForm}>
-                    <form onSubmit={templateForm.handleSubmit(handleTemplateSubmit)} className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={templateForm.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Template Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Appointment Reminder" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={templateForm.control}
-                          name="category"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Category</FormLabel>
-                              <Select 
-                                onValueChange={(value) => {
-                                  field.onChange(value);
-                                  handleTemplateCategory(value);
-                                }}
-                                defaultValue={field.value}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select template category" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="appointment">Appointment</SelectItem>
-                                  <SelectItem value="lab_update">Lab Update</SelectItem>
-                                  <SelectItem value="insurance">Insurance</SelectItem>
-                                  <SelectItem value="prescription">Prescription</SelectItem>
-                                  <SelectItem value="patient_education">Patient Education</SelectItem>
-                                  <SelectItem value="marketing">Marketing</SelectItem>
-                                  <SelectItem value="follow_up">Follow-up</SelectItem>
-                                  <SelectItem value="billing">Billing</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-medium">Email Templates</h3>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowNewTemplate(true)}
+                        className="flex items-center gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add Template
+                      </Button>
+                    </div>
+                    
+                    {templates.length === 0 ? (
+                      <div className="mt-4 p-6 border border-dashed rounded-lg text-center">
+                        <p className="text-muted-foreground mb-2">No email templates configured</p>
+                        <Button 
+                          variant="default" 
+                          onClick={() => setShowNewTemplate(true)}
+                          className="mt-2"
+                        >
+                          Create Template
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {templates.map((template) => (
+                          <Card key={template.id} className="border border-gray-100 shadow-sm">
+                            <CardHeader className="p-4 pb-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex flex-col gap-1">
+                                  <CardTitle className="text-base">{template.name}</CardTitle>
+                                  <div className="flex items-center gap-2">
+                                    <Badge className="bg-gray-200 text-gray-700 hover:bg-gray-300">
+                                      {template.type}
+                                    </Badge>
+                                    {template.aiGenerated && (
+                                      <Badge className="bg-indigo-500 hover:bg-indigo-600">
+                                        AI Generated
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => setEditingTemplate(template)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => deleteTemplate(template.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-2">
+                              <div className="text-sm text-muted-foreground">
+                                <p><span className="font-medium">Subject:</span> {template.subject}</p>
+                                <p className="mt-2 line-clamp-2">{template.body}</p>
+                              </div>
+                            </CardContent>
+                            <CardFooter className="p-4 border-t">
+                              <div className="w-full flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground">
+                                  {template.lastUsed ? `Last used: ${new Date(template.lastUsed).toLocaleDateString()}` : 'Never used'}
+                                </span>
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="mr-1 h-4 w-4" />
+                                  Preview
+                                </Button>
+                              </div>
+                            </CardFooter>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          {/* Monitor Tab */}
+          <TabsContent value="monitor">
+            <div className="space-y-6">
+              <Card className="border border-gray-200 bg-card text-card-foreground shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    Email Monitoring Configuration
+                  </CardTitle>
+                  <CardDescription>
+                    Configure settings for email monitoring and AI-powered responses
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Switch 
+                        id="enable-monitoring" 
+                        checked={monitorSettings.enableMonitoring}
+                        onCheckedChange={(checked) => 
+                          setMonitorSettings({...monitorSettings, enableMonitoring: checked})
+                        }
+                      />
+                      <Label htmlFor="enable-monitoring">Enable Email Monitoring</Label>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="check-interval">Check Interval (minutes)</Label>
+                        <Input 
+                          id="check-interval" 
+                          type="number" 
+                          min="1" 
+                          max="60" 
+                          value={monitorSettings.checkIntervalMinutes}
+                          onChange={(e) => 
+                            setMonitorSettings({
+                              ...monitorSettings, 
+                              checkIntervalMinutes: parseInt(e.target.value) || 5
+                            })
+                          }
+                          className="mt-1"
                         />
                       </div>
-
-                      <FormField
-                        control={templateForm.control}
-                        name="subject"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email Subject</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Your upcoming appointment with DentaMind" {...field} />
-                            </FormControl>
-                            <FormDescription>
-                              You can use variables like {'{{patientName}}'} in the subject
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                      
+                      <div>
+                        <Label htmlFor="monitored-folders">Monitored Folders (comma separated)</Label>
+                        <Input 
+                          id="monitored-folders" 
+                          value={monitorSettings.monitoredFolders}
+                          onChange={(e) => 
+                            setMonitorSettings({...monitorSettings, monitoredFolders: e.target.value})
+                          }
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Switch 
+                        id="process-attachments" 
+                        checked={monitorSettings.processAttachments}
+                        onCheckedChange={(checked) => 
+                          setMonitorSettings({...monitorSettings, processAttachments: checked})
+                        }
                       />
-
-                      <FormField
-                        control={templateForm.control}
-                        name="body"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email Body</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Dear {{patientName}},\n\nThis is a reminder about your upcoming appointment with Dr. {{doctorName}} on {{appointmentDate}} at {{appointmentTime}}.\n\nPlease arrive 15 minutes early.\n\nBest regards,\nThe DentaMind Team"
-                                className="min-h-[200px]"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Use variables within double curly braces to personalize the email
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                      <Label htmlFor="process-attachments">Process Email Attachments</Label>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Switch 
+                        id="enable-autoresponder" 
+                        checked={monitorSettings.enableAutoResponder}
+                        onCheckedChange={(checked) => 
+                          setMonitorSettings({...monitorSettings, enableAutoResponder: checked})
+                        }
                       />
-
-                      <FormField
-                        control={templateForm.control}
-                        name="variables"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Variables (Optional)</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="patientName,doctorName,appointmentDate,appointmentTime"
-                                value={(field.value || []).join(',')}
-                                onChange={(e) => {
-                                  const vars = e.target.value.split(',').map(v => v.trim()).filter(Boolean);
-                                  field.onChange(vars);
-                                }}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Comma-separated list of variables used in this template
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {templateForm.watch('variables') && templateForm.watch('variables')?.length > 0 && (
+                      <Label htmlFor="enable-autoresponder">Enable AI Auto-Responder</Label>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="justify-end border-t p-4">
+                  <Button onClick={saveMonitorSettings} disabled={isConfiguring}>
+                    {isConfiguring ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                    )}
+                    Save Settings
+                  </Button>
+                </CardFooter>
+              </Card>
+              
+              <Card className="border border-gray-200 bg-card text-card-foreground shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Inbox className="h-5 w-5" />
+                    Email Monitor Status
+                  </CardTitle>
+                  <CardDescription>
+                    Current status of email monitoring and AI integration
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {monitorStatus ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Status:</span>
+                          {monitorStatus.status === 'connected' ? (
+                            <Badge className="bg-green-500">Connected</Badge>
+                          ) : monitorStatus.status === 'disconnected' ? (
+                            <Badge className="bg-gray-500">Disconnected</Badge>
+                          ) : (
+                            <Badge className="bg-red-500">Error</Badge>
+                          )}
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={refreshStatus}
+                          className="flex items-center gap-1"
+                        >
+                          <RotateCw className="h-4 w-4" />
+                          Refresh Status
+                        </Button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card className="border border-gray-100">
+                          <CardHeader className="p-3 pb-1">
+                            <CardTitle className="text-sm font-medium">Unread Emails</CardTitle>
+                          </CardHeader>
+                          <CardContent className="p-3 pt-1">
+                            <p className="text-2xl font-bold">{monitorStatus.unreadCount}</p>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card className="border border-gray-100">
+                          <CardHeader className="p-3 pb-1">
+                            <CardTitle className="text-sm font-medium">Emails Processed</CardTitle>
+                          </CardHeader>
+                          <CardContent className="p-3 pt-1">
+                            <p className="text-2xl font-bold">{monitorStatus.emailsProcessed}</p>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card className="border border-gray-100">
+                          <CardHeader className="p-3 pb-1">
+                            <CardTitle className="text-sm font-medium">AI Analyzed</CardTitle>
+                          </CardHeader>
+                          <CardContent className="p-3 pt-1">
+                            <p className="text-2xl font-bold">{monitorStatus.aiAnalyzed}</p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      
+                      <div className="mt-4">
+                        <h3 className="text-sm font-medium mb-2">Monitored Folders:</h3>
                         <div className="flex flex-wrap gap-2">
-                          {templateForm.watch('variables')?.map((variable, index) => (
-                            <Badge key={index} variant="secondary">
-                              {'{{' + variable + '}}'}
-                            </Badge>
+                          {monitorStatus.monitoredFolders.map((folder, index) => (
+                            <Badge key={index} variant="outline">{folder}</Badge>
                           ))}
                         </div>
-                      )}
-
-                      <Button 
-                        type="submit" 
-                        className="w-full" 
-                        disabled={templateMutation.isPending}
-                      >
-                        {templateMutation.isPending ? "Saving..." : "Save Template"}
-                      </Button>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="test">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Send Test Email</CardTitle>
-                  <CardDescription>
-                    Test your email configuration by sending a templated email
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Form {...testEmailForm}>
-                    <form onSubmit={testEmailForm.handleSubmit(handleTestEmailSubmit)} className="space-y-6">
-                      <FormField
-                        control={testEmailForm.control}
-                        name="to"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Recipient Email</FormLabel>
-                            <FormControl>
-                              <Input placeholder="patient@example.com" {...field} />
-                            </FormControl>
-                            <FormDescription>
-                              Email address to receive the test message
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={testEmailForm.control}
-                        name="templateId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email Template</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange} 
-                              defaultValue={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a template" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {templatesData?.map((template: any) => (
-                                  <SelectItem key={template.id} value={template.id}>
-                                    {template.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormDescription>
-                              Choose a template to use for the test email
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="space-y-3">
-                        <h3 className="text-sm font-medium">Template Variables</h3>
-                        <p className="text-xs text-muted-foreground">
-                          Add values for each variable in the selected template
-                        </p>
-
-                        {/* Sample variable fields - in a real app, these would be generated from the selected template */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <FormLabel className="text-xs">patientName</FormLabel>
-                            <Input 
-                              placeholder="John Doe"
-                              value={testEmailForm.watch('data')?.patientName || ''}
-                              onChange={(e) => {
-                                const data = testEmailForm.getValues('data') || {};
-                                testEmailForm.setValue('data', {
-                                  ...data,
-                                  patientName: e.target.value
-                                });
-                              }}
-                            />
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <FormLabel className="text-xs">doctorName</FormLabel>
-                            <Input 
-                              placeholder="Dr. Smith"
-                              value={testEmailForm.watch('data')?.doctorName || ''}
-                              onChange={(e) => {
-                                const data = testEmailForm.getValues('data') || {};
-                                testEmailForm.setValue('data', {
-                                  ...data,
-                                  doctorName: e.target.value
-                                });
-                              }}
-                            />
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <FormLabel className="text-xs">appointmentDate</FormLabel>
-                            <Input 
-                              placeholder="May 15, 2025"
-                              value={testEmailForm.watch('data')?.appointmentDate || ''}
-                              onChange={(e) => {
-                                const data = testEmailForm.getValues('data') || {};
-                                testEmailForm.setValue('data', {
-                                  ...data,
-                                  appointmentDate: e.target.value
-                                });
-                              }}
-                            />
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <FormLabel className="text-xs">appointmentTime</FormLabel>
-                            <Input 
-                              placeholder="10:00 AM"
-                              value={testEmailForm.watch('data')?.appointmentTime || ''}
-                              onChange={(e) => {
-                                const data = testEmailForm.getValues('data') || {};
-                                testEmailForm.setValue('data', {
-                                  ...data,
-                                  appointmentTime: e.target.value
-                                });
-                              }}
-                            />
-                          </div>
-                        </div>
                       </div>
-
-                      <Button 
-                        type="submit" 
-                        className="w-full" 
-                        disabled={testEmailMutation.isPending}
-                      >
-                        {testEmailMutation.isPending ? "Sending..." : "Send Test Email"}
-                      </Button>
-                    </form>
-                  </Form>
+                      
+                      <div className="text-sm text-muted-foreground">
+                        Last check: {monitorStatus.lastCheck ? new Date(monitorStatus.lastCheck).toLocaleString() : 'Never'}
+                      </div>
+                    </div>
+                  ) : (
+                    <Alert className="bg-yellow-50 border-yellow-200">
+                      <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                      <AlertTitle>Not Configured</AlertTitle>
+                      <AlertDescription>
+                        Email monitoring has not been configured or is not active. 
+                        Setup an email provider and enable monitoring.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
+      
+      {/* Add Provider Dialog */}
+      <Dialog open={showNewProvider} onOpenChange={setShowNewProvider}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add Email Provider</DialogTitle>
+            <DialogDescription>
+              Add a new email provider for AI email integration
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <Label htmlFor="provider-name">Provider Name</Label>
+                <Input 
+                  id="provider-name" 
+                  value={newProvider.name}
+                  onChange={(e) => setNewProvider({...newProvider, name: e.target.value})}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="provider-host">Host</Label>
+                <Input 
+                  id="provider-host" 
+                  value={newProvider.host}
+                  onChange={(e) => setNewProvider({...newProvider, host: e.target.value})}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="provider-port">Port</Label>
+                <Input 
+                  id="provider-port" 
+                  type="number" 
+                  value={newProvider.port}
+                  onChange={(e) => setNewProvider({...newProvider, port: parseInt(e.target.value) || 587})}
+                  className="mt-1"
+                />
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="provider-username">Username</Label>
+                <Input 
+                  id="provider-username" 
+                  value={newProvider.username}
+                  onChange={(e) => setNewProvider({...newProvider, username: e.target.value})}
+                  className="mt-1"
+                />
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="provider-password">Password</Label>
+                <Input 
+                  id="provider-password" 
+                  type="password" 
+                  value={newProvider.password}
+                  onChange={(e) => setNewProvider({...newProvider, password: e.target.value})}
+                  className="mt-1"
+                />
+              </div>
+              <div className="col-span-2 flex items-center gap-2">
+                <Switch 
+                  id="provider-ssl" 
+                  checked={newProvider.useSSL}
+                  onCheckedChange={(checked) => setNewProvider({...newProvider, useSSL: checked})}
+                />
+                <Label htmlFor="provider-ssl">Use SSL</Label>
+              </div>
+              <div className="col-span-2 flex items-center gap-2">
+                <Switch 
+                  id="provider-default" 
+                  checked={newProvider.isDefault}
+                  onCheckedChange={(checked) => setNewProvider({...newProvider, isDefault: checked})}
+                />
+                <Label htmlFor="provider-default">Set as Default Provider</Label>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewProvider(false)}>Cancel</Button>
+            <Button type="submit" onClick={saveProvider} disabled={isConfiguring}>
+              {isConfiguring && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Provider
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Add Template Dialog */}
+      <Dialog open={showNewTemplate} onOpenChange={setShowNewTemplate}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Add Email Template</DialogTitle>
+            <DialogDescription>
+              Create a new email template for automated responses
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="template-name">Template Name</Label>
+              <Input 
+                id="template-name" 
+                value={newTemplate.name}
+                onChange={(e) => setNewTemplate({...newTemplate, name: e.target.value})}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="template-type">Template Type</Label>
+              <Select 
+                value={newTemplate.type}
+                onValueChange={(value) => setNewTemplate({...newTemplate, type: value})}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select template type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">General</SelectItem>
+                  <SelectItem value="appointment">Appointment</SelectItem>
+                  <SelectItem value="reminder">Reminder</SelectItem>
+                  <SelectItem value="welcome">Welcome</SelectItem>
+                  <SelectItem value="follow-up">Follow-up</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="template-subject">Email Subject</Label>
+              <Input 
+                id="template-subject" 
+                value={newTemplate.subject}
+                onChange={(e) => setNewTemplate({...newTemplate, subject: e.target.value})}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="template-body">Email Body</Label>
+              <Textarea 
+                id="template-body" 
+                value={newTemplate.body}
+                onChange={(e) => setNewTemplate({...newTemplate, body: e.target.value})}
+                className="mt-1 min-h-[200px]"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch 
+                id="template-ai" 
+                checked={newTemplate.aiGenerated}
+                onCheckedChange={(checked) => setNewTemplate({...newTemplate, aiGenerated: checked})}
+              />
+              <Label htmlFor="template-ai">AI Generated Template</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewTemplate(false)}>Cancel</Button>
+            <Button type="submit" onClick={saveTemplate} disabled={isConfiguring}>
+              {isConfiguring && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Provider Dialog */}
+      {editingProvider && (
+        <Dialog open={!!editingProvider} onOpenChange={(open) => !open && setEditingProvider(null)}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Email Provider</DialogTitle>
+              <DialogDescription>
+                Update the email provider configuration
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <Label htmlFor="edit-provider-name">Provider Name</Label>
+                  <Input 
+                    id="edit-provider-name" 
+                    value={editingProvider.name}
+                    onChange={(e) => setEditingProvider({...editingProvider, name: e.target.value})}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-provider-host">Host</Label>
+                  <Input 
+                    id="edit-provider-host" 
+                    value={editingProvider.host}
+                    onChange={(e) => setEditingProvider({...editingProvider, host: e.target.value})}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-provider-port">Port</Label>
+                  <Input 
+                    id="edit-provider-port" 
+                    type="number" 
+                    value={editingProvider.port}
+                    onChange={(e) => setEditingProvider({...editingProvider, port: parseInt(e.target.value) || 587})}
+                    className="mt-1"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="edit-provider-username">Username</Label>
+                  <Input 
+                    id="edit-provider-username" 
+                    value={editingProvider.username}
+                    onChange={(e) => setEditingProvider({...editingProvider, username: e.target.value})}
+                    className="mt-1"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="edit-provider-password">Password (leave blank to keep unchanged)</Label>
+                  <Input 
+                    id="edit-provider-password" 
+                    type="password" 
+                    onChange={(e) => setEditingProvider({...editingProvider, password: e.target.value || undefined})}
+                    className="mt-1"
+                  />
+                </div>
+                <div className="col-span-2 flex items-center gap-2">
+                  <Switch 
+                    id="edit-provider-ssl" 
+                    checked={editingProvider.useSSL}
+                    onCheckedChange={(checked) => setEditingProvider({...editingProvider, useSSL: checked})}
+                  />
+                  <Label htmlFor="edit-provider-ssl">Use SSL</Label>
+                </div>
+                <div className="col-span-2 flex items-center gap-2">
+                  <Switch 
+                    id="edit-provider-default" 
+                    checked={editingProvider.isDefault}
+                    onCheckedChange={(checked) => setEditingProvider({...editingProvider, isDefault: checked})}
+                  />
+                  <Label htmlFor="edit-provider-default">Set as Default Provider</Label>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingProvider(null)}>Cancel</Button>
+              <Button type="submit" onClick={saveProvider} disabled={isConfiguring}>
+                {isConfiguring && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Update Provider
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      
+      {/* Edit Template Dialog */}
+      {editingTemplate && (
+        <Dialog open={!!editingTemplate} onOpenChange={(open) => !open && setEditingTemplate(null)}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Edit Email Template</DialogTitle>
+              <DialogDescription>
+                Update the email template configuration
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="edit-template-name">Template Name</Label>
+                <Input 
+                  id="edit-template-name" 
+                  value={editingTemplate.name}
+                  onChange={(e) => setEditingTemplate({...editingTemplate, name: e.target.value})}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-template-type">Template Type</Label>
+                <Select 
+                  value={editingTemplate.type}
+                  onValueChange={(value) => setEditingTemplate({...editingTemplate, type: value})}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select template type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="appointment">Appointment</SelectItem>
+                    <SelectItem value="reminder">Reminder</SelectItem>
+                    <SelectItem value="welcome">Welcome</SelectItem>
+                    <SelectItem value="follow-up">Follow-up</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-template-subject">Email Subject</Label>
+                <Input 
+                  id="edit-template-subject" 
+                  value={editingTemplate.subject}
+                  onChange={(e) => setEditingTemplate({...editingTemplate, subject: e.target.value})}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-template-body">Email Body</Label>
+                <Textarea 
+                  id="edit-template-body" 
+                  value={editingTemplate.body}
+                  onChange={(e) => setEditingTemplate({...editingTemplate, body: e.target.value})}
+                  className="mt-1 min-h-[200px]"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch 
+                  id="edit-template-ai" 
+                  checked={editingTemplate.aiGenerated}
+                  onCheckedChange={(checked) => setEditingTemplate({...editingTemplate, aiGenerated: checked})}
+                />
+                <Label htmlFor="edit-template-ai">AI Generated Template</Label>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingTemplate(null)}>Cancel</Button>
+              <Button type="submit" onClick={saveTemplate} disabled={isConfiguring}>
+                {isConfiguring && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Update Template
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

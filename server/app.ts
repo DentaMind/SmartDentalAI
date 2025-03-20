@@ -14,7 +14,7 @@ import treatmentRoutes from './routes/treatment-routes';
 import medicalNotesRoutes from './routes/medical-notes-routes';
 import prescriptionRoutes from './routes/prescription-routes';
 import postOpRoutes from './routes/post-op-routes';
-import emailAIRoutes from './routes/email-ai-routes';
+import { setupEmailAIRoutes } from './routes/email-ai-routes';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -162,7 +162,7 @@ app.use("/api", treatmentRoutes);
 app.use("/api", medicalNotesRoutes);
 app.use("/api", prescriptionRoutes);
 app.use("/api", postOpRoutes);
-app.use("/api", emailAIRoutes);
+app.use("/api", setupEmailAIRoutes(express.Router()));
 
 // Add a route for static demo version
 app.get('/static', (req, res) => {

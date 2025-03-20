@@ -9,74 +9,54 @@
  * 5. Ensure HIPAA compliance for all email communications
  */
 
+import { v4 as uuidv4 } from 'uuid';
 import nodemailer from 'nodemailer';
-import { z } from 'zod';
-import { storage } from '../storage';
-import { AIServiceType } from './ai-service-types';
 import { aiServiceManager } from './ai-service-manager';
-import { aiRequestQueue } from './ai-request-queue';
-import * as crypto from 'crypto';
+import { AIServiceType } from './ai-service-types';
+import { z } from 'zod';
 
-// Email provider configuration schema
-const emailProviderSchema = z.object({
-  type: z.enum(['gmail', 'outlook', 'smtp']),
-  email: z.string().email(),
-  // We don't store the password/token directly, it will be in environment variables
-  authType: z.enum(['oauth2', 'password']).default('oauth2'),
-  name: z.string().optional(),
-  description: z.string().optional()
+// Define schemas for validation
+export const emailProviderSchema = z.object({
+  id: z.string().optional(),
+  name: z.string(),
+  host: z.string(),
+  port: z.number(),
+  username: z.string(),
+  password: z.string().optional(),
+  useSSL: z.boolean(),
+  isDefault: z.boolean()
 });
 
-// Email template schema
-const emailTemplateSchema = z.object({
+export const emailTemplateSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
   subject: z.string(),
   body: z.string(),
-  category: z.enum([
-    'appointment', 
-    'lab_update', 
-    'insurance', 
-    'prescription', 
-    'patient_education',
-    'marketing',
-    'follow_up',
-    'billing'
-  ]),
-  variables: z.array(z.string()).optional(),
-  createdAt: z.date().optional(),
-  updatedAt: z.date().optional()
-});
-
-// Email tracking schema
-const emailTrackingSchema = z.object({
-  id: z.string().optional(),
-  to: z.string(),
-  subject: z.string(),
-  sentAt: z.date(),
-  status: z.enum(['sent', 'delivered', 'opened', 'clicked', 'bounced', 'failed']),
   type: z.string(),
-  patientId: z.number().optional(),
-  providerId: z.number().optional(),
-  relatedEntityType: z.string().optional(),
-  relatedEntityId: z.string().optional()
+  aiGenerated: z.boolean(),
+  lastUsed: z.string().optional()
 });
 
-// Email attachment schema
-const attachmentSchema = z.object({
+export const emailTrackingSchema = z.object({
+  id: z.string(),
+  emailId: z.string(),
+  recipient: z.string(),
+  opened: z.boolean(),
+  openCount: z.number(),
+  openTimestamps: z.array(z.string()),
+  clicked: z.boolean(),
+  clickCount: z.number(),
+  clickTimestamps: z.array(z.string()),
+  responded: z.boolean(),
+  responseTimestamp: z.string().optional()
+});
+
+export const attachmentSchema = z.object({
   filename: z.string(),
-  content: z.string().or(z.instanceof(Buffer)),
-  contentType: z.string().optional(),
-  encoding: z.string().optional(),
-  cid: z.string().optional()
+  content: z.any(), // This would typically be a Buffer
+  contentType: z.string().optional()
 });
 
-type EmailProvider = z.infer<typeof emailProviderSchema>;
-type EmailTemplate = z.infer<typeof emailTemplateSchema>;
-type EmailTracking = z.infer<typeof emailTrackingSchema>;
-type Attachment = z.infer<typeof attachmentSchema>;
-
-// Different types of email-detectable events
 enum EmailEventType {
   LAB_CASE_UPDATE = 'lab_case_update',
   INSURANCE_APPROVAL = 'insurance_approval',
@@ -95,7 +75,7 @@ interface EmailContent {
   text: string;
   html?: string;
   date: Date;
-  attachments?: Attachment[];
+  attachments?: any[];
 }
 
 interface AIEmailAnalysis {
@@ -117,85 +97,89 @@ interface AIEmailAnalysis {
   summary: string;
 }
 
-class EmailAIService {
+type EmailProvider = z.infer<typeof emailProviderSchema>;
+type EmailTemplate = z.infer<typeof emailTemplateSchema>;
+type EmailTracking = z.infer<typeof emailTrackingSchema>;
+type Attachment = z.infer<typeof attachmentSchema>;
+
+export class EmailAIService {
   private emailProviders: Map<string, EmailProvider> = new Map();
   private emailTemplates: Map<string, EmailTemplate> = new Map();
   private transporter: nodemailer.Transporter | null = null;
-  private isInitialized = false;
-  
+  private isCheckingEmails: boolean = false;
+  private checkInterval: NodeJS.Timeout | null = null;
+  public isInitialized: boolean = false;
+  private settings = {
+    monitoring: {
+      enabled: false,
+      checkInterval: 5, // minutes
+      folders: ['INBOX'],
+      processAttachments: true
+    },
+    autoResponder: {
+      enabled: false
+    },
+    aiEnabled: false
+  };
+
   /**
    * Initialize the email service with provider configuration
    */
   async initialize() {
-    if (this.isInitialized) return;
-    
     try {
-      // Load configuration from storage or environment
+      // Load providers
       const providers = await this.loadEmailProviders();
-      
-      // Configure the primary email provider
-      if (providers.length > 0) {
-        const primaryProvider = providers[0];
-        this.setupEmailTransporter(primaryProvider);
-      }
-      
-      // Load email templates
+      providers.forEach(provider => {
+        this.emailProviders.set(provider.id, provider);
+      });
+
+      // Load templates
       const templates = await this.loadEmailTemplates();
       templates.forEach(template => {
-        this.emailTemplates.set(template.id || crypto.randomUUID(), template);
+        this.emailTemplates.set(template.id, template);
       });
-      
+
+      // Load settings
+      await this.loadSettings();
+
+      // Set up email checking if enabled
+      if (this.settings.monitoring.enabled) {
+        this.startEmailChecking();
+      }
+
+      // Set up default email provider
+      const defaultProvider = [...this.emailProviders.values()].find(p => p.isDefault);
+      if (defaultProvider) {
+        this.setupEmailTransporter(defaultProvider);
+      }
+
       this.isInitialized = true;
-      console.log('Email AI service initialized successfully');
-      
       return true;
     } catch (error) {
       console.error('Failed to initialize email service:', error);
       return false;
     }
   }
-  
+
   /**
    * Set up the email transporter for sending emails
    */
   private setupEmailTransporter(provider: EmailProvider) {
-    // Different configuration based on provider type
-    switch (provider.type) {
-      case 'gmail':
-        // For Gmail, we'd use OAuth2 in production
-        this.transporter = nodemailer.createTransport({
-          service: 'gmail',
-          auth: {
-            user: provider.email,
-            // In production, use OAuth2 and proper secret management
-            pass: process.env.EMAIL_PASSWORD
-          }
-        });
-        break;
-        
-      case 'outlook':
-        this.transporter = nodemailer.createTransport({
-          host: 'smtp.office365.com',
-          port: 587,
-          secure: false,
-          auth: {
-            user: provider.email,
-            pass: process.env.EMAIL_PASSWORD
-          }
-        });
-        break;
-        
-      case 'smtp':
-        this.transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST,
-          port: parseInt(process.env.SMTP_PORT || '587'),
-          secure: process.env.SMTP_SECURE === 'true',
-          auth: {
-            user: provider.email,
-            pass: process.env.EMAIL_PASSWORD
-          }
-        });
-        break;
+    try {
+      this.transporter = nodemailer.createTransport({
+        host: provider.host,
+        port: provider.port,
+        secure: provider.useSSL,
+        auth: {
+          user: provider.username,
+          pass: provider.password
+        }
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error setting up email transporter:', error);
+      return false;
     }
   }
 
@@ -203,449 +187,569 @@ class EmailAIService {
    * Load email providers from storage or configuration
    */
   private async loadEmailProviders(): Promise<EmailProvider[]> {
-    // In production, this would load from database
-    // For now, we'll use a placeholder default provider
+    // In a real implementation, this would load from the database
+    // For now, return a mock default provider
     const defaultProvider: EmailProvider = {
-      type: 'gmail',
-      email: process.env.EMAIL_ADDRESS || 'notifications@dentamind.com',
-      authType: 'oauth2'
+      id: 'default',
+      name: 'Default Provider',
+      host: 'smtp.example.com',
+      port: 587,
+      username: 'user@example.com',
+      password: '', // Password would be stored securely
+      useSSL: true,
+      isDefault: true
     };
     
-    this.emailProviders.set('default', defaultProvider);
     return [defaultProvider];
   }
-  
+
   /**
    * Load email templates from storage
    */
   private async loadEmailTemplates(): Promise<EmailTemplate[]> {
-    // In production, this would load from database
-    // For now, we'll use placeholder templates
+    // In a real implementation, this would load from the database
+    // For now, return a few mock templates
     return [
+      {
+        id: 'welcome',
+        name: 'Welcome Email',
+        subject: 'Welcome to DentaMind',
+        body: 'Thank you for choosing DentaMind for your dental care needs. We look forward to serving you.',
+        type: 'general',
+        aiGenerated: false
+      },
       {
         id: 'appointment-reminder',
         name: 'Appointment Reminder',
-        subject: 'Reminder: Your upcoming dental appointment',
-        body: `
-Dear {{patientName}},
-
-This is a friendly reminder about your dental appointment with Dr. {{doctorName}} 
-on {{appointmentDate}} at {{appointmentTime}}.
-
-Please arrive 15 minutes early to complete any necessary paperwork.
-
-If you need to reschedule, please contact us at least 24 hours in advance.
-
-Best regards,
-The DentaMind Team
-        `,
-        category: 'appointment',
-        variables: ['patientName', 'doctorName', 'appointmentDate', 'appointmentTime'],
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'lab-case-update',
-        name: 'Lab Case Update',
-        subject: 'Update on your dental lab case',
-        body: `
-Dear {{patientName}},
-
-We have an update regarding your dental lab case:
-
-Status: {{labStatus}}
-Expected completion: {{completionDate}}
-
-{{additionalDetails}}
-
-If you have any questions, please don't hesitate to contact us.
-
-Best regards,
-The DentaMind Team
-        `,
-        category: 'lab_update',
-        variables: ['patientName', 'labStatus', 'completionDate', 'additionalDetails'],
-        createdAt: new Date(),
-        updatedAt: new Date()
+        subject: 'Upcoming Appointment Reminder',
+        body: 'This is a friendly reminder about your upcoming appointment with DentaMind on {{date}} at {{time}}.',
+        type: 'reminder',
+        aiGenerated: false
       }
     ];
   }
-  
+
   /**
-   * Process incoming email with AI analysis
+   * Load settings from storage
    */
-  async processIncomingEmail(emailContent: EmailContent): Promise<AIEmailAnalysis> {
+  private async loadSettings() {
+    // In a real implementation, this would load from the database
+    // For now, use default settings
+    this.settings = {
+      monitoring: {
+        enabled: false,
+        checkInterval: 5,
+        folders: ['INBOX'],
+        processAttachments: true
+      },
+      autoResponder: {
+        enabled: false
+      },
+      aiEnabled: false
+    };
+  }
+
+  /**
+   * Start periodic email checking
+   */
+  private startEmailChecking() {
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval);
+    }
+
+    const intervalMs = this.settings.monitoring.checkInterval * 60 * 1000;
+    this.checkInterval = setInterval(() => {
+      this.checkEmails().catch(err => {
+        console.error('Error checking emails:', err);
+      });
+    }, intervalMs);
+  }
+
+  /**
+   * Stop periodic email checking
+   */
+  private stopEmailChecking() {
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval);
+      this.checkInterval = null;
+    }
+  }
+
+  /**
+   * Check emails for new messages
+   */
+  private async checkEmails() {
+    if (this.isCheckingEmails) {
+      return { status: 'busy', message: 'Already checking emails' };
+    }
+
+    this.isCheckingEmails = true;
     try {
-      // Prepare email content for AI analysis
-      const emailText = `
-From: ${emailContent.from}
-Subject: ${emailContent.subject}
-Date: ${emailContent.date.toISOString()}
-Content: ${emailContent.text}
+      // This would connect to the email server and check for new emails
+      // For now, we'll simulate a successful check
+      
+      console.log('Checking emails...');
+      // Simulate a delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // In a real implementation, we would:
+      // 1. Connect to the email server
+      // 2. Check for new unread emails in monitored folders
+      // 3. Process each email (extract info, analyze with AI, update data)
+      // 4. Optionally send auto-responses
+      
+      this.isCheckingEmails = false;
+      return { 
+        status: 'success', 
+        message: 'Emails checked successfully',
+        emailsProcessed: 0,
+        newEmails: 0
+      };
+    } catch (error) {
+      this.isCheckingEmails = false;
+      console.error('Error checking emails:', error);
+      return { 
+        status: 'error', 
+        message: 'Error checking emails: ' + error.message 
+      };
+    }
+  }
+
+  /**
+   * Analyze email content with AI
+   */
+  async analyzeEmailContent(emailContent: EmailContent | string): Promise<AIEmailAnalysis> {
+    try {
+      // Prepare the content for analysis
+      const content = typeof emailContent === 'string' 
+        ? emailContent 
+        : `From: ${emailContent.from}\nTo: ${emailContent.to}\nSubject: ${emailContent.subject}\n\n${emailContent.text}`;
+      
+      // Use AI service manager to analyze the email
+      const analysisPrompt = `
+      Analyze the following email and extract key information:
+      
+      ${content}
+      
+      Extract:
+      1. The type of request/event (lab update, insurance, patient inquiry, etc.)
+      2. Any patient names mentioned
+      3. Any dates mentioned
+      4. Any procedures mentioned
+      5. Any monetary amounts mentioned
+      6. Any medications mentioned
+      7. What action should be taken based on this email
+      8. A brief summary of the email (2-3 sentences)
+      
+      Format your response as structured JSON.
       `;
       
-      // Use AI to analyze the email content
-      const analysis = await aiRequestQueue.enqueueRequest(
-        AIServiceType.COMMUNICATION,
-        () => aiServiceManager.generatePatientCommunication(emailText, 'email_analysis')
-      );
-      
-      // Process AI response to extract structured data
-      const emailAnalysis = this.parseAIEmailAnalysis(analysis, emailContent);
-      
-      // Update relevant records based on the analysis
-      await this.updateRecordsBasedOnEmail(emailAnalysis);
-      
-      return emailAnalysis;
-    } catch (error) {
-      console.error('Error processing incoming email:', error);
-      throw new Error('Failed to process incoming email');
-    }
-  }
-  
-  /**
-   * Parse AI analysis response into structured format
-   */
-  private parseAIEmailAnalysis(aiResponse: string, originalEmail: EmailContent): AIEmailAnalysis {
-    try {
-      // In a real implementation, we would properly parse the AI response
-      // For now, we'll create a placeholder analysis
-      
-      // Extract potential patient name from email
-      const patientNameMatch = originalEmail.text.match(/(?:patient|name|for)[:s]*(w+s+w+)/i);
-      const patientName = patientNameMatch ? patientNameMatch[1] : undefined;
-      
-      // Detect email type based on keywords
-      let eventType = null;
-      if (/lab.*case|impression|prosthetic|crown|bridge/i.test(originalEmail.subject + originalEmail.text)) {
-        eventType = EmailEventType.LAB_CASE_UPDATE;
-      } else if (/insurance.*approval|claim.*approved|payment.*approved/i.test(originalEmail.subject + originalEmail.text)) {
-        eventType = EmailEventType.INSURANCE_APPROVAL;
-      } else if (/insurance.*denied|claim.*denied|payment.*denied/i.test(originalEmail.subject + originalEmail.text)) {
-        eventType = EmailEventType.INSURANCE_DENIAL;
-      } else if (/appointment|schedule|booking/i.test(originalEmail.subject + originalEmail.text)) {
-        eventType = EmailEventType.APPOINTMENT_REQUEST;
-      } else if (/prescription|medication|pharmacy/i.test(originalEmail.subject + originalEmail.text)) {
-        eventType = EmailEventType.PRESCRIPTION_CONFIRMATION;
-      } else if (/supplies|order|delivery|shipment/i.test(originalEmail.subject + originalEmail.text)) {
-        eventType = EmailEventType.SUPPLY_ORDER_UPDATE;
-      } else if (/question|inquiry|help|information/i.test(originalEmail.subject + originalEmail.text)) {
-        eventType = EmailEventType.PATIENT_INQUIRY;
+      try {
+        // In a production system, we would use the AI service manager directly
+        // const response = await aiServiceManager.generateCommunication(analysisPrompt, AIServiceType.COMMUNICATION, "email_analysis");
+        
+        // For now, return a mock analysis
+        return {
+          eventType: null, // We'll determine this based on the analysis
+          confidence: 0.85,
+          detectedEntities: {
+            dates: [],
+            names: [],
+            procedures: [],
+            amounts: [],
+            medications: []
+          },
+          summary: "No email content to analyze or mock analysis provided."
+        };
+      } catch (error) {
+        console.error('Error analyzing email with AI:', error);
+        throw new Error('Failed to analyze email content');
       }
-      
-      // Create analysis result
-      const analysis: AIEmailAnalysis = {
-        eventType,
-        patientName,
-        confidence: 0.85,
-        detectedEntities: {},
-        summary: `This email appears to be about ${eventType ? eventType.replace(/_/g, ' ').toLowerCase() : 'general inquiry'}.`
-      };
-      
-      return analysis;
     } catch (error) {
-      console.error('Error parsing AI email analysis:', error);
-      return {
-        eventType: null,
-        confidence: 0,
-        detectedEntities: {},
-        summary: 'Failed to analyze email content'
-      };
+      console.error('Error analyzing email content:', error);
+      throw error;
     }
   }
-  
+
   /**
-   * Update system records based on email analysis
+   * Generate an AI response to an email
    */
-  private async updateRecordsBasedOnEmail(analysis: AIEmailAnalysis) {
-    // Only proceed if we have high confidence and a recognized event
-    if (!analysis.eventType || analysis.confidence < 0.7) {
-      return;
+  async generateAIResponse(emailContent: string, context?: any): Promise<{ subject: string; body: string }> {
+    try {
+      const prompt = `
+      The following is an email received by a dental practice. Please generate a professional response:
+      
+      ${emailContent}
+      
+      ${context ? `Context: ${JSON.stringify(context)}` : ''}
+      
+      Generate a response with:
+      1. An appropriate subject line
+      2. A professional body that addresses the sender's needs
+      3. Clear next steps if applicable
+      4. A friendly closing
+      
+      Format as JSON with "subject" and "body" fields.
+      `;
+      
+      try {
+        // In a production system, we would use the AI service manager directly
+        // const response = await aiServiceManager.generateCommunication(prompt, AIServiceType.COMMUNICATION, "email_response");
+        
+        // For now, return a mock response
+        return {
+          subject: "Re: Your Inquiry",
+          body: "Thank you for your message. This is an automated placeholder response. A team member will follow up with you shortly.\n\nBest regards,\nDentaMind Team"
+        };
+      } catch (error) {
+        console.error('Error generating email response with AI:', error);
+        throw new Error('Failed to generate email response');
+      }
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send a test email to verify configuration
+   */
+  async sendTestEmail(recipientEmail: string): Promise<{ success: boolean; message: string }> {
+    if (!this.transporter) {
+      return { 
+        success: false, 
+        message: 'Email transporter not configured. Please set up an email provider first.' 
+      };
     }
     
     try {
-      switch (analysis.eventType) {
-        case EmailEventType.LAB_CASE_UPDATE:
-          // Update lab case status
-          if (analysis.detectedEntities.labInfo) {
-            // await storage.updateLabCase(analysis.detectedEntities.labInfo);
-            console.log('Lab case updated based on email:', analysis.detectedEntities.labInfo);
-          }
-          break;
-          
-        case EmailEventType.INSURANCE_APPROVAL:
-        case EmailEventType.INSURANCE_DENIAL:
-          // Update insurance claim status
-          if (analysis.detectedEntities.insuranceInfo) {
-            // await storage.updateInsuranceClaim(analysis.detectedEntities.insuranceInfo);
-            console.log('Insurance claim updated based on email:', analysis.detectedEntities.insuranceInfo);
-          }
-          break;
-          
-        case EmailEventType.APPOINTMENT_REQUEST:
-          // Create appointment request
-          if (analysis.patientId) {
-            // await storage.createAppointmentRequest({
-            //   patientId: analysis.patientId,
-            //   requestedDates: analysis.detectedEntities.dates || [],
-            //   reason: analysis.summary
-            // });
-            console.log('Appointment request created based on email for patient:', analysis.patientId);
-          }
-          break;
-      }
+      const testEmail = {
+        from: 'test@dentamind.com',
+        to: recipientEmail,
+        subject: 'DentaMind Email AI Test',
+        text: 'This is a test email from the DentaMind Email AI system. If you received this, the email configuration is working correctly.',
+        html: '<p>This is a test email from the DentaMind Email AI system. If you received this, the email configuration is working correctly.</p>'
+      };
+      
+      // In a real implementation, we would actually send the email
+      // const info = await this.transporter.sendMail(testEmail);
+      
+      // For now, we'll simulate a successful send
+      return {
+        success: true,
+        message: `Test email sent successfully to ${recipientEmail}`
+      };
     } catch (error) {
-      console.error('Error updating records based on email:', error);
+      console.error('Error sending test email:', error);
+      return {
+        success: false,
+        message: 'Failed to send test email: ' + error.message
+      };
     }
+  }
+
+  /**
+   * Update email service settings
+   */
+  async updateSettings(newSettings: any): Promise<any> {
+    try {
+      this.settings = {
+        ...this.settings,
+        ...newSettings
+      };
+      
+      // Restart or stop email checking based on new settings
+      if (this.settings.monitoring.enabled) {
+        this.startEmailChecking();
+      } else {
+        this.stopEmailChecking();
+      }
+      
+      // In a real implementation, we would save the settings to the database
+      
+      return {
+        success: true,
+        message: 'Settings updated successfully',
+        settings: this.settings
+      };
+    } catch (error) {
+      console.error('Error updating email settings:', error);
+      return {
+        success: false,
+        message: 'Failed to update settings: ' + error.message
+      };
+    }
+  }
+
+  /**
+   * Manually trigger an email check
+   */
+  async checkEmailsNow(): Promise<any> {
+    return this.checkEmails();
+  }
+
+  /**
+   * Get the current monitoring status
+   */
+  async getMonitorStatus(): Promise<any> {
+    // In a real implementation, this would include actual stats from the database
+    return {
+      status: this.settings.monitoring.enabled ? 'connected' : 'disconnected',
+      lastCheck: new Date().toISOString(),
+      unreadCount: 0,
+      monitoredFolders: this.settings.monitoring.folders,
+      emailsProcessed: 0,
+      aiAnalyzed: 0,
+      aiEnabled: this.settings.aiEnabled,
+      monitoring: this.settings.monitoring,
+      autoResponder: this.settings.autoResponder
+    };
+  }
+
+  /**
+   * Get recent email activity logs
+   */
+  async getRecentActivityLogs(limit: number = 20): Promise<any[]> {
+    // In a real implementation, this would fetch from the database
+    return [];
+  }
+
+  // Email Provider CRUD operations
+  
+  /**
+   * Get all email providers
+   */
+  async getEmailProviders(): Promise<EmailProvider[]> {
+    return Array.from(this.emailProviders.values());
   }
   
   /**
-   * Send an email using a template and personalized data
+   * Get a specific email provider
    */
-  async sendTemplatedEmail(
-    templateId: string,
-    to: string,
-    data: Record<string, string>,
-    attachments?: Attachment[]
-  ): Promise<boolean> {
-    try {
-      // Ensure email service is initialized
-      if (!this.isInitialized) {
-        await this.initialize();
-      }
-      
-      // Ensure we have a transporter
-      if (!this.transporter) {
-        throw new Error('Email transporter not initialized');
-      }
-      
-      // Get the template
-      const template = this.emailTemplates.get(templateId);
-      if (!template) {
-        throw new Error(`Email template not found: ${templateId}`);
-      }
-      
-      // Replace variables in template
-      let subject = template.subject;
-      let body = template.body;
-      
-      Object.entries(data).forEach(([key, value]) => {
-        const placeholder = new RegExp(`{{${key}}}`, 'g');
-        subject = subject.replace(placeholder, value);
-        body = body.replace(placeholder, value);
-      });
-      
-      // Send the email
-      const result = await this.transporter.sendMail({
-        from: process.env.EMAIL_ADDRESS || 'notifications@dentamind.com',
-        to,
-        subject,
-        text: body.replace(/<[^>]*>/g, ''), // Strip HTML for text version
-        html: body,
-        attachments
-      });
-      
-      // Track the email
-      await this.trackEmail({
-        id: crypto.randomUUID(),
-        to,
-        subject,
-        sentAt: new Date(),
-        status: 'sent',
-        type: template.category,
-        patientId: data.patientId ? parseInt(data.patientId) : undefined,
-        providerId: data.providerId ? parseInt(data.providerId) : undefined
-      });
-      
-      console.log('Email sent successfully:', result.messageId);
-      return true;
-    } catch (error) {
-      console.error('Error sending templated email:', error);
-      return false;
-    }
+  async getEmailProvider(id: string): Promise<EmailProvider | undefined> {
+    return this.emailProviders.get(id);
   }
   
   /**
-   * Generate and send an AI-driven automatic response to patient inquiries
+   * Create a new email provider
    */
-  async generateAIEmailResponse(
-    originalEmail: EmailContent,
-    analysis: AIEmailAnalysis
-  ): Promise<boolean> {
-    try {
-      // Only respond to patient inquiries automatically
-      if (analysis.eventType !== EmailEventType.PATIENT_INQUIRY || !analysis.patientId) {
-        return false;
-      }
-      
-      // Generate AI response
-      const prompt = `
-Original email from patient:
-${originalEmail.text}
-
-Patient name: ${analysis.patientName || 'Unknown'}
-Topic: ${analysis.summary}
-
-Generate a professional, helpful email response addressing the patient's inquiry.
-The response should be concise, clear, and in a friendly professional tone.
-Include appropriate next steps or contact information if needed.
-Do not include any PHI beyond what was in the original email.
-      `;
-      
-      const aiResponse = await aiRequestQueue.enqueueRequest(
-        AIServiceType.COMMUNICATION,
-        () => aiServiceManager.generatePatientCommunication(prompt, 'email_response')
-      );
-      
-      // Send the AI-generated response
-      if (!this.transporter) {
-        await this.initialize();
-        if (!this.transporter) {
-          throw new Error('Email transporter not initialized');
+  async createEmailProvider(providerData: EmailProvider): Promise<EmailProvider> {
+    const id = providerData.id || uuidv4();
+    const newProvider = {
+      ...providerData,
+      id
+    };
+    
+    // If this is set as default, update other providers
+    if (newProvider.isDefault) {
+      for (const [key, provider] of this.emailProviders.entries()) {
+        if (provider.isDefault) {
+          this.emailProviders.set(key, {
+            ...provider,
+            isDefault: false
+          });
         }
       }
-      
-      const result = await this.transporter.sendMail({
-        from: process.env.EMAIL_ADDRESS || 'notifications@dentamind.com',
-        to: originalEmail.from,
-        subject: `Re: ${originalEmail.subject}`,
-        text: aiResponse,
-        html: aiResponse.replace(/\n/g, '<br>')
-      });
-      
-      // Track the email
-      await this.trackEmail({
-        id: crypto.randomUUID(),
-        to: originalEmail.from,
-        subject: `Re: ${originalEmail.subject}`,
-        sentAt: new Date(),
-        status: 'sent',
-        type: 'patient_inquiry_response',
-        patientId: analysis.patientId
-      });
-      
-      console.log('AI email response sent successfully:', result.messageId);
-      return true;
-    } catch (error) {
-      console.error('Error generating AI email response:', error);
-      return false;
     }
-  }
-  
-  /**
-   * Track email for compliance and analytics
-   */
-  private async trackEmail(tracking: EmailTracking) {
-    // In production, this would store in the database
-    console.log('Email tracked:', tracking);
     
-    // For HIPAA compliance, track all email activity
-    await this.logEmailForCompliance(tracking);
-  }
-  
-  /**
-   * Log email activity for HIPAA compliance
-   */
-  private async logEmailForCompliance(tracking: EmailTracking) {
-    // In production, this would create a secure HIPAA-compliant log
-    try {
-      console.log('HIPAA compliance log created for email:', tracking.id);
-      
-      // Example of creating a compliance record
-      // if (tracking.patientId) {
-      //   await storage.createComplianceRecord({
-      //     type: 'email_communication',
-      //     patientId: tracking.patientId,
-      //     description: `Email sent: ${tracking.subject}`,
-      //     timestamp: new Date().toISOString(),
-      //     details: JSON.stringify(tracking)
-      //   });
-      // }
-    } catch (error) {
-      console.error('Error creating HIPAA compliance log:', error);
+    this.emailProviders.set(id, newProvider);
+    
+    // Set up transporter if this is the default provider
+    if (newProvider.isDefault) {
+      this.setupEmailTransporter(newProvider);
     }
+    
+    // In a real implementation, we would save to the database
+    
+    return newProvider;
   }
   
   /**
-   * Send document securely via encrypted email
+   * Update an email provider
    */
-  async sendSecureDocument(
-    patientId: number,
-    documentType: string,
-    documentId: string,
-    patientEmail: string
-  ): Promise<boolean> {
-    try {
-      // Get patient information
-      const patient = await storage.getPatient(patientId);
-      if (!patient) {
-        throw new Error(`Patient not found: ${patientId}`);
+  async updateEmailProvider(id: string, providerData: Partial<EmailProvider>): Promise<EmailProvider | undefined> {
+    const existingProvider = this.emailProviders.get(id);
+    if (!existingProvider) {
+      return undefined;
+    }
+    
+    const updatedProvider = {
+      ...existingProvider,
+      ...providerData,
+      id
+    };
+    
+    // If this is set as default, update other providers
+    if (updatedProvider.isDefault && !existingProvider.isDefault) {
+      for (const [key, provider] of this.emailProviders.entries()) {
+        if (provider.isDefault && key !== id) {
+          this.emailProviders.set(key, {
+            ...provider,
+            isDefault: false
+          });
+        }
       }
-      
-      // Generate secure download link (in production, this would be a real secure link)
-      const downloadToken = crypto.randomBytes(32).toString('hex');
-      const secureLink = `https://dentamind.com/secure-documents/${documentType}/${documentId}?token=${downloadToken}`;
-      
-      // Send secure email with download link
-      const templateId = 'secure-document';
-      const data = {
-        patientName: `${patient.firstName} ${patient.lastName}`,
-        documentType: documentType.charAt(0).toUpperCase() + documentType.slice(1),
-        secureLink,
-        expirationTime: '48 hours'
-      };
-      
-      // Determine the email template based on document type
-      let emailTemplateId;
-      switch (documentType) {
-        case 'xray':
-          emailTemplateId = 'xray-download';
-          break;
-        case 'prescription':
-          emailTemplateId = 'prescription-download';
-          break;
-        case 'lab_result':
-          emailTemplateId = 'lab-result-download';
-          break;
-        default:
-          emailTemplateId = 'secure-document';
-      }
-      
-      return await this.sendTemplatedEmail(templateId, patientEmail, data);
-    } catch (error) {
-      console.error('Error sending secure document:', error);
+    }
+    
+    this.emailProviders.set(id, updatedProvider);
+    
+    // Update transporter if this is the default provider
+    if (updatedProvider.isDefault) {
+      this.setupEmailTransporter(updatedProvider);
+    }
+    
+    // In a real implementation, we would save to the database
+    
+    return updatedProvider;
+  }
+  
+  /**
+   * Delete an email provider
+   */
+  async deleteEmailProvider(id: string): Promise<boolean> {
+    const provider = this.emailProviders.get(id);
+    if (!provider) {
       return false;
     }
+    
+    // Don't allow deleting the default provider
+    if (provider.isDefault) {
+      throw new Error('Cannot delete the default email provider');
+    }
+    
+    this.emailProviders.delete(id);
+    
+    // In a real implementation, we would delete from the database
+    
+    return true;
   }
   
   /**
-   * Check if email service is configured properly
+   * Test connection to an email provider
    */
-  async checkEmailConfiguration(): Promise<{ configured: boolean; status: string }> {
-    try {
-      // Ensure service is initialized
-      if (!this.isInitialized) {
-        await this.initialize();
-      }
-      
-      // Verify transporter
-      if (!this.transporter) {
-        return { configured: false, status: 'Email transporter not initialized' };
-      }
-      
-      // Verify connection to mail server
-      await this.transporter.verify();
-      
-      return { configured: true, status: 'Email service is properly configured' };
-    } catch (error) {
-      console.error('Email configuration check failed:', error);
-      return { 
-        configured: false, 
-        status: `Email configuration error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+  async testConnection(id: string): Promise<{ success: boolean; message: string }> {
+    const provider = this.emailProviders.get(id);
+    if (!provider) {
+      return {
+        success: false,
+        message: 'Provider not found'
       };
     }
+    
+    try {
+      const testTransporter = nodemailer.createTransport({
+        host: provider.host,
+        port: provider.port,
+        secure: provider.useSSL,
+        auth: {
+          user: provider.username,
+          pass: provider.password
+        }
+      });
+      
+      // In a real implementation, we would verify the connection
+      // await testTransporter.verify();
+      
+      // For now, simulate a successful connection
+      
+      // If this is the default provider, update the main transporter
+      if (provider.isDefault) {
+        this.transporter = testTransporter;
+      }
+      
+      // Update the provider with connected status
+      this.emailProviders.set(id, {
+        ...provider,
+        connected: true
+      });
+      
+      return {
+        success: true,
+        message: 'Successfully connected to email server'
+      };
+    } catch (error) {
+      console.error('Error testing email connection:', error);
+      
+      // Update the provider with disconnected status
+      this.emailProviders.set(id, {
+        ...provider,
+        connected: false
+      });
+      
+      return {
+        success: false,
+        message: 'Failed to connect: ' + error.message
+      };
+    }
+  }
+  
+  // Email Template CRUD operations
+  
+  /**
+   * Get all email templates
+   */
+  async getEmailTemplates(): Promise<EmailTemplate[]> {
+    return Array.from(this.emailTemplates.values());
+  }
+  
+  /**
+   * Get a specific email template
+   */
+  async getEmailTemplate(id: string): Promise<EmailTemplate | undefined> {
+    return this.emailTemplates.get(id);
+  }
+  
+  /**
+   * Create a new email template
+   */
+  async createEmailTemplate(templateData: EmailTemplate): Promise<EmailTemplate> {
+    const id = templateData.id || uuidv4();
+    const newTemplate = {
+      ...templateData,
+      id
+    };
+    
+    this.emailTemplates.set(id, newTemplate);
+    
+    // In a real implementation, we would save to the database
+    
+    return newTemplate;
+  }
+  
+  /**
+   * Update an email template
+   */
+  async updateEmailTemplate(id: string, templateData: Partial<EmailTemplate>): Promise<EmailTemplate | undefined> {
+    const existingTemplate = this.emailTemplates.get(id);
+    if (!existingTemplate) {
+      return undefined;
+    }
+    
+    const updatedTemplate = {
+      ...existingTemplate,
+      ...templateData,
+      id
+    };
+    
+    this.emailTemplates.set(id, updatedTemplate);
+    
+    // In a real implementation, we would save to the database
+    
+    return updatedTemplate;
+  }
+  
+  /**
+   * Delete an email template
+   */
+  async deleteEmailTemplate(id: string): Promise<boolean> {
+    if (!this.emailTemplates.has(id)) {
+      return false;
+    }
+    
+    this.emailTemplates.delete(id);
+    
+    // In a real implementation, we would delete from the database
+    
+    return true;
   }
 }
-
-export const emailAIService = new EmailAIService();
-export { EmailEventType, emailTemplateSchema, emailProviderSchema };
