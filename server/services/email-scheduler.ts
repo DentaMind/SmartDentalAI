@@ -12,6 +12,20 @@ import { v4 as uuidv4 } from 'uuid';
 import { EmailAIService } from './email-ai-service';
 import { z } from 'zod';
 
+// Schema for email tracking
+export const emailTrackingSchema = z.object({
+  enableOpenTracking: z.boolean().default(true),
+  enableLinkTracking: z.boolean().default(true),
+  unsubscribed: z.boolean().default(false),
+  trackingId: z.string().optional(),
+  sentTime: z.string().optional(),
+  deliveredTime: z.string().optional(),
+  openedTime: z.string().optional(),
+  clickedTime: z.string().optional()
+});
+
+export type EmailTracking = z.infer<typeof emailTrackingSchema>;
+
 // Schema for email scheduling
 export const emailScheduleSchema = z.object({
   id: z.string().optional(),
@@ -38,25 +52,7 @@ export const emailScheduleSchema = z.object({
   locationId: z.number().optional(),
   templateId: z.string().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
-  tracking: z.object({
-    enableOpenTracking: z.boolean().default(true),
-    enableLinkTracking: z.boolean().default(true),
-    trackingId: z.string().optional(),
-    sentTime: z.string().optional(),
-    deliveredTime: z.string().optional(),
-    openedTime: z.string().optional(),
-    clickedTime: z.string().optional(),
-    unsubscribed: z.boolean().default(false),
-  }).optional().transform(val => val ? {
-    enableOpenTracking: val.enableOpenTracking ?? true,
-    enableLinkTracking: val.enableLinkTracking ?? true,
-    trackingId: val.trackingId,
-    sentTime: val.sentTime,
-    deliveredTime: val.deliveredTime,
-    openedTime: val.openedTime,
-    clickedTime: val.clickedTime,
-    unsubscribed: val.unsubscribed ?? false,
-  } : undefined),
+  tracking: emailTrackingSchema.optional(),
   status: z.enum([
     'scheduled',
     'sent',
@@ -127,18 +123,24 @@ export class EmailSchedulerService {
         ).toISOString();
       }
       
+      // Create a properly typed tracking object
+      const trackingData: EmailTracking = {
+        trackingId: uuidv4(),
+        enableOpenTracking: emailData.tracking?.enableOpenTracking ?? true,
+        enableLinkTracking: emailData.tracking?.enableLinkTracking ?? true,
+        unsubscribed: emailData.tracking?.unsubscribed ?? false,
+        sentTime: emailData.tracking?.sentTime,
+        deliveredTime: emailData.tracking?.deliveredTime,
+        openedTime: emailData.tracking?.openedTime,
+        clickedTime: emailData.tracking?.clickedTime
+      };
+      
       const newSchedule: EmailSchedule = {
         ...emailData,
         id,
         scheduledTime,
         status: 'scheduled',
-        tracking: {
-          ...emailData.tracking,
-          trackingId: uuidv4(),
-          enableOpenTracking: emailData.tracking?.enableOpenTracking ?? true,
-          enableLinkTracking: emailData.tracking?.enableLinkTracking ?? true,
-          unsubscribed: emailData.tracking?.unsubscribed ?? false
-        }
+        tracking: trackingData
       };
       
       // Save to memory and persist
@@ -363,12 +365,22 @@ export class EmailSchedulerService {
       
       // Update the email status
       const updatedEmail = this.scheduledEmails.get(email.id!);
-      if (updatedEmail) {
+      if (updatedEmail && updatedEmail.tracking) {
         updatedEmail.status = 'sent';
-        updatedEmail.tracking = {
-          ...updatedEmail.tracking,
-          sentTime: new Date().toISOString()
+        
+        // Create a properly typed tracking object with all required fields
+        const updatedTracking: EmailTracking = {
+          trackingId: updatedEmail.tracking.trackingId || uuidv4(),
+          enableOpenTracking: updatedEmail.tracking.enableOpenTracking ?? true,
+          enableLinkTracking: updatedEmail.tracking.enableLinkTracking ?? true,
+          unsubscribed: updatedEmail.tracking.unsubscribed ?? false,
+          sentTime: new Date().toISOString(),
+          deliveredTime: updatedEmail.tracking.deliveredTime,
+          openedTime: updatedEmail.tracking.openedTime,
+          clickedTime: updatedEmail.tracking.clickedTime
         };
+        
+        updatedEmail.tracking = updatedTracking;
         this.scheduledEmails.set(email.id!, updatedEmail);
       }
       
@@ -414,29 +426,51 @@ export class EmailSchedulerService {
     
     const [id, email] = emailEntry;
     
-    // Update the tracking information
+    // Create a copy of the email
     const updatedEmail = { ...email };
-    updatedEmail.tracking = {
-      ...updatedEmail.tracking,
-    };
+    
+    // Make sure tracking is properly typed
+    if (!updatedEmail.tracking) {
+      updatedEmail.tracking = {
+        trackingId: trackingId,
+        enableOpenTracking: true,
+        enableLinkTracking: true,
+        unsubscribed: false
+      };
+    }
     
     const now = new Date().toISOString();
+    
+    // Create a properly typed tracking object
+    const updatedTracking: EmailTracking = {
+      trackingId: updatedEmail.tracking.trackingId || trackingId,
+      enableOpenTracking: updatedEmail.tracking.enableOpenTracking ?? true,
+      enableLinkTracking: updatedEmail.tracking.enableLinkTracking ?? true,
+      unsubscribed: updatedEmail.tracking.unsubscribed ?? false,
+      sentTime: updatedEmail.tracking.sentTime,
+      deliveredTime: updatedEmail.tracking.deliveredTime,
+      openedTime: updatedEmail.tracking.openedTime,
+      clickedTime: updatedEmail.tracking.clickedTime
+    };
     
     // Update the appropriate timestamp
     switch (type) {
       case 'delivered':
-        updatedEmail.tracking!.deliveredTime = now;
+        updatedTracking.deliveredTime = now;
         updatedEmail.status = 'delivered';
         break;
       case 'opened':
-        updatedEmail.tracking!.openedTime = now;
+        updatedTracking.openedTime = now;
         updatedEmail.status = 'opened';
         break;
       case 'clicked':
-        updatedEmail.tracking!.clickedTime = now;
+        updatedTracking.clickedTime = now;
         updatedEmail.status = 'clicked';
         break;
     }
+    
+    // Assign the updated tracking object
+    updatedEmail.tracking = updatedTracking;
     
     // Update in memory and persist
     this.scheduledEmails.set(id, updatedEmail);

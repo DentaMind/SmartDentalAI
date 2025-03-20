@@ -80,6 +80,7 @@ export function Sidebar() {
       { name: "Schedule", href: "/appointments", icon: Calendar },
       { name: "Clinical Tools", href: "/dental-ai-hub", icon: Stethoscope },
       { name: "Email AI", href: "/email-ai", icon: Mail, highlight: true },
+      { name: "Email Scheduler", href: "/email-scheduler", icon: Calendar, highlight: true },
       { name: "Staff Management", href: "/time-clock", icon: Clock },
       { 
         name: "AI Recommendations", 
@@ -101,6 +102,7 @@ export function Sidebar() {
       { name: "Time Management", href: "/time-clock", icon: Clock },
       { name: "Clinical Tools", href: "/dental-ai-hub", icon: Stethoscope },
       { name: "Email AI", href: "/email-ai", icon: Mail, highlight: true },
+      { name: "Email Scheduler", href: "/email-scheduler", icon: Calendar, highlight: true },
       { 
         name: "AI Recommendations", 
         href: "/ai-recommendations", 

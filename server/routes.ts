@@ -853,6 +853,12 @@ router.post('/ai/refine-diagnosis', requireAuth, async (req, res) => {
   }
 });
 
+// Initialize email services
+const emailAIService = new EmailAIService(); // Create EmailAIService instance
+
+// Set up email scheduler routes
+setupEmailSchedulerRoutes(router, emailAIService);
+
 // Mount all routes under /api prefix
 app.use("/api", router);
 
