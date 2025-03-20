@@ -557,24 +557,34 @@ export class EmailAIService {
     this.isCheckingEmails = true;
     try {
       // This would connect to the email server and check for new emails
-      // For now, we'll simulate a successful check
-      
       console.log('Checking emails...');
-      // Simulate a delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // In a real implementation, we would:
-      // 1. Connect to the email server
-      // 2. Check for new unread emails in monitored folders
-      // 3. Process each email (extract info, analyze with AI, update data)
-      // 4. Optionally send auto-responses
+      // In a real implementation, we would connect to the email server and fetch unread emails
+      // For demonstration purposes, we'll simulate processing of different dental-specific emails
+      
+      // Simulate receiving different types of emails
+      const simulatedEmails = this.getSimulatedDentalEmails();
+      const processedResults = [];
+      
+      // Process each email
+      for (const email of simulatedEmails) {
+        // Analyze the email content with AI
+        const analysis = await this.analyzeEmailContent(email);
+        
+        // Process based on the detected email type
+        const result = await this.processEmailByType(email, analysis);
+        processedResults.push(result);
+        
+        console.log(`Processed email: ${email.subject} - Type: ${analysis.eventType} - Action: ${result.action}`);
+      }
       
       this.isCheckingEmails = false;
       return { 
         status: 'success', 
         message: 'Emails checked successfully',
-        emailsProcessed: 0,
-        newEmails: 0
+        emailsProcessed: processedResults.length,
+        newEmails: processedResults.length,
+        processedResults
       };
     } catch (err) {
       this.isCheckingEmails = false;
@@ -584,6 +594,53 @@ export class EmailAIService {
         status: 'error', 
         message: 'Error checking emails: ' + error.message 
       };
+    }
+  }
+  
+  /**
+   * Process an email based on its detected type
+   * 
+   * @param email The email content
+   * @param analysis The AI analysis of the email
+   * @returns Processing result
+   */
+  private async processEmailByType(email: EmailContent, analysis: AIEmailAnalysis): Promise<any> {
+    // Base result structure
+    const result = {
+      emailId: uuidv4(),
+      subject: email.subject,
+      from: email.from,
+      type: analysis.eventType,
+      processed: true,
+      action: 'none',
+      updatedRecords: [],
+      autoResponded: false
+    };
+    
+    // Process based on event type
+    switch (analysis.eventType) {
+      case EmailEventType.LAB_CASE_UPDATE:
+        return await this.processLabCaseEmail(email, analysis, result);
+        
+      case EmailEventType.INSURANCE_APPROVAL:
+      case EmailEventType.INSURANCE_DENIAL:
+        return await this.processInsuranceEmail(email, analysis, result);
+        
+      case EmailEventType.PRESCRIPTION_CONFIRMATION:
+        return await this.processPrescriptionEmail(email, analysis, result);
+        
+      case EmailEventType.SUPPLY_ORDER_UPDATE:
+        return await this.processSupplyOrderEmail(email, analysis, result);
+        
+      case EmailEventType.PATIENT_INQUIRY:
+        return await this.processPatientInquiryEmail(email, analysis, result);
+        
+      case EmailEventType.APPOINTMENT_REQUEST:
+        return await this.processAppointmentRequestEmail(email, analysis, result);
+        
+      default:
+        result.action = 'flagged_for_review';
+        return result;
     }
   }
 
@@ -839,6 +896,16 @@ export class EmailAIService {
       contentLower.includes('update')
     )) {
       eventType = EmailEventType.TREATMENT_PROGRESS;
+    } else if (contentLower.includes('perio') || contentLower.includes('periodontal')) {
+      eventType = EmailEventType.PERIODONTAL_ASSESSMENT;
+    } else if (contentLower.includes('ortho') || contentLower.includes('braces') || contentLower.includes('invisalign')) {
+      eventType = EmailEventType.ORTHODONTIC_UPDATE;
+    } else if (contentLower.includes('restorative')) {
+      eventType = EmailEventType.RESTORATIVE_TREATMENT;
+    } else if (contentLower.includes('endo') || contentLower.includes('root canal')) {
+      eventType = EmailEventType.ENDODONTIC_TREATMENT;
+    } else if (contentLower.includes('surgery') || contentLower.includes('extraction')) {
+      eventType = EmailEventType.ORAL_SURGERY_FOLLOWUP;
     } else if (contentLower.includes('perio') || contentLower.includes('periodontal') || (
       contentLower.includes('gum') && 
       (contentLower.includes('assessment') || contentLower.includes('evaluation'))
@@ -1143,15 +1210,453 @@ export class EmailAIService {
     
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
-        <img src="/assets/dentamind-logo.png" alt="${clinicName} Logo" style="max-width: 200px; margin-bottom: 20px;" />
+        <img src="/assets/dentamind-logo.png" alt="DentaMind Logo" style="max-width: 200px; margin-bottom: 20px;" />
+        <p>Dear ${patientName},</p>
+        <p>Thank you for your message. A member of our dental team will review your inquiry and respond as soon as possible, typically within 1-2 business days.</p>
+        <p>If you have an urgent dental concern, please call our office directly at <strong>${phone}</strong>.</p>
+        <p>Best regards,<br>${clinicName} Team</p>
+      </div>
+    `;
+    
+    return {
+      subject,
+      body,
+      html
+    };
+  }
+  
+  /**
+   * Generate simulated dental-specific emails for testing
+   */
+  private getSimulatedDentalEmails(): EmailContent[] {
+    return [
+      {
+        from: "labworks@dentallab.com",
+        to: "office@dentamind.com",
+        subject: "Lab Case #LC-4592 Update: Crown for Patient Smith Ready for Pickup",
+        text: "Dear DentaMind,\n\nThis is to notify you that Lab Case #LC-4592 (PFM Crown for tooth #14, patient John Smith) has been completed and is ready for pickup. The case will be delivered via our courier service tomorrow by 10:00 AM.\n\nShade A2 as requested has been used for the final restoration. Please inspect upon receipt and notify us of any adjustments needed.\n\nRegards,\nDental Lab Works",
+        date: new Date(),
+        attachments: []
+      },
+      {
+        from: "claims@dentalinsurance.com",
+        to: "billing@dentamind.com",
+        subject: "Claim Approval Notification: Patient ID #PT45892",
+        text: "RE: Insurance Claim #INS-78945\nPatient: Sarah Johnson (ID: PT45892)\nProvider: Dr. Maria Rodriguez\nDate of Service: 03/15/2025\n\nDear DentaMind,\n\nWe are pleased to inform you that the claim referenced above has been APPROVED. The following procedures have been covered:\n\nD2750 - Crown porcelain/ceramic - $850.00 (Covered at 80%)\nD3310 - Root canal anterior - $675.00 (Covered at 80%)\n\nTotal Payment: $1,220.00\nPatient Responsibility: $305.00\n\nPayment will be processed within 5-7 business days.\n\nSincerely,\nDental Insurance Claims Department",
+        date: new Date(),
+        attachments: []
+      },
+      {
+        from: "pharmacy@medicalrx.com",
+        to: "prescriptions@dentamind.com",
+        subject: "Prescription Confirmation: Amoxicillin for Michael Thompson",
+        text: "Prescription Confirmation\nPatient: Michael Thompson\nRx Number: 82746295\nMedication: Amoxicillin 500mg\nQuantity: 21 capsules\nDirections: Take 1 capsule 3 times daily for 7 days\nPrescribed by: Dr. James Wilson\n\nThis prescription has been filled and is ready for pickup at Main Street Pharmacy. The patient has been notified.\n\nIf you have any questions, please contact us at 555-123-9876.\n\nThank you,\nMedical Rx Pharmacy Services",
+        date: new Date(),
+        attachments: []
+      },
+      {
+        from: "orders@dentalsupplies.com",
+        to: "orders@dentamind.com",
+        subject: "Dental Supply Order #DS-29384 Confirmation",
+        text: "Order Confirmation #DS-29384\nDate: March 20, 2025\n\nThank you for your order with Dental Supplies Inc. The following items have been shipped and should arrive within 2-3 business days:\n\n- Composite Resin A2 (10 packs) - $450.00\n- Dental Impression Material (5 sets) - $325.00\n- Disposable Prophy Angles (100 ct) - $180.00\n- Sterilization Pouches (500 ct) - $95.00\n\nTotal: $1,050.00\nShipping: Free\nTotal Charged: $1,050.00\n\nTracking Number: 1Z9999999999999999\nCarrier: UPS\n\nPlease let us know if you have any questions about your order.\n\nRegards,\nDental Supplies Customer Service",
+        date: new Date(),
+        attachments: []
+      },
+      {
+        from: "jennifer.brown@email.com",
+        to: "appointments@dentamind.com",
+        subject: "Request to Schedule Dental Appointment",
+        text: "Hello,\n\nI would like to schedule an appointment for a dental cleaning and check-up. I'm experiencing some sensitivity in my lower left molar (I think it's tooth #19).\n\nI'm available on Tuesday afternoons or Thursday mornings for the next two weeks. My last cleaning was about 7 months ago.\n\nMy information:\nName: Jennifer Brown\nDate of Birth: 05/12/1985\nPhone: 555-987-6543\nInsurance: Delta Dental (ID: DD987654321)\n\nThank you,\nJennifer Brown",
+        date: new Date(),
+        attachments: []
+      },
+      {
+        from: "orthodontics@specialistcenter.com",
+        to: "referrals@dentamind.com",
+        subject: "Invisalign Treatment Progress Update: Patient Lisa Garcia",
+        text: "DentaMind Dental Referrals\nRe: Lisa Garcia (DOB: 08/27/1992)\n\nDear Dr. Rodriguez,\n\nThis is an update on your referred patient, Lisa Garcia, who is currently undergoing Invisalign treatment at our office.\n\nThe patient has completed 14 of 24 planned aligners. The teeth are tracking well with good compliance reported by the patient. The midline correction is progressing as planned, and space closure for the previous extraction sites is approximately 60% complete.\n\nWe anticipate completing the active phase of treatment in approximately 3 months, followed by refinement aligners if needed. We recommend the patient maintain her regular 6-month cleaning schedule with your office during treatment.\n\nEnclosed are the latest progress photos and treatment simulation comparison.\n\nPlease let me know if you have any questions about Lisa's treatment.\n\nBest regards,\nDr. Emily Chen\nOrthodontic Specialist",
+        date: new Date(),
+        attachments: []
+      },
+      {
+        from: "imaging@dentalradiology.com",
+        to: "xrays@dentamind.com",
+        subject: "CBCT Scan Results for Patient David Wilson",
+        text: "CBCT SCAN REPORT\nPatient: David Wilson (DOB: 11/05/1976)\nReferring Doctor: Dr. Maria Rodriguez\nExam Date: March 18, 2025\nExam Type: Full CBCT Scan\n\nClinical History: Evaluation for implant placement in position #30\n\nFindings:\n- Adequate bone height (12mm) and width (8mm) in position #30 for standard implant placement\n- No pathological findings in the surrounding structures\n- Inferior alveolar nerve located 4mm inferior to the planned implant site\n- Normal maxillary sinuses bilaterally\n- Incidental finding of periapical radiolucency associated with the mesial root of tooth #19, measuring approximately 3mm\n\nRecommendations:\n- Proceed with implant planning for site #30 as bone dimensions are favorable\n- Consider evaluation of tooth #19 for possible endodontic pathology\n\nImages have been uploaded to your secure portal for review.\n\nRegards,\nDr. Robert Jackson\nOral and Maxillofacial Radiologist",
+        date: new Date(),
+        attachments: []
+      }
+    ];
+  }
+  
+  /**
+   * Process lab case update emails
+   */
+  private async processLabCaseEmail(email: EmailContent, analysis: AIEmailAnalysis, result: any): Promise<any> {
+    // Extract lab case information
+    const labInfo = analysis.detectedEntities.labInfo || {};
+    const caseNumber = labInfo.caseNumber || 
+      (email.text.match(/case\s*#?\s*([a-z0-9-]+)/i)?.[1]);
+    const patientName = analysis.patientName || 
+      analysis.detectedEntities.names?.[0];
+    
+    // Update result with extracted information
+    result.action = 'update_lab_case';
+    result.labCaseInfo = {
+      caseNumber,
+      labName: labInfo.labName,
+      status: labInfo.status || 'ready',
+      patientName,
+      prostheticType: labInfo.prostheticType,
+      teethInvolved: analysis.detectedEntities.teethNumbers,
+      date: new Date().toISOString()
+    };
+    
+    console.log(`Processing lab case update for case ${caseNumber}, patient: ${patientName}`);
+    
+    // Try to find patient ID by name if missing
+    if (patientName && !analysis.patientId) {
+      // In a real implementation, would look up patient ID from database
+      console.log(`Looking up patient ID for ${patientName}...`);
+      // result.patientId = await this.findPatientIdByName(patientName);
+    }
+    
+    // Check if this case status requires scheduling the patient
+    if (labInfo.status === 'ready' || email.text.toLowerCase().includes('ready for pickup')) {
+      // In a real implementation, this would trigger a notification to schedule the patient
+      result.requiresScheduling = true;
+      result.schedulingReason = 'Lab case is ready';
+      console.log(`Lab case ready - patient ${patientName} needs to be scheduled`);
+    }
+    
+    // Check if an auto-response should be sent
+    if (email.from.includes('@') && !email.from.includes('noreply')) {
+      result.autoResponded = true;
+      // In a real implementation, would actually send the response
+      console.log(`Sending auto-response to ${email.from} confirming receipt of lab case update`);
+    }
+    
+    result.updatedRecords.push({
+      type: 'lab_case',
+      id: caseNumber,
+      action: 'status_updated',
+      status: labInfo.status || 'ready'
+    });
+    
+    return result;
+  }
+  
+  /**
+   * Process insurance approval/denial emails
+   */
+  private async processInsuranceEmail(email: EmailContent, analysis: AIEmailAnalysis, result: any): Promise<any> {
+    // Extract insurance claim information
+    const insuranceInfo = analysis.detectedEntities.insuranceInfo || {};
+    const claimNumber = 
+      email.text.match(/claim\s*#?\s*([a-z0-9-]+)/i)?.[1] || 
+      email.text.match(/ins\-(\d+)/i)?.[1];
+    const patientName = analysis.patientName || 
+      analysis.detectedEntities.names?.[0];
+    const approvalStatus = 
+      analysis.eventType === EmailEventType.INSURANCE_APPROVAL ? 'approved' : 'denied';
+    
+    // Extract amounts
+    const amountMatches = email.text.match(/\$\s?(\d+\.\d{2})/g);
+    const amounts = amountMatches ? Array.from(amountMatches) : [];
+    const total = amounts.length > 0 ? amounts[amounts.length - 1] : null;
+    
+    // Update result with extracted information
+    result.action = 'update_insurance_claim';
+    result.insuranceClaimInfo = {
+      claimNumber,
+      patientName,
+      status: approvalStatus,
+      provider: insuranceInfo.provider,
+      amounts,
+      totalApproved: total,
+      date: new Date().toISOString()
+    };
+    
+    console.log(`Processing insurance ${approvalStatus} for claim ${claimNumber}, patient: ${patientName}`);
+    
+    // Update corresponding records
+    result.updatedRecords.push({
+      type: 'insurance_claim',
+      id: claimNumber,
+      action: 'status_updated',
+      status: approvalStatus
+    });
+    
+    // If approved, also update financial records
+    if (approvalStatus === 'approved' && total) {
+      result.updatedRecords.push({
+        type: 'financial_transaction',
+        action: 'expected_payment',
+        amount: total,
+        source: 'insurance',
+        provider: insuranceInfo.provider
+      });
+      
+      // In a real implementation, this would create a financial transaction record
+      console.log(`Creating expected payment record for ${total} from insurance`);
+    }
+    
+    // If denied, flag for staff review
+    if (approvalStatus === 'denied') {
+      result.requiresReview = true;
+      result.reviewReason = 'Insurance claim denied';
+      console.log(`Insurance claim denied - requires staff review`);
+    }
+    
+    return result;
+  }
+  
+  /**
+   * Process prescription confirmation emails
+   */
+  private async processPrescriptionEmail(email: EmailContent, analysis: AIEmailAnalysis, result: any): Promise<any> {
+    // Extract prescription information
+    const medication = analysis.detectedEntities.medications?.[0];
+    const rxNumber = email.text.match(/rx(?:\s+number|\s+#)?:\s*([a-z0-9-]+)/i)?.[1] || 
+                    email.text.match(/rx[\s#]*(\d+)/i)?.[1];
+    const patientName = analysis.patientName || analysis.detectedEntities.names?.[0];
+    
+    // Update result with extracted information
+    result.action = 'update_prescription';
+    result.prescriptionInfo = {
+      rxNumber,
+      medication,
+      patientName,
+      status: 'filled',
+      date: new Date().toISOString()
+    };
+    
+    console.log(`Processing prescription confirmation for ${medication}, patient: ${patientName}, Rx#: ${rxNumber}`);
+    
+    // Update corresponding records
+    result.updatedRecords.push({
+      type: 'prescription',
+      id: rxNumber,
+      action: 'status_updated',
+      status: 'filled'
+    });
+    
+    // In a real implementation, we would update the prescription status in the database
+    
+    return result;
+  }
+  
+  /**
+   * Process supply order update emails
+   */
+  private async processSupplyOrderEmail(email: EmailContent, analysis: AIEmailAnalysis, result: any): Promise<any> {
+    // Extract order information
+    const orderNumber = email.text.match(/order\s*#?\s*([a-z0-9-]+)/i)?.[1];
+    const trackingNumber = email.text.match(/tracking\s*#?:?\s*([a-z0-9]+)/i)?.[1] ||
+                          email.text.match(/\b(\d[a-z]\d{15,20})\b/i)?.[1];
+    
+    // Try to extract ordered items
+    const itemMatches = email.text.match(/[-•]\s+([^-•][^\n]+)/g);
+    const items = itemMatches ? Array.from(itemMatches).map(i => i.trim().replace(/^[-•]\s+/, '')) : [];
+    
+    // Extract total amount
+    let totalAmount = null;
+    const totalMatch = email.text.match(/total[:\s]+\$\s*(\d+\.\d{2})/i);
+    if (totalMatch) {
+      totalAmount = totalMatch[1];
+    }
+    
+    // Update result with extracted information
+    result.action = 'update_supply_order';
+    result.supplyOrderInfo = {
+      orderNumber,
+      trackingNumber,
+      items,
+      status: 'shipped',
+      totalAmount,
+      expectedDelivery: analysis.detectedEntities.dates?.[0],
+      date: new Date().toISOString()
+    };
+    
+    console.log(`Processing supply order update for order ${orderNumber}, tracking: ${trackingNumber}`);
+    
+    // Update corresponding records
+    result.updatedRecords.push({
+      type: 'supply_order',
+      id: orderNumber,
+      action: 'status_updated',
+      status: 'shipped',
+      tracking: trackingNumber
+    });
+    
+    // In a real implementation, we would update the order status in the database
+    // and potentially add the items to inventory when they arrive
+    
+    return result;
+  }
+  
+  /**
+   * Process patient inquiry emails
+   */
+  private async processPatientInquiryEmail(email: EmailContent, analysis: AIEmailAnalysis, result: any): Promise<any> {
+    // Extract patient information
+    const patientName = analysis.patientName || 
+                       analysis.detectedEntities.names?.[0] || 
+                       email.from.split('@')[0].replace(/[.]/g, ' ');
+    
+    // Try to detect inquiry type based on content
+    let inquiryType = 'general';
+    if (email.text.toLowerCase().includes('appointment')) {
+      inquiryType = 'appointment';
+    } else if (email.text.toLowerCase().includes('bill') || 
+              email.text.toLowerCase().includes('payment') || 
+              email.text.toLowerCase().includes('insurance')) {
+      inquiryType = 'billing';
+    } else if (email.text.toLowerCase().includes('pain') || 
+              email.text.toLowerCase().includes('discomfort') || 
+              email.text.toLowerCase().includes('hurts') ||
+              email.text.toLowerCase().includes('swelling')) {
+      inquiryType = 'clinical';
+    }
+    
+    // Determine urgency based on content
+    let urgency = 'normal';
+    if (email.text.toLowerCase().includes('emergency') || 
+        email.text.toLowerCase().includes('severe pain') || 
+        email.text.toLowerCase().includes('unbearable')) {
+      urgency = 'high';
+    }
+    
+    // Update result with extracted information
+    result.action = 'create_patient_inquiry';
+    result.patientInquiryInfo = {
+      patientName,
+      email: email.from,
+      inquiryType,
+      urgency,
+      content: email.text,
+      date: new Date().toISOString()
+    };
+    
+    console.log(`Processing patient inquiry from ${patientName}, type: ${inquiryType}, urgency: ${urgency}`);
+    
+    // For high urgency inquiries, flag for immediate follow-up
+    if (urgency === 'high') {
+      result.requiresImmediate = true;
+      result.immediateAction = 'Call patient regarding urgent dental issue';
+      console.log(`Urgent inquiry detected - immediate follow-up required`);
+    }
+    
+    // Try to generate an AI response for the patient
+    try {
+      const responseContext = {
+        patientName,
+        eventType: analysis.eventType,
+        analysis
+      };
+      
+      const response = await this.generateAIResponse(email.text, responseContext);
+      result.generatedResponse = response;
+      result.autoResponded = true;
+      
+      console.log(`Generated AI response for patient inquiry`);
+    } catch (err) {
+      console.error('Failed to generate AI response for patient inquiry:', err);
+    }
+    
+    return result;
+  }
+  
+  /**
+   * Process appointment request emails
+   */
+  private async processAppointmentRequestEmail(email: EmailContent, analysis: AIEmailAnalysis, result: any): Promise<any> {
+    // Extract patient information
+    const patientName = analysis.patientName || 
+                       analysis.detectedEntities.names?.[0] || 
+                       email.from.split('@')[0].replace(/[.]/g, ' ');
+    
+    // Try to extract contact information
+    const phoneMatch = email.text.match(/(?:phone|call|text|mobile)(?:\s+(?:number|#))?(?:\s*:?\s*)(?:\+?1[-\s]?)?(\(?\d{3}\)?[-\s]?\d{3}[-\s]?\d{4})/i);
+    const phone = phoneMatch ? phoneMatch[1] : null;
+    
+    // Try to extract preferred dates/times
+    const dates = analysis.detectedEntities.dates || [];
+    
+    // Try to determine appointment type
+    let appointmentType = 'general';
+    if (email.text.toLowerCase().includes('clean') || 
+        email.text.toLowerCase().includes('check') || 
+        email.text.toLowerCase().includes('exam')) {
+      appointmentType = 'cleaning/exam';
+    } else if (email.text.toLowerCase().includes('pain') || 
+              email.text.toLowerCase().includes('emergency')) {
+      appointmentType = 'emergency';
+    } else if (email.text.toLowerCase().includes('consult')) {
+      appointmentType = 'consultation';
+    }
+    
+    // Determine urgency based on content
+    let urgency = 'normal';
+    if (email.text.toLowerCase().includes('emergency') || 
+        email.text.toLowerCase().includes('severe pain') || 
+        email.text.toLowerCase().includes('asap')) {
+      urgency = 'high';
+    }
+    
+    // Update result with extracted information
+    result.action = 'create_appointment_request';
+    result.appointmentRequestInfo = {
+      patientName,
+      email: email.from,
+      phone,
+      appointmentType,
+      urgency,
+      preferredDates: dates,
+      notes: email.text,
+      date: new Date().toISOString()
+    };
+    
+    console.log(`Processing appointment request from ${patientName}, type: ${appointmentType}, urgency: ${urgency}`);
+    
+    // For high urgency requests, flag for immediate scheduling
+    if (urgency === 'high') {
+      result.requiresImmediate = true;
+      result.immediateAction = 'Schedule emergency appointment for patient';
+      console.log(`Urgent appointment request - immediate scheduling required`);
+    }
+    
+    // Try to generate an AI response acknowledging the appointment request
+    try {
+      const responseContext = {
+        patientName,
+        eventType: analysis.eventType,
+        analysis
+      };
+      
+      const response = await this.generateAIResponse(email.text, responseContext);
+      result.generatedResponse = response;
+      result.autoResponded = true;
+      
+      console.log(`Generated AI response for appointment request`);
+    } catch (err) {
+      console.error('Failed to generate AI response for appointment request:', err);
+    }
+    
+    return result;
+  }
+
+  // Template for patient inquiry auto-response
+  private generatePatientInquiryTemplate(patientName: string, clinicName: string, phone: string): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <img src="https://dentalmind.com/logo.png" alt="${clinicName} Logo" style="max-width: 200px; margin-bottom: 20px;" />
         <p>Dear ${patientName},</p>
         <p>Thank you for your message. A member of our dental team will review your inquiry and respond as soon as possible, typically within 1-2 business days.</p>
         <p style="color: #d9534f;"><strong>Important:</strong> If you have an urgent dental concern, please call our office directly at <a href="tel:${phone}">${phone}</a>.</p>
         <p>Best regards,<br>${clinicName} Team</p>
       </div>
     `;
-    
-    return { subject, body, html };
   }
 
   /**

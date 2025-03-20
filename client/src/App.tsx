@@ -27,6 +27,7 @@ import PostOpInstructionsPage from "@/pages/post-op-instructions-page";
 import AppointmentRequestPage from "@/pages/appointment-request-page";
 import EmailAIPage from "@/pages/email-ai-page";
 import EmailSchedulerPage from "@/pages/email-scheduler-page";
+import XRayFMXPage from "@/pages/xray-fmx-page";
 
 // Lazy-loaded components
 const AIHub = lazy(() => import('./pages/ai-hub'));
@@ -73,6 +74,8 @@ function Router() {
         <ProtectedRoute path="/appointment-request" component={AppointmentRequestPage} />
         <ProtectedRoute path="/email-ai" component={EmailAIPage} />
         <ProtectedRoute path="/email-scheduler" component={EmailSchedulerPage} />
+        <ProtectedRoute path="/xray-fmx" component={XRayFMXPage} />
+        <ProtectedRoute path="/xray-fmx/:patientId" component={XRayFMXPage} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
