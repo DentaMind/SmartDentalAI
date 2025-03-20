@@ -6,6 +6,7 @@ import { insertUserSchema } from "@shared/schema";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -478,8 +479,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel className="text-sm font-semibold text-gray-700">{t("auth.password")}</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="password" 
+                            <PasswordInput 
                               {...field} 
                               className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-3 focus:ring-blue-500/50 transition-all hover:border-blue-400 bg-white/95 text-gray-900 text-[15px] font-medium"
                               placeholder="Enter your password"
@@ -640,7 +640,7 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Password</FormLabel>
                             <FormControl>
-                              <Input type="password" {...field} />
+                              <PasswordInput {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -928,8 +928,7 @@ export default function AuthPage() {
                             <FormItem>
                               <FormLabel className="text-sm font-semibold text-gray-700">Password</FormLabel>
                               <FormControl>
-                                <Input 
-                                  type="password" 
+                                <PasswordInput 
                                   {...field} 
                                   className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
                                   placeholder="Create a strong password"
@@ -1102,8 +1101,7 @@ export default function AuthPage() {
                             <FormItem>
                               <FormLabel className="text-sm font-semibold text-gray-700">Security Code</FormLabel>
                               <FormControl>
-                                <Input 
-                                  type="password"
+                                <PasswordInput 
                                   {...field} 
                                   className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
                                   placeholder="CVV"
