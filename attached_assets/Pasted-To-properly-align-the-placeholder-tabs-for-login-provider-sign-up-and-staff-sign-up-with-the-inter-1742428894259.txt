@@ -1,0 +1,100 @@
+To properly align the placeholder tabs for login, provider sign-up, and staff sign-up with the interior design of the UI, follow these steps:
+
+### **1. Adjust the Tab Sizing and Visibility**
+- Increase the width and height of the placeholder tabs to ensure that all text is fully visible.
+- Use `min-width` and `padding` to allow for proper spacing.
+- Set `overflow: visible` to ensure no text is cut off.
+- Use `text-align: center` for better visual balance.
+
+```css
+.tabs-container {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px;
+}
+
+.tab {
+    flex-grow: 1; /* Ensures equal tab spacing */
+    text-align: center;
+    padding: 12px 16px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out;
+}
+
+.tab.active {
+    background-color: #28C76F; /* DentaMind Green */
+    color: white;
+}
+```
+
+---
+
+### **2. Align the Tabs with the Login Form**
+- Ensure the tabs are **centered** above the login form for better structure.
+- Increase the `margin-bottom` of the tabs to separate them from the input fields.
+
+```css
+.tabs-wrapper {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 20px;
+}
+```
+
+---
+
+### **3. Ensure Proper Font Scaling**
+- The text inside the tabs should match the rest of the UI, maintaining a **consistent font size and weight**.
+- Use `rem` units to ensure responsiveness across devices.
+
+```css
+.tab {
+    font-size: 1rem; 
+    font-weight: bold;
+}
+```
+
+---
+
+### **4. Responsive Design Considerations**
+- On smaller screens, ensure the tabs do not shrink too much by setting a `min-width`.
+- Use media queries to **stack** the tabs vertically if needed.
+
+```css
+@media (max-width: 768px) {
+    .tabs-container {
+        flex-direction: column;
+    }
+
+    .tab {
+        width: 100%;
+    }
+}
+```
+
+---
+
+### **5. Adjust the Background Color**
+To ensure the **green gradient theme** aligns well with the rest of the UI:
+- Use a **subtle** green gradient rather than an overpowering shade.
+- Keep the login section white for contrast and readability.
+
+```css
+body {
+    background: linear-gradient(180deg, #2E7D32 0%, #28C76F 100%);
+}
+```
+
+---
+
+### **Final Adjustments:**
+- **Increase padding** around the tabs for better separation.
+- **Ensure hover effects** are smooth and consistent.
+
+Let the developer implement these changes and check alignment. If adjustments are still needed, fine-tune the **padding, margins, and font sizes** to ensure a **clean and professional look** while keeping it user-friendly.

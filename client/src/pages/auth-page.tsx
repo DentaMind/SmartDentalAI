@@ -394,31 +394,31 @@ export default function AuthPage() {
             {/* Subtle card pattern */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0)_0%,rgba(255,255,255,0.4)_100%)] opacity-30 pointer-events-none rounded-xl"></div>
             <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-3 mb-8 bg-white/80 backdrop-blur-sm rounded-xl shadow-md overflow-hidden border border-blue-100/50 p-1.5 gap-3">
+              <TabsList className="flex w-full justify-center mb-8 bg-white/80 backdrop-blur-sm rounded-xl shadow-md overflow-visible border border-green-100/50 p-2.5 gap-4">
                 <TabsTrigger 
                   value="login" 
-                  className="py-3 px-0 text-gray-700 text-sm tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-600 data-[state=active]:to-green-500 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-green-50/80 hover:text-green-600 rounded-md"
+                  className="py-3 px-4 min-w-[100px] text-gray-700 text-base font-medium tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-600 data-[state=active]:to-green-500 data-[state=active]:text-white transition-all duration-200 hover:bg-green-50/80 hover:text-green-600 rounded-md flex-grow text-center"
                 >
-                  <div className="flex flex-col items-center w-full px-4">
+                  <div className="flex flex-col items-center w-full">
                     <span className="whitespace-nowrap">Login</span>
                   </div>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="provider" 
-                  className="py-3 px-0 text-gray-700 text-xs leading-tight tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-600 data-[state=active]:to-green-500 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-green-50/80 hover:text-green-600 rounded-md"
+                  className="py-3 px-4 min-w-[100px] text-gray-700 text-base font-medium tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-600 data-[state=active]:to-green-500 data-[state=active]:text-white transition-all duration-200 hover:bg-green-50/80 hover:text-green-600 rounded-md flex-grow text-center"
                 >
-                  <div className="flex flex-col items-center w-full px-4">
+                  <div className="flex flex-col items-center w-full">
                     <span className="whitespace-nowrap">Provider</span>
-                    <span className="text-[10px] opacity-70 whitespace-nowrap">Register</span>
+                    <span className="text-[11px] opacity-80 whitespace-nowrap">Register</span>
                   </div>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="staff" 
-                  className="py-3 px-0 text-gray-700 text-xs leading-tight tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-600 data-[state=active]:to-green-500 data-[state=active]:text-white font-medium transition-all duration-200 hover:bg-green-50/80 hover:text-green-600 rounded-md"
+                  className="py-3 px-4 min-w-[100px] text-gray-700 text-base font-medium tracking-wider data-[state=active]:bg-gradient-to-b data-[state=active]:from-green-600 data-[state=active]:to-green-500 data-[state=active]:text-white transition-all duration-200 hover:bg-green-50/80 hover:text-green-600 rounded-md flex-grow text-center"
                 >
-                  <div className="flex flex-col items-center w-full px-4">
+                  <div className="flex flex-col items-center w-full">
                     <span className="whitespace-nowrap">Staff</span>
-                    <span className="text-[10px] opacity-70 whitespace-nowrap">Register</span>
+                    <span className="text-[11px] opacity-80 whitespace-nowrap">Register</span>
                   </div>
                 </TabsTrigger>
               </TabsList>
@@ -544,15 +544,15 @@ export default function AuthPage() {
                   where patients are registered by providers/staff */}
 
               <TabsContent value="staff">
-                <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
+                <div className="mb-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">
                   <div className="flex items-start">
                     <div className="flex-shrink-0 mt-0.5">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
                       </svg>
                     </div>
                     <div className="ml-3">
-                      <h3 className="text-sm font-medium text-blue-800">Staff Registration</h3>
+                      <h3 className="text-sm font-medium text-green-800">Staff Registration</h3>
                       <p className="text-sm text-gray-600 mt-1">
                         Sign up as staff member to assist with patient management, scheduling, and administrative tasks.
                       </p>
@@ -684,15 +684,15 @@ export default function AuthPage() {
               </TabsContent>
               
               <TabsContent value="provider">
-                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
+                <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">
                   <div className="flex items-start">
                     <div className="flex-shrink-0 mt-0.5">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" />
                       </svg>
                     </div>
                     <div className="ml-3">
-                      <h3 className="text-sm font-medium text-blue-800">Provider Registration</h3>
+                      <h3 className="text-sm font-medium text-green-800">Provider Registration</h3>
                       <p className="text-sm text-gray-600 mt-1">
                         Register as a dental professional to access all DentaMind features including AI diagnostics and advanced treatment planning. Each provider gets a private isolated instance of DentaMind for their practice.
                       </p>
@@ -701,16 +701,16 @@ export default function AuthPage() {
                 </div>
                 
                 {/* Subscription Plans */}
-                <div className="mb-8 border border-blue-100 rounded-lg overflow-hidden">
-                  <div className="bg-blue-50 p-3">
-                    <h3 className="text-blue-700 font-medium text-center">Select Your Subscription Plan</h3>
+                <div className="mb-8 border border-green-100 rounded-lg overflow-hidden">
+                  <div className="bg-green-50 p-3">
+                    <h3 className="text-green-700 font-medium text-center">Select Your Subscription Plan</h3>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border-t border-blue-100">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border-t border-green-100">
                     {/* Standard Plan */}
-                    <div className="p-4 flex flex-col h-full border-r border-blue-100">
+                    <div className="p-4 flex flex-col h-full border-r border-green-100">
                       <div className="mb-2 text-center">
                         <h4 className="font-medium text-gray-700">Standard</h4>
-                        <div className="mt-2 text-xl font-bold text-blue-600">$199<span className="text-sm font-normal text-gray-500">/month</span></div>
+                        <div className="mt-2 text-xl font-bold text-green-600">$199<span className="text-sm font-normal text-gray-500">/month</span></div>
                       </div>
                       <ul className="mt-3 space-y-2 flex-grow">
                         <li className="flex items-start">
@@ -744,7 +744,7 @@ export default function AuthPage() {
                             id="standard-plan"
                             name="plan"
                             type="radio"
-                            className="h-4 w-4 text-blue-600 rounded-full"
+                            className="h-4 w-4 text-green-600 rounded-full"
                             onChange={() => {
                               providerForm.setValue('subscriptionPlan', 'standard');
                             }}
@@ -757,13 +757,13 @@ export default function AuthPage() {
                     </div>
                     
                     {/* Professional Plan */}
-                    <div className="p-4 flex flex-col h-full border-r border-blue-100 bg-blue-50 relative">
+                    <div className="p-4 flex flex-col h-full border-r border-green-100 bg-green-50 relative">
                       <div className="absolute -top-1 right-0 left-0 flex justify-center">
-                        <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full font-medium">POPULAR</span>
+                        <span className="bg-green-600 text-white text-xs px-3 py-1 rounded-full font-medium">POPULAR</span>
                       </div>
                       <div className="mb-2 text-center mt-4">
                         <h4 className="font-medium text-gray-700">Professional</h4>
-                        <div className="mt-2 text-xl font-bold text-blue-600">$299<span className="text-sm font-normal text-gray-500">/month</span></div>
+                        <div className="mt-2 text-xl font-bold text-green-600">$299<span className="text-sm font-normal text-gray-500">/month</span></div>
                       </div>
                       <ul className="mt-3 space-y-2 flex-grow">
                         <li className="flex items-start">
@@ -814,7 +814,7 @@ export default function AuthPage() {
                     <div className="p-4 flex flex-col h-full">
                       <div className="mb-2 text-center">
                         <h4 className="font-medium text-gray-700">Enterprise</h4>
-                        <div className="mt-2 text-xl font-bold text-blue-600">$549<span className="text-sm font-normal text-gray-500">/month</span></div>
+                        <div className="mt-2 text-xl font-bold text-green-600">$549<span className="text-sm font-normal text-gray-500">/month</span></div>
                       </div>
                       <ul className="mt-3 space-y-2 flex-grow">
                         <li className="flex items-start">
