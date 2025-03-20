@@ -335,13 +335,13 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-800 to-gray-700 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Enhanced background with multiple gradient layers matching dashboard */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-800/10 via-gray-800/70 to-gray-800/70 backdrop-blur-3xl"></div>
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:20px_20px]"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.1),transparent_70%)]"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.1),transparent_70%)]"></div>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ backgroundColor: '#28C76F !important' }}>
+      {/* Enhanced background with multiple gradient layers using DentaMind green theme */}
+      <div className="absolute inset-0" style={{ backgroundColor: '#28C76F !important' }}>
+        <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 via-green-600/80 to-green-700/90 backdrop-blur-3xl"></div>
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#28C76F_1px,transparent_1px)] [background-size:20px_20px]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(40,199,111,0.15),transparent_70%)]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(40,199,111,0.15),transparent_70%)]"></div>
       </div>
       
       <div className="w-full max-w-5xl grid md:grid-cols-2 gap-10 mx-auto">
@@ -349,7 +349,7 @@ export default function AuthPage() {
           <div className="flex flex-col items-center mb-4">
             {/* Enhanced logo with subtle glow effect - increased size */}
             <div className="flex items-center justify-center mb-2 relative">
-              <div className="absolute inset-0 rounded-full blur-md bg-blue-500/10"></div>
+              <div className="absolute inset-0 rounded-full blur-md bg-green-500/20"></div>
               <img 
                 src={dentaMindLogo} 
                 alt="DentaMind Logo" 
@@ -487,7 +487,7 @@ export default function AuthPage() {
                           </FormControl>
                           <FormMessage />
                           <div className="mt-1 text-right">
-                            <a href="#" className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors">
+                            <a href="#" className="text-sm text-green-600 hover:text-green-800 font-medium transition-colors">
                               Forgot Password?
                             </a>
                           </div>
@@ -499,7 +499,7 @@ export default function AuthPage() {
                       <input
                         type="checkbox"
                         id="remember-me"
-                        className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
                       />
                       <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                         Remember me
