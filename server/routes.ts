@@ -860,6 +860,21 @@ const emailAIService = new EmailAIService(); // Create EmailAIService instance
 // Set up email scheduler routes
 setupEmailSchedulerRoutes(router, emailAIService);
 
+// Set up other route modules
+router.use(schedulerRoutes);
+router.use(translationRoutes);
+router.use(insuranceRoutes);
+router.use(patientFormsRoutes);
+
+// Setup automatic seeding of test data
+if (process.env.NODE_ENV !== 'production') {
+  seedDatabase().then(() => {
+    console.log('Database seeded with test data.');
+  }).catch(err => {
+    console.error('Error seeding database:', err);
+  });
+}
+
 // Mount all routes under /api prefix
 app.use("/api", router);
 
