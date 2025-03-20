@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface ToothSvgProps {
+export interface ToothSvgProps {
   toothNumber: number;
   width?: number;
   height?: number;

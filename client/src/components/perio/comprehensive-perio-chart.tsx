@@ -17,10 +17,21 @@ import { apiRequest } from '@/lib/queryClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 // Speech recognition API type
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  onresult: (event: any) => void;
+  onerror: (event: any) => void;
+  onend: () => void;
+}
+
 declare global {
   interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
+    SpeechRecognition?: { new(): SpeechRecognition };
+    webkitSpeechRecognition?: { new(): SpeechRecognition };
   }
 }
 
@@ -80,6 +91,14 @@ interface ComprehensivePerioChartProps {
   chartId?: number;
 }
 
+// Create extended ToothSvg props for our needs
+interface ExtendedToothSvgProps extends ToothSvgProps {
+  bleeding?: boolean;
+  plaque?: boolean;
+  implant?: boolean;
+  isUpper?: boolean;
+}
+
 export function ComprehensivePerioChart({
   patientId,
   patientName,
@@ -120,9 +139,9 @@ export function ComprehensivePerioChart({
 
   // Set up speech recognition
   useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      recognitionRef.current = new SpeechRecognition();
+    const SpeechRecognitionImpl = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognitionImpl) {
+      recognitionRef.current = new SpeechRecognitionImpl();
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = false;
       recognitionRef.current.lang = 'en-US';
@@ -420,7 +439,7 @@ export function ComprehensivePerioChart({
   // Function to save the chart
   const handleSave = async () => {
     try {
-      const chartData = {
+      const chartPayload = {
         patientId,
         measurements,
         examType,
@@ -429,15 +448,17 @@ export function ComprehensivePerioChart({
       
       if (chartId) {
         // Update existing chart
-        await apiRequest(`/api/periodontal-charts/${chartId}`, {
+        await apiRequest({
           method: 'PATCH',
-          data: chartData
+          url: `/api/periodontal-charts/${chartId}`,
+          body: chartPayload
         });
       } else {
         // Create new chart
-        await apiRequest('/api/periodontal-charts', {
+        await apiRequest({
           method: 'POST',
-          data: chartData
+          url: '/api/periodontal-charts',
+          body: chartPayload
         });
       }
       
@@ -450,7 +471,7 @@ export function ComprehensivePerioChart({
       });
       
       if (onSave) {
-        onSave(chartData);
+        onSave(chartPayload);
       }
     } catch (error) {
       console.error('Error saving chart:', error);
@@ -624,13 +645,24 @@ export function ComprehensivePerioChart({
                 className={`cursor-pointer ${selectedTooth === tooth ? 'bg-blue-50 rounded' : ''}`}
                 onClick={() => handleToothClick(tooth)}
               >
-                <ToothSvgBuccal 
-                  toothNumber={tooth} 
-                  bleeding={measurements[tooth]?.bleedingOnProbing} 
-                  plaque={measurements[tooth]?.plaque}
-                  implant={measurements[tooth]?.implant}
-                  isUpper={true}
-                />
+                <div className="relative">
+                  <ToothSvgBuccal toothNumber={tooth} />
+                  {measurements[tooth]?.bleedingOnProbing && 
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                    </div>
+                  }
+                  {measurements[tooth]?.plaque && 
+                    <div className="absolute top-0 right-0">
+                      <div className="w-2 h-2 rounded-full bg-yellow-300" />
+                    </div>
+                  }
+                  {measurements[tooth]?.implant && 
+                    <div className="absolute bottom-0 left-0">
+                      <div className="w-2 h-2 rounded-full bg-gray-500" />
+                    </div>
+                  }
+                </div>
               </div>
             ))}
           </div>
@@ -648,13 +680,24 @@ export function ComprehensivePerioChart({
                 className={`cursor-pointer ${selectedTooth === tooth ? 'bg-blue-50 rounded' : ''}`}
                 onClick={() => handleToothClick(tooth)}
               >
-                <ToothSvgLingual 
-                  toothNumber={tooth} 
-                  bleeding={measurements[tooth]?.bleedingOnProbing} 
-                  plaque={measurements[tooth]?.plaque}
-                  implant={measurements[tooth]?.implant}
-                  isUpper={true}
-                />
+                <div className="relative">
+                  <ToothSvgLingual toothNumber={tooth} />
+                  {measurements[tooth]?.bleedingOnProbing && 
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                    </div>
+                  }
+                  {measurements[tooth]?.plaque && 
+                    <div className="absolute top-0 right-0">
+                      <div className="w-2 h-2 rounded-full bg-yellow-300" />
+                    </div>
+                  }
+                  {measurements[tooth]?.implant && 
+                    <div className="absolute bottom-0 left-0">
+                      <div className="w-2 h-2 rounded-full bg-gray-500" />
+                    </div>
+                  }
+                </div>
               </div>
             ))}
           </div>
@@ -909,13 +952,24 @@ export function ComprehensivePerioChart({
                 className={`cursor-pointer ${selectedTooth === tooth ? 'bg-blue-50 rounded' : ''}`}
                 onClick={() => handleToothClick(tooth)}
               >
-                <ToothSvgBuccal 
-                  toothNumber={tooth} 
-                  bleeding={measurements[tooth]?.bleedingOnProbing} 
-                  plaque={measurements[tooth]?.plaque}
-                  implant={measurements[tooth]?.implant}
-                  isUpper={false}
-                />
+                <div className="relative">
+                  <ToothSvgBuccal toothNumber={tooth} />
+                  {measurements[tooth]?.bleedingOnProbing && 
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                    </div>
+                  }
+                  {measurements[tooth]?.plaque && 
+                    <div className="absolute top-0 right-0">
+                      <div className="w-2 h-2 rounded-full bg-yellow-300" />
+                    </div>
+                  }
+                  {measurements[tooth]?.implant && 
+                    <div className="absolute bottom-0 left-0">
+                      <div className="w-2 h-2 rounded-full bg-gray-500" />
+                    </div>
+                  }
+                </div>
               </div>
             ))}
           </div>
@@ -933,13 +987,24 @@ export function ComprehensivePerioChart({
                 className={`cursor-pointer ${selectedTooth === tooth ? 'bg-blue-50 rounded' : ''}`}
                 onClick={() => handleToothClick(tooth)}
               >
-                <ToothSvgLingual 
-                  toothNumber={tooth} 
-                  bleeding={measurements[tooth]?.bleedingOnProbing} 
-                  plaque={measurements[tooth]?.plaque}
-                  implant={measurements[tooth]?.implant}
-                  isUpper={false}
-                />
+                <div className="relative">
+                  <ToothSvgLingual toothNumber={tooth} />
+                  {measurements[tooth]?.bleedingOnProbing && 
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                    </div>
+                  }
+                  {measurements[tooth]?.plaque && 
+                    <div className="absolute top-0 right-0">
+                      <div className="w-2 h-2 rounded-full bg-yellow-300" />
+                    </div>
+                  }
+                  {measurements[tooth]?.implant && 
+                    <div className="absolute bottom-0 left-0">
+                      <div className="w-2 h-2 rounded-full bg-gray-500" />
+                    </div>
+                  }
+                </div>
               </div>
             ))}
           </div>
