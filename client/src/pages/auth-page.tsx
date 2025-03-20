@@ -797,7 +797,7 @@ export default function AuthPage() {
                             id="professional-plan"
                             name="plan"
                             type="radio"
-                            className="h-4 w-4 text-blue-600 rounded-full" 
+                            className="h-4 w-4 text-green-600 rounded-full" 
                             defaultChecked
                             onChange={() => {
                               providerForm.setValue('subscriptionPlan', 'professional');
@@ -848,7 +848,7 @@ export default function AuthPage() {
                             id="enterprise-plan"
                             name="plan"
                             type="radio"
-                            className="h-4 w-4 text-blue-600 rounded-full"
+                            className="h-4 w-4 text-green-600 rounded-full"
                             onChange={() => {
                               providerForm.setValue('subscriptionPlan', 'enterprise');
                             }}
@@ -1030,12 +1030,12 @@ export default function AuthPage() {
                     {/* Payment Details */}
                     <div className="pt-6 pb-2">
                       <h3 className="text-sm font-medium text-gray-700 mb-3">Payment Information</h3>
-                      <div className="bg-blue-50 p-3 rounded-lg mb-4">
+                      <div className="bg-green-50 p-3 rounded-lg mb-4">
                         <div className="flex items-center mb-2">
-                          <svg className="h-5 w-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <svg className="h-5 w-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                           </svg>
-                          <span className="text-sm font-medium text-blue-700">Your subscription will begin immediately</span>
+                          <span className="text-sm font-medium text-green-700">Your subscription will begin immediately</span>
                         </div>
                         <p className="text-xs text-gray-600">Each provider gets their own isolated instance of DentaMind. Your patients and staff will only have access to your practice's data.</p>
                       </div>
@@ -1195,15 +1195,15 @@ export default function AuthPage() {
                           <input
                             id="terms"
                             type="checkbox"
-                            className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                            className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
                           />
                         </div>
                         <div className="ml-3 text-sm">
                           <label htmlFor="terms" className="font-medium text-gray-700">
                             I agree to the 
-                            <a href="#" className="text-blue-600 hover:text-blue-800"> Terms of Service</a>
+                            <a href="#" className="text-green-600 hover:text-green-800"> Terms of Service</a>
                             {' '}and{' '}
-                            <a href="#" className="text-blue-600 hover:text-blue-800">Privacy Policy</a>
+                            <a href="#" className="text-green-600 hover:text-green-800">Privacy Policy</a>
                           </label>
                         </div>
                       </div>
