@@ -149,7 +149,7 @@ export function EmailAIManagement() {
         
         setAiEnabled(statusData.aiEnabled || false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching email configuration:', error);
       toast({
         title: "Failed to load configuration",
@@ -201,7 +201,7 @@ export function EmailAIManagement() {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to save provider');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving provider:', error);
       toast({
         title: "Error",
@@ -251,7 +251,7 @@ export function EmailAIManagement() {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to save template');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving template:', error);
       toast({
         title: "Error",
@@ -280,7 +280,7 @@ export function EmailAIManagement() {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Connection test failed');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error testing connection:', error);
       toast({
         title: "Connection failed",
@@ -310,7 +310,7 @@ export function EmailAIManagement() {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to delete provider');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting provider:', error);
       toast({
         title: "Error",
@@ -338,7 +338,7 @@ export function EmailAIManagement() {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to delete template');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting template:', error);
       toast({
         title: "Error",
@@ -380,7 +380,7 @@ export function EmailAIManagement() {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to save settings');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving settings:', error);
       toast({
         title: "Error",
@@ -422,7 +422,7 @@ export function EmailAIManagement() {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to send test email');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending test email:', error);
       toast({
         title: "Error",
