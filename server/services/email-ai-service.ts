@@ -32,9 +32,13 @@ export const emailTemplateSchema = z.object({
   name: z.string(),
   subject: z.string(),
   body: z.string(),
-  type: z.string(),
+  type: z.enum(['general', 'reminder', 'follow_up', 'insurance', 'lab_case', 'prescription', 'treatment_plan', 'billing', 'marketing']),
   aiGenerated: z.boolean(),
-  lastUsed: z.string().optional()
+  lastUsed: z.string().optional(),
+  variables: z.array(z.string()).optional(),
+  htmlVersion: z.string().optional(),
+  description: z.string().optional(),
+  category: z.string().optional()
 });
 
 export const emailTrackingSchema = z.object({
@@ -125,18 +129,26 @@ export class EmailAIService {
   /**
    * Initialize the email service with provider configuration
    */
-  async initialize() {
+  async initialize(): Promise<boolean> {
     try {
       // Load providers
-      const providers = await this.loadEmailProviders();
-      providers.forEach(provider => {
-        this.emailProviders.set(provider.id, provider);
+      const loadedProviders = await this.loadEmailProviders();
+      loadedProviders.forEach(provider => {
+        if (provider.id) {
+          this.emailProviders.set(provider.id, provider);
+        } else {
+          console.warn('Skipping provider without ID:', provider);
+        }
       });
 
       // Load templates
       const templates = await this.loadEmailTemplates();
       templates.forEach(template => {
-        this.emailTemplates.set(template.id, template);
+        if (template.id) {
+          this.emailTemplates.set(template.id, template);
+        } else {
+          console.warn('Skipping template without ID:', template);
+        }
       });
 
       // Load settings
@@ -148,7 +160,8 @@ export class EmailAIService {
       }
 
       // Set up default email provider
-      const defaultProvider = [...this.emailProviders.values()].find(p => p.isDefault);
+      const providersList = Array.from(this.emailProviders.values());
+      const defaultProvider = providersList.find(p => p.isDefault);
       if (defaultProvider) {
         this.setupEmailTransporter(defaultProvider);
       }
@@ -156,7 +169,8 @@ export class EmailAIService {
       this.isInitialized = true;
       return true;
     } catch (error) {
-      console.error('Failed to initialize email service:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Failed to initialize email service:', errorMessage);
       return false;
     }
   }
@@ -208,23 +222,179 @@ export class EmailAIService {
    */
   private async loadEmailTemplates(): Promise<EmailTemplate[]> {
     // In a real implementation, this would load from the database
-    // For now, return a few mock templates
+    // For now, return a comprehensive set of templates for different scenarios
     return [
       {
         id: 'welcome',
-        name: 'Welcome Email',
-        subject: 'Welcome to DentaMind',
-        body: 'Thank you for choosing DentaMind for your dental care needs. We look forward to serving you.',
+        name: 'New Patient Welcome',
+        subject: 'Welcome to DentaMind - Your Dental Health Partner',
+        body: 'Dear {{patientName}},\n\nThank you for choosing DentaMind for your dental care needs. We are committed to providing you with exceptional dental care in a comfortable and friendly environment.\n\nYour patient portal is now active, where you can:\n- View your upcoming appointments\n- Access your treatment plans\n- Review your billing information\n- Communicate with your dental team\n\nIf you have any questions or need assistance, please don\'t hesitate to contact us at {{practicePhone}} or reply to this email.\n\nWe look forward to seeing you at your first appointment on {{appointmentDate}} at {{appointmentTime}}.\n\nBest regards,\nDr. {{providerName}}\nDentaMind Team',
         type: 'general',
-        aiGenerated: false
+        aiGenerated: false,
+        variables: ['patientName', 'practicePhone', 'appointmentDate', 'appointmentTime', 'providerName'],
+        htmlVersion: '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">' +
+          '<img src="{{logoUrl}}" alt="DentaMind Logo" style="max-width: 200px; margin-bottom: 20px;" />' +
+          '<h2 style="color: #28C76F;">Welcome to DentaMind!</h2>' +
+          '<p>Dear {{patientName}},</p>' +
+          '<p>Thank you for choosing DentaMind for your dental care needs. We are committed to providing you with exceptional dental care in a comfortable and friendly environment.</p>' +
+          '<p>Your patient portal is now active, where you can:</p>' +
+          '<ul>' +
+          '<li>View your upcoming appointments</li>' +
+          '<li>Access your treatment plans</li>' +
+          '<li>Review your billing information</li>' +
+          '<li>Communicate with your dental team</li>' +
+          '</ul>' +
+          '<p>If you have any questions or need assistance, please don\'t hesitate to contact us at <a href="tel:{{practicePhone}}">{{practicePhone}}</a> or reply to this email.</p>' +
+          '<p>We look forward to seeing you at your first appointment on <strong>{{appointmentDate}}</strong> at <strong>{{appointmentTime}}</strong>.</p>' +
+          '<p>Best regards,<br>Dr. {{providerName}}<br>DentaMind Team</p>' +
+          '</div>',
+        description: 'Initial email sent to new patients after their account creation',
+        category: 'Onboarding'
       },
       {
         id: 'appointment-reminder',
         name: 'Appointment Reminder',
-        subject: 'Upcoming Appointment Reminder',
-        body: 'This is a friendly reminder about your upcoming appointment with DentaMind on {{date}} at {{time}}.',
+        subject: 'Your Upcoming Appointment at DentaMind',
+        body: 'Dear {{patientName}},\n\nThis is a friendly reminder about your upcoming appointment with Dr. {{providerName}} at DentaMind on {{appointmentDate}} at {{appointmentTime}}.\n\nAppointment Details:\n- Treatment: {{treatmentType}}\n- Location: {{practiceAddress}}\n\nPlease arrive 15 minutes early to complete any necessary paperwork. If you need to reschedule, please contact us at least 24 hours in advance at {{practicePhone}}.\n\nWe look forward to seeing you!\n\nBest regards,\nDentaMind Team',
         type: 'reminder',
-        aiGenerated: false
+        aiGenerated: false,
+        variables: ['patientName', 'providerName', 'appointmentDate', 'appointmentTime', 'treatmentType', 'practiceAddress', 'practicePhone'],
+        htmlVersion: '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">' +
+          '<img src="{{logoUrl}}" alt="DentaMind Logo" style="max-width: 200px; margin-bottom: 20px;" />' +
+          '<h2 style="color: #28C76F;">Appointment Reminder</h2>' +
+          '<p>Dear {{patientName}},</p>' +
+          '<p>This is a friendly reminder about your upcoming appointment with <strong>Dr. {{providerName}}</strong> at DentaMind on <strong>{{appointmentDate}}</strong> at <strong>{{appointmentTime}}</strong>.</p>' +
+          '<div style="background-color: #f8f9fa; border-left: 4px solid #28C76F; padding: 15px; margin: 15px 0;">' +
+          '<h3 style="margin-top: 0;">Appointment Details:</h3>' +
+          '<p><strong>Treatment:</strong> {{treatmentType}}<br>' +
+          '<strong>Location:</strong> {{practiceAddress}}</p>' +
+          '</div>' +
+          '<p>Please arrive 15 minutes early to complete any necessary paperwork. If you need to reschedule, please contact us at least 24 hours in advance at <a href="tel:{{practicePhone}}">{{practicePhone}}</a>.</p>' +
+          '<p>We look forward to seeing you!</p>' +
+          '<p>Best regards,<br>DentaMind Team</p>' +
+          '</div>',
+        description: 'Reminder email sent to patients before their scheduled appointments',
+        category: 'Scheduling'
+      },
+      {
+        id: 'treatment-plan',
+        name: 'Treatment Plan Summary',
+        subject: 'Your Dental Treatment Plan - DentaMind',
+        body: 'Dear {{patientName}},\n\nThank you for your recent visit to DentaMind. Based on your examination with Dr. {{providerName}}, we have prepared a comprehensive treatment plan for you.\n\nTreatment Summary:\n{{treatmentSummary}}\n\nEstimated Cost: ${{estimatedCost}}\nEstimated Insurance Coverage: ${{estimatedCoverage}}\nEstimated Out-of-Pocket: ${{estimatedOutOfPocket}}\n\nYou can view your complete treatment plan with detailed procedures and costs in your patient portal. If you have any questions or would like to discuss alternative treatment options, please don\'t hesitate to contact us.\n\nYour dental health is our priority.\n\nBest regards,\nDr. {{providerName}}\nDentaMind Team',
+        type: 'treatment_plan',
+        aiGenerated: false,
+        variables: ['patientName', 'providerName', 'treatmentSummary', 'estimatedCost', 'estimatedCoverage', 'estimatedOutOfPocket'],
+        htmlVersion: '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">' +
+          '<img src="{{logoUrl}}" alt="DentaMind Logo" style="max-width: 200px; margin-bottom: 20px;" />' +
+          '<h2 style="color: #28C76F;">Your Dental Treatment Plan</h2>' +
+          '<p>Dear {{patientName}},</p>' +
+          '<p>Thank you for your recent visit to DentaMind. Based on your examination with Dr. {{providerName}}, we have prepared a comprehensive treatment plan for you.</p>' +
+          '<div style="background-color: #f8f9fa; border-left: 4px solid #28C76F; padding: 15px; margin: 15px 0;">' +
+          '<h3 style="margin-top: 0;">Treatment Summary:</h3>' +
+          '<p>{{treatmentSummary}}</p>' +
+          '<table style="width: 100%; border-collapse: collapse; margin-top: 15px;">' +
+          '<tr style="border-bottom: 1px solid #ddd;">' +
+          '<td style="padding: 8px 0;">Estimated Cost:</td>' +
+          '<td style="padding: 8px 0; text-align: right;">${{estimatedCost}}</td>' +
+          '</tr>' +
+          '<tr style="border-bottom: 1px solid #ddd;">' +
+          '<td style="padding: 8px 0;">Estimated Insurance Coverage:</td>' +
+          '<td style="padding: 8px 0; text-align: right;">${{estimatedCoverage}}</td>' +
+          '</tr>' +
+          '<tr style="font-weight: bold;">' +
+          '<td style="padding: 8px 0;">Estimated Out-of-Pocket:</td>' +
+          '<td style="padding: 8px 0; text-align: right;">${{estimatedOutOfPocket}}</td>' +
+          '</tr>' +
+          '</table>' +
+          '</div>' +
+          '<p>You can view your complete treatment plan with detailed procedures and costs in your patient portal. If you have any questions or would like to discuss alternative treatment options, please don\'t hesitate to contact us.</p>' +
+          '<p>Your dental health is our priority.</p>' +
+          '<p>Best regards,<br>Dr. {{providerName}}<br>DentaMind Team</p>' +
+          '</div>',
+        description: 'Email sent to patients with their treatment plan details and cost estimates',
+        category: 'Treatment'
+      },
+      {
+        id: 'post-treatment',
+        name: 'Post-Treatment Care Instructions',
+        subject: 'Post-Treatment Care Instructions - DentaMind',
+        body: 'Dear {{patientName}},\n\nThank you for your recent visit to DentaMind. We hope your experience was positive.\n\nBelow are important care instructions following your {{procedureName}} procedure:\n\n{{careInstructions}}\n\nIf you experience severe pain, bleeding, or other concerning symptoms, please contact our office immediately at {{emergencyPhone}}.\n\nYour follow-up appointment is scheduled for {{followupDate}} at {{followupTime}}.\n\nPlease don\'t hesitate to reach out if you have any questions.\n\nBest regards,\nDr. {{providerName}}\nDentaMind Team',
+        type: 'follow_up',
+        aiGenerated: false,
+        variables: ['patientName', 'providerName', 'procedureName', 'careInstructions', 'emergencyPhone', 'followupDate', 'followupTime'],
+        htmlVersion: '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">' +
+          '<img src="{{logoUrl}}" alt="DentaMind Logo" style="max-width: 200px; margin-bottom: 20px;" />' +
+          '<h2 style="color: #28C76F;">Post-Treatment Care Instructions</h2>' +
+          '<p>Dear {{patientName}},</p>' +
+          '<p>Thank you for your recent visit to DentaMind. We hope your experience was positive.</p>' +
+          '<div style="background-color: #f8f9fa; border-left: 4px solid #28C76F; padding: 15px; margin: 15px 0;">' +
+          '<h3 style="margin-top: 0;">Care Instructions for {{procedureName}}:</h3>' +
+          '<p>{{careInstructions}}</p>' +
+          '</div>' +
+          '<p style="color: #d9534f;"><strong>Important:</strong> If you experience severe pain, bleeding, or other concerning symptoms, please contact our office immediately at <a href="tel:{{emergencyPhone}}">{{emergencyPhone}}</a>.</p>' +
+          '<p>Your follow-up appointment is scheduled for <strong>{{followupDate}}</strong> at <strong>{{followupTime}}</strong>.</p>' +
+          '<p>Please don\'t hesitate to reach out if you have any questions.</p>' +
+          '<p>Best regards,<br>Dr. {{providerName}}<br>DentaMind Team</p>' +
+          '</div>',
+        description: 'Email sent to patients after procedures with specific care instructions',
+        category: 'Care Instructions'
+      },
+      {
+        id: 'insurance-verification',
+        name: 'Insurance Verification Confirmation',
+        subject: 'Insurance Benefits Verification - DentaMind',
+        body: 'Dear {{patientName}},\n\nWe have verified your dental insurance benefits with {{insuranceProvider}}.\n\nYour Coverage Details:\n- Plan: {{planName}}\n- Member ID: {{memberId}}\n- Annual Maximum: ${{annualMaximum}}\n- Remaining Benefit: ${{remainingBenefit}}\n- Deductible: ${{deductible}}\n- Preventive Care Coverage: {{preventiveCoverage}}\n- Basic Procedures Coverage: {{basicCoverage}}\n- Major Procedures Coverage: {{majorCoverage}}\n\nPlease note that these are estimates based on the information provided by your insurance company. Actual coverage may vary.\n\nIf you have any questions about your coverage or upcoming treatment costs, please contact our billing department at {{billingPhone}}.\n\nBest regards,\nDentaMind Billing Team',
+        type: 'insurance',
+        aiGenerated: false,
+        variables: ['patientName', 'insuranceProvider', 'planName', 'memberId', 'annualMaximum', 'remainingBenefit', 'deductible', 'preventiveCoverage', 'basicCoverage', 'majorCoverage', 'billingPhone'],
+        htmlVersion: '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">' +
+          '<img src="{{logoUrl}}" alt="DentaMind Logo" style="max-width: 200px; margin-bottom: 20px;" />' +
+          '<h2 style="color: #28C76F;">Insurance Benefits Verification</h2>' +
+          '<p>Dear {{patientName}},</p>' +
+          '<p>We have verified your dental insurance benefits with <strong>{{insuranceProvider}}</strong>.</p>' +
+          '<div style="background-color: #f8f9fa; border-left: 4px solid #28C76F; padding: 15px; margin: 15px 0;">' +
+          '<h3 style="margin-top: 0;">Your Coverage Details:</h3>' +
+          '<table style="width: 100%; border-collapse: collapse;">' +
+          '<tr style="border-bottom: 1px solid #ddd;">' +
+          '<td style="padding: 8px 0;">Plan:</td>' +
+          '<td style="padding: 8px 0; text-align: right;">{{planName}}</td>' +
+          '</tr>' +
+          '<tr style="border-bottom: 1px solid #ddd;">' +
+          '<td style="padding: 8px 0;">Member ID:</td>' +
+          '<td style="padding: 8px 0; text-align: right;">{{memberId}}</td>' +
+          '</tr>' +
+          '<tr style="border-bottom: 1px solid #ddd;">' +
+          '<td style="padding: 8px 0;">Annual Maximum:</td>' +
+          '<td style="padding: 8px 0; text-align: right;">${{annualMaximum}}</td>' +
+          '</tr>' +
+          '<tr style="border-bottom: 1px solid #ddd;">' +
+          '<td style="padding: 8px 0;">Remaining Benefit:</td>' +
+          '<td style="padding: 8px 0; text-align: right;">${{remainingBenefit}}</td>' +
+          '</tr>' +
+          '<tr style="border-bottom: 1px solid #ddd;">' +
+          '<td style="padding: 8px 0;">Deductible:</td>' +
+          '<td style="padding: 8px 0; text-align: right;">${{deductible}}</td>' +
+          '</tr>' +
+          '<tr style="border-bottom: 1px solid #ddd;">' +
+          '<td style="padding: 8px 0;">Preventive Care Coverage:</td>' +
+          '<td style="padding: 8px 0; text-align: right;">{{preventiveCoverage}}</td>' +
+          '</tr>' +
+          '<tr style="border-bottom: 1px solid #ddd;">' +
+          '<td style="padding: 8px 0;">Basic Procedures Coverage:</td>' +
+          '<td style="padding: 8px 0; text-align: right;">{{basicCoverage}}</td>' +
+          '</tr>' +
+          '<tr>' +
+          '<td style="padding: 8px 0;">Major Procedures Coverage:</td>' +
+          '<td style="padding: 8px 0; text-align: right;">{{majorCoverage}}</td>' +
+          '</tr>' +
+          '</table>' +
+          '</div>' +
+          '<p><em>Please note that these are estimates based on the information provided by your insurance company. Actual coverage may vary.</em></p>' +
+          '<p>If you have any questions about your coverage or upcoming treatment costs, please contact our billing department at <a href="tel:{{billingPhone}}">{{billingPhone}}</a>.</p>' +
+          '<p>Best regards,<br>DentaMind Billing Team</p>' +
+          '</div>',
+        description: 'Email sent to patients after insurance verification with coverage details',
+        category: 'Billing'
       }
     ];
   }
@@ -414,15 +584,45 @@ export class EmailAIService {
   /**
    * Send a test email to verify configuration
    */
-  async sendTestEmail(recipientEmail: string): Promise<{ success: boolean; message: string }> {
+  /**
+   * Send a test email to verify configuration
+   * @param recipientEmail Email address to send the test to
+   * @returns Success status and detailed message
+   */
+  async sendTestEmail(recipientEmail: string): Promise<{ success: boolean; message: string; details?: any }> {
+    // Validate email address format
+    if (!this.isValidEmail(recipientEmail)) {
+      return {
+        success: false,
+        message: 'Invalid email address format',
+        details: { validationError: 'Please provide a valid email address' }
+      };
+    }
+
     if (!this.transporter) {
-      // For testing purposes, create a test transporter if none exists
-      this.createTestTransporter();
-      
-      if (!this.transporter) {
-        return { 
-          success: false, 
-          message: 'Email transporter not configured. Please set up an email provider first.' 
+      try {
+        // For testing purposes, create a test transporter if none exists
+        await this.createTestTransporter();
+        
+        if (!this.transporter) {
+          return { 
+            success: false, 
+            message: 'Email transporter could not be created', 
+            details: { 
+              error: 'Configuration error',
+              resolution: 'Please set up an email provider with valid credentials'
+            }
+          };
+        }
+      } catch (err) {
+        const error = err as Error;
+        return {
+          success: false,
+          message: 'Failed to create email transporter',
+          details: {
+            error: error.message || 'Unknown error',
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+          }
         };
       }
     }
@@ -433,7 +633,15 @@ export class EmailAIService {
         to: recipientEmail,
         subject: 'DentaMind Email AI Test',
         text: 'This is a test email from the DentaMind Email AI system. If you received this, the email configuration is working correctly.',
-        html: '<p>This is a test email from the DentaMind Email AI system. If you received this, the email configuration is working correctly.</p>'
+        html: '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">' +
+          '<h2 style="color: #28C76F;">DentaMind Email Test</h2>' +
+          '<p>This is a test email from the DentaMind Email AI system.</p>' +
+          '<p>If you received this, the email configuration is working correctly.</p>' +
+          '<div style="background-color: #f8f9fa; border-left: 4px solid #28C76F; padding: 15px; margin: 15px 0;">' +
+          '<p>This message was sent at: ' + new Date().toLocaleString() + '</p>' +
+          '</div>' +
+          '<p>Best regards,<br>DentaMind Team</p>' +
+          '</div>'
       };
       
       console.log(`Attempting to send test email to ${recipientEmail}...`);
@@ -449,23 +657,60 @@ export class EmailAIService {
         
         return {
           success: true,
-          message: `Test email would be sent to ${recipientEmail} (simulated in development). Check server logs for details.`
+          message: `Test email would be sent to ${recipientEmail} (simulated in development)`,
+          details: { 
+            environment: 'development',
+            simulationMode: true,
+            emailContent: testEmail,
+            timestamp: new Date().toISOString()
+          }
         };
       } else {
         // In production environment, actually send the email
         const info = await this.transporter.sendMail(testEmail);
         return {
           success: true,
-          message: `Test email sent successfully to ${recipientEmail} (messageId: ${info.messageId})`
+          message: `Test email sent successfully to ${recipientEmail}`,
+          details: { 
+            messageId: info.messageId,
+            response: info.response,
+            timestamp: new Date().toISOString()
+          }
         };
       }
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error;
       console.error('Error sending test email:', error);
+      
+      // Log detailed error information for debugging
+      console.error('Error details:', {
+        timestamp: new Date().toISOString(),
+        recipient: recipientEmail,
+        errorName: error.name,
+        errorMessage: error.message,
+        stack: error.stack
+      });
+      
       return {
         success: false,
-        message: 'Failed to send test email: ' + (error.message || 'Unknown error')
+        message: 'Failed to send test email: ' + (error.message || 'Unknown error'),
+        details: {
+          errorType: error.name,
+          timestamp: new Date().toISOString(),
+          resolution: 'Please check your email configuration and try again'
+        }
       };
     }
+  }
+  
+  /**
+   * Validate email address format
+   * @param email Email address to validate
+   * @returns True if valid email format
+   */
+  private isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   }
   
   /**
