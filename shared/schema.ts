@@ -121,6 +121,10 @@ export const patients = pgTable("patients", {
   homeAddress: text("home_address"),
   occupation: text("occupation"),
   socialSecurityNumber: text("social_security_number"),
+  gender: text("gender"),
+  height: text("height"),
+  weight: text("weight"),
+  bloodType: text("blood_type"),
   
   // Insurance Information
   insuranceProvider: text("insurance_provider"),
@@ -138,16 +142,24 @@ export const patients = pgTable("patients", {
   medicalHistory: text("medical_history"),
   underPhysicianCare: boolean("under_physician_care"),
   physicianConditions: text("physician_conditions"),
+  physicianName: text("physician_name"),
+  physicianPhone: text("physician_phone"),
   allergies: text("allergies"),
   pastSurgeries: text("past_surgeries"),
   currentMedications: text("current_medications"),
   adverseAnestheticReaction: boolean("adverse_anesthetic_reaction"),
   hospitalizedRecently: boolean("hospitalized_recently"),
+  reasonForHospitalization: text("reason_for_hospitalization"),
   
   // Medical conditions
   hypertension: boolean("hypertension"),
   diabetes: boolean("diabetes"),
   heartDisease: boolean("heart_disease"),
+  heartAttack: boolean("heart_attack"),
+  heartMurmur: boolean("heart_murmur"),
+  pacemaker: boolean("pacemaker"),
+  artificialHeart: boolean("artificial_heart"),
+  rheumaticFever: boolean("rheumatic_fever"),
   asthma: boolean("asthma"),
   arthritis: boolean("arthritis"),
   cancer: boolean("cancer"),
@@ -157,25 +169,37 @@ export const patients = pgTable("patients", {
   thyroidDisease: boolean("thyroid_disease"),
   mentalIllness: boolean("mental_illness"),
   seizures: boolean("seizures"),
+  epilepsy: boolean("epilepsy"),
   bleedingDisorders: boolean("bleeding_disorders"),
   autoimmune: boolean("autoimmune"),
   hepatitis: boolean("hepatitis"),
   hivAids: boolean("hiv_aids"),
   lungDisease: boolean("lung_disease"),
   osteoporosis: boolean("osteoporosis"),
+  dizziness: boolean("dizziness"),
+  fainting: boolean("fainting"),
+  headaches: boolean("headaches"),
+  radiation: boolean("radiation_therapy"),
+  chemotherapy: boolean("chemotherapy"),
+  chronicPain: boolean("chronic_pain"),
   
   // Lifestyle
   smokesTobacco: boolean("smokes_tobacco"),
   useAlcohol: boolean("use_alcohol"),
   isPregnantOrNursing: boolean("is_pregnant_or_nursing"),
+  recreationalDrugs: boolean("recreational_drugs"),
   
   // Dental history
   lastDentalVisit: text("last_dental_visit"),
+  reasonForVisitToday: text("reason_for_visit_today"),
+  lastDentalExam: text("last_dental_exam"),
+  lastDentalXrays: text("last_dental_xrays"),
   whenIssueStarted: text("when_issue_started"),
   experiencedBefore: boolean("experienced_before"),
   chiefComplaint: text("chief_complaint"),
   currentSymptoms: text("current_symptoms"),
   previousDentalProcedures: text("previous_dental_procedures"),
+  scaleOfPain: integer("scale_of_pain"), // 1-10 scale
   
   // Dental conditions
   hadGumDisease: boolean("had_gum_disease"),
@@ -185,8 +209,36 @@ export const patients = pgTable("patients", {
   hadRootCanal: boolean("had_root_canal"),
   hadJawPain: boolean("had_jaw_pain"),
   sensitivityToHotCold: boolean("sensitivity_to_hot_cold"),
+  troubleWithPreviousDental: boolean("trouble_with_previous_dental"),
   grindTeeth: boolean("grind_teeth"),
+  wearDentalAppliance: boolean("wear_dental_appliance"),
+  bleedingGums: boolean("bleeding_gums"),
+  looseTeeth: boolean("loose_teeth"),
+  unpleasantTaste: boolean("unpleasant_taste"),
+  badBreath: boolean("bad_breath"),
+  dryMouth: boolean("dry_mouth"),
+  foodTrap: boolean("food_trap"),
   interestedInCosmetic: boolean("interested_in_cosmetic"),
+  
+  // Dental anxiety & preferences
+  anxietyLevel: text("anxiety_level"), // none, mild, moderate, severe
+  painControl: text("pain_control_preference"),
+  communicationPreference: text("communication_preference"),
+  
+  // Advanced questionnaire for AI analysis
+  whyDidYouComeInToday: text("why_did_you_come_in_today"),
+  howWouldYouRateYourHealth: text("how_would_you_rate_your_health"),
+  haveYouHadChangeInHealth: boolean("have_you_had_change_in_health"),
+  hospitalizedOrMajorIllness: boolean("hospitalized_or_major_illness"),
+  beingTreatedByPhysician: boolean("being_treated_by_physician"),
+  dateOfLastMedicalExam: text("date_of_last_medical_exam"),
+  dateOfLastDentalExam: text("date_of_last_dental_exam"),
+  problemsWithPreviousDental: boolean("problems_with_previous_dental"),
+  areYouInPainNow: boolean("are_you_in_pain_now"),
+  medicationsBeingTaken: text("medications_being_taken"), // Extended list for AI processing
+  
+  // Supplementary health information
+  maritalStatus: text("marital_status"),
   
   // Consent forms and agreements
   hipaaConsent: boolean("hipaa_consent"),
