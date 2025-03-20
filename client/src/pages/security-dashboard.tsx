@@ -34,11 +34,11 @@ export default function SecurityDashboardPage() {
   useEffect(() => {
     async function fetchSecurityData() {
       try {
-        const res = await apiRequest('GET', '/api/security/assessment', null);
+        const res = await apiRequest('/api/security/assessment', { method: 'GET' });
         const data = await res.json();
         setSecurityAssessment(data);
         
-        const logsRes = await apiRequest('GET', '/api/security/audit-logs?limit=20', null);
+        const logsRes = await apiRequest('/api/security/audit-logs?limit=20', { method: 'GET' });
         const logsData = await logsRes.json();
         setAuditLogs(logsData.logs);
       } catch (error) {
@@ -348,9 +348,8 @@ export default function SecurityDashboardPage() {
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
                         <Label htmlFor="currentPassword">Current Password</Label>
-                        <Input
+                        <PasswordInput
                           id="currentPassword"
-                          type="password"
                           value={currentPassword}
                           onChange={(e) => setCurrentPassword(e.target.value)}
                         />
@@ -358,9 +357,8 @@ export default function SecurityDashboardPage() {
                       
                       <div className="space-y-2">
                         <Label htmlFor="newPassword">New Password</Label>
-                        <Input
+                        <PasswordInput
                           id="newPassword"
-                          type="password"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
                         />
@@ -368,9 +366,8 @@ export default function SecurityDashboardPage() {
                       
                       <div className="space-y-2">
                         <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                        <Input
+                        <PasswordInput
                           id="confirmPassword"
-                          type="password"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
                         />
