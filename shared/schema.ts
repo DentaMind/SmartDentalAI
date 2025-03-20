@@ -26,6 +26,11 @@ export const OrthodonticCaseStatusEnum = z.enum([
   'refinement', 'retention', 'completed', 'discontinued'
 ]);
 
+// X-ray Types Enum
+export const XRayTypeEnum = z.enum([
+  'bitewing', 'periapical', 'panoramic', 'cbct', 'endodontic', 'fmx'
+]);
+
 // ReminderType enum types
 export const ReminderTimeframe = z.enum(['24h', '48h', '1week']);
 export const ReminderPriority = z.enum(['low', 'medium', 'high']);
@@ -43,6 +48,7 @@ export type SupplyOrderStatusType = z.infer<typeof SupplyOrderStatusEnum>;
 export type SupplyCategoryType = z.infer<typeof SupplyCategoryEnum>;
 export type InsuranceVerificationStatusType = z.infer<typeof InsuranceVerificationStatusEnum>;
 export type OrthodonticCaseStatusType = z.infer<typeof OrthodonticCaseStatusEnum>;
+export type XRayType = z.infer<typeof XRayTypeEnum>;
 
 
 // Schema for complete reminder settings

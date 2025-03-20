@@ -379,10 +379,10 @@ const XRayFMXPage: React.FC<XRayFMXPageProps> = () => {
             <div className="p-4 border rounded-lg">
               <h3 className="text-lg font-medium mb-4">Panoramic X-ray</h3>
               
-              {patientXRays.filter(x => x.type === 'panoramic').length > 0 ? (
+              {patientXRays.filter(x => x.type && x.type === 'panoramic').length > 0 ? (
                 <div className="grid grid-cols-1 gap-4">
                   {patientXRays
-                    .filter(x => x.type === 'panoramic')
+                    .filter(x => x.type && x.type === 'panoramic')
                     .sort((a, b) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime())
                     .map(xray => (
                       <div 

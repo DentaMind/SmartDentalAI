@@ -36,6 +36,8 @@ export interface XRaySlot {
   takenBy?: string;
   aiAnalyzed?: boolean;
   aiFindings?: string[];
+  type?: 'bitewing' | 'periapical' | 'panoramic' | 'cbct' | 'endodontic' | 'fmx'; // Type of X-ray
+  notes?: string; // Additional notes for the X-ray
 }
 
 // Position map for FMX (Full Mouth X-ray) slots
