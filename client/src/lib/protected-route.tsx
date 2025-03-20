@@ -7,9 +7,11 @@ import dentaMindLogo from "../assets/dentamind-logo.png";
 export function ProtectedRoute({
   path,
   component: Component,
+  children,
 }: {
   path: string;
-  component: () => React.JSX.Element;
+  component?: () => React.JSX.Element;
+  children?: React.ReactNode;
 }) {
   const { user, isLoading, refreshAuth } = useAuth();
   const [location] = useLocation();
@@ -102,6 +104,10 @@ export function ProtectedRoute({
     }
   }
 
-  // User is authenticated, render the protected component
-  return <Route path={path} component={Component} />
+  // User is authenticated, render the protected component or children
+  return (
+    <Route path={path}>
+      {Component ? <Component /> : children}
+    </Route>
+  )
 }

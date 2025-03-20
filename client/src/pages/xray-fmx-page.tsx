@@ -191,9 +191,9 @@ const XRayFMXPage: React.FC<XRayFMXPageProps> = () => {
   // Use real data if available, otherwise use test data
   const patientXRays = xrays.length > 0 ? xrays : getTestXRayData();
   
-  // Extract patient name
+  // Extract patient name, checking for the correct type
   const patientName = patient ? 
-    `${patient.firstName} ${patient.lastName}` : 
+    `${(patient as Patient).firstName || ''} ${(patient as Patient).lastName || ''}`.trim() || "Patient" : 
     "Patient";
 
   return (

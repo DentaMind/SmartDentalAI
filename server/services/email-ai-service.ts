@@ -1551,7 +1551,7 @@ export class EmailAIService {
     try {
       const responseContext = {
         patientName,
-        eventType: analysis.eventType,
+        eventType: analysis.eventType || undefined, // Convert null to undefined
         analysis
       };
       
@@ -1630,7 +1630,7 @@ export class EmailAIService {
     try {
       const responseContext = {
         patientName,
-        eventType: analysis.eventType,
+        eventType: analysis.eventType || undefined, // Convert null to undefined
         analysis
       };
       

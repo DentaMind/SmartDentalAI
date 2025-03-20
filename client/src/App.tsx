@@ -74,8 +74,12 @@ function Router() {
         <ProtectedRoute path="/appointment-request" component={AppointmentRequestPage} />
         <ProtectedRoute path="/email-ai" component={EmailAIPage} />
         <ProtectedRoute path="/email-scheduler" component={EmailSchedulerPage} />
-        <ProtectedRoute path="/xray-fmx" component={XRayFMXPage} />
-        <ProtectedRoute path="/xray-fmx/:patientId" component={XRayFMXPage} />
+        <ProtectedRoute path="/xray-fmx">
+          <XRayFMXPage />
+        </ProtectedRoute>
+        <ProtectedRoute path="/xray-fmx/:patientId">
+          <XRayFMXPage />
+        </ProtectedRoute>
         <Route component={NotFound} />
       </Switch>
     </Suspense>

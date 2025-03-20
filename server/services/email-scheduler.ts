@@ -76,14 +76,26 @@ export class EmailSchedulerService {
   private schedulerIntervalId: NodeJS.Timeout | null = null;
   private schedulerIntervalMs = 60000; // Check every minute
   
-  // Optimal time windows for sending emails (8-10 AM, 5-7 PM)
+  // Optimal time windows for sending emails (8-10 AM, 12-1 PM, 5-7 PM)
   private optimalTimeWindows = [
-    { start: 8, end: 10 }, // 8-10 AM
-    { start: 17, end: 19 } // 5-7 PM
+    { start: 8, end: 10, priority: 'high' }, // 8-10 AM (Primary)
+    { start: 12, end: 13, priority: 'medium' }, // 12-1 PM (Lunch break)
+    { start: 17, end: 19, priority: 'high' } // 5-7 PM (After work - Primary)
   ];
   
   // Maximum emails to send per hour per recipient to prevent inbox overload
   private maxEmailsPerHourPerRecipient = 2;
+  
+  // Day of week preferences (0 = Sunday, 1 = Monday, etc.)
+  private dayPreferences = [
+    { day: 1, priority: 'high' }, // Monday
+    { day: 2, priority: 'high' }, // Tuesday
+    { day: 3, priority: 'high' }, // Wednesday
+    { day: 4, priority: 'medium' }, // Thursday
+    { day: 5, priority: 'medium' }, // Friday
+    { day: 6, priority: 'low' }, // Saturday
+    { day: 0, priority: 'low' } // Sunday
+  ];
   
   constructor(emailService: EmailAIService) {
     this.emailService = emailService;

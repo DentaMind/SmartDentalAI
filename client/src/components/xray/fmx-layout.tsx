@@ -367,7 +367,7 @@ const FMXLayout: React.FC<FMXLayoutProps> = ({
                       id="auto-rotate"
                       checked={autoRotate}
                       onCheckedChange={setAutoRotate}
-                      size="sm"
+                      className="h-[18px] w-[32px]" // Use className instead of size
                     />
                     <label 
                       htmlFor="auto-rotate" 
