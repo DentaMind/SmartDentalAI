@@ -131,18 +131,25 @@ interface ScheduledEmailsResponse {
 }
 
 interface EmailAnalytics {
-  overview: {
-    totalSent: number;
-    totalScheduled: number;
-    openRate: number;
-    clickRate: number;
-    deliveryRate: number;
-    bounceRate: number;
-  };
-  byCategory: Record<string, { 
-    count: number;
-    openRate: number; 
-  }>;
+  // Summary data
+  totalSent: number;
+  scheduled: number;
+  delivered: number;
+  opened: number;
+  clicked: number;
+  failed: number;
+  cancelled: number;
+  
+  // Rate calculations
+  openRate: string;
+  clickRate: string;
+  deliveryRate: string;
+  bounceRate: string;
+  
+  // Categorization data
+  categoryCounts: Record<string, number>;
+  
+  // Additional analytics data
   byTime: {
     morning: number;
     afternoon: number;
@@ -620,7 +627,7 @@ const EmailSchedulerPage = () => {
                     <p className="mt-2">Error loading scheduled emails. Please try again.</p>
                   </div>
                 </div>
-              ) : scheduledEmails.data.length === 0 ? (
+              ) : !scheduledEmails.data || scheduledEmails.data.length === 0 ? (
                 <div className="flex justify-center items-center h-64">
                   <div className="text-center text-gray-500">
                     <Mail className="h-8 w-8 mx-auto" />
@@ -712,7 +719,7 @@ const EmailSchedulerPage = () => {
                     <p className="mt-2">Loading analytics data...</p>
                   </div>
                 </div>
-              ) : Object.keys(analytics).length === 0 ? (
+              ) : !analytics || Object.keys(analytics).length === 0 ? (
                 <div className="flex justify-center items-center h-64">
                   <div className="text-center text-gray-500">
                     <MailOpen className="h-8 w-8 mx-auto" />
@@ -727,7 +734,7 @@ const EmailSchedulerPage = () => {
                         <div className="text-center">
                           <Mail className="h-8 w-8 mx-auto text-primary" />
                           <h3 className="mt-2 font-semibold text-lg">Total Sent</h3>
-                          <p className="text-3xl font-bold">{analytics.data?.totalSent || 0}</p>
+                          <p className="text-3xl font-bold">{analytics.totalSent || 0}</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -736,8 +743,8 @@ const EmailSchedulerPage = () => {
                         <div className="text-center">
                           <Check className="h-8 w-8 mx-auto text-green-500" />
                           <h3 className="mt-2 font-semibold text-lg">Delivered</h3>
-                          <p className="text-3xl font-bold">{analytics.data?.delivered || 0}</p>
-                          <p className="text-sm text-muted-foreground">{analytics.data?.deliveryRate || '0%'}</p>
+                          <p className="text-3xl font-bold">{analytics.delivered || 0}</p>
+                          <p className="text-sm text-muted-foreground">{analytics.deliveryRate || '0%'}</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -746,8 +753,8 @@ const EmailSchedulerPage = () => {
                         <div className="text-center">
                           <MailOpen className="h-8 w-8 mx-auto text-purple-500" />
                           <h3 className="mt-2 font-semibold text-lg">Opened</h3>
-                          <p className="text-3xl font-bold">{analytics.data?.opened || 0}</p>
-                          <p className="text-sm text-muted-foreground">{analytics.data?.openRate || '0%'}</p>
+                          <p className="text-3xl font-bold">{analytics.opened || 0}</p>
+                          <p className="text-sm text-muted-foreground">{analytics.openRate || '0%'}</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -756,8 +763,8 @@ const EmailSchedulerPage = () => {
                         <div className="text-center">
                           <MousePointer className="h-8 w-8 mx-auto text-indigo-500" />
                           <h3 className="mt-2 font-semibold text-lg">Clicked</h3>
-                          <p className="text-3xl font-bold">{analytics.data?.clicked || 0}</p>
-                          <p className="text-sm text-muted-foreground">{analytics.data?.clickRate || '0%'}</p>
+                          <p className="text-3xl font-bold">{analytics.clicked || 0}</p>
+                          <p className="text-sm text-muted-foreground">{analytics.clickRate || '0%'}</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -775,42 +782,42 @@ const EmailSchedulerPage = () => {
                               <span className="h-3 w-3 rounded-full bg-blue-500 mr-2"></span>
                               Scheduled
                             </span>
-                            <span className="font-medium">{analytics.data?.scheduled || 0}</span>
+                            <span className="font-medium">{analytics.scheduled || 0}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="flex items-center">
                               <span className="h-3 w-3 rounded-full bg-green-500 mr-2"></span>
                               Sent
                             </span>
-                            <span className="font-medium">{analytics.data?.totalSent || 0}</span>
+                            <span className="font-medium">{analytics.totalSent || 0}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="flex items-center">
                               <span className="h-3 w-3 rounded-full bg-purple-500 mr-2"></span>
                               Opened
                             </span>
-                            <span className="font-medium">{analytics.data?.opened || 0}</span>
+                            <span className="font-medium">{analytics.opened || 0}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="flex items-center">
                               <span className="h-3 w-3 rounded-full bg-indigo-500 mr-2"></span>
                               Clicked
                             </span>
-                            <span className="font-medium">{analytics.data?.clicked || 0}</span>
+                            <span className="font-medium">{analytics.clicked || 0}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="flex items-center">
                               <span className="h-3 w-3 rounded-full bg-red-500 mr-2"></span>
                               Failed
                             </span>
-                            <span className="font-medium">{analytics.data?.failed || 0}</span>
+                            <span className="font-medium">{analytics.failed || 0}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="flex items-center">
                               <span className="h-3 w-3 rounded-full bg-gray-500 mr-2"></span>
                               Cancelled
                             </span>
-                            <span className="font-medium">{analytics.data?.cancelled || 0}</span>
+                            <span className="font-medium">{analytics.cancelled || 0}</span>
                           </div>
                         </div>
                       </CardContent>
@@ -821,9 +828,9 @@ const EmailSchedulerPage = () => {
                         <CardTitle>Email Categories</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        {analytics.data?.categoryCounts && (
+                        {analytics.categoryCounts && (
                           <div className="space-y-2">
-                            {Object.entries(analytics.data.categoryCounts).map(([category, count]: [string, any]) => (
+                            {Object.entries(analytics.categoryCounts).map(([category, count]: [string, any]) => (
                               <div key={category} className="flex justify-between">
                                 <span>{getCategoryDisplayName(category)}</span>
                                 <span className="font-medium">{count}</span>
