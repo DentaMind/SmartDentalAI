@@ -399,6 +399,89 @@ export class EmailAIService {
           '</div>',
         description: 'Email sent to patients after insurance verification with coverage details',
         category: 'Billing'
+      },
+      {
+        id: 'xray-results',
+        name: 'X-Ray Analysis Results',
+        subject: 'Your Dental X-Ray Results - DentaMind',
+        body: 'Dear {{patientName}},\n\nDr. {{providerName}} has reviewed your recent dental X-rays taken on {{xrayDate}}.\n\nFindings:\n{{xrayFindings}}\n\nRecommendations:\n{{recommendations}}\n\nYour X-rays have also been securely stored in our system and will be used to track any changes in your dental health over time. This will allow us to provide you with the most accurate and personalized care.\n\nIf you have any questions about these results or would like to schedule a follow-up appointment to discuss them, please contact our office at {{officePhone}}.\n\nBest regards,\nDr. {{providerName}}\nDentaMind Team',
+        type: 'general',
+        aiGenerated: false,
+        variables: ['patientName', 'providerName', 'xrayDate', 'xrayFindings', 'recommendations', 'officePhone'],
+        htmlVersion: '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">' +
+          '<img src="{{logoUrl}}" alt="DentaMind Logo" style="max-width: 200px; margin-bottom: 20px;" />' +
+          '<h2 style="color: #28C76F;">Your Dental X-Ray Results</h2>' +
+          '<p>Dear {{patientName}},</p>' +
+          '<p>Dr. {{providerName}} has reviewed your recent dental X-rays taken on <strong>{{xrayDate}}</strong>.</p>' +
+          '<div style="background-color: #f8f9fa; border-left: 4px solid #28C76F; padding: 15px; margin: 15px 0;">' +
+          '<h3 style="margin-top: 0;">Findings:</h3>' +
+          '<p>{{xrayFindings}}</p>' +
+          '<h3>Recommendations:</h3>' +
+          '<p>{{recommendations}}</p>' +
+          '</div>' +
+          '<p>Your X-rays have been securely stored in our system and will be used to track changes in your dental health over time. This tracking allows us to provide you with the most accurate and personalized care.</p>' +
+          '<p>If you have any questions about these results or would like to schedule a follow-up appointment to discuss them, please contact our office at <a href="tel:{{officePhone}}">{{officePhone}}</a>.</p>' +
+          '<p>Best regards,<br>Dr. {{providerName}}<br>DentaMind Team</p>' +
+          '</div>',
+        description: 'Email sent to patients with their X-ray analysis results and recommendations',
+        category: 'Diagnostic'
+      },
+      {
+        id: 'treatment-progress',
+        name: 'Treatment Progress Update',
+        subject: 'Your Treatment Progress Update - DentaMind',
+        body: 'Dear {{patientName}},\n\nWe wanted to provide you with an update on your ongoing treatment at DentaMind.\n\nTreatment Progress:\n{{treatmentProgress}}\n\nNext Steps:\n{{nextSteps}}\n\nWe have compared your recent X-rays with your previous ones, and here are the changes we\'ve observed:\n{{progressComparison}}\n\nYour next appointment is scheduled for {{nextAppointmentDate}} at {{nextAppointmentTime}}.\n\nIf you have any questions or concerns about your treatment progress, please don\'t hesitate to contact us.\n\nBest regards,\nDr. {{providerName}}\nDentaMind Team',
+        type: 'follow_up',
+        aiGenerated: false,
+        variables: ['patientName', 'providerName', 'treatmentProgress', 'nextSteps', 'progressComparison', 'nextAppointmentDate', 'nextAppointmentTime'],
+        htmlVersion: '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">' +
+          '<img src="{{logoUrl}}" alt="DentaMind Logo" style="max-width: 200px; margin-bottom: 20px;" />' +
+          '<h2 style="color: #28C76F;">Your Treatment Progress Update</h2>' +
+          '<p>Dear {{patientName}},</p>' +
+          '<p>We wanted to provide you with an update on your ongoing treatment at DentaMind.</p>' +
+          '<div style="background-color: #f8f9fa; border-left: 4px solid #28C76F; padding: 15px; margin: 15px 0;">' +
+          '<h3 style="margin-top: 0;">Treatment Progress:</h3>' +
+          '<p>{{treatmentProgress}}</p>' +
+          '<h3>Next Steps:</h3>' +
+          '<p>{{nextSteps}}</p>' +
+          '</div>' +
+          '<div style="background-color: #f8f9fa; border-left: 4px solid #2474c7; padding: 15px; margin: 15px 0;">' +
+          '<h3 style="margin-top: 0;">X-Ray Comparison Analysis:</h3>' +
+          '<p>We have compared your recent X-rays with your previous ones, and here are the changes we\'ve observed:</p>' +
+          '<p>{{progressComparison}}</p>' +
+          '</div>' +
+          '<p>Your next appointment is scheduled for <strong>{{nextAppointmentDate}}</strong> at <strong>{{nextAppointmentTime}}</strong>.</p>' +
+          '<p>If you have any questions or concerns about your treatment progress, please don\'t hesitate to contact us.</p>' +
+          '<p>Best regards,<br>Dr. {{providerName}}<br>DentaMind Team</p>' +
+          '</div>',
+        description: 'Email sent to patients with updates on their ongoing treatment progress',
+        category: 'Treatment'
+      },
+      {
+        id: 'xray-scheduling',
+        name: 'X-Ray Appointment Reminder',
+        subject: 'Your Upcoming X-Ray Appointment - DentaMind',
+        body: 'Dear {{patientName}},\n\nThis is a reminder of your upcoming X-ray appointment at DentaMind.\n\nAppointment Details:\nDate: {{appointmentDate}}\nTime: {{appointmentTime}}\nType of X-ray: {{xrayType}}\n\nPurpose: {{purpose}}\n\nPlease arrive 15 minutes early to complete any necessary paperwork. If you need to reschedule, please contact us at least 24 hours in advance at {{officePhone}}.\n\nBest regards,\nDentaMind Team',
+        type: 'reminder',
+        aiGenerated: false,
+        variables: ['patientName', 'appointmentDate', 'appointmentTime', 'xrayType', 'purpose', 'officePhone'],
+        htmlVersion: '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">' +
+          '<img src="{{logoUrl}}" alt="DentaMind Logo" style="max-width: 200px; margin-bottom: 20px;" />' +
+          '<h2 style="color: #28C76F;">Your Upcoming X-Ray Appointment</h2>' +
+          '<p>Dear {{patientName}},</p>' +
+          '<p>This is a reminder of your upcoming X-ray appointment at DentaMind.</p>' +
+          '<div style="background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin: 15px 0;">' +
+          '<h3 style="margin-top: 0; color: #28C76F;">Appointment Details:</h3>' +
+          '<p><strong>Date:</strong> {{appointmentDate}}</p>' +
+          '<p><strong>Time:</strong> {{appointmentTime}}</p>' +
+          '<p><strong>Type of X-ray:</strong> {{xrayType}}</p>' +
+          '<p><strong>Purpose:</strong> {{purpose}}</p>' +
+          '</div>' +
+          '<p>Please arrive 15 minutes early to complete any necessary paperwork. If you need to reschedule, please contact us at least 24 hours in advance at <a href="tel:{{officePhone}}">{{officePhone}}</a>.</p>' +
+          '<p>Best regards,<br>DentaMind Team</p>' +
+          '</div>',
+        description: 'Email sent to remind patients of upcoming X-ray appointments',
+        category: 'Scheduling'
       }
     ];
   }
