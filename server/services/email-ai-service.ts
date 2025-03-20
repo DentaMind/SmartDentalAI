@@ -71,7 +71,14 @@ enum EmailEventType {
   APPOINTMENT_REQUEST = 'appointment_request',
   PRESCRIPTION_CONFIRMATION = 'prescription_confirmation',
   SUPPLY_ORDER_UPDATE = 'supply_order_update',
-  DOCUMENT_REQUEST = 'document_request'
+  DOCUMENT_REQUEST = 'document_request',
+  XRAY_RESULTS = 'xray_results',
+  TREATMENT_PROGRESS = 'treatment_progress',
+  PERIODONTAL_ASSESSMENT = 'periodontal_assessment',
+  RESTORATIVE_TREATMENT = 'restorative_treatment',
+  ORTHODONTIC_UPDATE = 'orthodontic_update',
+  ENDODONTIC_TREATMENT = 'endodontic_treatment',
+  ORAL_SURGERY_FOLLOWUP = 'oral_surgery_followup'
 }
 
 interface EmailContent {
@@ -96,8 +103,15 @@ interface AIEmailAnalysis {
     procedures?: string[];
     amounts?: string[];
     medications?: string[];
+    teethNumbers?: string[];
+    diagnosis?: string[];
+    dentalAnatomy?: string[];
+    treatmentTypes?: string[];
+    imagingTypes?: string[];
     insuranceInfo?: any;
     labInfo?: any;
+    perioInfo?: any;
+    orthodonticInfo?: any;
   };
   suggestedAction?: string;
   summary: string;
@@ -596,16 +610,31 @@ export class EmailAIService {
         };
       }
       
-      // Create a detailed, structured prompt for the AI
+      // Check for attached images or X-rays
+      const hasAttachments = typeof emailContent !== 'string' && 
+        emailContent.attachments && 
+        emailContent.attachments.length > 0;
+      
+      const attachmentInfo = hasAttachments 
+        ? `Email contains ${typeof emailContent !== 'string' && emailContent.attachments ? emailContent.attachments.length : 0} attachment(s) that may include dental X-rays or clinical images.` 
+        : 'No attachments found.';
+      
+      // Create a detailed, structured prompt for the AI with enhanced dental terminology
       const analysisPrompt = `
-      You are a dental practice AI assistant analyzing incoming emails. Extract key information and categorize this email:
+      You are a dental practice AI assistant analyzing incoming emails for DentaMind dental practice. 
+      Extract key information and categorize this email with attention to dental-specific terminology:
       
       ${content}
+      
+      ${attachmentInfo}
       
       Analyze the email and extract the following information in JSON format:
       
       {
-        "eventType": "lab_case_update" | "insurance_approval" | "insurance_denial" | "patient_inquiry" | "appointment_request" | "prescription_confirmation" | "supply_order_update" | "document_request" | null,
+        "eventType": "lab_case_update" | "insurance_approval" | "insurance_denial" | "patient_inquiry" | 
+          "appointment_request" | "prescription_confirmation" | "supply_order_update" | "document_request" | 
+          "xray_results" | "treatment_progress" | "periodontal_assessment" | "restorative_treatment" | 
+          "orthodontic_update" | "endodontic_treatment" | "oral_surgery_followup" | null,
         "confidence": [confidence score between 0-1],
         "patientInfo": {
           "name": [detected patient name or null],
@@ -619,6 +648,11 @@ export class EmailAIService {
           "procedures": [array of dental procedures mentioned],
           "amounts": [array of monetary amounts mentioned],
           "medications": [array of medications mentioned],
+          "teethNumbers": [array of tooth numbers mentioned using Universal Numbering System],
+          "diagnosis": [array of dental diagnoses mentioned],
+          "dentalAnatomy": [array of dental anatomical terms mentioned],
+          "treatmentTypes": [array of dental treatment types mentioned],
+          "imagingTypes": [array of dental imaging types mentioned (e.g., bitewing, panoramic, CBCT)],
           "insuranceInfo": {
             "provider": [detected insurance provider or null],
             "policyNumber": [detected policy number or null],
@@ -627,16 +661,39 @@ export class EmailAIService {
           "labInfo": {
             "caseNumber": [detected lab case number or null],
             "labName": [detected lab name or null],
-            "status": [detected status or null]
+            "status": [detected status or null],
+            "prostheticType": [detected prosthetic type or null],
+            "shade": [detected shade information or null]
+          },
+          "perioInfo": {
+            "pocketDepths": [detected periodontal pocket depths or null],
+            "recessionMeasurements": [detected gingival recession measurements or null],
+            "bleedingPoints": [detected bleeding on probing information or null]
+          },
+          "orthodonticInfo": {
+            "applianceType": [detected orthodontic appliance type or null],
+            "adjustmentDetails": [detected adjustment details or null],
+            "treatmentPhase": [detected treatment phase or null]
           }
         },
+        "clinicalRelevance": "high" | "medium" | "low",
         "urgency": "high" | "medium" | "low",
         "suggestedAction": [specific action that should be taken],
         "suggestedTemplate": [suggested response template ID if applicable],
+        "patientRecordUpdate": [suggested updates to patient record based on email content],
         "summary": [brief summary of the email in 2-3 sentences]
       }
       
-      Ensure all extracted entities are accurate and relevant to dental practice operations.
+      Use these common dental terminology references when analyzing the email:
+      - Dental Procedures: prophylaxis, scaling and root planing, root canal treatment, extraction, implant placement, crown preparation, denture delivery, fillings, etc.
+      - Dental Imaging: bitewing, periapical, panoramic, CBCT scan, FMX (full mouth series), cephalometric radiograph
+      - Dental Diagnoses: caries, periodontitis, periapical abscess, pulpitis, gingivitis, pericoronitis, bruxism, TMJ disorder
+      - Dental Materials: composite, amalgam, porcelain, zirconia, PFM (porcelain-fused-to-metal), IPS e.max, PMMA, acrylic
+      - Tooth Numbering: Universal System (1-32), Palmer Notation, FDI World Dental Federation notation
+      - Dental Anatomy: mesial, distal, buccal, lingual, occlusal, incisal, apical, coronal
+      - Dental Specialists: endodontist, periodontist, oral surgeon, orthodontist, prosthodontist, pediatric dentist
+      
+      Ensure all extracted entities are accurate and relevant to dental practice operations. Pay special attention to dental terminology and clinical relevance.
       `;
       
       // Check if OPENAI_API_KEY_COMMUNICATION is available
@@ -681,8 +738,15 @@ export class EmailAIService {
                 procedures: parsedResponse.detectedEntities?.procedures || [],
                 amounts: parsedResponse.detectedEntities?.amounts || [],
                 medications: parsedResponse.detectedEntities?.medications || [],
+                teethNumbers: parsedResponse.detectedEntities?.teethNumbers || [],
+                diagnosis: parsedResponse.detectedEntities?.diagnosis || [],
+                dentalAnatomy: parsedResponse.detectedEntities?.dentalAnatomy || [],
+                treatmentTypes: parsedResponse.detectedEntities?.treatmentTypes || [],
+                imagingTypes: parsedResponse.detectedEntities?.imagingTypes || [],
                 insuranceInfo: parsedResponse.detectedEntities?.insuranceInfo || {},
-                labInfo: parsedResponse.detectedEntities?.labInfo || {}
+                labInfo: parsedResponse.detectedEntities?.labInfo || {},
+                perioInfo: parsedResponse.detectedEntities?.perioInfo || {},
+                orthodonticInfo: parsedResponse.detectedEntities?.orthodonticInfo || {}
               },
               suggestedAction: parsedResponse.suggestedAction,
               summary: parsedResponse.summary
@@ -728,6 +792,25 @@ export class EmailAIService {
     const contentLower = content.toLowerCase();
     let eventType: EmailEventType | null = null;
     
+    // Dental-specific procedure keywords for detection
+    const dentalProcedures = [
+      'filling', 'crown', 'bridge', 'implant', 'extraction', 'root canal', 'scaling', 
+      'root planing', 'prophylaxis', 'cleaning', 'denture', 'veneer', 'whitening',
+      'orthodontic', 'braces', 'invisalign', 'periodontal', 'surgical', 'bone graft'
+    ];
+    
+    // Extract detected procedures using keywords
+    const procedures = dentalProcedures.filter(proc => contentLower.includes(proc));
+    
+    // Detect dental-specific imaging terms
+    const imagingKeywords = ['x-ray', 'xray', 'radiograph', 'cbct', 'panoramic', 'bitewing', 'periapical'];
+    const hasImaging = imagingKeywords.some(term => contentLower.includes(term));
+    
+    // Extract tooth numbers (e.g., #14, tooth 14)
+    const toothNumberRegex = /(?:tooth|#)\s*(\d{1,2})/gi;
+    const toothNumberMatches = content.matchAll(toothNumberRegex);
+    const teethNumbers = Array.from(toothNumberMatches).map(match => match[1]);
+    
     // Simple event type detection based on keywords
     if (contentLower.includes('lab') && (contentLower.includes('case') || contentLower.includes('update'))) {
       eventType = EmailEventType.LAB_CASE_UPDATE;
@@ -743,6 +826,42 @@ export class EmailAIService {
       eventType = EmailEventType.SUPPLY_ORDER_UPDATE;
     } else if (contentLower.includes('document') || contentLower.includes('form')) {
       eventType = EmailEventType.DOCUMENT_REQUEST;
+    } 
+    // New dental-specific event types
+    else if (hasImaging && (
+      contentLower.includes('result') || 
+      contentLower.includes('finding') || 
+      contentLower.includes('analysis')
+    )) {
+      eventType = EmailEventType.XRAY_RESULTS;
+    } else if (contentLower.includes('progress') || (
+      contentLower.includes('treatment') && 
+      contentLower.includes('update')
+    )) {
+      eventType = EmailEventType.TREATMENT_PROGRESS;
+    } else if (contentLower.includes('perio') || contentLower.includes('periodontal') || (
+      contentLower.includes('gum') && 
+      (contentLower.includes('assessment') || contentLower.includes('evaluation'))
+    )) {
+      eventType = EmailEventType.PERIODONTAL_ASSESSMENT;
+    } else if (contentLower.includes('restorative') || (
+      contentLower.includes('filling') || 
+      contentLower.includes('crown') || 
+      contentLower.includes('bridge')
+    )) {
+      eventType = EmailEventType.RESTORATIVE_TREATMENT;
+    } else if (contentLower.includes('orthodontic') || 
+      contentLower.includes('braces') || 
+      contentLower.includes('invisalign')
+    ) {
+      eventType = EmailEventType.ORTHODONTIC_UPDATE;
+    } else if (contentLower.includes('endo') || contentLower.includes('root canal')) {
+      eventType = EmailEventType.ENDODONTIC_TREATMENT;
+    } else if (contentLower.includes('surgery') || 
+      contentLower.includes('extraction') || 
+      contentLower.includes('implant')
+    ) {
+      eventType = EmailEventType.ORAL_SURGERY_FOLLOWUP;
     }
     
     // Extract dates with a simple regex
@@ -758,6 +877,13 @@ export class EmailAIService {
     const nameRegex = /(?:Mr\.|Mrs\.|Ms\.|Dr\.)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?/g;
     const names = content.match(nameRegex) || [];
     
+    // Extract potential medication names
+    const commonMedications = [
+      'amoxicillin', 'penicillin', 'ibuprofen', 'tylenol', 'acetaminophen',
+      'advil', 'motrin', 'vicodin', 'percocet', 'antibiotics', 'analgesics'
+    ];
+    const medications = commonMedications.filter(med => contentLower.includes(med.toLowerCase()));
+    
     // Create a basic summary
     let summary = "Email received";
     if (eventType) {
@@ -766,6 +892,9 @@ export class EmailAIService {
     if (dates.length > 0) {
       summary += ` mentioning dates`;
     }
+    if (procedures.length > 0) {
+      summary += ` discussing ${procedures.join(', ')}`;
+    }
     
     return {
       eventType,
@@ -773,7 +902,13 @@ export class EmailAIService {
       detectedEntities: {
         dates,
         names,
-        amounts
+        amounts,
+        procedures,
+        medications,
+        // Add dental-specific detected entities
+        teethNumbers: teethNumbers,
+        treatmentTypes: procedures, // Reuse procedures as treatment types
+        imagingTypes: hasImaging ? imagingKeywords.filter(term => contentLower.includes(term)) : []
       },
       suggestedAction: eventType ? `Review and process ${eventType.replace(/_/g, ' ')}` : "Review email manually",
       summary
