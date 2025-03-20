@@ -35,6 +35,11 @@ const formSchema = z.object({
   homeAddress: z.string().optional(),
   occupation: z.string().optional(),
   socialSecurityNumber: z.string().optional(),
+  gender: z.string().optional(),
+  height: z.string().optional(),
+  weight: z.string().optional(),
+  bloodType: z.string().optional(),
+  maritalStatus: z.string().optional(),
   
   // Emergency Contact
   emergencyContactName: z.string().optional(),
@@ -51,16 +56,24 @@ const formSchema = z.object({
   // Medical History
   underPhysicianCare: z.boolean().optional().default(false),
   physicianConditions: z.string().optional(),
+  physicianName: z.string().optional(),
+  physicianPhone: z.string().optional(),
   allergies: z.string().optional(),
   pastSurgeries: z.string().optional(),
   currentMedications: z.string().optional(),
   adverseAnestheticReaction: z.boolean().optional().default(false),
   hospitalizedRecently: z.boolean().optional().default(false),
+  reasonForHospitalization: z.string().optional(),
   
   // Medical Conditions
   hypertension: z.boolean().optional().default(false),
   diabetes: z.boolean().optional().default(false),
   heartDisease: z.boolean().optional().default(false),
+  heartAttack: z.boolean().optional().default(false),
+  heartMurmur: z.boolean().optional().default(false),
+  pacemaker: z.boolean().optional().default(false),
+  artificialHeart: z.boolean().optional().default(false),
+  rheumaticFever: z.boolean().optional().default(false),
   asthma: z.boolean().optional().default(false),
   arthritis: z.boolean().optional().default(false),
   cancer: z.boolean().optional().default(false),
@@ -70,25 +83,37 @@ const formSchema = z.object({
   thyroidDisease: z.boolean().optional().default(false),
   mentalIllness: z.boolean().optional().default(false),
   seizures: z.boolean().optional().default(false),
+  epilepsy: z.boolean().optional().default(false),
   bleedingDisorders: z.boolean().optional().default(false),
   autoimmune: z.boolean().optional().default(false),
   hepatitis: z.boolean().optional().default(false),
   hivAids: z.boolean().optional().default(false),
   lungDisease: z.boolean().optional().default(false),
   osteoporosis: z.boolean().optional().default(false),
+  dizziness: z.boolean().optional().default(false),
+  fainting: z.boolean().optional().default(false),
+  headaches: z.boolean().optional().default(false),
+  radiation: z.boolean().optional().default(false),
+  chemotherapy: z.boolean().optional().default(false),
+  chronicPain: z.boolean().optional().default(false),
   
   // Lifestyle
   smokesTobacco: z.boolean().optional().default(false),
   useAlcohol: z.boolean().optional().default(false),
   isPregnantOrNursing: z.boolean().optional().default(false),
+  recreationalDrugs: z.boolean().optional().default(false),
   
   // Dental History
   lastDentalVisit: z.string().optional(),
+  reasonForVisitToday: z.string().optional(),
+  lastDentalExam: z.string().optional(),
+  lastDentalXrays: z.string().optional(),
   whenIssueStarted: z.string().optional(),
   experiencedBefore: z.boolean().optional().default(false),
   chiefComplaint: z.string().optional(),
   currentSymptoms: z.string().optional(),
   previousDentalProcedures: z.string().optional(),
+  scaleOfPain: z.coerce.number().optional(),
   
   // Dental Conditions
   hadGumDisease: z.boolean().optional().default(false),
@@ -98,8 +123,33 @@ const formSchema = z.object({
   hadRootCanal: z.boolean().optional().default(false),
   hadJawPain: z.boolean().optional().default(false),
   sensitivityToHotCold: z.boolean().optional().default(false),
+  troubleWithPreviousDental: z.boolean().optional().default(false),
   grindTeeth: z.boolean().optional().default(false),
+  wearDentalAppliance: z.boolean().optional().default(false),
+  bleedingGums: z.boolean().optional().default(false),
+  looseTeeth: z.boolean().optional().default(false),
+  unpleasantTaste: z.boolean().optional().default(false),
+  badBreath: z.boolean().optional().default(false),
+  dryMouth: z.boolean().optional().default(false),
+  foodTrap: z.boolean().optional().default(false),
   interestedInCosmetic: z.boolean().optional().default(false),
+  
+  // Dental anxiety & preferences
+  anxietyLevel: z.string().optional(),
+  painControl: z.string().optional(),
+  communicationPreference: z.string().optional(),
+  
+  // Advanced questionnaire for AI analysis
+  whyDidYouComeInToday: z.string().optional(),
+  howWouldYouRateYourHealth: z.string().optional(),
+  haveYouHadChangeInHealth: z.boolean().optional().default(false),
+  hospitalizedOrMajorIllness: z.boolean().optional().default(false),
+  beingTreatedByPhysician: z.boolean().optional().default(false),
+  dateOfLastMedicalExam: z.string().optional(),
+  dateOfLastDentalExam: z.string().optional(),
+  problemsWithPreviousDental: z.boolean().optional().default(false),
+  areYouInPainNow: z.boolean().optional().default(false),
+  medicationsBeingTaken: z.string().optional(),
   
   // Consents
   hipaaConsent: z.boolean().default(false),
@@ -134,6 +184,11 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       homeAddress: "",
       occupation: "",
       socialSecurityNumber: "",
+      gender: "",
+      height: "",
+      weight: "",
+      bloodType: "",
+      maritalStatus: "",
       
       // Emergency Contact
       emergencyContactName: "",
@@ -150,16 +205,24 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       // Medical History
       underPhysicianCare: false,
       physicianConditions: "",
+      physicianName: "",
+      physicianPhone: "",
       allergies: "",
       pastSurgeries: "",
       currentMedications: "",
       adverseAnestheticReaction: false,
       hospitalizedRecently: false,
+      reasonForHospitalization: "",
       
       // Medical Conditions
       hypertension: false,
       diabetes: false,
       heartDisease: false,
+      heartAttack: false,
+      heartMurmur: false,
+      pacemaker: false,
+      artificialHeart: false,
+      rheumaticFever: false,
       asthma: false,
       arthritis: false,
       cancer: false,
@@ -169,25 +232,37 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       thyroidDisease: false,
       mentalIllness: false,
       seizures: false,
+      epilepsy: false,
       bleedingDisorders: false,
       autoimmune: false,
       hepatitis: false,
       hivAids: false,
       lungDisease: false,
       osteoporosis: false,
+      dizziness: false,
+      fainting: false,
+      headaches: false,
+      radiation: false,
+      chemotherapy: false,
+      chronicPain: false,
       
       // Lifestyle
       smokesTobacco: false,
       useAlcohol: false,
       isPregnantOrNursing: false,
+      recreationalDrugs: false,
       
       // Dental History
       lastDentalVisit: "",
+      reasonForVisitToday: "",
+      lastDentalExam: "",
+      lastDentalXrays: "",
       whenIssueStarted: "",
       experiencedBefore: false,
       chiefComplaint: "",
       currentSymptoms: "",
       previousDentalProcedures: "",
+      scaleOfPain: 0,
       
       // Dental Conditions
       hadGumDisease: false,
@@ -197,8 +272,33 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       hadRootCanal: false,
       hadJawPain: false,
       sensitivityToHotCold: false,
+      troubleWithPreviousDental: false,
       grindTeeth: false,
+      wearDentalAppliance: false,
+      bleedingGums: false,
+      looseTeeth: false,
+      unpleasantTaste: false,
+      badBreath: false,
+      dryMouth: false,
+      foodTrap: false,
       interestedInCosmetic: false,
+      
+      // Dental anxiety & preferences
+      anxietyLevel: "",
+      painControl: "",
+      communicationPreference: "",
+      
+      // Advanced questionnaire
+      whyDidYouComeInToday: "",
+      howWouldYouRateYourHealth: "",
+      haveYouHadChangeInHealth: false,
+      hospitalizedOrMajorIllness: false,
+      beingTreatedByPhysician: false,
+      dateOfLastMedicalExam: "",
+      dateOfLastDentalExam: "",
+      problemsWithPreviousDental: false,
+      areYouInPainNow: false,
+      medicationsBeingTaken: "",
       
       // Consents
       hipaaConsent: false,
@@ -456,6 +556,80 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
                 </FormItem>
               )}
             />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="gender"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Gender</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Gender" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="maritalStatus"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Marital Status</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Single, Married, etc." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="height"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Height</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., 5ft 10in" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="weight"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Weight (lbs)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., 160" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="bloodType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Blood Type</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., O+" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             
             <FormField
               control={form.control}
