@@ -37,8 +37,12 @@ import {
   ShareIcon, 
   Trash2, 
   Upload, 
-  ZoomIn 
+  ZoomIn,
+  SplitSquareVertical,
+  ArrowLeftRight,
+  Layers
 } from "lucide-react";
+import { XRayComparison, XRayImage } from "@/components/xray/xray-comparison";
 
 interface PatientXraysProps {
   patientId: number;
@@ -61,6 +65,9 @@ interface Xray {
 export function PatientXrays({ patientId }: PatientXraysProps) {
   const [activeTab, setActiveTab] = useState("all");
   const [selectedXray, setSelectedXray] = useState<Xray | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [xrayToCompare, setXrayToCompare] = useState<Xray | null>(null);
+  const [selectedForComparison, setSelectedForComparison] = useState<Xray | null>(null);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [showDeviceDialog, setShowDeviceDialog] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState("");
@@ -70,8 +77,11 @@ export function PatientXrays({ patientId }: PatientXraysProps) {
     queryKey: ["/api/xrays", patientId],
     queryFn: async () => {
       try {
-        const res = await apiRequest("GET", `/api/patients/${patientId}/xrays`);
-        return res.json();
+        const res = await apiRequest({
+          method: "GET", 
+          url: `/api/patients/${patientId}/xrays`
+        });
+        return res;
       } catch (error) {
         console.error("Failed to fetch xrays:", error);
         return [];
@@ -171,6 +181,31 @@ export function PatientXrays({ patientId }: PatientXraysProps) {
     // In a real app, this would trigger image capture from the selected device
     setShowDeviceDialog(false);
   };
+  
+  // Handle entering comparison mode
+  const enterComparisonMode = () => {
+    setCompareMode(true);
+    setSelectedForComparison(null);
+  };
+  
+  // Handle exiting comparison mode
+  const exitComparisonMode = () => {
+    setCompareMode(false);
+    setSelectedForComparison(null);
+  };
+  
+  // Handle selecting an X-ray for comparison
+  const handleSelectForComparison = (xray: Xray) => {
+    setSelectedForComparison(xray);
+  };
+  
+  // Start comparison between two X-rays
+  const startComparison = () => {
+    if (selectedForComparison && xrayToCompare) {
+      setCompareMode(false);
+      setSelectedXray(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -180,6 +215,25 @@ export function PatientXrays({ patientId }: PatientXraysProps) {
           <p className="text-muted-foreground">View and manage patient x-rays and intraoral scans</p>
         </div>
         <div className="flex gap-2">
+          {compareMode ? (
+            <Button 
+              variant="outline" 
+              className="gap-2" 
+              onClick={exitComparisonMode}
+            >
+              <ArrowLeftRight className="h-4 w-4" />
+              Cancel Comparison
+            </Button>
+          ) : (
+            <Button 
+              variant="outline" 
+              className="gap-2" 
+              onClick={enterComparisonMode}
+            >
+              <ArrowLeftRight className="h-4 w-4" />
+              Compare X-Rays
+            </Button>
+          )}
           <Dialog open={showDeviceDialog} onOpenChange={setShowDeviceDialog}>
             <DialogTrigger asChild>
               <Button variant="outline" className="gap-2">
@@ -364,21 +418,45 @@ export function PatientXrays({ patientId }: PatientXraysProps) {
                     />
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/50">
                       <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="bg-white/90 hover:bg-white"
-                          onClick={() => setSelectedXray(xray)}
-                        >
-                          <ZoomIn className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="bg-white/90 hover:bg-white"
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
+                        {compareMode ? (
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className={`bg-white/90 hover:bg-white ${selectedForComparison?.id === xray.id ? 'border-primary border-2' : ''}`}
+                            onClick={() => {
+                              if (selectedForComparison?.id === xray.id) {
+                                setSelectedForComparison(null);
+                              } else if (!xrayToCompare) {
+                                setXrayToCompare(xray);
+                              } else if (!selectedForComparison) {
+                                setSelectedForComparison(xray);
+                              } else {
+                                setXrayToCompare(selectedForComparison);
+                                setSelectedForComparison(xray);
+                              }
+                            }}
+                          >
+                            <ArrowLeftRight className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <>
+                            <Button 
+                              variant="outline" 
+                              size="icon" 
+                              className="bg-white/90 hover:bg-white"
+                              onClick={() => setSelectedXray(xray)}
+                            >
+                              <ZoomIn className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="icon" 
+                              className="bg-white/90 hover:bg-white"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                     {xray.aiAnalyzed && (
@@ -468,6 +546,40 @@ export function PatientXrays({ patientId }: PatientXraysProps) {
         </TabsContent>
       </Tabs>
 
+      {/* Comparison Message when in compare mode */}
+      {compareMode && (
+        <div className="bg-primary/10 p-4 rounded-lg border border-primary/30 mt-4">
+          <div className="flex items-center gap-2">
+            <ArrowLeftRight className="h-5 w-5 text-primary" />
+            <div>
+              <h3 className="font-medium">X-Ray Comparison Mode</h3>
+              <p className="text-sm text-muted-foreground">
+                {!xrayToCompare && !selectedForComparison 
+                  ? "Select the first X-ray to compare" 
+                  : selectedForComparison 
+                    ? "Click 'Start Comparison' to compare the selected X-rays" 
+                    : "Now select the second X-ray to compare"}
+              </p>
+            </div>
+          </div>
+          
+          {xrayToCompare && selectedForComparison && (
+            <div className="flex justify-end mt-3">
+              <Button 
+                onClick={() => {
+                  // Start comparison by ending compare mode and showing comparison dialog
+                  setCompareMode(false);
+                }}
+                className="gap-2"
+              >
+                <ArrowLeftRight className="h-4 w-4" />
+                Start Comparison
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* X-ray Viewer Dialog */}
       {selectedXray && (
         <Dialog open={!!selectedXray} onOpenChange={(open) => !open && setSelectedXray(null)}>
@@ -540,6 +652,47 @@ export function PatientXrays({ patientId }: PatientXraysProps) {
                 )}
               </div>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* X-ray Comparison Dialog */}
+      {xrayToCompare && selectedForComparison && (
+        <Dialog 
+          open={!!(xrayToCompare && selectedForComparison && !compareMode)} 
+          onOpenChange={(open) => {
+            if (!open) {
+              setXrayToCompare(null);
+              setSelectedForComparison(null);
+            }
+          }}
+        >
+          <DialogContent className="max-w-6xl">
+            <XRayComparison 
+              beforeXray={{
+                id: xrayToCompare.id.toString(),
+                imageUrl: xrayToCompare.imageUrl,
+                type: xrayToCompare.type,
+                date: xrayToCompare.date,
+                provider: xrayToCompare.provider,
+                aiAnalyzed: xrayToCompare.aiAnalyzed,
+                aiFindings: xrayToCompare.aiFindings
+              }}
+              afterXray={{
+                id: selectedForComparison.id.toString(),
+                imageUrl: selectedForComparison.imageUrl,
+                type: selectedForComparison.type,
+                date: selectedForComparison.date,
+                provider: selectedForComparison.provider,
+                aiAnalyzed: selectedForComparison.aiAnalyzed,
+                aiFindings: selectedForComparison.aiFindings
+              }}
+              patientName="Patient" 
+              onClose={() => {
+                setXrayToCompare(null);
+                setSelectedForComparison(null);
+              }}
+            />
           </DialogContent>
         </Dialog>
       )}
