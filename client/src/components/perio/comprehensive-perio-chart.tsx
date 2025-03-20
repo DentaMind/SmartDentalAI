@@ -12,8 +12,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
-import { ToothSvgBuccal, ToothSvgLingual } from '../dental/tooth-illustrations';
-import { apiRequest } from '@/lib/api';
+import { ToothSvgBuccal, ToothSvgLingual, type ToothSvgProps } from '../dental/tooth-illustrations';
+import { apiRequest } from '@/lib/queryClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 // Speech recognition API type
