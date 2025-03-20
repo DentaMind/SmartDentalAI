@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -995,9 +996,8 @@ export function EmailAIManagement() {
               </div>
               <div className="col-span-2">
                 <Label htmlFor="provider-password">Password</Label>
-                <Input 
+                <PasswordInput 
                   id="provider-password" 
-                  type="password" 
                   value={newProvider.password}
                   onChange={(e) => setNewProvider({...newProvider, password: e.target.value})}
                   className="mt-1"
@@ -1156,9 +1156,8 @@ export function EmailAIManagement() {
                 </div>
                 <div className="col-span-2">
                   <Label htmlFor="edit-provider-password">Password (leave blank to keep unchanged)</Label>
-                  <Input 
+                  <PasswordInput 
                     id="edit-provider-password" 
-                    type="password" 
                     onChange={(e) => setEditingProvider({...editingProvider, password: e.target.value || undefined})}
                     className="mt-1"
                   />

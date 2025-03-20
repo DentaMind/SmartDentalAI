@@ -751,7 +751,7 @@ export function PatientIntakeForm({
                       <FormItem>
                         <FormLabel>Password*</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Create a password" {...field} />
+                          <PasswordInput placeholder="Create a password" {...field} />
                         </FormControl>
                         <FormDescription>
                           Must be at least 8 characters
@@ -767,7 +767,7 @@ export function PatientIntakeForm({
                       <FormItem>
                         <FormLabel>Confirm Password*</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Confirm your password" {...field} />
+                          <PasswordInput placeholder="Confirm your password" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
