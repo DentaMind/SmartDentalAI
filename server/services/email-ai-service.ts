@@ -416,10 +416,15 @@ export class EmailAIService {
    */
   async sendTestEmail(recipientEmail: string): Promise<{ success: boolean; message: string }> {
     if (!this.transporter) {
-      return { 
-        success: false, 
-        message: 'Email transporter not configured. Please set up an email provider first.' 
-      };
+      // For testing purposes, create a test transporter if none exists
+      this.createTestTransporter();
+      
+      if (!this.transporter) {
+        return { 
+          success: false, 
+          message: 'Email transporter not configured. Please set up an email provider first.' 
+        };
+      }
     }
     
     try {
@@ -431,20 +436,64 @@ export class EmailAIService {
         html: '<p>This is a test email from the DentaMind Email AI system. If you received this, the email configuration is working correctly.</p>'
       };
       
-      // In a real implementation, we would actually send the email
-      // const info = await this.transporter.sendMail(testEmail);
+      console.log(`Attempting to send test email to ${recipientEmail}...`);
       
-      // For now, we'll simulate a successful send
-      return {
-        success: true,
-        message: `Test email sent successfully to ${recipientEmail}`
-      };
+      // Log the email instead of sending it to prevent errors in the test environment
+      if (process.env.NODE_ENV === 'development') {
+        console.log('=== TEST EMAIL CONTENTS ===');
+        console.log(`From: ${testEmail.from}`);
+        console.log(`To: ${recipientEmail}`);
+        console.log(`Subject: ${testEmail.subject}`);
+        console.log(`Body: ${testEmail.text}`);
+        console.log('=== END TEST EMAIL ===');
+        
+        return {
+          success: true,
+          message: `Test email would be sent to ${recipientEmail} (simulated in development). Check server logs for details.`
+        };
+      } else {
+        // In production environment, actually send the email
+        const info = await this.transporter.sendMail(testEmail);
+        return {
+          success: true,
+          message: `Test email sent successfully to ${recipientEmail} (messageId: ${info.messageId})`
+        };
+      }
     } catch (error) {
       console.error('Error sending test email:', error);
       return {
         success: false,
-        message: 'Failed to send test email: ' + error.message
+        message: 'Failed to send test email: ' + (error.message || 'Unknown error')
       };
+    }
+  }
+  
+  /**
+   * Create a test transporter with ethereal.email for development
+   */
+  private async createTestTransporter() {
+    try {
+      console.log('Creating test email transporter...');
+      // Create test account
+      const testAccount = await nodemailer.createTestAccount();
+      
+      // Create reusable transporter
+      this.transporter = nodemailer.createTransport({
+        host: 'smtp.ethereal.email',
+        port: 587,
+        secure: false,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass,
+        },
+      });
+      
+      console.log('Test email transporter created successfully');
+      console.log(`Test email credentials: ${testAccount.user} / ${testAccount.pass}`);
+      
+      this.isInitialized = true;
+    } catch (error) {
+      console.error('Failed to create test email transporter:', error);
     }
   }
 
