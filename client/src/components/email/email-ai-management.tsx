@@ -173,7 +173,7 @@ export function EmailAIManagement() {
         headers: {
           'Content-Type': 'application/json'
         },
-        data: JSON.stringify(data)
+        body: JSON.stringify(data)
       });
       
       if (response.ok) {
@@ -225,7 +225,7 @@ export function EmailAIManagement() {
         headers: {
           'Content-Type': 'application/json'
         },
-        data: JSON.stringify(data)
+        body: JSON.stringify(data)
       });
       
       if (response.ok) {
@@ -356,7 +356,7 @@ export function EmailAIManagement() {
         headers: {
           'Content-Type': 'application/json'
         },
-        data: JSON.stringify({
+        body: JSON.stringify({
           monitoring: {
             enabled: monitorSettings.enableMonitoring,
             checkInterval: monitorSettings.checkIntervalMinutes,
@@ -409,7 +409,7 @@ export function EmailAIManagement() {
         headers: {
           'Content-Type': 'application/json'
         },
-        data: JSON.stringify({ email: testEmail })
+        body: JSON.stringify({ email: testEmail })
       });
       
       if (response.ok) {
