@@ -68,6 +68,11 @@ interface EmailProviderForm {
   isDefault: boolean;
 }
 
+// Extended type for editing with password
+interface EmailProviderWithPassword extends EmailProvider {
+  password?: string;
+}
+
 interface EmailMonitorStatus {
   status: 'connected' | 'disconnected' | 'error';
   lastCheck: string;
@@ -88,7 +93,7 @@ export function EmailAIManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [showNewProvider, setShowNewProvider] = useState(false);
   const [showNewTemplate, setShowNewTemplate] = useState(false);
-  const [editingProvider, setEditingProvider] = useState<(EmailProvider & { password?: string }) | null>(null);
+  const [editingProvider, setEditingProvider] = useState<EmailProviderWithPassword | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [testEmail, setTestEmail] = useState('');
   const [aiEnabled, setAiEnabled] = useState(false);
@@ -1132,7 +1137,7 @@ export function EmailAIManagement() {
                   <Input 
                     id="edit-provider-name" 
                     value={editingProvider.name}
-                    onChange={(e) => setEditingProvider({...editingProvider, name: e.target.value})}
+                    onChange={(e) => setEditingProvider(editingProvider ? {...editingProvider, name: e.target.value} : null)}
                     className="mt-1"
                   />
                 </div>
@@ -1141,7 +1146,7 @@ export function EmailAIManagement() {
                   <Input 
                     id="edit-provider-host" 
                     value={editingProvider.host}
-                    onChange={(e) => setEditingProvider({...editingProvider, host: e.target.value})}
+                    onChange={(e) => setEditingProvider(editingProvider ? {...editingProvider, host: e.target.value} : null)}
                     className="mt-1"
                   />
                 </div>
@@ -1168,7 +1173,7 @@ export function EmailAIManagement() {
                   <Label htmlFor="edit-provider-password">Password (leave blank to keep unchanged)</Label>
                   <PasswordInput 
                     id="edit-provider-password" 
-                    onChange={(e) => setEditingProvider({...editingProvider, password: e.target.value || undefined})}
+                    onChange={(e) => setEditingProvider(editingProvider ? {...editingProvider, password: e.target.value || undefined} : null)}
                     className="mt-1"
                   />
                 </div>
@@ -1176,7 +1181,7 @@ export function EmailAIManagement() {
                   <Switch 
                     id="edit-provider-ssl" 
                     checked={editingProvider.useSSL}
-                    onCheckedChange={(checked) => setEditingProvider({...editingProvider, useSSL: checked})}
+                    onCheckedChange={(checked) => setEditingProvider(editingProvider ? {...editingProvider, useSSL: checked} : null)}
                   />
                   <Label htmlFor="edit-provider-ssl">Use SSL</Label>
                 </div>
@@ -1184,7 +1189,7 @@ export function EmailAIManagement() {
                   <Switch 
                     id="edit-provider-default" 
                     checked={editingProvider.isDefault}
-                    onCheckedChange={(checked) => setEditingProvider({...editingProvider, isDefault: checked})}
+                    onCheckedChange={(checked) => setEditingProvider(editingProvider ? {...editingProvider, isDefault: checked} : null)}
                   />
                   <Label htmlFor="edit-provider-default">Set as Default Provider</Label>
                 </div>
