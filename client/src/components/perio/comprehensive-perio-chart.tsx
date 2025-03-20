@@ -16,22 +16,30 @@ import { ToothSvgBuccal, ToothSvgLingual, type ToothSvgProps } from '../dental/t
 import { apiRequest } from '@/lib/queryClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-// Speech recognition API type
-interface SpeechRecognition extends EventTarget {
+// Speech recognition API type definitions
+type SpeechRecognitionErrorEvent = Event & {
+  error: string;
+};
+
+interface SpeechRecognitionConstructor {
+  new(): SpeechRecognitionInstance;
+}
+
+interface SpeechRecognitionInstance extends EventTarget {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
   start(): void;
   stop(): void;
   onresult: (event: any) => void;
-  onerror: (event: any) => void;
+  onerror: (event: SpeechRecognitionErrorEvent) => void;
   onend: () => void;
 }
 
 declare global {
   interface Window {
-    SpeechRecognition?: { new(): SpeechRecognition };
-    webkitSpeechRecognition?: { new(): SpeechRecognition };
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
   }
 }
 
