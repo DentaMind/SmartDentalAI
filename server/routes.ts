@@ -11,6 +11,7 @@ import { aiServiceManager } from './services/ai-service-manager';
 import schedulerRoutes from './routes/scheduler-routes';
 import translationRoutes from './routes/translation-routes';
 import insuranceRoutes from './routes/insurance-routes';
+import patientFormsRoutes from './routes/patient-forms';
 import { setupEmailSchedulerRoutes } from './routes/email-scheduler-routes';
 import { EmailAIService } from './services/email-ai-service';
 import path from 'path';
