@@ -22,7 +22,7 @@ export async function seedDatabase() {
     // Create a provider/dentist user
     const dentistData: Omit<InsertUser, "passwordHash"> & { password: string } = {
       username: "dentist",
-      password: "dentist123", // Plain text for seeding
+      password: "password", // Plain text for seeding
       email: "dentist@example.com",
       firstName: "John",
       lastName: "Smith",
@@ -55,7 +55,7 @@ export async function seedDatabase() {
     // Create Dr. Abdin provider
     const drAbdinData: Omit<InsertUser, "passwordHash"> & { password: string } = {
       username: "drabdin",
-      password: "password123", // Plain text for seeding
+      password: "password", // Plain text for seeding
       email: "drabdin@example.com",
       firstName: "Ahmed",
       lastName: "Abdin",
@@ -88,7 +88,7 @@ export async function seedDatabase() {
     // Create Mary RDH (hygienist) user
     const maryRdhData: Omit<InsertUser, "passwordHash"> & { password: string } = {
       username: "maryrdh",
-      password: "password123", // Plain text for seeding
+      password: "password", // Plain text for seeding
       email: "mary.rdh@example.com",
       firstName: "Mary",
       lastName: "Johnson",
