@@ -1156,7 +1156,7 @@ export function EmailAIManagement() {
                     id="edit-provider-port" 
                     type="number" 
                     value={editingProvider.port}
-                    onChange={(e) => setEditingProvider({...editingProvider, port: parseInt(e.target.value) || 587})}
+                    onChange={(e) => setEditingProvider(editingProvider ? {...editingProvider, port: parseInt(e.target.value) || 587} : null)}
                     className="mt-1"
                   />
                 </div>
@@ -1165,7 +1165,7 @@ export function EmailAIManagement() {
                   <Input 
                     id="edit-provider-username" 
                     value={editingProvider.username}
-                    onChange={(e) => setEditingProvider({...editingProvider, username: e.target.value})}
+                    onChange={(e) => setEditingProvider(editingProvider ? {...editingProvider, username: e.target.value} : null)}
                     className="mt-1"
                   />
                 </div>
@@ -1222,7 +1222,7 @@ export function EmailAIManagement() {
                 <Input 
                   id="edit-template-name" 
                   value={editingTemplate.name}
-                  onChange={(e) => setEditingTemplate({...editingTemplate, name: e.target.value})}
+                  onChange={(e) => setEditingTemplate(editingTemplate ? {...editingTemplate, name: e.target.value} : null)}
                   className="mt-1"
                 />
               </div>
@@ -1230,7 +1230,7 @@ export function EmailAIManagement() {
                 <Label htmlFor="edit-template-type">Template Type</Label>
                 <Select 
                   value={editingTemplate.type}
-                  onValueChange={(value) => setEditingTemplate({...editingTemplate, type: value})}
+                  onValueChange={(value) => setEditingTemplate(editingTemplate ? {...editingTemplate, type: value} : null)}
                 >
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Select template type" />
@@ -1249,7 +1249,7 @@ export function EmailAIManagement() {
                 <Input 
                   id="edit-template-subject" 
                   value={editingTemplate.subject}
-                  onChange={(e) => setEditingTemplate({...editingTemplate, subject: e.target.value})}
+                  onChange={(e) => setEditingTemplate(editingTemplate ? {...editingTemplate, subject: e.target.value} : null)}
                   className="mt-1"
                 />
               </div>
@@ -1258,7 +1258,7 @@ export function EmailAIManagement() {
                 <Textarea 
                   id="edit-template-body" 
                   value={editingTemplate.body}
-                  onChange={(e) => setEditingTemplate({...editingTemplate, body: e.target.value})}
+                  onChange={(e) => setEditingTemplate(editingTemplate ? {...editingTemplate, body: e.target.value} : null)}
                   className="mt-1 min-h-[200px]"
                 />
               </div>
@@ -1266,7 +1266,7 @@ export function EmailAIManagement() {
                 <Switch 
                   id="edit-template-ai" 
                   checked={editingTemplate.aiGenerated}
-                  onCheckedChange={(checked) => setEditingTemplate({...editingTemplate, aiGenerated: checked})}
+                  onCheckedChange={(checked) => setEditingTemplate(editingTemplate ? {...editingTemplate, aiGenerated: checked} : null)}
                 />
                 <Label htmlFor="edit-template-ai">AI Generated Template</Label>
               </div>
