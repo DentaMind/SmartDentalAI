@@ -1011,13 +1011,13 @@ export function UnifiedEmailPage() {
                 id="template-body" 
                 value={newTemplate.body || ''} 
                 onChange={(e) => setNewTemplate({...newTemplate, body: e.target.value})}
-                placeholder="Dear {{patientName}},
+                placeholder="Dear &#123;&#123;patientName&#125;&#125;,
 
-Thank you for choosing our dental practice. We are looking forward to seeing you on {{appointmentDate}}."
+Thank you for choosing our dental practice. We are looking forward to seeing you on &#123;&#123;appointmentDate&#125;&#125;."
                 rows={8}
               />
               <div className="text-sm text-muted-foreground">
-                Use variables like {{patientName}}, {{appointmentDate}}, {{doctorName}} that will be replaced with actual values.
+                Use variables like &#123;&#123;patientName&#125;&#125;, &#123;&#123;appointmentDate&#125;&#125;, &#123;&#123;doctorName&#125;&#125; that will be replaced with actual values.
               </div>
             </div>
             
@@ -1025,7 +1025,7 @@ Thank you for choosing our dental practice. We are looking forward to seeing you
               <Checkbox 
                 id="ai-generated" 
                 checked={newTemplate.aiGenerated || false} 
-                onCheckedChange={(checked) => setNewTemplate({...newTemplate, aiGenerated: checked === true})}
+                onCheckedChange={(checked: boolean | "indeterminate") => setNewTemplate({...newTemplate, aiGenerated: checked === true})}
               />
               <Label htmlFor="ai-generated">AI Generated Template</Label>
             </div>
@@ -1111,7 +1111,7 @@ Thank you for choosing our dental practice. We are looking forward to seeing you
               <Checkbox 
                 id="optimized-time" 
                 checked={newScheduledEmail.optimizedTime || false} 
-                onCheckedChange={(checked) => setNewScheduledEmail({...newScheduledEmail, optimizedTime: checked === true})}
+                onCheckedChange={(checked: boolean | "indeterminate") => setNewScheduledEmail({...newScheduledEmail, optimizedTime: checked === true})}
               />
               <Label htmlFor="optimized-time">
                 Use AI to optimize delivery time for better engagement
