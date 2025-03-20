@@ -14,6 +14,7 @@ import nodemailer from 'nodemailer';
 import { aiServiceManager } from './ai-service-manager';
 import { AIServiceType } from './ai-service-types';
 import { z } from 'zod';
+import OpenAI from 'openai';
 
 // Define schemas for validation
 export const emailProviderSchema = z.object({
@@ -24,7 +25,8 @@ export const emailProviderSchema = z.object({
   username: z.string(),
   password: z.string().optional(),
   useSSL: z.boolean(),
-  isDefault: z.boolean()
+  isDefault: z.boolean(),
+  connected: z.boolean().optional()
 });
 
 export const emailTemplateSchema = z.object({
@@ -168,7 +170,8 @@ export class EmailAIService {
 
       this.isInitialized = true;
       return true;
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error;
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('Failed to initialize email service:', errorMessage);
       return false;
@@ -191,8 +194,9 @@ export class EmailAIService {
       });
       
       return true;
-    } catch (error) {
-      console.error('Error setting up email transporter:', error);
+    } catch (err) {
+      const error = err as Error;
+      console.error('Error setting up email transporter:', error.message);
       return false;
     }
   }
@@ -475,9 +479,10 @@ export class EmailAIService {
         emailsProcessed: 0,
         newEmails: 0
       };
-    } catch (error) {
+    } catch (err) {
       this.isCheckingEmails = false;
-      console.error('Error checking emails:', error);
+      const error = err as Error;
+      console.error('Error checking emails:', error.message);
       return { 
         status: 'error', 
         message: 'Error checking emails: ' + error.message 
@@ -486,7 +491,10 @@ export class EmailAIService {
   }
 
   /**
-   * Analyze email content with AI
+   * Analyze email content with AI to extract key information and suggest actions
+   * 
+   * @param emailContent The email content to analyze, either as a string or structured EmailContent object
+   * @returns Detailed analysis of the email with extracted entities and suggested actions
    */
   async analyzeEmailContent(emailContent: EmailContent | string): Promise<AIEmailAnalysis> {
     try {
@@ -495,90 +503,437 @@ export class EmailAIService {
         ? emailContent 
         : `From: ${emailContent.from}\nTo: ${emailContent.to}\nSubject: ${emailContent.subject}\n\n${emailContent.text}`;
       
-      // Use AI service manager to analyze the email
+      // Check if content is empty
+      if (!content || content.trim().length === 0) {
+        return {
+          eventType: null,
+          confidence: 0,
+          detectedEntities: {},
+          summary: "No email content provided for analysis."
+        };
+      }
+      
+      // Create a detailed, structured prompt for the AI
       const analysisPrompt = `
-      Analyze the following email and extract key information:
+      You are a dental practice AI assistant analyzing incoming emails. Extract key information and categorize this email:
       
       ${content}
       
-      Extract:
-      1. The type of request/event (lab update, insurance, patient inquiry, etc.)
-      2. Any patient names mentioned
-      3. Any dates mentioned
-      4. Any procedures mentioned
-      5. Any monetary amounts mentioned
-      6. Any medications mentioned
-      7. What action should be taken based on this email
-      8. A brief summary of the email (2-3 sentences)
+      Analyze the email and extract the following information in JSON format:
       
-      Format your response as structured JSON.
+      {
+        "eventType": "lab_case_update" | "insurance_approval" | "insurance_denial" | "patient_inquiry" | "appointment_request" | "prescription_confirmation" | "supply_order_update" | "document_request" | null,
+        "confidence": [confidence score between 0-1],
+        "patientInfo": {
+          "name": [detected patient name or null],
+          "id": [detected patient ID or null],
+          "contactInfo": [detected contact information or null]
+        },
+        "detectedEntities": {
+          "dates": [array of dates mentioned],
+          "times": [array of times mentioned],
+          "names": [array of names mentioned],
+          "procedures": [array of dental procedures mentioned],
+          "amounts": [array of monetary amounts mentioned],
+          "medications": [array of medications mentioned],
+          "insuranceInfo": {
+            "provider": [detected insurance provider or null],
+            "policyNumber": [detected policy number or null],
+            "coverage": [detected coverage information or null]
+          },
+          "labInfo": {
+            "caseNumber": [detected lab case number or null],
+            "labName": [detected lab name or null],
+            "status": [detected status or null]
+          }
+        },
+        "urgency": "high" | "medium" | "low",
+        "suggestedAction": [specific action that should be taken],
+        "suggestedTemplate": [suggested response template ID if applicable],
+        "summary": [brief summary of the email in 2-3 sentences]
+      }
+      
+      Ensure all extracted entities are accurate and relevant to dental practice operations.
       `;
       
-      try {
-        // In a production system, we would use the AI service manager directly
-        // const response = await aiServiceManager.generateCommunication(analysisPrompt, AIServiceType.COMMUNICATION, "email_analysis");
-        
-        // For now, return a mock analysis
-        return {
-          eventType: null, // We'll determine this based on the analysis
-          confidence: 0.85,
-          detectedEntities: {
-            dates: [],
-            names: [],
-            procedures: [],
-            amounts: [],
-            medications: []
-          },
-          summary: "No email content to analyze or mock analysis provided."
-        };
-      } catch (error) {
-        console.error('Error analyzing email with AI:', error);
-        throw new Error('Failed to analyze email content');
+      // Check if OPENAI_API_KEY_COMMUNICATION is available
+      if (process.env.OPENAI_API_KEY_COMMUNICATION) {
+        try {
+          // Use OpenAI API directly for now
+          const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY_COMMUNICATION
+          });
+          
+          const response = await openai.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content: "You are an AI assistant for a dental practice that specializes in analyzing emails and extracting structured information."
+              },
+              {
+                role: "user",
+                content: analysisPrompt
+              }
+            ],
+            temperature: 0.3,
+            max_tokens: 800,
+            response_format: { type: "json_object" }
+          });
+          
+          // Extract and parse the response
+          const responseText = response.choices[0]?.message?.content || "{}";
+          try {
+            const parsedResponse = JSON.parse(responseText);
+            
+            // Map the AI response to our AIEmailAnalysis structure
+            return {
+              eventType: parsedResponse.eventType as EmailEventType,
+              patientName: parsedResponse.patientInfo?.name,
+              patientId: parsedResponse.patientInfo?.id,
+              confidence: parsedResponse.confidence || 0,
+              detectedEntities: {
+                dates: parsedResponse.detectedEntities?.dates || [],
+                names: parsedResponse.detectedEntities?.names || [],
+                procedures: parsedResponse.detectedEntities?.procedures || [],
+                amounts: parsedResponse.detectedEntities?.amounts || [],
+                medications: parsedResponse.detectedEntities?.medications || [],
+                insuranceInfo: parsedResponse.detectedEntities?.insuranceInfo || {},
+                labInfo: parsedResponse.detectedEntities?.labInfo || {}
+              },
+              suggestedAction: parsedResponse.suggestedAction,
+              summary: parsedResponse.summary
+            };
+          } catch (err) {
+            console.error('Error parsing AI response:', err);
+            throw new Error('Failed to parse AI analysis response');
+          }
+        } catch (err) {
+          // Log the error but continue with fallback
+          const error = err as Error;
+          console.error('Error calling OpenAI for email analysis:', error.message);
+          
+          // Fall back to basic analysis if OpenAI API fails
+          return this.performBasicAnalysis(content);
+        }
+      } else {
+        // No API key available, perform basic analysis
+        console.warn('OPENAI_API_KEY_COMMUNICATION not available for email analysis');
+        return this.performBasicAnalysis(content);
       }
-    } catch (error) {
-      console.error('Error analyzing email content:', error);
-      throw error;
+    } catch (err) {
+      const error = err as Error;
+      console.error('Error analyzing email content:', error.message);
+      
+      // Return a basic error analysis
+      return {
+        eventType: null,
+        confidence: 0,
+        detectedEntities: {},
+        summary: `Error analyzing email: ${error.message}`
+      };
     }
+  }
+  
+  /**
+   * Perform basic analysis of email content without using AI
+   * @param content Email content as string
+   * @returns Basic analysis based on keyword matching
+   */
+  private performBasicAnalysis(content: string): AIEmailAnalysis {
+    // Basic analysis using regex patterns and keywords
+    const contentLower = content.toLowerCase();
+    let eventType: EmailEventType | null = null;
+    
+    // Simple event type detection based on keywords
+    if (contentLower.includes('lab') && (contentLower.includes('case') || contentLower.includes('update'))) {
+      eventType = EmailEventType.LAB_CASE_UPDATE;
+    } else if (contentLower.includes('insurance') && contentLower.includes('approv')) {
+      eventType = EmailEventType.INSURANCE_APPROVAL;
+    } else if (contentLower.includes('insurance') && (contentLower.includes('denied') || contentLower.includes('denial'))) {
+      eventType = EmailEventType.INSURANCE_DENIAL;
+    } else if (contentLower.includes('appointment') && (contentLower.includes('request') || contentLower.includes('schedule'))) {
+      eventType = EmailEventType.APPOINTMENT_REQUEST;
+    } else if (contentLower.includes('prescription')) {
+      eventType = EmailEventType.PRESCRIPTION_CONFIRMATION;
+    } else if (contentLower.includes('supply') || contentLower.includes('order')) {
+      eventType = EmailEventType.SUPPLY_ORDER_UPDATE;
+    } else if (contentLower.includes('document') || contentLower.includes('form')) {
+      eventType = EmailEventType.DOCUMENT_REQUEST;
+    }
+    
+    // Extract dates with a simple regex
+    const dateRegex = /\b(0?[1-9]|1[0-2])[\/\-](0?[1-9]|[12]\d|3[01])[\/\-]([12]\d{3}|\d{2})\b/g;
+    const dates = content.match(dateRegex) || [];
+    
+    // Extract monetary amounts
+    const amountRegex = /\$\s?\d+(?:\.\d{2})?|\d+\s?(?:dollars|USD)/g;
+    const amounts = content.match(amountRegex) || [];
+    
+    // Identify if there are any patient names (this is a simplified approach)
+    // In a real implementation, we would check against a database of patient names
+    const nameRegex = /(?:Mr\.|Mrs\.|Ms\.|Dr\.)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?/g;
+    const names = content.match(nameRegex) || [];
+    
+    // Create a basic summary
+    let summary = "Email received";
+    if (eventType) {
+      summary += ` related to ${eventType.replace(/_/g, ' ')}`;
+    }
+    if (dates.length > 0) {
+      summary += ` mentioning dates`;
+    }
+    
+    return {
+      eventType,
+      confidence: eventType ? 0.6 : 0.3, // Lower confidence for regex-based analysis
+      detectedEntities: {
+        dates,
+        names,
+        amounts
+      },
+      suggestedAction: eventType ? `Review and process ${eventType.replace(/_/g, ' ')}` : "Review email manually",
+      summary
+    };
   }
 
   /**
-   * Generate an AI response to an email
+   * Generate an AI response to an email based on content analysis and context
+   * 
+   * @param emailContent Original email content to respond to
+   * @param context Additional context like patient info, analysis results, template ID, etc.
+   * @returns Generated response with subject and body
    */
-  async generateAIResponse(emailContent: string, context?: any): Promise<{ subject: string; body: string }> {
-    try {
-      const prompt = `
-      The following is an email received by a dental practice. Please generate a professional response:
-      
-      ${emailContent}
-      
-      ${context ? `Context: ${JSON.stringify(context)}` : ''}
-      
-      Generate a response with:
-      1. An appropriate subject line
-      2. A professional body that addresses the sender's needs
-      3. Clear next steps if applicable
-      4. A friendly closing
-      
-      Format as JSON with "subject" and "body" fields.
-      `;
-      
-      try {
-        // In a production system, we would use the AI service manager directly
-        // const response = await aiServiceManager.generateCommunication(prompt, AIServiceType.COMMUNICATION, "email_response");
-        
-        // For now, return a mock response
-        return {
-          subject: "Re: Your Inquiry",
-          body: "Thank you for your message. This is an automated placeholder response. A team member will follow up with you shortly.\n\nBest regards,\nDentaMind Team"
-        };
-      } catch (error) {
-        console.error('Error generating email response with AI:', error);
-        throw new Error('Failed to generate email response');
-      }
-    } catch (error) {
-      console.error('Error generating AI response:', error);
-      throw error;
+  async generateAIResponse(
+    emailContent: string, 
+    context?: {
+      patientName?: string;
+      patientId?: number;
+      providerName?: string;
+      eventType?: EmailEventType;
+      analysis?: AIEmailAnalysis;
+      templateId?: string;
+      clinic?: {
+        name?: string;
+        phone?: string;
+        address?: string;
+        website?: string;
+      };
     }
+  ): Promise<{ subject: string; body: string; html?: string }> {
+    try {
+      // If a template ID was provided, try to use that template
+      if (context?.templateId) {
+        const template = this.emailTemplates.get(context.templateId);
+        if (template) {
+          return this.generateResponseFromTemplate(template, context);
+        }
+      }
+      
+      // First try to get a relevant template based on email type
+      if (context?.eventType) {
+        const relevantTemplates = Array.from(this.emailTemplates.values())
+          .filter(t => t.type.toLowerCase() === context.eventType?.toLowerCase().replace(/_/g, ''));
+        
+        if (relevantTemplates.length > 0) {
+          // Use the most recently used template if available
+          const template = relevantTemplates.sort((a, b) => {
+            if (!a.lastUsed) return 1;
+            if (!b.lastUsed) return -1;
+            return new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime();
+          })[0];
+          
+          return this.generateResponseFromTemplate(template, context);
+        }
+      }
+      
+      // If no template is available or suitable, generate a response with AI
+      if (process.env.OPENAI_API_KEY_COMMUNICATION) {
+        try {
+          // Create a detailed prompt for the AI
+          const prompt = `
+          You are an AI assistant for DentaMind dental practice. Please generate a professional response to the following email:
+          
+          ORIGINAL EMAIL:
+          ${emailContent}
+          
+          ${context ? `CONTEXT:
+          ${context.patientName ? `Patient Name: ${context.patientName}` : ''}
+          ${context.patientId ? `Patient ID: ${context.patientId}` : ''}
+          ${context.providerName ? `Provider Name: ${context.providerName}` : ''}
+          ${context.eventType ? `Email Type: ${context.eventType.replace(/_/g, ' ')}` : ''}
+          ${context.analysis?.summary ? `Analysis: ${context.analysis.summary}` : ''}
+          ${context.clinic?.name ? `Clinic Name: ${context.clinic.name}` : 'Clinic Name: DentaMind'}
+          ${context.clinic?.phone ? `Phone: ${context.clinic.phone}` : 'Phone: (555) 123-4567'}
+          ${context.clinic?.website ? `Website: ${context.clinic.website}` : 'Website: dentamind.com'}
+          ` : ''}
+          
+          Generate a response with:
+          1. An appropriate subject line (should typically start with "Re: " followed by a relevant subject line)
+          2. A professional body that addresses the sender's needs
+          3. Clear next steps if applicable
+          4. A friendly closing including contact information
+          
+          Response should be in clean HTML format suitable for an email. Include appropriate formatting like paragraphs, bulleted lists if needed, and a professional signature block.
+          
+          Format your response as JSON with these fields:
+          {
+            "subject": "The email subject line",
+            "body": "The plain text version of the email body",
+            "html": "The HTML version of the email body with proper formatting"
+          }
+          `;
+          
+          // Use OpenAI API directly for now
+          const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY_COMMUNICATION
+          });
+          
+          const response = await openai.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content: "You are an AI assistant for a dental practice that specializes in generating professional email responses."
+              },
+              {
+                role: "user",
+                content: prompt
+              }
+            ],
+            temperature: 0.7,
+            max_tokens: 1000,
+            response_format: { type: "json_object" }
+          });
+          
+          // Extract and parse the response
+          const responseText = response.choices[0]?.message?.content || "{}";
+          try {
+            const parsedResponse = JSON.parse(responseText);
+            
+            return {
+              subject: parsedResponse.subject || "Re: Your Message",
+              body: parsedResponse.body || "Thank you for your message. We will respond shortly.",
+              html: parsedResponse.html
+            };
+          } catch (err) {
+            console.error('Error parsing AI response:', err);
+            // Fall back to default response
+            return this.getDefaultResponse(emailContent, context);
+          }
+        } catch (err) {
+          const error = err as Error;
+          console.error('Error generating email response with AI:', error.message);
+          // Fall back to default response
+          return this.getDefaultResponse(emailContent, context);
+        }
+      } else {
+        // No API key available, return default response
+        console.warn('OPENAI_API_KEY_COMMUNICATION not available for email response generation');
+        return this.getDefaultResponse(emailContent, context);
+      }
+    } catch (err) {
+      const error = err as Error;
+      console.error('Error generating AI response:', error.message);
+      
+      // Always return something, even in case of error
+      return {
+        subject: "Re: Your Message",
+        body: "Thank you for your message. A member of our team will review it and respond as soon as possible.\n\nBest regards,\nDentaMind Team"
+      };
+    }
+  }
+  
+  /**
+   * Generate an email response from a template by replacing variables
+   */
+  private generateResponseFromTemplate(
+    template: EmailTemplate, 
+    context?: any
+  ): Promise<{ subject: string; body: string; html?: string }> {
+    // Create a copy of template content to replace variables
+    let subject = template.subject;
+    let body = template.body;
+    let html = template.htmlVersion;
+    
+    // Basic variable replacement
+    if (context) {
+      // Common replacements
+      const replacements: Record<string, string> = {
+        '{{patientName}}': context.patientName || 'Valued Patient',
+        '{{providerName}}': context.providerName || 'Dr. Smith',
+        '{{clinicName}}': context.clinic?.name || 'DentaMind',
+        '{{practicePhone}}': context.clinic?.phone || '(555) 123-4567',
+        '{{practiceAddress}}': context.clinic?.address || '123 Main St, Anytown, USA',
+        '{{date}}': new Date().toLocaleDateString(),
+        '{{time}}': new Date().toLocaleTimeString(),
+        '{{logoUrl}}': '/assets/dentamind-logo.png'
+      };
+      
+      // Apply all replacements
+      Object.entries(replacements).forEach(([key, value]) => {
+        subject = subject.replace(new RegExp(key, 'g'), value);
+        body = body.replace(new RegExp(key, 'g'), value);
+        if (html) {
+          html = html.replace(new RegExp(key, 'g'), value);
+        }
+      });
+    }
+    
+    // Update last used timestamp for the template
+    this.updateTemplateUsage(template.id as string);
+    
+    return Promise.resolve({
+      subject,
+      body,
+      html
+    });
+  }
+  
+  /**
+   * Update template usage timestamp
+   */
+  private updateTemplateUsage(templateId: string): void {
+    const template = this.emailTemplates.get(templateId);
+    if (template) {
+      this.emailTemplates.set(templateId, {
+        ...template,
+        lastUsed: new Date().toISOString()
+      });
+      
+      // In a real implementation, we would save this to the database
+    }
+  }
+  
+  /**
+   * Get a default response when AI or templates are not available
+   */
+  private getDefaultResponse(
+    emailContent: string, 
+    context?: any
+  ): { subject: string; body: string; html?: string } {
+    // Extract original subject if available
+    const subjectMatch = emailContent.match(/Subject: (.*?)(?:\n|$)/i);
+    const originalSubject = subjectMatch ? subjectMatch[1].trim() : '';
+    
+    const subject = originalSubject ? `Re: ${originalSubject}` : "Re: Your Message";
+    const patientName = context?.patientName || "Valued Patient";
+    const clinicName = context?.clinic?.name || "DentaMind";
+    const phone = context?.clinic?.phone || "(555) 123-4567";
+    
+    const body = `Dear ${patientName},\n\nThank you for your message. A member of our dental team will review your inquiry and respond as soon as possible, typically within 1-2 business days.\n\nIf you have an urgent dental concern, please call our office directly at ${phone}.\n\nBest regards,\n${clinicName} Team`;
+    
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+        <img src="/assets/dentamind-logo.png" alt="${clinicName} Logo" style="max-width: 200px; margin-bottom: 20px;" />
+        <p>Dear ${patientName},</p>
+        <p>Thank you for your message. A member of our dental team will review your inquiry and respond as soon as possible, typically within 1-2 business days.</p>
+        <p style="color: #d9534f;"><strong>Important:</strong> If you have an urgent dental concern, please call our office directly at <a href="tel:${phone}">${phone}</a>.</p>
+        <p>Best regards,<br>${clinicName} Team</p>
+      </div>
+    `;
+    
+    return { subject, body, html };
   }
 
   /**
@@ -766,7 +1121,8 @@ export class EmailAIService {
         message: 'Settings updated successfully',
         settings: this.settings
       };
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error;
       console.error('Error updating email settings:', error);
       return {
         success: false,
@@ -836,14 +1192,15 @@ export class EmailAIService {
     
     // If this is set as default, update other providers
     if (newProvider.isDefault) {
-      for (const [key, provider] of this.emailProviders.entries()) {
+      // Use Array.from to convert the Map entries to an array first
+      Array.from(this.emailProviders.entries()).forEach(([key, provider]) => {
         if (provider.isDefault) {
           this.emailProviders.set(key, {
             ...provider,
             isDefault: false
           });
         }
-      }
+      });
     }
     
     this.emailProviders.set(id, newProvider);
@@ -875,14 +1232,15 @@ export class EmailAIService {
     
     // If this is set as default, update other providers
     if (updatedProvider.isDefault && !existingProvider.isDefault) {
-      for (const [key, provider] of this.emailProviders.entries()) {
+      // Use Array.from to convert the Map entries to an array first
+      Array.from(this.emailProviders.entries()).forEach(([key, provider]) => {
         if (provider.isDefault && key !== id) {
           this.emailProviders.set(key, {
             ...provider,
             isDefault: false
           });
         }
-      }
+      });
     }
     
     this.emailProviders.set(id, updatedProvider);
@@ -961,7 +1319,8 @@ export class EmailAIService {
         success: true,
         message: 'Successfully connected to email server'
       };
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error;
       console.error('Error testing email connection:', error);
       
       // Update the provider with disconnected status
