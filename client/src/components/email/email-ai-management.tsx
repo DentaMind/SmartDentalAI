@@ -58,6 +58,16 @@ interface EmailProvider {
   connected: boolean;
 }
 
+interface EmailProviderForm {
+  name: string;
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  useSSL: boolean;
+  isDefault: boolean;
+}
+
 interface EmailMonitorStatus {
   status: 'connected' | 'disconnected' | 'error';
   lastCheck: string;
@@ -78,7 +88,7 @@ export function EmailAIManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [showNewProvider, setShowNewProvider] = useState(false);
   const [showNewTemplate, setShowNewTemplate] = useState(false);
-  const [editingProvider, setEditingProvider] = useState<EmailProvider | null>(null);
+  const [editingProvider, setEditingProvider] = useState<(EmailProvider & { password?: string }) | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [testEmail, setTestEmail] = useState('');
   const [aiEnabled, setAiEnabled] = useState(false);
@@ -91,7 +101,7 @@ export function EmailAIManagement() {
   });
 
   // New provider form state
-  const [newProvider, setNewProvider] = useState({
+  const [newProvider, setNewProvider] = useState<EmailProviderForm>({
     name: '',
     host: '',
     port: 587,
@@ -449,7 +459,7 @@ export function EmailAIManagement() {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to refresh status');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error refreshing status:', error);
       toast({
         title: "Error",
