@@ -1,237 +1,216 @@
-import React, { useState } from "react";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from "@/components/ui/dialog";
-import { 
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Mail, MessageSquare, Send } from "lucide-react";
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useMutation } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { CalendarIcon, MailIcon, Send } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 // Define form schema
-const sendFormSchema = z.object({
-  contactMethod: z.enum(["email", "sms", "both"], {
-    required_error: "Please select a contact method",
+const sendPatientFormSchema = z.object({
+  patientId: z.number().optional(),
+  patientEmail: z.string().email({ message: "Please enter a valid email address" }),
+  patientName: z.string().min(2, { message: "Patient name is required" }),
+  formType: z.enum(['intake', 'medical-history', 'consent', 'hipaa', 'financial'], {
+    required_error: "Please select a form type",
   }),
-  emailAddress: z.string().email("Invalid email address").optional()
-    .refine(email => email !== undefined && email !== "", {
-      message: "Email is required when email contact is selected",
-      path: ["emailAddress"],
-    }),
-  phoneNumber: z.string().optional()
-    .refine(phone => phone !== undefined && phone !== "", {
-      message: "Phone number is required when SMS contact is selected",
-      path: ["phoneNumber"],
-    }),
-  hipaaConsent: z.boolean().refine(value => value === true, {
-    message: "HIPAA consent is required",
-  }),
-  message: z.string().optional(),
+  customMessage: z.string().optional(),
+  appointmentDate: z.date().optional(),
+  sendCopy: z.boolean().default(false),
+  practiceEmail: z.string().email().optional(),
 });
 
-type SendFormValues = z.infer<typeof sendFormSchema>;
+type SendPatientFormValues = z.infer<typeof sendPatientFormSchema>;
 
-interface SendPatientIntakeFormProps {
+// Component for sending patient intake forms
+export function SendPatientIntakeForm({ patientId, patientEmail, patientName }: { 
   patientId?: number;
-  patientName?: string;
   patientEmail?: string;
-  patientPhone?: string;
-  buttonVariant?: "default" | "outline" | "secondary" | "ghost" | "link";
-  buttonSize?: "default" | "sm" | "lg" | "icon";
-  onSuccess?: () => void;
-}
-
-export function SendPatientIntakeForm({
-  patientId,
-  patientName = "Patient",
-  patientEmail = "",
-  patientPhone = "",
-  buttonVariant = "default",
-  buttonSize = "default",
-  onSuccess
-}: SendPatientIntakeFormProps) {
-  const [open, setOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  patientName?: string;
+}) {
   const { toast } = useToast();
-
-  // Set up form with default values
-  const form = useForm<SendFormValues>({
-    resolver: zodResolver(sendFormSchema),
+  
+  // Define form with default values
+  const form = useForm<SendPatientFormValues>({
+    resolver: zodResolver(sendPatientFormSchema),
     defaultValues: {
-      contactMethod: "email",
-      emailAddress: patientEmail,
-      phoneNumber: patientPhone,
-      hipaaConsent: false,
-      message: "",
+      patientId: patientId,
+      patientEmail: patientEmail || "",
+      patientName: patientName || "",
+      formType: 'intake',
+      customMessage: '',
+      sendCopy: true,
+      practiceEmail: 'dentamind27@gmail.com',
     },
   });
 
-  // Watch contact method to validate appropriate fields
-  const contactMethod = form.watch("contactMethod");
-
-  // Handle form submission
-  const onSubmit = async (data: SendFormValues) => {
-    setIsSubmitting(true);
-    
-    try {
-      // Call API to send patient intake form
-      await apiRequest({
-        method: "POST",
-        url: "/api/patient-forms/send",
-        body: {
-          patientId,
-          contactMethod: data.contactMethod,
-          emailAddress: data.contactMethod === "email" || data.contactMethod === "both" ? data.emailAddress : undefined,
-          phoneNumber: data.contactMethod === "sms" || data.contactMethod === "both" ? data.phoneNumber : undefined,
-          message: data.message,
-        },
+  // Mutation to send the form
+  const sendFormMutation = useMutation({
+    mutationFn: (data: SendPatientFormValues) => {
+      const formattedData = {
+        ...data,
+        appointmentDate: data.appointmentDate ? format(data.appointmentDate, 'PPP') : undefined,
+      };
+      return apiRequest('/api/patient-forms/send', {
+        method: 'POST',
+        body: JSON.stringify(formattedData),
       });
-      
-      // Show success toast
+    },
+    onSuccess: () => {
       toast({
-        title: "Intake form sent successfully",
-        description: `The patient intake form has been sent to ${patientName}.`,
+        title: "Form sent successfully",
+        description: "The patient will receive an email with a link to complete the form.",
       });
-      
-      // Close dialog
-      setOpen(false);
-      
-      // Call success callback if provided
-      if (onSuccess) onSuccess();
-    } catch (error) {
-      console.error("Error sending patient intake form:", error);
-      
+      form.reset();
+    },
+    onError: (error) => {
+      console.error("Error sending form:", error);
       toast({
-        title: "Error sending intake form",
-        description: "There was an error sending the patient intake form. Please try again.",
+        title: "Error sending form",
+        description: "There was a problem sending the form. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    },
+  });
+
+  // Submit handler
+  function onSubmit(data: SendPatientFormValues) {
+    sendFormMutation.mutate(data);
+  }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant={buttonVariant} size={buttonSize} className="gap-2">
-          <Send className="h-4 w-4" />
-          Send Intake Form
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Send Patient Intake Form</DialogTitle>
-          <DialogDescription>
-            Send a comprehensive intake form to {patientName} via email or SMS.
-          </DialogDescription>
-        </DialogHeader>
-        
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle>Send Patient Form</CardTitle>
+        <CardDescription>
+          Email a secure form to your patient to complete online.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="contactMethod"
+              name="patientEmail"
               render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel>Contact Method</FormLabel>
+                <FormItem>
+                  <FormLabel>Patient Email</FormLabel>
                   <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="flex flex-col space-y-1"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="email" id="option-email" />
-                        <Label htmlFor="option-email" className="flex items-center gap-1">
-                          <Mail className="h-4 w-4" />Email
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="sms" id="option-sms" />
-                        <Label htmlFor="option-sms" className="flex items-center gap-1">
-                          <MessageSquare className="h-4 w-4" />SMS
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="both" id="option-both" />
-                        <Label htmlFor="option-both">Both</Label>
-                      </div>
-                    </RadioGroup>
+                    <Input placeholder="patient@example.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             
-            {(contactMethod === "email" || contactMethod === "both") && (
-              <FormField
-                control={form.control}
-                name="emailAddress"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email Address</FormLabel>
-                    <FormControl>
-                      <Input placeholder="patient@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-            
-            {(contactMethod === "sms" || contactMethod === "both") && (
-              <FormField
-                control={form.control}
-                name="phoneNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="(555) 123-4567" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+            <FormField
+              control={form.control}
+              name="patientName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Patient Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="John Smith" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             <FormField
               control={form.control}
-              name="message"
+              name="formType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Form Type</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a form type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="intake">Patient Intake Form</SelectItem>
+                      <SelectItem value="medical-history">Medical History Form</SelectItem>
+                      <SelectItem value="consent">Treatment Consent Form</SelectItem>
+                      <SelectItem value="hipaa">HIPAA Consent Form</SelectItem>
+                      <SelectItem value="financial">Financial Agreement Form</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="appointmentDate"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Appointment Date (Optional)</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="customMessage"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Custom Message (Optional)</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="Add a personalized message to the patient"
-                      {...field}
+                    <Textarea 
+                      placeholder="Add a personal message to the patient..."
+                      className="min-h-[100px]"
+                      {...field} 
                     />
                   </FormControl>
-                  <FormDescription>
-                    This message will be included in the email or SMS.
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -239,49 +218,52 @@ export function SendPatientIntakeForm({
             
             <FormField
               control={form.control}
-              name="hipaaConsent"
+              name="sendCopy"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel>Send Copy to Practice</FormLabel>
+                    <FormDescription>
+                      Receive a copy of this form at {form.watch('practiceEmail')}
+                    </FormDescription>
+                  </div>
                   <FormControl>
-                    <Checkbox
+                    <Switch
                       checked={field.value}
                       onCheckedChange={field.onChange}
                     />
                   </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      HIPAA Compliance Consent
-                    </FormLabel>
-                    <FormDescription>
-                      I confirm that sending this form complies with HIPAA regulations and patient has provided consent for electronic communication.
-                    </FormDescription>
-                  </div>
-                  <FormMessage />
                 </FormItem>
               )}
             />
             
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
-                  </>
+            <div className="flex justify-end pt-4">
+              <Button
+                type="submit"
+                disabled={sendFormMutation.isPending}
+              >
+                {sendFormMutation.isPending ? (
+                  <div className="flex items-center">
+                    <span className="mr-2">Sending...</span>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  </div>
                 ) : (
-                  <>
-                    <Send className="mr-2 h-4 w-4" />
-                    Send Form
-                  </>
+                  <div className="flex items-center">
+                    <span className="mr-2">Send Form</span>
+                    <Send className="h-4 w-4" />
+                  </div>
                 )}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </CardContent>
+      <CardFooter className="bg-muted/50 text-sm text-muted-foreground">
+        <div className="flex items-center">
+          <MailIcon className="h-4 w-4 mr-2" />
+          <p>The patient will receive an email with a secure link to complete this form.</p>
+        </div>
+      </CardFooter>
+    </Card>
   );
 }

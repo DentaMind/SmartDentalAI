@@ -1,10 +1,12 @@
-import patientFormsRoutes from './patient-forms';
+import { setupPatientFormsRoutes } from './patient-forms';
+import { setupEmailSchedulerRoutes } from './email-scheduler-routes';
 import schedulerRoutes from './scheduler-routes';
 import translationRoutes from './translation-routes';
 import insuranceRoutes from './insurance-routes';
 
 export {
-  patientFormsRoutes,
+  setupPatientFormsRoutes,
+  setupEmailSchedulerRoutes,
   schedulerRoutes,
   translationRoutes,
   insuranceRoutes
