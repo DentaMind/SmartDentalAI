@@ -38,11 +38,14 @@ const OrthodonticDashboard = lazy(() => import('./pages/orthodontic-dashboard'))
 const DentalAIHub = lazy(() => import('./pages/dental-ai-hub'));
 const SubscriptionPage = lazy(() => import('./pages/subscription-page'));
 
-// Component wrappers for lazy-loaded components to fix TypeScript issues
+// Component wrappers for lazy-loaded and FC components to fix TypeScript issues
 const AIHubWrapper = () => <AIHub />;
 const OrthodonticDashboardWrapper = () => <OrthodonticDashboard />;
 const DentalAIHubWrapper = () => <DentalAIHub />;
 const SubscriptionPageWrapper = () => <SubscriptionPage />;
+const EmailIntegrationWrapper = () => <EmailIntegrationPage />;
+const XRayFMXWrapper = () => <XRayFMXPage />;
+const XRayComparisonTestWrapper = () => <XRayComparisonTestPage />;
 
 // Loading fallback
 const Loading = () => <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -78,10 +81,10 @@ function Router() {
         <ProtectedRoute path="/post-op-instructions" component={PostOpInstructionsPage} />
         <ProtectedRoute path="/appointment-request" component={AppointmentRequestPage} />
         <ProtectedRoute path="/email" component={UnifiedEmailPage} />
-        <ProtectedRoute path="/email-integration" component={EmailIntegrationPage} />
-        <ProtectedRoute path="/xray-fmx" component={XRayFMXPage} />
-        <ProtectedRoute path="/xray-fmx/:patientId" component={XRayFMXPage} />
-        <ProtectedRoute path="/xray-comparison-test" component={XRayComparisonTestPage} />
+        <ProtectedRoute path="/email-integration" component={EmailIntegrationWrapper} />
+        <ProtectedRoute path="/xray-fmx" component={XRayFMXWrapper} />
+        <ProtectedRoute path="/xray-fmx/:patientId" component={XRayFMXWrapper} />
+        <ProtectedRoute path="/xray-comparison-test" component={XRayComparisonTestWrapper} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
