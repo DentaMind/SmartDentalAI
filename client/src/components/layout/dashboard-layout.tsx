@@ -24,7 +24,6 @@ interface SidebarItemProps {
 }
 
 const navigationItems = [
-  { icon: <Activity className="h-4 w-4 mr-2" />, label: 'Dashboard', href: '/dashboard' },
   { icon: <Calendar className="h-4 w-4 mr-2" />, label: 'Appointments', href: '/appointments' },
   { icon: <User className="h-4 w-4 mr-2" />, label: 'Patients', href: '/patients' },
   { icon: <FileText className="h-4 w-4 mr-2" />, label: 'Medical Records', href: '/medical-records' },

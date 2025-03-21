@@ -56,8 +56,8 @@ function Router() {
         <Route path="/auth/subscription" component={SubscriptionPageWrapper} />
         <Route path="/form/:formToken" component={FormPage} />
         <Route path="/form-submitted" component={FormSubmittedPage} />
-        <ProtectedRoute path="/" component={DashboardPage} />
-        <ProtectedRoute path="/dashboard" component={DashboardPage} />
+        <ProtectedRoute path="/" component={AppointmentsPage} />
+        <ProtectedRoute path="/dashboard" component={AppointmentsPage} />
         <ProtectedRoute path="/patients" component={PatientsPage} />
         <ProtectedRoute path="/patients/:id" component={PatientProfilePage} />
         <ProtectedRoute path="/appointments" component={AppointmentsPage} />

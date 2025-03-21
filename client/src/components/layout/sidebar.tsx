@@ -65,11 +65,10 @@ export function Sidebar() {
 
   // Define navigation items based on user role
   const getNavigationItems = (): NavigationItem[] => {
-    const baseItems: NavigationItem[] = [
-      { name: "Practice Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    ];
+    const baseItems: NavigationItem[] = [];
 
     const doctorItems: NavigationItem[] = [
+      { name: "Schedule", href: "/appointments", icon: Calendar },
       { 
         name: "AI Hub", 
         href: "/ai-hub", 
@@ -77,7 +76,6 @@ export function Sidebar() {
         highlight: true 
       },
       { name: "Patients", href: "/patients", icon: Users },
-      { name: "Schedule", href: "/appointments", icon: Calendar },
       { name: "Clinical Tools", href: "/dental-ai-hub", icon: Stethoscope },
       { name: "Email Hub", href: "/email", icon: Mail, highlight: true },
       { name: "Staff Management", href: "/time-clock", icon: Clock },
@@ -90,6 +88,7 @@ export function Sidebar() {
     ];
 
     const staffItems: NavigationItem[] = [
+      { name: "Schedule", href: "/appointments", icon: Calendar },
       { 
         name: "AI Hub", 
         href: "/ai-hub", 
@@ -97,7 +96,6 @@ export function Sidebar() {
         highlight: true 
       },
       { name: "Patients", href: "/patients", icon: Users },
-      { name: "Schedule", href: "/appointments", icon: Calendar },
       { name: "Time Management", href: "/time-clock", icon: Clock },
       { name: "Clinical Tools", href: "/dental-ai-hub", icon: Stethoscope },
       { name: "Email Hub", href: "/email", icon: Mail, highlight: true },
