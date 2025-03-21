@@ -16,8 +16,6 @@ import dentaMindLogo from "../assets/dentamind-logo.png";
 // Import smile images
 import dentalSmile from "../assets/dental-smile.jpg";
 import smileImage from "../assets/iStock-526222203.jpg";
-// Import mascot components
-import { OnboardingMascot, UserRole } from "@/components/mascot";
 
 type UserRegistrationData = {
   username: string;
@@ -46,8 +44,6 @@ type UserRegistrationData = {
 export default function AuthPage() {
   const { t } = useTranslation();
   const { user, login, register, isLoading, error } = useAuth();
-  const [userRole, setUserRole] = useState<UserRole>('new');
-  const [mascotTourComplete, setMascotTourComplete] = useState<boolean>(false);
   
   const staffForm = useForm<UserRegistrationData>({
     resolver: zodResolver(
@@ -332,35 +328,6 @@ export default function AuthPage() {
       console.log("User was redirected from:", redirectedFrom);
     }
   }, []);
-  
-  // Initialize mascot with the proper role based on the URL parameter
-  useEffect(() => {
-    // Check if there's a role in the URL (e.g., ?role=patient)
-    const params = new URLSearchParams(window.location.search);
-    const roleParam = params.get('role');
-    
-    if (roleParam) {
-      switch(roleParam) {
-        case 'patient':
-          setUserRole('patient');
-          console.log("Mascot initialized with role: patient");
-          break;
-        case 'doctor':
-          setUserRole('doctor');
-          console.log("Mascot initialized with role: doctor");
-          break;
-        case 'staff':
-          setUserRole('staff');
-          console.log("Mascot initialized with role: staff");
-          break;
-        default:
-          setUserRole('new');
-          console.log("Mascot initialized with role: new");
-      }
-    } else {
-      console.log("Mascot initialized with default role: new");
-    }
-  }, []);
 
   if (user) {
     const redirectTo = sessionStorage.getItem("redirectedFrom") || "/";
@@ -378,19 +345,7 @@ export default function AuthPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(40,199,111,0.15),transparent_70%)]"></div>
       </div>
       
-      {/* Add the AI Mascot to provide guidance */}
-      <OnboardingMascot 
-        userRole={userRole}
-        currentArea="login"
-        position="right"
-        size="md"
-        autoStart={true}
-        hideWhenInactive={false}
-        onTourComplete={() => {
-          setMascotTourComplete(true);
-          console.log("Mascot tour completed for login area");
-        }}
-      />
+
       
       <div className="w-full max-w-5xl grid md:grid-cols-2 gap-10 mx-auto">
         <div className="flex flex-col justify-center space-y-6 relative">
@@ -442,24 +397,7 @@ export default function AuthPage() {
             {/* Subtle card pattern */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0)_0%,rgba(255,255,255,0.4)_100%)] opacity-30 pointer-events-none rounded-xl"></div>
             <Tabs 
-              defaultValue="login" 
-              onValueChange={(value) => {
-                // Update the mascot role based on the selected tab
-                switch(value) {
-                  case 'login':
-                    setUserRole('new');
-                    break;
-                  case 'register':
-                    setUserRole('patient');
-                    break;
-                  case 'provider':
-                    setUserRole('doctor');
-                    break;
-                  case 'staff':
-                    setUserRole('staff');
-                    break;
-                }
-              }}
+              defaultValue="login"
             >
               <TabsList className="flex w-full justify-center mb-8 bg-white/80 backdrop-blur-sm rounded-xl shadow-md overflow-visible border border-green-100/50 p-2.5 gap-4">
                 <TabsTrigger 
@@ -1299,15 +1237,7 @@ export default function AuthPage() {
         </Card>
       </div>
       
-      {/* Add the AI Mascot for onboarding guidance */}
-      <OnboardingMascot 
-        userRole={userRole}
-        currentArea="login"
-        position="right"
-        size="md"
-        autoStart={true}
-        onTourComplete={() => setMascotTourComplete(true)}
-      />
+
     </div>
   );
 }
