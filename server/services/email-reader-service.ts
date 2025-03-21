@@ -641,7 +641,7 @@ export class EmailReaderService {
       try {
         // Queue the request to prevent rate limiting
         aiResponse = await aiRequestQueue.enqueueRequest(
-          AIServiceType.COMMUNICATION,
+          'communication' as AIServiceType,
           async () => {
             const response = await this.openAI.chat.completions.create({
               model: "gpt-4o",
