@@ -15,6 +15,7 @@ import { setupEmailReaderRoutes } from './routes/email-reader-routes-fixed';
 import { setupPatientFormsRoutes } from './routes/patient-forms-routes';
 import { setupEmailSchedulerRoutes } from './routes/email-scheduler-routes';
 import { EmailAIService } from './services/email-ai-service-fixed';
+import dicomRoutes from './routes/dicom-routes';
 import path from 'path';
 import { PatientMedicalHistory } from '../shared/schema';
 
@@ -859,18 +860,19 @@ router.post('/ai/refine-diagnosis', requireAuth, async (req, res) => {
 const emailAIService = new EmailAIService(); // Create EmailAIService instance
 
 // Set up email scheduler routes
-setupEmailSchedulerRoutes(router, storage);
+setupEmailSchedulerRoutes(router);
 
 // Set up email reader routes
-router.use('/email-reader', emailReaderRoutes);
+setupEmailReaderRoutes(router);
 
 // Set up patient forms routes
-setupPatientFormsRoutes(router, storage);
+setupPatientFormsRoutes(router);
 
 // Set up other route modules
 router.use('/scheduler', schedulerRoutes);
 router.use('/translation', translationRoutes);
 router.use('/insurance', insuranceRoutes);
+router.use('/dicom', dicomRoutes);
 
 // Setup automatic seeding of test data
 if (process.env.NODE_ENV !== 'production') {

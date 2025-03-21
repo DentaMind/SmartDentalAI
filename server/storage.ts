@@ -372,6 +372,19 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getXray(id: number): Promise<Xray | undefined> {
+    return this.xrays.get(id);
+  }
+
+  async updateXray(id: number, updates: Partial<Xray>): Promise<Xray | undefined> {
+    const xray = this.xrays.get(id);
+    if (!xray) return undefined;
+
+    const updatedXray = { ...xray, ...updates };
+    this.xrays.set(id, updatedXray);
+    return updatedXray;
+  }
+
   async createFinancialTransaction(insertTransaction: InsertFinancialTransaction): Promise<FinancialTransaction> {
     const id = this.currentId++;
     const transaction = { id, ...insertTransaction };
