@@ -25,6 +25,7 @@ import { AppointmentForm } from "@/components/appointments/appointment-form";
 import { AppointmentDetails } from "@/components/appointments/appointment-details";
 // Import our new enhanced scheduler
 import { EnhancedSchedulerV2 } from "@/components/appointments/enhanced-scheduler-v2";
+import { SchedulerV3 } from "@/components/appointments/scheduler-v3";
 import {
   Dialog,
   DialogContent,
@@ -191,11 +192,9 @@ export default function AppointmentsPage() {
             {/* Include both schedulers - the new one first */}
             <div className="space-y-5">
               <div className="bg-white rounded-lg shadow">
-                <h3 className="px-4 pt-4 text-base font-medium">Enhanced Provider-Based Scheduler</h3>
+                <h3 className="px-4 pt-4 text-base font-medium">Multi-Provider Scheduler (DentaMind Pro)</h3>
                 <div className="p-2">
-                  {/* Import from the new file for our enhanced scheduler with provider columns */}
-                  {/* @ts-ignore */}
-                  <EnhancedSchedulerV2 />
+                  <SchedulerV3 />
                 </div>
               </div>
               
