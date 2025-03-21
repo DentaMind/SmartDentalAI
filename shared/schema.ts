@@ -299,6 +299,7 @@ export const xrays = pgTable("xrays", {
   analysisDate: timestamp("analysis_date"),
   pathologyDetected: boolean("pathology_detected").default(false),
   comparisonResult: jsonb("comparison_result"), // Progression or stability compared to previous
+  metadata: jsonb("metadata"), // DICOM metadata and other technical information
 });
 
 // Insurance verification records

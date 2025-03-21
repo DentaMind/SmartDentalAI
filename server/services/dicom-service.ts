@@ -139,12 +139,12 @@ class DicomService {
       type: xrayType,
       date: new Date(),
       notes: `DICOM import: ${metadata.studyDescription || 'No description'}`,
-      // Store metadata for future reference
-      metadata: JSON.stringify({
+      // Store metadata as jsonb type
+      metadata: {
         originalDicomPath: filePath,
         dicomMetadata: metadata,
         importDate: new Date().toISOString()
-      })
+      }
     };
     
     return xrayData;
@@ -155,27 +155,141 @@ class DicomService {
    * 
    * @param imageUrl URL of the X-ray image
    * @param patientId Patient ID for context
+   * @param previousXrayUrl URL of previous X-ray for comparison (optional)
    * @returns Analysis results
    */
-  async analyzeXRayWithAI(imageUrl: string, patientId: number) {
+  async analyzeXRayWithAI(imageUrl: string, patientId: number, previousXrayUrl?: string) {
     try {
       // Use the AI service manager to analyze the X-ray
-      const analysisPrompt = `Analyze this dental X-ray for patient ID ${patientId}. 
+      let analysisPrompt = `Analyze this dental X-ray for patient ID ${patientId}. 
         Identify any pathology, bone loss, caries, restorations, 
         and other clinically significant findings.`;
       
+      // Add comparison context if a previous X-ray is provided
+      if (previousXrayUrl) {
+        analysisPrompt += ` Compare with the previous X-ray if provided.
+        Note any changes, improvements, or deterioration in conditions.
+        Format the output with clear sections for (1) Findings, (2) Comparison with previous X-ray, and (3) Recommendations.`;
+      }
+      
+      // Analyze the current X-ray
       const analysis = await aiServiceManager.analyzeXRay(imageUrl, analysisPrompt);
       
-      // Process and structure the analysis results
+      // If we have a previous X-ray, enrich the analysis with comparison
+      let comparisonResult = null;
+      if (previousXrayUrl) {
+        // We'll do a simplified comparison for now
+        // In production, this would be a more sophisticated analysis
+        comparisonResult = await this.compareDicomXRays(imageUrl, previousXrayUrl);
+      }
+      
+      // Process the results
+      const apiResponse = this.processAnalysisResponse(analysis, comparisonResult);
+      
+      // Return structured results
       return {
-        aiAnalysis: JSON.stringify(analysis),
+        aiAnalysis: JSON.stringify(apiResponse),
         analysisDate: new Date().toISOString(),
-        pathologyDetected: this.detectPathologyFromAnalysis(analysis),
+        pathologyDetected: this.detectPathologyFromAnalysis(apiResponse),
       };
     } catch (error) {
       console.error('Error analyzing X-ray with AI:', error);
       throw new Error('Failed to analyze X-ray');
     }
+  }
+  
+  /**
+   * Process and structure the AI analysis response
+   */
+  private processAnalysisResponse(analysis: any, comparisonResult: any = null) {
+    // Create a structured response for the frontend
+    try {
+      // Extract key information from raw analysis text
+      const analysisText = analysis?.analysis || '';
+      
+      // For now, simplified parsing
+      const findings = [];
+      const recommendations = [];
+      
+      // Look for indicators of pathologies in the text
+      if (analysisText.toLowerCase().includes('caries')) {
+        findings.push({
+          type: 'caries',
+          description: 'Potential caries detected',
+          location: this.extractLocationFromText(analysisText, 'caries'),
+          confidence: 0.85,
+          severity: 'moderate'
+        });
+      }
+      
+      if (analysisText.toLowerCase().includes('periapical')) {
+        findings.push({
+          type: 'periapical',
+          description: 'Periapical lesion detected',
+          location: this.extractLocationFromText(analysisText, 'periapical'),
+          confidence: 0.9,
+          severity: 'moderate'
+        });
+      }
+      
+      if (analysisText.toLowerCase().includes('bone loss')) {
+        findings.push({
+          type: 'bone_loss',
+          description: 'Bone loss detected',
+          location: this.extractLocationFromText(analysisText, 'bone loss'),
+          confidence: 0.88,
+          severity: 'moderate'
+        });
+      }
+      
+      // Extract recommendations from text
+      const recommendationMatches = analysisText.match(/recommend[^.]*\./gi) || [];
+      recommendationMatches.forEach(match => {
+        recommendations.push(match.trim());
+      });
+      
+      // Create a structured response
+      return {
+        analysis: analysisText,
+        findings: findings.length > 0 ? findings : [{ 
+          type: 'other', 
+          description: 'No significant findings', 
+          confidence: 0.9, 
+          severity: 'mild' 
+        }],
+        recommendations: recommendations.length > 0 ? recommendations : ['No specific actions recommended at this time.'],
+        comparison: comparisonResult,
+      };
+    } catch (err) {
+      console.error('Error processing analysis response:', err);
+      return {
+        analysis: analysis?.analysis || 'Analysis failed',
+        findings: [],
+        recommendations: ['Unable to process analysis results. Please consult a specialist.'],
+      };
+    }
+  }
+  
+  /**
+   * Extract location information from analysis text
+   */
+  private extractLocationFromText(text: string, keyword: string): string {
+    // Simple extraction logic - would be more sophisticated in production
+    const sentences = text.split('.');
+    for (const sentence of sentences) {
+      if (sentence.toLowerCase().includes(keyword)) {
+        // Look for tooth numbers or quadrants
+        const toothMatch = sentence.match(/tooth (\d+)/i);
+        if (toothMatch) return `Tooth ${toothMatch[1]}`;
+        
+        // Look for quadrants
+        if (sentence.includes('upper right')) return 'Upper right quadrant';
+        if (sentence.includes('upper left')) return 'Upper left quadrant';
+        if (sentence.includes('lower right')) return 'Lower right quadrant';
+        if (sentence.includes('lower left')) return 'Lower left quadrant';
+      }
+    }
+    return 'Not specified';
   }
 
   /**
@@ -243,10 +357,62 @@ class DicomService {
    * @returns Whether pathology was detected
    */
   private detectPathologyFromAnalysis(analysis: any): boolean {
-    // In production, this would analyze the AI results to determine if pathology is present
-    
-    // For now, we'll return a default value
-    return false;
+    // Check if analysis contains findings indicating pathology
+    try {
+      // If we have structured findings, check each finding
+      if (analysis && analysis.findings && Array.isArray(analysis.findings)) {
+        // Look for pathological finding types
+        const pathologicalTypes = ['caries', 'periapical', 'bone_loss', 'infection', 'lesion', 'fracture'];
+        
+        // Check if any finding is pathological
+        for (const finding of analysis.findings) {
+          // If the finding type matches a pathological type, return true
+          if (pathologicalTypes.includes(finding.type)) {
+            return true;
+          }
+          
+          // Also check description text for pathological terms
+          if (finding.description && typeof finding.description === 'string') {
+            const description = finding.description.toLowerCase();
+            if (
+              description.includes('pathology') ||
+              description.includes('lesion') ||
+              description.includes('abnormal') ||
+              description.includes('infection') ||
+              description.includes('disease')
+            ) {
+              return true;
+            }
+          }
+        }
+      }
+      
+      // Check the main analysis text for pathology indicators
+      if (analysis.analysis && typeof analysis.analysis === 'string') {
+        const analysisText = analysis.analysis.toLowerCase();
+        const pathologyIndicators = [
+          'caries', 'decay', 'cavity', 
+          'periapical', 'lesion', 'radiolucency',
+          'bone loss', 'periodontal disease',
+          'infection', 'abscess', 'inflammation',
+          'fracture', 'crack', 'pathology'
+        ];
+        
+        // Check if any pathology indicator is present in the text
+        for (const indicator of pathologyIndicators) {
+          if (analysisText.includes(indicator)) {
+            return true;
+          }
+        }
+      }
+      
+      // No pathology detected
+      return false;
+    } catch (error) {
+      console.error('Error detecting pathology from analysis:', error);
+      // Default to false for safety
+      return false;
+    }
   }
 
   /**

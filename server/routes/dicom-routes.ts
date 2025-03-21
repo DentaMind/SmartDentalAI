@@ -124,10 +124,20 @@ router.post(
         });
       }
 
+      // Get previous X-ray ID if provided
+      const previousXRayId = req.body?.previousXRayId ? parseInt(req.body.previousXRayId) : undefined;
+      let previousXRay;
+      
+      // Find previous X-ray if ID is provided
+      if (previousXRayId && !isNaN(previousXRayId)) {
+        previousXRay = await storage.getXray(previousXRayId);
+      }
+      
       // Perform AI analysis
       const analysisResults = await dicomService.analyzeXRayWithAI(
         xray.imageUrl, // This would be the path to the DICOM file in production
-        xray.patientId
+        xray.patientId,
+        previousXRay?.imageUrl  // Add the previous X-ray URL if available
       );
 
       // Update the X-ray record with AI analysis
