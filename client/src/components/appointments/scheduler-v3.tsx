@@ -551,6 +551,50 @@ export function SchedulerV3({
     );
   };
   
+  // Various notification states for the scheduler
+  const schedulerNotifications = {
+    gaps: {
+      title: "Schedule gaps detected",
+      description: "There are open time slots that could be filled with appointments.",
+      icon: <AlertCircle className="h-4 w-4" />,
+      variant: "default" as const
+    },
+    noShows: {
+      title: "Potential no-shows today",
+      description: "2 patients have previously missed appointments.",
+      icon: <Info className="h-4 w-4" />,
+      variant: "outline" as const
+    },
+    waitlist: {
+      title: "Patients on waitlist",
+      description: "3 patients are waiting for earlier appointment times.",
+      icon: <Clock4 className="h-4 w-4" />,
+      variant: "default" as const
+    }
+  };
+
+  // Render a notification banner
+  const renderNotification = (notification: { title: string; description: string; icon: React.ReactNode; variant: "default" | "outline" | "secondary" | "destructive" }) => {
+    return (
+      <div className={`mb-3 p-3 border rounded-md flex items-start space-x-2 bg-background
+        ${notification.variant === "default" ? "border-blue-200 bg-blue-50" : 
+          notification.variant === "destructive" ? "border-red-200 bg-red-50" :
+          notification.variant === "outline" ? "border-gray-200" : "border-gray-200 bg-gray-50"}`
+      }>
+        <div className="shrink-0 text-blue-500">
+          {notification.icon}
+        </div>
+        <div className="flex-1 space-y-1">
+          <h4 className="text-sm font-medium">{notification.title}</h4>
+          <p className="text-xs text-muted-foreground">{notification.description}</p>
+        </div>
+        <Button variant="ghost" size="icon" className="h-7 w-7">
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  };
+
   return (
     <>
       {/* Appointment Creation/Edit Dialog */}
@@ -817,8 +861,17 @@ export function SchedulerV3({
       
       {/* Main Schedule Card */}
       <Card className="w-full">
-        <CardHeader className="p-4 pb-0">
-          <div className="flex justify-between items-center">
+        <CardHeader className={`${isCompact ? 'p-2' : 'p-4'} pb-0`}>
+          {/* Notification Area */}
+          {showNotifications && (
+            <div className="mb-3">
+              {renderNotification(schedulerNotifications.gaps)}
+              {renderNotification(schedulerNotifications.noShows)}
+              {renderNotification(schedulerNotifications.waitlist)}
+            </div>
+          )}
+        
+          <div className={`flex ${isCompact ? 'flex-col space-y-2' : 'justify-between items-center'}`}>
             <div className="flex items-center space-x-2">
               <Button 
                 variant="outline" 
@@ -829,7 +882,7 @@ export function SchedulerV3({
               </Button>
               <div className="flex items-center">
                 <CalendarIcon className="h-5 w-5 mr-2 text-primary" />
-                <CardTitle className="text-lg font-medium">
+                <CardTitle className={`${isCompact ? 'text-base' : 'text-lg'} font-medium`}>
                   {format(currentDate, "EEEE, MMMM d, yyyy")}
                 </CardTitle>
               </div>
@@ -844,46 +897,56 @@ export function SchedulerV3({
                 variant="outline" 
                 size="sm" 
                 onClick={() => setCurrentDate(new Date())}
-                className="ml-4"
+                className="ml-2"
               >
                 Today
               </Button>
             </div>
             
-            <div className="flex items-center space-x-2">
-              <Input
-                placeholder="Search patients..."
-                className="w-48"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <Select defaultValue="today">
-                <SelectTrigger className="w-36">
-                  <SelectValue placeholder="View" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="today">Day View</SelectItem>
-                  <SelectItem value="week">Week View</SelectItem>
-                  <SelectItem value="month">Month View</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button 
-                size="sm"
-                onClick={() => {
-                  const now = new Date();
-                  createAppointmentAt(now.getHours(), now.getMinutes(), "Room 1", 1);
-                }}
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                New Appointment
-              </Button>
-            </div>
+            {showControls && (
+              <div className={`flex items-center ${isCompact ? 'justify-between w-full' : 'space-x-2'}`}>
+                <div className="flex items-center space-x-2">
+                  <div className="relative">
+                    <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <Input
+                      placeholder="Search patients..."
+                      className={`${isCompact ? "w-36" : "w-48"} pl-9`}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  {!isCompact && (
+                    <Select defaultValue="today">
+                      <SelectTrigger className="w-36">
+                        <SelectValue placeholder="View" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="today">Day View</SelectItem>
+                        <SelectItem value="week">Week View</SelectItem>
+                        <SelectItem value="month">Month View</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                
+                <Button 
+                  size="sm"
+                  onClick={() => {
+                    const now = new Date();
+                    createAppointmentAt(now.getHours(), now.getMinutes(), "Room 1", 1);
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  {isCompact ? "New" : "New Appointment"}
+                </Button>
+              </div>
+            )}
           </div>
           
           <div className="flex mt-4 border-b pb-1 font-medium text-sm text-center">
             <div className="w-16">Time</div>
-            {providers.map(provider => (
+            {activeProviders.map(provider => (
               <div 
                 key={provider.id} 
                 className="flex-1 px-2"
@@ -898,7 +961,7 @@ export function SchedulerV3({
           </div>
         </CardHeader>
         
-        <CardContent className="p-0 overflow-auto max-h-[800px]">
+        <CardContent className={`p-0 overflow-auto max-h-${maxHeight}`}>
           <div className="flex min-w-full">
             {/* Time column */}
             <div className="w-16 bg-gray-50 border-r sticky left-0 z-10">
@@ -914,7 +977,7 @@ export function SchedulerV3({
             </div>
             
             {/* Provider columns */}
-            {providers.map(provider => (
+            {activeProviders.map(provider => (
               <div key={provider.id} className="flex-1 min-w-[220px]">
                 {timeSlots.map((timeSlot, index) => {
                   const appointment = getAppointmentForTimeSlot(
