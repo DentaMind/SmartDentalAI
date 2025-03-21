@@ -155,12 +155,8 @@ export default function AppointmentsPage() {
           </div>
         </div>
 
-        <Tabs defaultValue="weekly" className="space-y-4">
+        <Tabs defaultValue="scheduler" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="weekly" className="flex items-center">
-              <LayoutGrid className="h-4 w-4 mr-2" />
-              Weekly Schedule
-            </TabsTrigger>
             <TabsTrigger value="scheduler" className="flex items-center">
               <Calendar className="h-4 w-4 mr-2" />
               Calendar
@@ -179,30 +175,10 @@ export default function AppointmentsPage() {
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="weekly">
-            <div className="bg-white rounded-lg shadow p-4">
-              <WeeklySchedule 
-                onAddAppointment={handleAddAppointment}
-                onViewAppointment={handleViewAppointment}
-              />
-            </div>
-          </TabsContent>
-          
           <TabsContent value="scheduler">
-            {/* Include both schedulers - the new one first */}
-            <div className="space-y-5">
-              <div className="bg-white rounded-lg shadow">
-                <h3 className="px-4 pt-4 text-base font-medium">Multi-Provider Scheduler (DentaMind Pro)</h3>
-                <div className="p-2">
-                  <SchedulerV3 />
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow">
-                <h3 className="px-4 pt-4 text-base font-medium">Original Scheduler</h3>
-                <div className="p-2">
-                  <AppointmentScheduler />
-                </div>
+            <div className="bg-white rounded-lg shadow">
+              <div className="p-4">
+                <SchedulerV3 />
               </div>
             </div>
           </TabsContent>
