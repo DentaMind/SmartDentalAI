@@ -583,114 +583,218 @@ export function AppointmentScheduler({
     }
   };
   
-  // Render day view
+  // Sample data for operatories/rooms
+  const operatories = [
+    { id: 1, name: "Room 1", type: "standard" },
+    { id: 2, name: "Room 2", type: "standard" },
+    { id: 3, name: "Room 3", type: "surgical" },
+    { id: 4, name: "Hygiene 1", type: "hygiene" },
+    { id: 5, name: "Hygiene 2", type: "hygiene" },
+  ];
+  
+  // Get operatory label style based on type
+  const getOperatoryStyle = (type: string): string => {
+    switch (type) {
+      case "surgical":
+        return "bg-indigo-100 text-indigo-800 border-indigo-300";
+      case "hygiene":
+        return "bg-teal-100 text-teal-800 border-teal-300";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-300";
+    }
+  };
+  
+  // Add buffer time between appointments
+  const getAppointmentWithBuffer = (appointment: any) => {
+    // Standard buffer is 15 minutes (represented as percentage of an hour)
+    const bufferTime = 0.25;
+    
+    return {
+      ...appointment,
+      // Add buffer time to the displayed appointment
+      displayDuration: appointment.duration + bufferTime * 60,
+      // Original duration is still preserved in the appointment
+      bufferTime: bufferTime * 60
+    };
+  };
+  
+  // Assign operatory to appointment
+  const assignOperatory = (appointment: any) => {
+    // In a real implementation, this would use a more sophisticated
+    // algorithm considering appointment type, provider preferences, etc.
+    // For now, we'll assign based on simple rules:
+    
+    // Hygiene appointments go to hygiene operatories
+    if (appointment.type === "cleaning") {
+      return appointment.id % 2 === 0 ? 4 : 5;
+    }
+    
+    // Surgical or complex procedures go to surgical room
+    if (appointment.type === "procedure" || appointment.reasonForVisit?.toLowerCase().includes("surgery")) {
+      return 3;
+    }
+    
+    // Other appointments are distributed between standard rooms
+    return appointment.id % 2 === 0 ? 1 : 2;
+  };
+
+  // Render day view with vertical time axis and providers across the top
   const renderDayView = () => {
-    const filteredAppointments = appointments?.filter(appointment => 
-      selectedDoctor ? appointment.doctorId === selectedDoctor : true
+    // Get all doctors if no specific doctor is selected
+    const displayedDoctors = selectedDoctor 
+      ? doctors?.filter(d => d.id === selectedDoctor) || []
+      : doctors || [];
+      
+    // Filter appointments for selected date and doctors
+    const dateString = date.toISOString().split('T')[0];
+    const filteredAppointments = appointments?.filter(apt => 
+      apt.date.startsWith(dateString) && 
+      (selectedDoctor ? apt.doctorId === selectedDoctor : true)
     ) || [];
+    
+    // Assign operatories and buffer times to appointments
+    const enhancedAppointments = filteredAppointments.map(apt => {
+      return {
+        ...apt,
+        operatoryId: assignOperatory(apt),
+        ...getAppointmentWithBuffer(apt)
+      };
+    });
     
     return (
       <div className="space-y-6">
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="grid grid-cols-[auto_1fr] border-b">
-            {/* Time column */}
-            <div className="w-24 py-2 px-4 font-medium text-center border-r">
-              Time
-            </div>
-            
-            {/* Appointments column */}
-            <div className="py-2 px-4 font-medium">
-              {selectedDoctor ? 
-                doctors?.find(d => d.id === selectedDoctor)?.name || "Doctor" : 
-                "All Doctors"}
-            </div>
-          </div>
-          
-          {/* Time slots */}
-          {availableTimeSlots.map((slot, index) => {
-            const slotAppointments = filteredAppointments.filter(
-              apt => apt.timeSlot === slot.time
-            );
-            
-            return (
-              <div key={slot.time} className="grid grid-cols-[auto_1fr] border-b last:border-b-0">
-                {/* Time */}
-                <div className="w-24 py-3 px-4 text-sm text-center border-r">
-                  {slot.time}
-                </div>
-                
-                {/* Appointment slot */}
-                <div className="min-h-16 py-1 px-2">
-                  {slotAppointments.length > 0 ? (
-                    <div className="space-y-1 py-1">
-                      {slotAppointments.map(appointment => (
-                        <div 
-                          key={appointment.id}
-                          className={`rounded-md border p-2 ${getAppointmentColor(appointment.type)}`}
-                        >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <div className="font-medium">{appointment.patientName}</div>
-                              <div className="text-xs flex items-center gap-1">
-                                <UserCircle className="h-3 w-3" />
-                                <span>{appointment.doctorName}</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {getStatusBadge(appointment.status)}
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-6 w-6">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem>
-                                    <FileText className="h-4 w-4 mr-2" />
-                                    View Details
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem>
-                                    <PackagePlus className="h-4 w-4 mr-2" />
-                                    Check In
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
-                                    className="text-red-600"
-                                    onClick={() => handleCancelAppointment(appointment.id)}
-                                    disabled={appointment.status !== "confirmed"}
-                                  >
-                                    <X className="h-4 w-4 mr-2" />
-                                    Cancel
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </div>
-                          {appointment.reasonForVisit && (
-                            <div className="text-xs mt-1">
-                              {appointment.reasonForVisit}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      className="w-full h-full justify-start text-left opacity-70 hover:opacity-100 hover:bg-gray-50"
-                      onClick={() => {
-                        setSelectedTimeSlot(slot.time);
-                        setCreateDialogOpen(true);
-                      }}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      <span className="text-xs">Available</span>
-                    </Button>
-                  )}
-                </div>
+        <div className="bg-white rounded-lg shadow-sm border overflow-x-auto">
+          <div className="min-w-[800px]">
+            {/* Header row with providers across the top */}
+            <div className="grid grid-cols-[120px_repeat(auto-fill,minmax(140px,1fr))] border-b">
+              {/* Time header cell */}
+              <div className="py-3 px-4 font-medium border-r bg-gray-50">
+                Time
               </div>
-            );
-          })}
+              
+              {/* Provider header cells */}
+              {displayedDoctors.map(doctor => (
+                <div 
+                  key={doctor.id}
+                  className="py-3 px-4 font-medium text-center border-r last:border-r-0 bg-gray-50"
+                >
+                  <div className="font-medium truncate">{doctor.name}</div>
+                  <div className="text-xs text-muted-foreground">{doctor.specialization || "General Dentist"}</div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Time slots with appointments */}
+            {availableTimeSlots.map((slot, index) => {
+              return (
+                <div 
+                  key={slot.time} 
+                  className="grid grid-cols-[120px_repeat(auto-fill,minmax(140px,1fr))] border-b last:border-b-0"
+                >
+                  {/* Time column */}
+                  <div className="py-3 px-4 text-sm border-r bg-gray-50 flex items-center">
+                    {slot.time}
+                  </div>
+                  
+                  {/* Doctor columns */}
+                  {displayedDoctors.map(doctor => {
+                    // Get appointments for this doctor and time slot
+                    const doctorAppointments = enhancedAppointments.filter(apt => 
+                      apt.doctorId === doctor.id && apt.timeSlot === slot.time
+                    );
+                    
+                    return (
+                      <div key={doctor.id} className="min-h-[80px] p-1 border-r last:border-r-0 relative">
+                        {doctorAppointments.length > 0 ? (
+                          <div className="space-y-1">
+                            {doctorAppointments.map(appointment => {
+                              const operatory = operatories.find(o => o.id === appointment.operatoryId);
+                              
+                              return (
+                                <div 
+                                  key={appointment.id}
+                                  className={`rounded-md border p-2 ${getAppointmentColor(appointment)}`}
+                                >
+                                  <div className="flex justify-between items-start">
+                                    <div className="w-full">
+                                      <div className="font-medium flex justify-between items-start">
+                                        <span className="truncate">{appointment.patientName}</span>
+                                      </div>
+                                      
+                                      <div className="flex justify-between items-center mt-1">
+                                        <div className="text-xs flex items-center gap-1 truncate">
+                                          <span>{appointment.duration} min</span>
+                                          {appointment.bufferTime && (
+                                            <span className="text-muted-foreground">+{appointment.bufferTime} buffer</span>
+                                          )}
+                                        </div>
+                                        
+                                        {operatory && (
+                                          <span className={`text-xs rounded px-1.5 py-0.5 inline-flex items-center ${getOperatoryStyle(operatory.type)}`}>
+                                            {operatory.name}
+                                          </span>
+                                        )}
+                                      </div>
+                                      
+                                      {appointment.reasonForVisit && (
+                                        <div className="text-xs mt-1 truncate">
+                                          {appointment.reasonForVisit}
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6 -mt-1 -mr-1">
+                                          <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem>
+                                          <FileText className="h-4 w-4 mr-2" />
+                                          View Details
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem>
+                                          <PackagePlus className="h-4 w-4 mr-2" />
+                                          {appointment.checkedIn ? 'Update Check-In' : 'Check In'}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem 
+                                          className="text-red-600"
+                                          onClick={() => handleCancelAppointment(appointment.id)}
+                                          disabled={appointment.status !== "confirmed"}
+                                        >
+                                          <X className="h-4 w-4 mr-2" />
+                                          Cancel
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            className="w-full h-full justify-start text-left opacity-70 hover:opacity-100 hover:bg-gray-50 text-xs"
+                            onClick={() => {
+                              setSelectedTimeSlot(slot.time);
+                              setSelectedDoctor(doctor.id);
+                              setCreateDialogOpen(true);
+                            }}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Available
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
