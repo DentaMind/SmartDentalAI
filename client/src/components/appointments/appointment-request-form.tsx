@@ -42,8 +42,10 @@ const requestSchema = z.object({
   preferredTimeSlot: z.string({
     required_error: "Please select a preferred time"
   }),
+  preferredDay: z.enum(["monday", "tuesday", "wednesday", "thursday", "friday", "any"]).default("any"),
   alternateDate: z.date().optional(),
   alternateTimeSlot: z.string().optional(),
+  alternateDay: z.enum(["monday", "tuesday", "wednesday", "thursday", "friday", "any"]).optional().default("any"),
   reasonForVisit: z.string()
     .min(5, "Please provide a reason for your visit")
     .max(500, "Reason should be less than 500 characters"),
@@ -80,6 +82,8 @@ export function AppointmentRequestForm() {
       reasonForVisit: '',
       additionalNotes: '',
       urgency: 'normal',
+      preferredDay: 'any',
+      alternateDay: 'any',
     },
   });
   
@@ -251,6 +255,36 @@ export function AppointmentRequestForm() {
               )}
             />
             
+            {/* Preferred Day */}
+            <FormField
+              control={form.control}
+              name="preferredDay"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Preferred Day</FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select preferred day" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="any">Any Weekday</SelectItem>
+                      <SelectItem value="monday">Monday</SelectItem>
+                      <SelectItem value="tuesday">Tuesday</SelectItem>
+                      <SelectItem value="wednesday">Wednesday</SelectItem>
+                      <SelectItem value="thursday">Thursday</SelectItem>
+                      <SelectItem value="friday">Friday</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
             {/* Alternate Date */}
             <FormField
               control={form.control}
@@ -314,6 +348,36 @@ export function AppointmentRequestForm() {
                           {slot.label}
                         </SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            {/* Alternate Day */}
+            <FormField
+              control={form.control}
+              name="alternateDay"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Alternate Day (Optional)</FormLabel>
+                  <Select
+                    value={field.value || "any"}
+                    onValueChange={field.onChange}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select alternate day" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="any">Any Weekday</SelectItem>
+                      <SelectItem value="monday">Monday</SelectItem>
+                      <SelectItem value="tuesday">Tuesday</SelectItem>
+                      <SelectItem value="wednesday">Wednesday</SelectItem>
+                      <SelectItem value="thursday">Thursday</SelectItem>
+                      <SelectItem value="friday">Friday</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

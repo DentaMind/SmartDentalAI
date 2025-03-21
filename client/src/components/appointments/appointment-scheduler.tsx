@@ -531,21 +531,39 @@ export function AppointmentScheduler({
     { value: "emergency", label: "Emergency" },
   ];
   
-  // Get appointment color based on type
-  const getAppointmentColor = (type: string): string => {
-    switch (type) {
+  // Get appointment color based on type and check-in status
+  const getAppointmentColor = (appointment: any): string => {
+    // First check if patient is checked in
+    if (appointment.checkedIn) {
+      return "bg-emerald-100 text-emerald-800 border-emerald-300";
+    }
+    
+    // Then check appointment status
+    switch (appointment.status) {
+      case "confirmed":
+        return "bg-blue-100 text-blue-800 border-blue-300";
+      case "canceled":
+        return "bg-gray-100 text-gray-800 border-gray-300";
+      case "completed":
+        return "bg-green-100 text-green-800 border-green-300";
+      case "no-show":
+        return "bg-red-100 text-red-800 border-red-300";
+    }
+    
+    // If not checked in and no specific status, use appointment type
+    switch (appointment.type) {
       case "cleaning":
-        return "bg-blue-100 text-blue-800 border-blue-200";
+        return "bg-sky-100 text-sky-800 border-sky-300";
       case "initial":
-        return "bg-green-100 text-green-800 border-green-200";
+        return "bg-indigo-100 text-indigo-800 border-indigo-300";
       case "follow-up":
-        return "bg-purple-100 text-purple-800 border-purple-200";
+        return "bg-purple-100 text-purple-800 border-purple-300";
       case "procedure":
-        return "bg-amber-100 text-amber-800 border-amber-200";
+        return "bg-amber-100 text-amber-800 border-amber-300";
       case "emergency":
-        return "bg-red-100 text-red-800 border-red-200";
+        return "bg-rose-100 text-rose-800 border-rose-300";
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return "bg-gray-100 text-gray-800 border-gray-300";
     }
   };
   
