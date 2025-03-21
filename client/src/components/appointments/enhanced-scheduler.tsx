@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { addDays, format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday, addWeeks, subWeeks, setHours, setMinutes, isBefore, isAfter, parseISO } from "date-fns";
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { format, setHours, setMinutes, parseISO } from "date-fns";
 import { 
   Calendar, Clock, Plus, Filter, Users, MapPin, ChevronLeft, ChevronRight, 
   Search, MoreHorizontal, Calendar as CalendarIcon, Coffee, CheckCircle2, 
   Clock4, UserCheck, FileEdit, AlarmClock, X, User, FileText, 
-  CreditCard, Info, Phone, HelpCircle
+  CreditCard, Info, Phone, HelpCircle, UserSquare2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link } from "wouter";
-// Import from shared schema
-import type { Appointment as AppointmentType } from "@/types/appointment-types";
+// Import appointment and patient types
+import type { 
+  Appointment, 
+  Patient, 
+  AppointmentType as AppointmentProcedureType 
+} from "@/types/appointment-types";
 
 interface Provider {
   id: number;

@@ -23,6 +23,8 @@ import { AppointmentScheduler } from "@/components/appointments/appointment-sche
 import { WeeklySchedule } from "@/components/appointments/weekly-schedule";
 import { AppointmentForm } from "@/components/appointments/appointment-form";
 import { AppointmentDetails } from "@/components/appointments/appointment-details";
+// Import our new enhanced scheduler
+import { EnhancedSchedulerV2 } from "@/components/appointments/enhanced-scheduler-v2";
 import {
   Dialog,
   DialogContent,
@@ -186,7 +188,24 @@ export default function AppointmentsPage() {
           </TabsContent>
           
           <TabsContent value="scheduler">
-            <AppointmentScheduler />
+            {/* Include both schedulers - the new one first */}
+            <div className="space-y-5">
+              <div className="bg-white rounded-lg shadow">
+                <h3 className="px-4 pt-4 text-base font-medium">Enhanced Provider-Based Scheduler</h3>
+                <div className="p-2">
+                  {/* Import from the new file for our enhanced scheduler with provider columns */}
+                  {/* @ts-ignore */}
+                  <EnhancedSchedulerV2 />
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg shadow">
+                <h3 className="px-4 pt-4 text-base font-medium">Original Scheduler</h3>
+                <div className="p-2">
+                  <AppointmentScheduler />
+                </div>
+              </div>
+            </div>
           </TabsContent>
           
           <TabsContent value="appointments" className="space-y-4">
