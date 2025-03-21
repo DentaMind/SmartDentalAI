@@ -1,9 +1,14 @@
 import React, { useState } from "react";
-import { format, addDays, subDays, setHours, setMinutes, addMinutes } from "date-fns";
+import { 
+  format, addDays, subDays, setHours, setMinutes, addMinutes, 
+  startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth,
+  isSameDay, getDay, getDate
+} from "date-fns";
 import { 
   Calendar, Clock, Plus, Filter, MapPin, ChevronLeft, ChevronRight, 
   Calendar as CalendarIcon, AlertCircle, CheckCircle2, Clock4, 
-  X, Info, Phone, User, Edit2, Trash2, Zap, Search, LayoutGrid
+  X, Info, Phone, User, Edit2, Trash2, Zap, Search, LayoutGrid,
+  CalendarDays, CalendarClock, CalendarRange
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -175,6 +180,9 @@ interface SchedulerV3Props {
  * Enhanced scheduler component with provider columns
  * Supports both full-page scheduling and compact dashboard views
  */
+// Define view mode type
+type ViewMode = "day" | "week" | "month";
+
 export function SchedulerV3({
   isCompact = false,
   maxHeight = '800px',
@@ -186,6 +194,7 @@ export function SchedulerV3({
 }: SchedulerV3Props = {}) {
   const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState<Date>(initialDate);
+  const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [appointments, setAppointments] = useState<SampleAppointment[]>(customAppointments || sampleAppointments);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeProviders, setActiveProviders] = useState<Provider[]>(customProviders || providers);
@@ -260,11 +269,23 @@ export function SchedulerV3({
     setAppointmentDialogOpen(true);
   };
   
-  // Handle date navigation
+  // Handle date navigation based on current view mode
   const navigateDate = (direction: 'prev' | 'next') => {
-    setCurrentDate(prev => 
-      direction === 'next' ? addDays(prev, 1) : subDays(prev, 1)
-    );
+    setCurrentDate(prev => {
+      switch(viewMode) {
+        case 'day':
+          return direction === 'next' ? addDays(prev, 1) : subDays(prev, 1);
+        case 'week':
+          return direction === 'next' ? addDays(prev, 7) : subDays(prev, 7);
+        case 'month':
+          // Add or subtract approximately one month (using 30 days as an approximation)
+          const newDate = new Date(prev);
+          newDate.setMonth(prev.getMonth() + (direction === 'next' ? 1 : -1));
+          return newDate;
+        default:
+          return direction === 'next' ? addDays(prev, 1) : subDays(prev, 1);
+      }
+    });
   };
   
   // Helper function to get patient details by ID
