@@ -240,18 +240,18 @@ export class EmailAIService {
       
       // Replace conditional blocks
       if (options.customMessage) {
-        emailContent = emailContent.replace(/{{#if customMessage}}(.*?){{\/if}}/s, options.customMessage);
+        emailContent = emailContent.replace(/{{#if customMessage}}([\s\S]*?){{\/if}}/, options.customMessage);
       } else {
-        emailContent = emailContent.replace(/{{#if customMessage}}(.*?){{\/if}}/s, '');
+        emailContent = emailContent.replace(/{{#if customMessage}}([\s\S]*?){{\/if}}/, '');
       }
       
       if (options.appointmentDate) {
         emailContent = emailContent.replace(
-          /{{#if appointmentDate}}(.*?){{\/if}}/s,
+          /{{#if appointmentDate}}([\s\S]*?){{\/if}}/,
           `This information is needed for your upcoming appointment on <strong>${options.appointmentDate}</strong>.`
         );
       } else {
-        emailContent = emailContent.replace(/{{#if appointmentDate}}(.*?){{\/if}}/s, '');
+        emailContent = emailContent.replace(/{{#if appointmentDate}}([\s\S]*?){{\/if}}/, '');
       }
       
       // Create the email subject based on form type

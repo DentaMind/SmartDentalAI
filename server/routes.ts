@@ -858,13 +858,15 @@ router.post('/ai/refine-diagnosis', requireAuth, async (req, res) => {
 const emailAIService = new EmailAIService(); // Create EmailAIService instance
 
 // Set up email scheduler routes
-setupEmailSchedulerRoutes(router, emailAIService);
+setupEmailSchedulerRoutes(router, storage);
+
+// Set up patient forms routes
+setupPatientFormsRoutes(router, storage);
 
 // Set up other route modules
-router.use(schedulerRoutes);
-router.use(translationRoutes);
-router.use(insuranceRoutes);
-router.use(patientFormsRoutes);
+router.use('/scheduler', schedulerRoutes);
+router.use('/translation', translationRoutes);
+router.use('/insurance', insuranceRoutes);
 
 // Setup automatic seeding of test data
 if (process.env.NODE_ENV !== 'production') {
