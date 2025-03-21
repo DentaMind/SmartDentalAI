@@ -187,16 +187,18 @@ export function SchedulerV3() {
     { id: "hyg2", name: "Hygiene Op 2", type: "hygiene" }
   ];
   
-  // Time slot generation (7am to 5pm in 30-minute increments)
+  // Time slot generation (7am to 5pm in 15-minute increments)
   const generateTimeSlots = () => {
     const slots = [];
     for (let hour = 7; hour <= 17; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
+      for (let minute = 0; minute < 60; minute += 15) {
+        const showLabel = minute === 0 || minute === 30;
         slots.push({
           hour,
           minute,
-          label: format(setMinutes(setHours(new Date(), hour), minute), "h:mm a"),
-          isHour: minute === 0
+          label: showLabel ? format(setMinutes(setHours(new Date(), hour), minute), "h:mm a") : "",
+          isHour: minute === 0,
+          isHalfHour: minute === 30
         });
       }
     }
