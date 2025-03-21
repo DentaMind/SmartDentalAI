@@ -183,4 +183,7 @@ export function setupEmailSchedulerRoutes(router: express.Router, storage: IStor
       });
     }
   });
+  
+  // Return the router for mounting in app.ts
+  return router;
 }

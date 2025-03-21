@@ -254,6 +254,8 @@ export const appointments = pgTable("appointments", {
   doctorId: integer("doctor_id").notNull(),
   date: timestamp("date").notNull(),
   status: text("status", { enum: ["scheduled", "confirmed", "completed", "cancelled"] }).notNull().default("scheduled"),
+  checkedIn: boolean("checked_in").default(false),
+  checkedInTime: timestamp("checked_in_time"),
   notes: text("notes"),
   isOnline: boolean("is_online").default(false),
   insuranceVerified: boolean("insurance_verified").default(false),

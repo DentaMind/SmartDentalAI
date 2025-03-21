@@ -42,7 +42,7 @@ const processingSettingsSchema = z.object({
   maxEmailsToProcess: z.number().int().positive().max(500)
 });
 
-export function setupEmailReaderRoutes(router: Router) {
+export function setupEmailReaderRoutes(router: Router): Router {
   /**
    * Configure an email account for a practice
    */
@@ -290,4 +290,7 @@ export function setupEmailReaderRoutes(router: Router) {
       });
     }
   });
+
+  // Return the router for mounting in app.ts
+  return router;
 }

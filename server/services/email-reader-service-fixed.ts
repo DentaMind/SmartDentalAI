@@ -6,12 +6,12 @@
  * appointment scheduling, and information extraction.
  */
 import { OpenAI } from 'openai';
-import { parseEmail } from 'mailparser';
+import { simpleParser } from 'mailparser';
 import { ImapFlow, ImapFlowOptions } from 'imapflow';
 import * as fs from 'fs';
 import * as path from 'path';
 import NodeCache from 'node-cache';
-import { AIServiceType } from '../config/ai-keys';
+import { AIServiceType } from '../services/ai-service-types';
 import { aiRequestQueue } from './ai-request-queue';
 
 // Define email connection configuration
@@ -552,7 +552,7 @@ export class EmailReaderService {
             // Parse the email if source is available
             if (message.source) {
               const source = message.source.toString();
-              const parsedEmail = await parseEmail(source);
+              const parsedEmail = await simpleParser(source);
               
               // Process the email content
               const emailText = parsedEmail.text || '';

@@ -54,6 +54,8 @@ export type Appointment = {
   date: string;
   duration: number;
   status: 'scheduled' | 'confirmed' | 'cancelled' | 'completed';
+  checkedIn?: boolean;
+  checkedInTime?: string;
   isOnline?: boolean;
   isNewPatient?: boolean;
   isFollowUp?: boolean;
