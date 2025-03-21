@@ -8,16 +8,16 @@ export default function HomePage() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    // Redirect to dashboard as soon as component mounts
+    // Redirect to appointments page as soon as component mounts
     if (user) {
-      setLocation("/dashboard");
+      setLocation("/appointments");
     }
   }, [user, setLocation]);
 
   return (
     <div className="flex h-screen items-center justify-center">
       <LoadingAnimation className="w-12 h-12" />
-      <span className="ml-2 text-lg">Redirecting to dashboard...</span>
+      <span className="ml-2 text-lg">Redirecting to scheduler...</span>
     </div>
   );
 }

@@ -10,7 +10,7 @@ export function ProtectedRoute({
   children,
 }: {
   path: string;
-  component?: () => React.JSX.Element;
+  component?: React.ComponentType<any>;
   children?: React.ReactNode;
 }) {
   const { user, isLoading, refreshAuth } = useAuth();
