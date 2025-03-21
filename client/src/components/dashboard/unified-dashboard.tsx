@@ -4,55 +4,19 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { formatDate } from "@/lib/utils";
 import { SchedulerV3 } from "@/components/appointments/scheduler-v3";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  Area,
-  AreaChart, 
-  Bar, 
-  BarChart, 
-  CartesianGrid, 
-  Cell, 
-  Legend, 
-  Line, 
-  LineChart, 
-  Pie, 
-  PieChart, 
-  ResponsiveContainer, 
-  Tooltip, 
-  XAxis, 
-  YAxis 
-} from "recharts";
 import { 
   Activity, 
   AlertCircle, 
-  ArrowRight, 
-  BarChart2, 
   Bell,
-  Building2, 
   Calendar, 
-  ChevronRight, 
-  Clock, 
-  CreditCard, 
-  DollarSign, 
   FileText, 
-  Filter, 
-  LayoutDashboard, 
-  Loader2,
-  MoreHorizontal,
-  PieChart as PieChartIcon,
   Plus,
   RefreshCcw, 
-  Search, 
-  Settings, 
-  User, 
-  Users,
-  Zap
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -60,65 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
 
 // Types
-interface DashboardStats {
-  patients: {
-    total: number;
-    newThisMonth: number;
-    activePatients: number;
-    upcomingAppointments: number;
-  };
-  appointments: {
-    today: number;
-    thisWeek: number;
-    completionRate: number;
-    cancelationRate: number;
-  };
-  financials: {
-    revenueThisMonth: number;
-    revenueLastMonth: number;
-    outstandingInvoices: number;
-    insuranceClaims: number;
-  };
-  practice: {
-    locations: number;
-    providers: number;
-    staff: number;
-    avgDailyPatients: number;
-  };
-}
-
-interface ChartData {
-  patientsByMonth: Array<{
-    month: string;
-    new: number;
-    returning: number;
-  }>;
-  appointmentsByStatus: Array<{
-    status: string;
-    count: number;
-  }>;
-  revenueByMonth: Array<{
-    month: string;
-    revenue: number;
-  }>;
-  insuranceDistribution: Array<{
-    name: string;
-    value: number;
-  }>;
-  patientDistributionByAge: Array<{
-    age: string;
-    count: number;
-  }>;
-  proceduresByType: Array<{
-    name: string;
-    count: number;
-  }>;
-}
-
 interface Notification {
   id: string;
   title: string;
@@ -150,8 +57,6 @@ interface UnifiedDashboardProps {
 }
 
 export function UnifiedDashboard({ userRole = "doctor" }: UnifiedDashboardProps) {
-  const [timeframe, setTimeframe] = useState<string>("month");
-  const [selectedLocation, setSelectedLocation] = useState<string>("all");
   // Always start with the appointments/schedule view
   const defaultView = "appointments";
   const [currentView, setCurrentView] = useState<string>(defaultView);
@@ -162,145 +67,6 @@ export function UnifiedDashboard({ userRole = "doctor" }: UnifiedDashboardProps)
   }, []);
   
   const { user } = useAuth();
-  
-  // Colors for consistent theme
-  const colors = {
-    primary: "#7c3aed", // Primary purple
-    secondary: "#2dd4bf", // Teal accent
-    success: "#22c55e",
-    warning: "#eab308",
-    error: "#ef4444",
-    info: "#3b82f6",
-    chart: {
-      primary: ["#7c3aed", "#a78bfa", "#c4b5fd", "#ddd6fe"],
-      secondary: ["#2dd4bf", "#5eead4", "#99f6e4", "#ccfbf1"],
-      mixed: ["#7c3aed", "#2dd4bf", "#eab308", "#ef4444", "#3b82f6", "#ec4899"]
-    },
-    text: {
-      primary: "#1e293b",
-      secondary: "#64748b",
-      muted: "#94a3b8"
-    },
-    background: {
-      card: "#ffffff",
-      page: "#f8fafc",
-      highlight: "#f1f5f9"
-    }
-  };
-  
-  // Fetch dashboard stats
-  const { data: stats, isLoading: isLoadingStats } = useQuery<DashboardStats>({
-    queryKey: ["/api/dashboard/stats", timeframe, selectedLocation],
-    queryFn: async () => {
-      try {
-        const response = await apiRequest<DashboardStats>(
-          `/api/dashboard/stats?timeframe=${timeframe}&location=${selectedLocation}`
-        );
-        return response;
-      } catch (error) {
-        console.error("Error fetching dashboard stats:", error);
-        // Placeholder statistics with realistic values
-        return {
-          patients: {
-            total: 3254,
-            newThisMonth: 78,
-            activePatients: 1842,
-            upcomingAppointments: 153
-          },
-          appointments: {
-            today: 28,
-            thisWeek: 142,
-            completionRate: 0.92,
-            cancelationRate: 0.08
-          },
-          financials: {
-            revenueThisMonth: 128750,
-            revenueLastMonth: 115420,
-            outstandingInvoices: 32450,
-            insuranceClaims: 53
-          },
-          practice: {
-            locations: 3,
-            providers: 12,
-            staff: 25,
-            avgDailyPatients: 45
-          }
-        };
-      }
-    }
-  });
-  
-  // Fetch chart data
-  const { data: chartData, isLoading: isLoadingCharts } = useQuery<ChartData>({
-    queryKey: ["/api/dashboard/charts", timeframe, selectedLocation],
-    queryFn: async () => {
-      try {
-        const response = await apiRequest<ChartData>(
-          `/api/dashboard/charts?timeframe=${timeframe}&location=${selectedLocation}`
-        );
-        return response;
-      } catch (error) {
-        console.error("Error fetching chart data:", error);
-        
-        // Generate months for chart data
-        const getMonths = () => {
-          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-          const currentMonth = new Date().getMonth();
-          const recentMonths = [];
-          
-          for (let i = 6; i >= 0; i--) {
-            const monthIndex = (currentMonth - i + 12) % 12;
-            recentMonths.push(months[monthIndex]);
-          }
-          
-          return recentMonths;
-        };
-        
-        const months = getMonths();
-        
-        // Create realistic chart data
-        return {
-          patientsByMonth: months.map((month, index) => ({
-            month,
-            new: Math.floor(Math.random() * 50) + 20,
-            returning: Math.floor(Math.random() * 100) + 50
-          })),
-          appointmentsByStatus: [
-            { status: "Completed", count: 285 },
-            { status: "Scheduled", count: 153 },
-            { status: "Canceled", count: 42 },
-            { status: "No-show", count: 18 }
-          ],
-          revenueByMonth: months.map((month, index) => ({
-            month,
-            revenue: Math.floor(Math.random() * 50000) + 80000
-          })),
-          insuranceDistribution: [
-            { name: "Delta Dental", value: 35 },
-            { name: "Cigna", value: 25 },
-            { name: "Aetna", value: 20 },
-            { name: "BlueCross", value: 15 },
-            { name: "Other", value: 5 }
-          ],
-          patientDistributionByAge: [
-            { age: "0-18", count: 524 },
-            { age: "19-35", count: 832 },
-            { age: "36-50", count: 985 },
-            { age: "51-65", count: 675 },
-            { age: "66+", count: 238 }
-          ],
-          proceduresByType: [
-            { name: "Cleaning", count: 325 },
-            { name: "Fillings", count: 182 },
-            { name: "Crowns", count: 84 },
-            { name: "Root Canals", count: 46 },
-            { name: "Extractions", count: 58 },
-            { name: "Other", count: 92 }
-          ]
-        };
-      }
-    }
-  });
   
   // Fetch notifications
   const { data: notifications } = useQuery<Notification[]>({
@@ -444,16 +210,6 @@ export function UnifiedDashboard({ userRole = "doctor" }: UnifiedDashboardProps)
     }
   });
   
-  // Format currency
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
-  
   // Get notification icon
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -504,413 +260,7 @@ export function UnifiedDashboard({ userRole = "doctor" }: UnifiedDashboardProps)
     }
   };
   
-  // Calculate percent change
-  const calculatePercentChange = (current: number, previous: number): string => {
-    if (previous === 0) return "+100%";
-    const change = ((current - previous) / previous) * 100;
-    return `${change > 0 ? "+" : ""}${change.toFixed(1)}%`;
-  };
-  
-  // Render the main overview tab
-  const renderOverviewTab = () => {
-    return (
-      <div className="space-y-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Patients Stats */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Total Patients</CardDescription>
-              <CardTitle className="text-3xl font-bold">
-                {isLoadingStats ? (
-                  <div className="animate-pulse h-8 w-24 bg-muted rounded"></div>
-                ) : (
-                  stats?.patients.total.toLocaleString()
-                )}
-              </CardTitle>
-              <div className="text-xs text-muted-foreground flex items-center mt-1">
-                <span className="text-emerald-600 font-medium">
-                  +{isLoadingStats ? "--" : stats?.patients.newThisMonth}
-                </span>
-                <span className="ml-1">New this month</span>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="h-1 w-full bg-muted mt-3 mb-1 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-primary" 
-                  style={{ 
-                    width: isLoadingStats ? "0%" : `${(stats?.patients.activePatients || 0) / (stats?.patients.total || 1) * 100}%` 
-                  }}
-                ></div>
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Active patients: {isLoadingStats ? "--" : stats?.patients.activePatients.toLocaleString()}</span>
-                <span>{isLoadingStats ? "--" : (((stats?.patients.activePatients || 0) / (stats?.patients.total || 1)) * 100).toFixed(0)}%</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Appointments Stats */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Today's Appointments</CardDescription>
-              <CardTitle className="text-3xl font-bold">
-                {isLoadingStats ? (
-                  <div className="animate-pulse h-8 w-24 bg-muted rounded"></div>
-                ) : (
-                  stats?.appointments.today
-                )}
-              </CardTitle>
-              <div className="text-xs text-muted-foreground flex items-center mt-1">
-                <span className="font-medium">
-                  {isLoadingStats ? "--" : stats?.appointments.thisWeek}
-                </span>
-                <span className="ml-1">Total this week</span>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex justify-between items-center">
-                <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground">Completion rate</div>
-                  <div className="font-medium">
-                    {isLoadingStats ? "--" : `${((stats?.appointments.completionRate || 0) * 100).toFixed(0)}%`}
-                  </div>
-                </div>
-                <div className="h-8 w-8 rounded-full border-4" style={{ 
-                  borderColor: colors.primary,
-                  borderLeftColor: "transparent",
-                  transform: `rotate(${isLoadingStats ? 0 : (stats?.appointments.completionRate || 0) * 360}deg)`,
-                  transition: "transform 1s ease-in-out"
-                }}></div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Financial Stats */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Monthly Revenue</CardDescription>
-              <CardTitle className="text-3xl font-bold">
-                {isLoadingStats ? (
-                  <div className="animate-pulse h-8 w-24 bg-muted rounded"></div>
-                ) : (
-                  formatCurrency(stats?.financials.revenueThisMonth || 0)
-                )}
-              </CardTitle>
-              <div className="text-xs flex items-center mt-1">
-                <span className={
-                  isLoadingStats
-                    ? "text-muted-foreground"
-                    : (stats?.financials.revenueThisMonth || 0) > (stats?.financials.revenueLastMonth || 0)
-                      ? "text-emerald-600 font-medium"
-                      : "text-red-600 font-medium"
-                }>
-                  {isLoadingStats
-                    ? "--"
-                    : calculatePercentChange(
-                        stats?.financials.revenueThisMonth || 0,
-                        stats?.financials.revenueLastMonth || 0
-                      )
-                  }
-                </span>
-                <span className="ml-1 text-muted-foreground">vs last month</span>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="text-xs text-muted-foreground">Outstanding</div>
-                  <div className="font-medium">
-                    {isLoadingStats ? "--" : formatCurrency(stats?.financials.outstandingInvoices || 0)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">Claims</div>
-                  <div className="font-medium">
-                    {isLoadingStats ? "--" : stats?.financials.insuranceClaims}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Practice Stats */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Practice Summary</CardDescription>
-              <CardTitle className="text-3xl font-bold">
-                {isLoadingStats ? (
-                  <div className="animate-pulse h-8 w-24 bg-muted rounded"></div>
-                ) : (
-                  stats?.practice.locations
-                )}
-              </CardTitle>
-              <div className="text-xs text-muted-foreground mt-1">
-                Location{(stats?.practice.locations || 0) > 1 ? "s" : ""}
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <div className="text-xs text-muted-foreground">Providers</div>
-                  <div className="font-medium">
-                    {isLoadingStats ? "--" : stats?.practice.providers}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">Staff</div>
-                  <div className="font-medium">
-                    {isLoadingStats ? "--" : stats?.practice.staff}
-                  </div>
-                </div>
-                <div className="col-span-2">
-                  <div className="text-xs text-muted-foreground">Avg. Daily Patients</div>
-                  <div className="font-medium">
-                    {isLoadingStats ? "--" : stats?.practice.avgDailyPatients}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Patients By Month Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Patients By Month</CardTitle>
-              <CardDescription>
-                New and returning patients over time
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingCharts ? (
-                <div className="flex items-center justify-center h-72">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart
-                    data={chartData?.patientsByMonth}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip 
-                      formatter={(value) => [`${value} patients`, '']}
-                      itemStyle={{ color: colors.text.primary }}
-                      contentStyle={{ 
-                        backgroundColor: colors.background.card,
-                        borderColor: colors.background.highlight,
-                      }}
-                    />
-                    <Legend />
-                    <Bar dataKey="new" name="New Patients" stackId="a" fill={colors.chart.primary[0]} radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="returning" name="Returning Patients" stackId="a" fill={colors.chart.primary[1]} radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Revenue Trend Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Revenue Trend</CardTitle>
-              <CardDescription>
-                Monthly revenue data
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingCharts ? (
-                <div className="flex items-center justify-center h-72">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart
-                    data={chartData?.revenueByMonth}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                    <XAxis dataKey="month" />
-                    <YAxis tickFormatter={(value) => `$${value / 1000}k`} />
-                    <Tooltip 
-                      formatter={(value) => [formatCurrency(value as number), 'Revenue']}
-                      itemStyle={{ color: colors.text.primary }}
-                      contentStyle={{ 
-                        backgroundColor: colors.background.card,
-                        borderColor: colors.background.highlight,
-                      }}
-                    />
-                    <defs>
-                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={colors.chart.primary[0]} stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor={colors.chart.primary[0]} stopOpacity={0.2}/>
-                      </linearGradient>
-                    </defs>
-                    <Area 
-                      type="monotone" 
-                      dataKey="revenue" 
-                      stroke={colors.chart.primary[0]} 
-                      fillOpacity={1} 
-                      fill="url(#colorRevenue)" 
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Additional Charts & Info */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Appointment Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Appointment Status</CardTitle>
-              <CardDescription>
-                Distribution by status
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingCharts ? (
-                <div className="flex items-center justify-center h-60">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie
-                      data={chartData?.appointmentsByStatus}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={2}
-                      dataKey="count"
-                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                    >
-                      {chartData?.appointmentsByStatus.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={colors.chart.mixed[index % colors.chart.mixed.length]} 
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value) => [`${value} appointments`, '']}
-                      itemStyle={{ color: colors.text.primary }}
-                      contentStyle={{ 
-                        backgroundColor: colors.background.card,
-                        borderColor: colors.background.highlight,
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-          
-          {/* Patient By Age */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Patient Demographics</CardTitle>
-              <CardDescription>
-                Distribution by age group
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingCharts ? (
-                <div className="flex items-center justify-center h-60">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart
-                    data={chartData?.patientDistributionByAge}
-                    margin={{ top: 20, right: 10, left: 10, bottom: 5 }}
-                    layout="vertical"
-                  >
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} horizontal={false} />
-                    <XAxis type="number" />
-                    <YAxis dataKey="age" type="category" scale="band" width={40} />
-                    <Tooltip 
-                      formatter={(value) => [`${value} patients`, '']}
-                      itemStyle={{ color: colors.text.primary }}
-                      contentStyle={{ 
-                        backgroundColor: colors.background.card,
-                        borderColor: colors.background.highlight,
-                      }}
-                    />
-                    <Bar 
-                      dataKey="count" 
-                      fill={colors.chart.primary[1]} 
-                      radius={[0, 4, 4, 0]} 
-                      barSize={20}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-          
-          {/* Insurance Distribution */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Insurance Distribution</CardTitle>
-              <CardDescription>
-                Patients by insurance provider
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingCharts ? (
-                <div className="flex items-center justify-center h-60">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie
-                      data={chartData?.insuranceDistribution}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                    >
-                      {chartData?.insuranceDistribution.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={colors.chart.secondary[index % colors.chart.secondary.length]} 
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value) => [`${value}%`, '']}
-                      itemStyle={{ color: colors.text.primary }}
-                      contentStyle={{ 
-                        backgroundColor: colors.background.card,
-                        borderColor: colors.background.highlight,
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  };
-  
-  // Render today's appointments tab
+  // Render the appointments tab
   const renderAppointmentsTab = () => {
     return (
       <div className="space-y-6">
@@ -956,10 +306,7 @@ export function UnifiedDashboard({ userRole = "doctor" }: UnifiedDashboardProps)
         {/* Enhanced Scheduler */}
         <div className="bg-white rounded-lg border shadow-sm">
           <SchedulerV3 
-            displayMode="weekly"
-            allowMultipleProviders={true}
             timeIncrement={15}
-            defaultView="schedule"
             userRole={userRole}
           />
         </div>
@@ -1027,240 +374,176 @@ export function UnifiedDashboard({ userRole = "doctor" }: UnifiedDashboardProps)
     );
   };
   
-  // Render notifications tab
+  // Render the notifications tab
   const renderNotificationsTab = () => {
     return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Recent Notifications</h3>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium">Notifications</h3>
           <Button variant="outline" size="sm">
             Mark all as read
           </Button>
         </div>
         
-        <div className="space-y-3">
-          {notifications?.map((notification) => (
-            <div 
-              key={notification.id}
-              className={`p-4 border rounded-lg flex items-start gap-3 ${
-                notification.read ? "" : "bg-primary/5 border-primary/20"
-              }`}
-            >
-              <div className="mt-0.5">
+        {notifications?.map((notification) => (
+          <Card key={notification.id} className={`overflow-hidden ${notification.read ? 'bg-muted/20' : 'bg-white'}`}>
+            <div className="flex p-4 gap-3">
+              <div className="flex-shrink-0">
                 {getNotificationIcon(notification.type)}
               </div>
               <div className="flex-1">
                 <div className="flex justify-between items-start">
                   <div className="font-medium">{notification.title}</div>
-                  <div className="text-xs text-muted-foreground">{notification.time}</div>
+                  <div className="text-xs text-muted-foreground whitespace-nowrap ml-4">
+                    {notification.time}
+                  </div>
                 </div>
-                <div className="text-sm mt-1">{notification.description}</div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {notification.description}
+                </p>
               </div>
-              {!notification.read && (
-                <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-2"></div>
-              )}
             </div>
-          ))}
-          
-          {(!notifications || notifications.length === 0) && (
-            <div className="text-center py-8 border rounded-lg bg-muted/30">
-              <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <h3 className="text-lg font-medium mb-1">No notifications</h3>
-              <p className="text-muted-foreground">
-                You're all caught up! There are no new notifications.
-              </p>
-            </div>
-          )}
-        </div>
+          </Card>
+        ))}
+        
+        {(!notifications || notifications.length === 0) && (
+          <div className="text-center py-8 border rounded-lg bg-muted/30">
+            <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+            <h3 className="text-lg font-medium mb-1">No notifications</h3>
+            <p className="text-muted-foreground">
+              You're all caught up!
+            </p>
+          </div>
+        )}
       </div>
     );
   };
   
-  // Render tasks tab
+  // Render the tasks tab
   const renderTasksTab = () => {
     return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">My Tasks</h3>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Task
-          </Button>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium">Tasks & Reminders</h3>
+          <div className="flex items-center gap-3">
+            <Select defaultValue="all">
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="Filter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Tasks</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="high">High Priority</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button>
+              <Plus className="h-4 w-4 mr-1" />
+              New Task
+            </Button>
+          </div>
         </div>
         
-        <div className="space-y-3">
-          {tasks?.filter(task => !task.completed).map((task) => (
-            <div 
-              key={task.id}
-              className="p-4 border rounded-lg"
-            >
-              <div className="flex items-start gap-3">
-                <Checkbox id={`task-${task.id}`} />
-                <div className="flex-1">
-                  <label 
-                    htmlFor={`task-${task.id}`} 
-                    className="font-medium cursor-pointer"
-                  >
-                    {task.title}
-                  </label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      <span>Due: {formatDate(task.due)}</span>
-                    </div>
-                    <div>
-                      {getPriorityBadge(task.priority)}
+        {/* Tasks due today */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Due Today</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {tasks?.filter(task => task.due === new Date().toISOString().split('T')[0] && !task.completed).map((task) => (
+                <div key={task.id} className="flex items-center py-3 px-4">
+                  <div className="w-6 h-6 mr-3 flex-shrink-0">
+                    <input type="checkbox" className="w-4 h-4 rounded border-gray-300" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium">{task.title}</div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
+                      <span>Due today</span>
+                      <span>•</span>
+                      <span>{getPriorityBadge(task.priority)}</span>
                     </div>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-          
-          {tasks?.some(task => task.completed) && (
-            <div className="mt-6">
-              <div className="flex items-center gap-2 mb-3">
-                <h4 className="text-sm font-medium">Completed Tasks</h4>
-                <div className="h-px flex-1 bg-muted"></div>
-              </div>
+              ))}
               
-              <div className="space-y-3 opacity-60">
-                {tasks?.filter(task => task.completed).map((task) => (
-                  <div 
-                    key={task.id}
-                    className="p-4 border rounded-lg"
-                  >
-                    <div className="flex items-start gap-3">
-                      <Checkbox id={`task-${task.id}`} defaultChecked />
-                      <div className="flex-1">
-                        <label 
-                          htmlFor={`task-${task.id}`} 
-                          className="font-medium cursor-pointer line-through"
-                        >
-                          {task.title}
-                        </label>
-                        <div className="flex items-center gap-2 mt-1">
-                          <div className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            <span>Due: {formatDate(task.due)}</span>
-                          </div>
-                          <div>
-                            {getPriorityBadge(task.priority)}
-                          </div>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
+              {(!tasks || tasks.filter(task => task.due === new Date().toISOString().split('T')[0] && !task.completed).length === 0) && (
+                <div className="py-4 px-6 text-center text-muted-foreground">
+                  No tasks due today
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Upcoming tasks */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Upcoming</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {tasks?.filter(task => task.due !== new Date().toISOString().split('T')[0] && !task.completed).map((task) => (
+                <div key={task.id} className="flex items-center py-3 px-4">
+                  <div className="w-6 h-6 mr-3 flex-shrink-0">
+                    <input type="checkbox" className="w-4 h-4 rounded border-gray-300" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium">{task.title}</div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
+                      <span>Due {formatDate(task.due)}</span>
+                      <span>•</span>
+                      <span>{getPriorityBadge(task.priority)}</span>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
+              
+              {(!tasks || tasks.filter(task => task.due !== new Date().toISOString().split('T')[0] && !task.completed).length === 0) && (
+                <div className="py-4 px-6 text-center text-muted-foreground">
+                  No upcoming tasks
+                </div>
+              )}
             </div>
-          )}
-          
-          {(!tasks || tasks.length === 0) && (
-            <div className="text-center py-8 border rounded-lg bg-muted/30">
-              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <h3 className="text-lg font-medium mb-1">No tasks</h3>
-              <p className="text-muted-foreground mb-4">
-                You have no tasks assigned at the moment.
-              </p>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Task
-              </Button>
-            </div>
-          )}
-        </div>
+          </CardContent>
+        </Card>
       </div>
     );
   };
-  
+
+  // Main component render
   return (
-    <div>
-      {/* Dashboard Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back{user?.firstName ? `, ${user.firstName}` : ""}! Here's what's happening today.
-          </p>
-        </div>
-        
-        <div className="flex flex-wrap gap-2">
-          <Select 
-            value={timeframe} 
-            onValueChange={setTimeframe}
-          >
-            <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Select timeframe" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="day">Today</SelectItem>
-              <SelectItem value="week">This Week</SelectItem>
-              <SelectItem value="month">This Month</SelectItem>
-              <SelectItem value="quarter">This Quarter</SelectItem>
-              <SelectItem value="year">This Year</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Select
-            value={selectedLocation}
-            onValueChange={setSelectedLocation}
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Select location" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Locations</SelectItem>
-              <SelectItem value="boston">Boston Office</SelectItem>
-              <SelectItem value="cambridge">Cambridge Office</SelectItem>
-              <SelectItem value="brookline">Brookline Office</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Button variant="outline" size="icon">
-            <RefreshCcw className="h-4 w-4" />
-          </Button>
-          
-          <Button variant="outline">
-            <Filter className="h-4 w-4 mr-2" />
-            Filter
-          </Button>
-        </div>
-      </div>
-      
-      {/* Dashboard Views */}
-      <Tabs defaultValue="appointments" value={currentView} onValueChange={setCurrentView}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="appointments" className="gap-2">
-            <Calendar className="h-4 w-4" />
-            Schedule
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-2">
-            <Bell className="h-4 w-4" />
+    <div className="space-y-6">
+      <Tabs defaultValue={currentView} className="space-y-6" onValueChange={setCurrentView}>
+        <TabsList className="grid grid-cols-3 max-w-md mx-auto">
+          <TabsTrigger value="appointments">Appointments</TabsTrigger>
+          <TabsTrigger value="notifications">
             Notifications
+            {notifications && notifications.filter(n => !n.read).length > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                {notifications.filter(n => !n.read).length}
+              </span>
+            )}
           </TabsTrigger>
-          <TabsTrigger value="tasks" className="gap-2">
-            <FileText className="h-4 w-4" />
+          <TabsTrigger value="tasks">
             Tasks
+            {tasks && tasks.filter(t => !t.completed && t.due === new Date().toISOString().split('T')[0]).length > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
+                {tasks.filter(t => !t.completed && t.due === new Date().toISOString().split('T')[0]).length}
+              </span>
+            )}
           </TabsTrigger>
         </TabsList>
         
-
-        <TabsContent value="appointments">
+        <TabsContent value="appointments" className="space-y-4">
           {renderAppointmentsTab()}
         </TabsContent>
         
-        <TabsContent value="notifications">
+        <TabsContent value="notifications" className="space-y-4">
           {renderNotificationsTab()}
         </TabsContent>
         
-        <TabsContent value="tasks">
+        <TabsContent value="tasks" className="space-y-4">
           {renderTasksTab()}
         </TabsContent>
       </Tabs>
