@@ -5,7 +5,7 @@
  * to optimize API usage and prevent rate limiting errors.
  */
 
-import { AIServiceType, SERVICE_PRIORITIES } from '../config/ai-keys';
+import { AIServiceType, SERVICE_TYPE_PRIORITY } from './ai-service-types';
 
 // Request queue item interface
 interface QueueItem {
@@ -47,7 +47,7 @@ class AIRequestQueue {
     
     return new Promise<T>((resolve, reject) => {
       // Get base priority from service type
-      const basePriority = SERVICE_PRIORITIES[serviceType] || 5;
+      const basePriority = SERVICE_TYPE_PRIORITY[serviceType] || 5;
       
       // Create the queue item
       const queueItem: QueueItem = {

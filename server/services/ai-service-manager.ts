@@ -1,9 +1,8 @@
 import { OpenAI } from 'openai';
 import { 
-  AIServiceType, 
-  getOptimalAIConfig, 
-  trackAPIUsage, 
-  getAIServicesStatus
+  AIServiceType,
+  SERVICE_TYPE_TO_KEY_MAP,
+  SERVICE_TYPE_DEFAULT_MODEL
 } from '../config/ai-keys';
 import { aiRequestQueue } from './ai-request-queue';
 
@@ -12,13 +11,47 @@ import { aiRequestQueue } from './ai-request-queue';
  * This service handles different AI functionalities using the appropriate AI keys
  * to prevent bottlenecks and distribute load.
  */
+// Helper function to get configuration for an AI service
+interface AIConfig {
+  apiKey: string;
+  model: string;
+  temperature?: number;
+  maxTokens?: number;
+  baseUrl?: string;
+}
+
+// Local implementation of config and tracking functions
+function getOptimalAIConfig(serviceType: AIServiceType): AIConfig {
+  const keyName = SERVICE_TYPE_TO_KEY_MAP[serviceType];
+  const apiKey = process.env[keyName] || process.env.OPENAI_API_KEY || '';
+  const model = SERVICE_TYPE_DEFAULT_MODEL[serviceType] || 'gpt-3.5-turbo';
+  
+  return {
+    apiKey,
+    model,
+    temperature: 0.7,
+    maxTokens: model.includes('gpt-4') ? 4000 : 2000,
+    baseUrl: process.env.OPENAI_API_BASE_URL
+  };
+}
+
+// Function to track API usage (stub for now)
+function trackAPIUsage(serviceType: AIServiceType, tokens: number) {
+  console.log(`API Usage: ${serviceType} - ${tokens} tokens`);
+  // In a real implementation, this would log to a database or monitoring service
+}
+
 class AIServiceManager {
   private openAIClients: Record<string, OpenAI> = {};
 
   constructor() {
     // Initialize OpenAI clients for each service type
     Object.values(AIServiceType).forEach(serviceType => {
-      this.getOpenAIClient(serviceType);
+      try {
+        this.getOpenAIClient(serviceType);
+      } catch (error) {
+        console.warn(`Failed to initialize OpenAI client for ${serviceType}:`, error);
+      }
     });
   }
 
