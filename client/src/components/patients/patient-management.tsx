@@ -133,7 +133,7 @@ export function PatientManagement() {
                 Add Patient
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Patient</DialogTitle>
                 <DialogDescription>
@@ -141,7 +141,7 @@ export function PatientManagement() {
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4">
-                <AddPatientForm onSuccess={handleAddPatientSuccess} />
+                <ImprovedAddPatientForm onSuccess={handleAddPatientSuccess} />
               </div>
             </DialogContent>
           </Dialog>

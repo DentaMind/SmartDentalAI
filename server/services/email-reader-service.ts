@@ -22,7 +22,7 @@ interface EmailConnectionConfig {
   port: number;
   tls: boolean;
   folderNames?: string[];
-  practiceId: string;
+  practiceId?: string;
 }
 
 // Processing settings

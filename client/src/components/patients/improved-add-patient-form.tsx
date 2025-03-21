@@ -540,7 +540,7 @@ export function ImprovedAddPatientForm({ onSuccess }: AddPatientFormProps) {
                         <FormItem>
                           <FormLabel>Height</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g. 5'10\"" {...field} />
+                            <Input placeholder="e.g. 5'10&quot;" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
