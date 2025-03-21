@@ -183,7 +183,7 @@ interface SchedulerV3Props {
  * Supports both full-page scheduling and compact dashboard views
  */
 // Define view mode type
-type ViewMode = "day" | "week" | "month";
+type ViewMode = "day" | "week";
 
 export function SchedulerV3({
   isCompact = false,
@@ -286,11 +286,6 @@ export function SchedulerV3({
           return direction === 'next' ? addDays(prev, 1) : subDays(prev, 1);
         case 'week':
           return direction === 'next' ? addDays(prev, 7) : subDays(prev, 7);
-        case 'month':
-          // Add or subtract approximately one month (using 30 days as an approximation)
-          const newDate = new Date(prev);
-          newDate.setMonth(prev.getMonth() + (direction === 'next' ? 1 : -1));
-          return newDate;
         default:
           return direction === 'next' ? addDays(prev, 1) : subDays(prev, 1);
       }
@@ -428,7 +423,13 @@ export function SchedulerV3({
                 </Avatar>
               </div>
               <div className="flex-1 min-w-0">
-                <h5 className="font-medium text-sm truncate">
+                <h5 
+                  className="font-medium text-sm truncate cursor-pointer hover:underline" 
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent triggering the parent click
+                    handleEditAppointment(appointment);
+                  }}
+                >
                   {appointment.patientName}
                 </h5>
                 <p className="text-xs truncate">
@@ -1071,7 +1072,7 @@ export function SchedulerV3({
                   {!isCompact && (
                     <Select 
                       value={viewMode}
-                      onValueChange={(value: 'day' | 'week' | 'month') => setViewMode(value)}
+                      onValueChange={(value: 'day' | 'week') => setViewMode(value)}
                     >
                       <SelectTrigger className="w-36">
                         <SelectValue placeholder="View" />
@@ -1079,7 +1080,6 @@ export function SchedulerV3({
                       <SelectContent>
                         <SelectItem value="day">Day View</SelectItem>
                         <SelectItem value="week">Week View</SelectItem>
-                        <SelectItem value="month">Month View</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
@@ -1283,11 +1283,7 @@ export function SchedulerV3({
             </div>
           )}
           
-          {viewMode === 'month' && (
-            <div className="p-4 text-center text-muted-foreground">
-              Month view coming soon!
-            </div>
-          )}
+          {/* Month view has been removed */}
         </CardContent>
       </Card>
     </>
