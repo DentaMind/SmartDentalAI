@@ -79,9 +79,27 @@ const XRayAIAnalyzer: React.FC<XRayAIAnalyzerProps> = ({
         new Date(px.date!) < new Date(xray.date || '')
       );
       
-      // In a real implementation, we would call the API
-      // For now, simulate an API call
-      const analysisResult = await simulateAIAnalysis(xray, previousXRay);
+      // Call the DICOM analysis API endpoint
+      const response = await apiRequest<{
+        success: boolean;
+        message: string;
+        analysis: any;
+        xray: any;
+      }>({
+        url: `/api/dicom/analyze/${xray.id}`,
+        method: 'POST',
+        body: {
+          patientId,
+          previousXRayId: previousXRay?.id
+        }
+      });
+      
+      if (!response.success) {
+        throw new Error(response.message || 'Analysis failed');
+      }
+      
+      // Process the AI analysis results into our findings format
+      const analysisResult = processAnalysisResults(response.analysis, xray, previousXRay);
       
       setFindings(analysisResult);
       
@@ -96,28 +114,13 @@ const XRayAIAnalyzer: React.FC<XRayAIAnalyzerProps> = ({
     }
   };
 
-  // Simulate AI analysis (in a real app, this would be an API call)
-  const simulateAIAnalysis = async (
-    xray: XRaySlot, 
+  // Process the AI analysis results from the API into our findings format
+  const processAnalysisResults = (
+    analysisData: any,
+    xray: XRaySlot,
     previousXRay?: XRaySlot
-  ): Promise<XRayAIFindings> => {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2500));
-    
-    // In a real implementation, this would call the server endpoint:
-    // const response = await apiRequest<XRayAIFindings>({
-    //   url: `/api/xrays/${xray.id}/analyze`,
-    //   method: 'POST',
-    //   data: {
-    //     patientId,
-    //     previousXRayId: previousXRay?.id
-    //   }
-    // });
-    
-    // This is a placeholder until we have the actual API
-    // Would use the API key process.env.OPENAI_API_KEY_XRAY in the backend
-    
-    // For now, generate some findings based on region
+  ): XRayAIFindings => {
+    // Start with an empty findings object
     const findings: XRayAIFindings = {
       id: `analysis-${xray.id}`,
       detections: [],
@@ -126,66 +129,77 @@ const XRayAIAnalyzer: React.FC<XRayAIAnalyzerProps> = ({
       date: new Date().toISOString()
     };
     
-    // Add different types of findings based on the xray position/region
-    if (xray.region === 'posterior') {
-      findings.detections.push({
-        type: 'caries',
-        description: 'Distal caries detected',
-        location: `Tooth #${xray.teeth[0]}`,
-        confidence: 0.86,
-        severity: 'moderate'
-      });
-      
-      findings.diagnosticImpression = `Moderate distal carious lesion on tooth #${xray.teeth[0]} requiring restoration.`;
-      findings.recommendedActions.push(`Recommend composite restoration for tooth #${xray.teeth[0]}`);
-    } 
-    else if (xray.region === 'anterior') {
-      findings.detections.push({
-        type: 'periapical',
-        description: 'Small periapical radiolucency',
-        location: `Tooth #${xray.teeth[1]}`,
-        confidence: 0.78,
-        severity: 'mild'
-      });
-      
-      findings.diagnosticImpression = `Small periapical radiolucency associated with tooth #${xray.teeth[1]}, suggesting early periapical pathology.`;
-      findings.recommendedActions.push(`Monitor tooth #${xray.teeth[1]} for symptoms`);
-      findings.recommendedActions.push(`Consider pulp vitality testing`);
-    }
-    else if (xray.region === 'bitewing') {
-      findings.detections.push({
-        type: 'caries',
-        description: 'Interproximal caries',
-        location: `Teeth #${xray.teeth[2]} and #${xray.teeth[3]}`,
-        confidence: 0.92,
-        severity: 'moderate'
-      });
-      
-      findings.detections.push({
-        type: 'bone_loss',
-        description: 'Horizontal bone loss',
-        location: `Between teeth #${xray.teeth[0]} and #${xray.teeth[1]}`,
-        confidence: 0.81,
-        severity: 'mild'
-      });
-      
-      findings.diagnosticImpression = `Interproximal caries between teeth #${xray.teeth[2]} and #${xray.teeth[3]} with mild horizontal bone loss in the posterior region.`;
-      findings.recommendedActions.push(`Recommend restorations for interproximal caries`);
-      findings.recommendedActions.push(`Consider periodontal evaluation and potential scaling and root planing`);
-    }
-    
-    // Add comparison with previous X-ray if available
-    if (previousXRay) {
-      findings.comparisonWithPrevious = {
-        changes: [
-          `Increased radiolucency in the ${xray.arch === 'maxillary' ? 'apical' : 'furcation'} area of tooth #${xray.teeth[0]}.`,
-          `No significant changes in restoration margins.`
-        ],
-        progression: Math.random() > 0.7 ? 'worsened' : 'stable'
-      };
+    try {
+      if (analysisData) {
+        // Parse the AI analysis data which might be stored as a JSON string
+        const analysis = typeof analysisData.aiAnalysis === 'string' 
+          ? JSON.parse(analysisData.aiAnalysis) 
+          : analysisData.aiAnalysis;
+          
+        // Extract the diagnostic impression
+        findings.diagnosticImpression = analysis.analysis || "";
+        
+        // Extract findings and convert to our detection format
+        if (analysis.findings) {
+          findings.detections = analysis.findings.map((finding: any) => {
+            return {
+              type: categorizeDetectionType(finding.type || finding.category || "other"),
+              description: finding.description || finding.details || "",
+              location: finding.location || finding.area || "",
+              confidence: finding.confidence || 0.7,
+              severity: finding.severity || "moderate",
+              coordinates: finding.coordinates || undefined
+            };
+          });
+        }
+        
+        // Extract recommendations
+        if (analysis.recommendations) {
+          findings.recommendedActions = Array.isArray(analysis.recommendations) 
+            ? analysis.recommendations 
+            : [analysis.recommendations];
+        }
+        
+        // Add comparison data if available
+        if (previousXRay && analysis.comparison) {
+          findings.comparisonWithPrevious = {
+            changes: Array.isArray(analysis.comparison.changes) 
+              ? analysis.comparison.changes 
+              : [analysis.comparison.changes],
+            progression: analysis.comparison.progression || "stable"
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Error processing analysis results:', error);
     }
     
     return findings;
+  };
+  
+  // Helper to categorize detection types from the AI response
+  const categorizeDetectionType = (type: string): 'caries' | 'periapical' | 'bone_loss' | 'restoration' | 'implant' | 'root_canal' | 'anomaly' | 'other' => {
+    const typeMap: Record<string, any> = {
+      caries: 'caries',
+      cavity: 'caries',
+      decay: 'caries',
+      periapical: 'periapical',
+      'periapical lesion': 'periapical',
+      'bone loss': 'bone_loss',
+      'bone_loss': 'bone_loss',
+      'boneloss': 'bone_loss',
+      restoration: 'restoration',
+      filling: 'restoration',
+      crown: 'restoration',
+      implant: 'implant',
+      'root canal': 'root_canal',
+      'rootcanal': 'root_canal',
+      anomaly: 'anomaly'
+    };
+    
+    // Try to match the type to our known categories
+    const normalizedType = type.toLowerCase().trim();
+    return typeMap[normalizedType] || 'other';
   };
 
   // Get appropriate color based on severity
