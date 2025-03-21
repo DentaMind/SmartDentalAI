@@ -358,12 +358,37 @@ router.post("/ai/diagnosis", requireAuth, async (req, res) => {
       dentalRecords?.imaging
     );
     
+    // Calculate base confidence level based on symptoms specificity
+    let baseConfidence = "medium";
+    
+    // Determine confidence level based on vague status and analysis
+    if (isVagueComplaint) {
+      baseConfidence = "low"; // Vague complaints start with low confidence
+    } else if (symptoms.length > 50 && symptoms.includes("history") && 
+              (dentalRecords?.imaging || relevantTests)) {
+      // Comprehensive symptoms with imaging or test data suggest high confidence
+      baseConfidence = "high";
+    }
+    
     // Add vague complaint indicator and follow-up questions to the response
     const enhancedDiagnosis: any = {
       ...diagnosis,
       isVague: isVagueComplaint,
-      confidenceLevel: isVagueComplaint ? "low" : "medium",
+      confidenceLevel: baseConfidence,
       followUpQuestions: followUpQuestions,
+      // Add detailed diagnostic data for better patient communication
+      diagnosticData: {
+        // Include metrics for transparency in diagnostic process
+        symptomSpecificity: isVagueComplaint ? "low" : "high",
+        imagingAvailable: !!dentalRecords?.imaging,
+        medicalHistoryAvailable: !!patientHistory,
+        vitalSignsAvailable: !!vitalSigns,
+        relevantTestsAvailable: !!relevantTests,
+        // Add recommendation for additional information needed
+        recommendedAdditionalInformation: isVagueComplaint 
+          ? "More specific symptom details required for higher confidence diagnosis"
+          : null
+      }
     };
     
     // Replace the diagnosis with our enhanced version
@@ -384,11 +409,16 @@ function detectVagueComplaint(symptoms: string): boolean {
   
   // Check for common vague patterns
   const vaguePatterns = [
-    /^pain( on)? #\d+$/i,      // "pain #30" or "pain on #30"
-    /^(tooth|molar|teeth) pain$/i,  // "tooth pain" without specifics
-    /^(hurts|ache)$/i,         // Just "hurts" or "ache"
+    /^pain( on)? #\d+$/i,        // "pain #30" or "pain on #30"
+    /^(tooth|molar|teeth) pain$/i, // "tooth pain" without specifics
+    /^(hurts|ache|pain)$/i,      // Just "hurts" or "ache" or "pain"
     /my (tooth|molar|teeth) (hurts|aches)/i, // My tooth hurts
-    /(tooth|molar|teeth) (problem|issue)/i   // Tooth problem/issue
+    /(tooth|molar|teeth) (problem|issue|hurts)/i, // Tooth problem/issue
+    /^(discomfort|sensitive|sensitivity)$/i, // Just "discomfort" or "sensitive"
+    /^(something wrong|not right)( with my (tooth|teeth|molar))?$/i, // Something wrong
+    /^(feels? weird|strange)$/i, // Feels weird/strange
+    /^(tooth|teeth|molar) (feels? weird|strange|uncomfortable)$/i, // Tooth feels weird/strange
+    /^(can't (chew|eat))$/i // Can't chew/eat without specifics
   ];
   
   // Check for specificity markers
@@ -409,8 +439,32 @@ function detectVagueComplaint(symptoms: string): boolean {
     "weeks ago",
     "radiolucency",
     "filling",
-    "root canal"
+    "root canal",
+    "periodontal",
+    "gum disease",
+    "abscess",
+    "infection",
+    "filling fell out",
+    "crown loose",
+    "temperature sensitive",
+    "pressure sensitive",
+    "percussion sensitive",
+    "mobility",
+    "wisdom tooth",
+    "impacted",
+    "gum recession",
+    "night guard",
+    "clenching",
+    "grinding"
   ];
+  
+  // Check for minimum length of symptoms - extremely short symptoms are often vague
+  if (symptomText.trim().length < 10 && !specificityMarkers.some(marker => 
+    symptomText.includes(marker.toLowerCase())
+  )) {
+    // Short symptoms without detail are likely vague
+    return true;
+  }
   
   // Check if any vague pattern matches
   const isVaguePattern = vaguePatterns.some(pattern => pattern.test(symptomText));
@@ -455,6 +509,20 @@ function generateFollowUpQuestions(symptoms: string, patientHistory?: string): a
       targetCondition: "Post-operative sensitivity or complication",
       confidenceImpact: 0.15
     });
+    
+    questions.push({
+      question: `Do you notice any darkening or discoloration on tooth #${toothNumber || "mentioned"}?`,
+      purpose: "Assess for potential necrosis or long-standing pulpal issues",
+      targetCondition: "Pulp necrosis or internal resorption",
+      confidenceImpact: 0.2
+    });
+    
+    questions.push({
+      question: `Is there any mobility (looseness) of tooth #${toothNumber || "mentioned"}?`,
+      purpose: "Evaluate periodontal health and possible trauma",
+      targetCondition: "Periodontal disease, trauma, or occlusal trauma",
+      confidenceImpact: 0.2
+    });
   } else {
     // General questions for non-specific complaints
     questions.push({
@@ -468,13 +536,28 @@ function generateFollowUpQuestions(symptoms: string, patientHistory?: string): a
       purpose: "Establish timeline and progression",
       confidenceImpact: 0.1
     });
+    
+    questions.push({
+      question: "Does the pain wake you up at night or prevent you from sleeping?",
+      purpose: "Assess severity and potential for acute pulpitis or abscess",
+      targetCondition: "Irreversible pulpitis or abscess",
+      confidenceImpact: 0.25
+    });
+    
+    questions.push({
+      question: "Do any particular foods or drinks trigger the pain?",
+      purpose: "Identify potential triggers that can help narrow the diagnosis",
+      targetCondition: "Dentin hypersensitivity, cracked tooth, or caries",
+      confidenceImpact: 0.15
+    });
   }
   
   // Add general diagnostic questions that apply to all vague complaints
   questions.push({
     question: "Is there any visible swelling, redness, or unusual appearance you've noticed?",
     purpose: "Identify signs of infection or inflammation",
-    confidenceImpact: 0.2
+    targetCondition: "Abscess, cellulitis, or acute infection",
+    confidenceImpact: 0.3
   });
   
   questions.push({
@@ -483,6 +566,47 @@ function generateFollowUpQuestions(symptoms: string, patientHistory?: string): a
     targetCondition: "Periapical pathology, bone loss, or caries",
     confidenceImpact: 0.25
   });
+  
+  questions.push({
+    question: "Have you taken any pain medications? If so, did they help?",
+    purpose: "Assess response to analgesics which may indicate inflammatory vs. non-inflammatory origin",
+    targetCondition: "Inflammatory conditions vs. neuropathic pain",
+    confidenceImpact: 0.15
+  });
+  
+  questions.push({
+    question: "Do you clench or grind your teeth, especially at night?",
+    purpose: "Identify potential parafunctional habits contributing to symptoms",
+    targetCondition: "Occlusal trauma, TMD, or muscle fatigue",
+    confidenceImpact: 0.15
+  });
+  
+  // Check patient history for relevant conditions if available
+  if (patientHistory) {
+    const historyText = typeof patientHistory === 'string' ? 
+      patientHistory.toLowerCase() : 
+      JSON.stringify(patientHistory).toLowerCase();
+    
+    // If patient has diabetes, add specific question
+    if (historyText.includes('diabetes')) {
+      questions.push({
+        question: "Have you noticed your gums bleeding more easily lately or any changes in your diabetes control?",
+        purpose: "Assess potential connection between diabetes and periodontal issues",
+        targetCondition: "Diabetes-associated periodontal disease",
+        confidenceImpact: 0.2
+      });
+    }
+    
+    // If patient has cardiovascular issues, add specific question
+    if (historyText.includes('heart') || historyText.includes('cardiovascular') || historyText.includes('hypertension')) {
+      questions.push({
+        question: "Are you taking any blood thinners or medications for your heart condition?",
+        purpose: "Identify potential contraindications for treatment and medication interactions",
+        targetCondition: "Treatment modifications for cardiovascular conditions",
+        confidenceImpact: 0.15
+      });
+    }
+  }
   
   return questions;
 }
