@@ -410,7 +410,7 @@ export function SchedulerV3({
       <HoverCard>
         <HoverCardTrigger asChild>
           <div 
-            className={`${procedureTypeColors[appointment.procedureType]} p-2 rounded-md mb-1 cursor-pointer hover:shadow-md transition-shadow duration-200 relative min-h-[60px] overflow-hidden`}
+            className={`${procedureTypeColors[appointment.procedureType]} p-2 rounded-md mb-1 cursor-pointer hover:shadow-md transition-shadow duration-200 relative min-h-[70px] overflow-hidden`}
             onClick={() => handleEditAppointment(appointment)}
           >
             <div className="flex items-center mb-1">
@@ -431,7 +431,7 @@ export function SchedulerV3({
               </div>
               <div className="flex-1 min-w-0">
                 <h5 
-                  className="font-medium text-sm truncate cursor-pointer hover:underline" 
+                  className="font-semibold text-base truncate cursor-pointer hover:underline" 
                   onClick={(e) => {
                     e.stopPropagation(); // Prevent triggering the parent click
                     handleEditAppointment(appointment);
@@ -633,8 +633,8 @@ export function SchedulerV3({
                     className="h-7 px-2 bg-primary"
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Navigate to patient profile
-                      window.location.href = `/patients/${appointment.patientId}`;
+                      // Navigate to patient profile - using direct navigation instead of window.location
+                      window.open(`/patients/${appointment.patientId}`, '_blank');
                     }}
                   >
                     <User className="h-3.5 w-3.5 mr-1" />
