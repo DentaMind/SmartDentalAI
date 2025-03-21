@@ -302,9 +302,10 @@ export function SchedulerV3({
     return providers.find(p => p.id === providerId);
   };
   
-  // Helper function to check if a time slot has an appointment for a specific provider
-  const getAppointmentForTimeSlot = (hour: number, minute: number, providerId: number) => {
-    return appointments.find(appointment => {
+  // Helper function to get all appointments for a time slot for a specific provider
+  // This allows for side booking (multiple appointments in the same slot)
+  const getAppointmentsForTimeSlot = (hour: number, minute: number, providerId: number) => {
+    return appointments.filter(appointment => {
       const apptDate = new Date(appointment.date);
       return (
         appointment.providerId === providerId &&
@@ -315,6 +316,12 @@ export function SchedulerV3({
         apptDate.getFullYear() === currentDate.getFullYear()
       );
     });
+  };
+  
+  // Legacy function for backward compatibility
+  const getAppointmentForTimeSlot = (hour: number, minute: number, providerId: number) => {
+    const appointments = getAppointmentsForTimeSlot(hour, minute, providerId);
+    return appointments.length > 0 ? appointments[0] : undefined;
   };
   
   // Save appointment (create new or update existing)
@@ -610,16 +617,29 @@ export function SchedulerV3({
                 )}
               </div>
               
-              <div className="space-x-1">
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="h-7 px-2"
-                  onClick={() => handleEditAppointment(appointment)}
-                >
-                  <Edit2 className="h-3.5 w-3.5 mr-1" />
-                  Edit
-                </Button>
+              <div className="flex space-x-1">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="h-7 px-2"
+                    onClick={() => handleEditAppointment(appointment)}
+                  >
+                    <Edit2 className="h-3.5 w-3.5 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="h-7 px-2 bg-primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Navigate to patient profile
+                      window.location.href = `/patients/${appointment.patientId}`;
+                    }}
+                  >
+                    <User className="h-3.5 w-3.5 mr-1" />
+                    Profile
+                  </Button>
               </div>
             </div>
           </div>
@@ -1156,7 +1176,7 @@ export function SchedulerV3({
               {activeProviders.map(provider => (
                 <div key={provider.id} className="flex-1 min-w-[220px]">
                   {timeSlots.map((timeSlot, index) => {
-                    const appointment = getAppointmentForTimeSlot(
+                    const slotAppointments = getAppointmentsForTimeSlot(
                       timeSlot.hour, 
                       timeSlot.minute, 
                       provider.id
@@ -1171,10 +1191,17 @@ export function SchedulerV3({
                         className={`h-16 border-b border-r p-1 relative group
                           ${timeSlot.isHour ? 'bg-gray-50' : ''}`}
                       >
-                        {appointment ? 
-                          renderAppointment(appointment) : 
+                        {slotAppointments.length > 0 ? (
+                          <div className="flex h-full space-x-1 overflow-x-auto">
+                            {slotAppointments.map((appointment, appIdx) => (
+                              <div key={`app-${appointment.id}`} className="flex-1 min-w-0" style={{ maxWidth: slotAppointments.length > 1 ? `${100 / slotAppointments.length}%` : '100%' }}>
+                                {renderAppointment(appointment)}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
                           renderEmptySlot(timeSlot.hour, timeSlot.minute, provider.id, operatory)
-                        }
+                        )}
                       </div>
                     );
                   })}
@@ -1232,28 +1259,69 @@ export function SchedulerV3({
                           >
                             {hourAppointments.length > 0 ? (
                               <div className="flex flex-col space-y-1 overflow-y-auto max-h-full">
-                                {hourAppointments.map(appt => (
-                                  <div 
-                                    key={`week-appt-${appt.id}`}
-                                    className={`${procedureTypeColors[appt.procedureType]} p-1 rounded text-xs cursor-pointer`}
-                                    onClick={() => handleEditAppointment(appt)}
-                                  >
-                                    <div className="font-medium truncate flex items-center">
-                                      {format(new Date(appt.date), 'h:mm a')} {appt.patientName}
-                                      {appt.patientStatus && (
-                                        <div className={`h-2 w-2 rounded-full ml-1 ${
-                                          appt.patientStatus === 'here' ? 'bg-green-500' :
-                                          appt.patientStatus === 'confirmed' ? 'bg-blue-500' :
-                                          appt.patientStatus === 'unconfirmed' ? 'bg-red-500' :
-                                          appt.patientStatus === 'noshow' ? 'bg-orange-500' : 'bg-gray-500'
-                                        }`} />
-                                      )}
-                                    </div>
-                                    <div className="truncate">
-                                      {appt.procedureType === "Other" 
-                                        ? (appt.customProcedureName || "Custom Procedure") 
-                                        : appt.procedureType}
-                                    </div>
+                                {/* Group appointments by minute */}
+                                {Array.from(
+                                  hourAppointments.reduce((acc, appt) => {
+                                    const minute = new Date(appt.date).getMinutes();
+                                    if (!acc.has(minute)) acc.set(minute, []);
+                                    acc.get(minute)!.push(appt);
+                                    return acc;
+                                  }, new Map<number, SampleAppointment[]>())
+                                ).map(([minute, minuteAppts]) => (
+                                  <div key={`week-minute-${timeSlot.hour}-${minute}`} className="mb-1">
+                                    {/* Display multiple appointments side by side if they're at the same minute */}
+                                    {minuteAppts.length > 1 ? (
+                                      <div className="flex space-x-1">
+                                        {minuteAppts.map(appt => (
+                                          <div 
+                                            key={`week-appt-${appt.id}`}
+                                            className={`${procedureTypeColors[appt.procedureType]} p-1 rounded text-xs cursor-pointer flex-1 min-w-0`}
+                                            onClick={() => handleEditAppointment(appt)}
+                                          >
+                                            <div className="font-medium truncate flex items-center">
+                                              {format(new Date(appt.date), 'h:mm a')} {appt.patientName}
+                                              {appt.patientStatus && (
+                                                <div className={`h-2 w-2 rounded-full ml-1 ${
+                                                  appt.patientStatus === 'here' ? 'bg-green-500' :
+                                                  appt.patientStatus === 'confirmed' ? 'bg-blue-500' :
+                                                  appt.patientStatus === 'unconfirmed' ? 'bg-red-500' :
+                                                  appt.patientStatus === 'noshow' ? 'bg-orange-500' : 'bg-gray-500'
+                                                }`} />
+                                              )}
+                                            </div>
+                                            <div className="truncate">
+                                              {appt.procedureType === "Other" 
+                                                ? (appt.customProcedureName || "Custom Procedure") 
+                                                : appt.procedureType}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      // Single appointment display
+                                      <div 
+                                        key={`week-appt-${minuteAppts[0].id}`}
+                                        className={`${procedureTypeColors[minuteAppts[0].procedureType]} p-1 rounded text-xs cursor-pointer`}
+                                        onClick={() => handleEditAppointment(minuteAppts[0])}
+                                      >
+                                        <div className="font-medium truncate flex items-center">
+                                          {format(new Date(minuteAppts[0].date), 'h:mm a')} {minuteAppts[0].patientName}
+                                          {minuteAppts[0].patientStatus && (
+                                            <div className={`h-2 w-2 rounded-full ml-1 ${
+                                              minuteAppts[0].patientStatus === 'here' ? 'bg-green-500' :
+                                              minuteAppts[0].patientStatus === 'confirmed' ? 'bg-blue-500' :
+                                              minuteAppts[0].patientStatus === 'unconfirmed' ? 'bg-red-500' :
+                                              minuteAppts[0].patientStatus === 'noshow' ? 'bg-orange-500' : 'bg-gray-500'
+                                            }`} />
+                                          )}
+                                        </div>
+                                        <div className="truncate">
+                                          {minuteAppts[0].procedureType === "Other" 
+                                            ? (minuteAppts[0].customProcedureName || "Custom Procedure") 
+                                            : minuteAppts[0].procedureType}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
                               </div>
