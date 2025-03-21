@@ -381,13 +381,14 @@ export default function AuthPage() {
       {/* Add the AI Mascot to provide guidance */}
       <OnboardingMascot 
         userRole={userRole}
-        tour="login"
+        currentArea="login"
         position="right"
-        enableBubble={true}
-        welcomeMessage="Welcome to DentaMind! I'm your AI assistant. How can I help you today?"
+        size="md"
+        autoStart={true}
+        hideWhenInactive={false}
         onTourComplete={() => {
           setMascotTourComplete(true);
-          console.log("Mascot tour completed");
+          console.log("Mascot tour completed for login area");
         }}
       />
       

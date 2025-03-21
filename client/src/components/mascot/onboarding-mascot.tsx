@@ -21,7 +21,7 @@ export const OnboardingMascot: React.FC<OnboardingMascotProps> = ({
   autoStart = true,
   hideWhenInactive = false,
 }) => {
-  const [currentMessage, setCurrentMessage] = useState<MascotMessage | null>(null);
+  const [currentMessage, setCurrentMessage] = useState<MascotMessage | undefined>(undefined);
   const [isVisible, setIsVisible] = useState(true);
   const [isActive, setIsActive] = useState(false);
 
@@ -44,7 +44,7 @@ export const OnboardingMascot: React.FC<OnboardingMascotProps> = ({
             highlightElement(step.element);
           }
         } else {
-          setCurrentMessage(null);
+          setCurrentMessage(undefined);
           setIsActive(false);
           clearHighlights();
         }
@@ -87,7 +87,7 @@ export const OnboardingMascot: React.FC<OnboardingMascotProps> = ({
 
   const handleDismiss = () => {
     onboardingService.endTour();
-    setCurrentMessage(null);
+    setCurrentMessage(undefined);
     setIsActive(false);
     clearHighlights();
   };
@@ -150,7 +150,7 @@ export const OnboardingMascot: React.FC<OnboardingMascotProps> = ({
   return (
     <>
       {/* Add CSS for highlighted elements */}
-      <style jsx global>{`
+      <style>{`
         .mascot-highlight {
           position: relative;
           z-index: 5;
