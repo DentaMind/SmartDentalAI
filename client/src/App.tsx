@@ -28,6 +28,7 @@ import AppointmentRequestPage from "@/pages/appointment-request-page";
 import UnifiedEmailPage from "@/pages/unified-email-page";
 import EmailIntegrationPage from "@/pages/email-integration-page";
 import XRayFMXPage from "@/pages/xray-fmx-page";
+import XRayComparisonTestPage from "@/pages/xray-comparison-test";
 import FormPage from "@/pages/form-page";
 import FormSubmittedPage from "@/pages/form-submitted-page";
 
@@ -83,6 +84,9 @@ function Router() {
         </ProtectedRoute>
         <ProtectedRoute path="/xray-fmx/:patientId">
           <XRayFMXPage />
+        </ProtectedRoute>
+        <ProtectedRoute path="/xray-comparison-test">
+          <XRayComparisonTestPage />
         </ProtectedRoute>
         <Route component={NotFound} />
       </Switch>

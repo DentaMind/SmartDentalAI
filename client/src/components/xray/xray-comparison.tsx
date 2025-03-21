@@ -1,764 +1,436 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Card, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription, 
-  CardContent, 
-  CardFooter 
-} from '@/components/ui/card';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from '@/components/ui/tabs';
-import {
-  ToggleGroup,
-} from "@/components/ui/toggle-group";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { 
-  Brain, 
-  Layers, 
-  Download, 
-  Maximize, 
-  ArrowLeft, 
-  ArrowRight, 
-  Eye, 
-  EyeOff, 
-  ImageDown, 
-  Ruler, 
-  PanelTopOpen,
-  RotateCw,
-  RotateCcw,
-  ZoomIn,
-  ZoomOut,
-  Move,
-  Shuffle,
-  ThermometerSnowflake,
-  Grid,
-  History
-} from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { differenceInMonths, format, parseISO } from 'date-fns';
 
-// Define types for the components
-export interface XRayImage {
-  id: string;
-  imageUrl: string;
-  type: string;
-  date: string;
-  provider: string;
-  description?: string;
-  aiAnalyzed?: boolean;
-  aiFindings?: string[];
-}
-
+// Define types for the component props
 interface XRayComparisonProps {
-  beforeXray: XRayImage;
-  afterXray: XRayImage;
+  beforeXray: {
+    id: string;
+    imageUrl: string;
+    date: string;
+    type: string;
+    provider?: string;
+    description?: string;
+    aiAnalyzed?: boolean;
+    aiFindings?: string[];
+  };
+  afterXray: {
+    id: string;
+    imageUrl: string;
+    date: string;
+    type: string;
+    provider?: string;
+    description?: string;
+    aiAnalyzed?: boolean;
+    aiFindings?: string[];
+  };
   patientName: string;
-  onClose?: () => void;
+  onClose: () => void;
 }
 
-export interface XRayOrientation {
-  flipped: boolean;
-  rotated: number; // degrees 0, 90, 180, 270
+// Define a comparative finding type
+interface ComparativeFinding {
+  text: string;
+  type: 'improvement' | 'deterioration' | 'unchanged' | 'new';
 }
 
 export function XRayComparison({ beforeXray, afterXray, patientName, onClose }: XRayComparisonProps) {
-  // State for comparison settings
-  const [viewMode, setViewMode] = useState<'side-by-side' | 'overlay' | 'slider'>('side-by-side');
+  const [mode, setMode] = useState<'side-by-side' | 'overlay' | 'slider'>('side-by-side');
+  const [opacity, setOpacity] = useState(0.5);
   const [sliderPosition, setSliderPosition] = useState(50);
-  const [opacity, setOpacity] = useState(50);
-  const [zoom, setZoom] = useState(100);
-  const [showAnnotations, setShowAnnotations] = useState(true);
-  const [showMeasurements, setShowMeasurements] = useState(false);
-  const [showTissueOverlay, setShowTissueOverlay] = useState(false);
-  const [showGrid, setShowGrid] = useState(false);
-  const [autoOrient, setAutoOrient] = useState(true);
+  const beforeRef = useRef<HTMLImageElement>(null);
+  const afterRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const sliderContainerRef = useRef<HTMLDivElement>(null);
   
-  // Orientation controls
-  const [beforeOrientation, setBeforeOrientation] = useState<XRayOrientation>({ flipped: false, rotated: 0 });
-  const [afterOrientation, setAfterOrientation] = useState<XRayOrientation>({ flipped: false, rotated: 0 });
+  // Calculate time difference between X-rays
+  const timeDifference = calculateTimeDifference(beforeXray.date, afterXray.date);
   
-  // Enhanced view options
-  const [tissueMode, setTissueMode] = useState<'none' | 'overlay' | 'combined'>('none');
-  const [showHistory, setShowHistory] = useState(false);
+  // Generate comparative findings
+  const comparativeFindings = generateComparativeFindings(beforeXray, afterXray);
   
-  // References to image containers for manipulation
-  const beforeImageRef = useRef<HTMLImageElement>(null);
-  const afterImageRef = useRef<HTMLImageElement>(null);
-  const overlayContainerRef = useRef<HTMLDivElement>(null);
-  
-  // Calculate the difference in time between the two X-rays
-  const beforeDate = new Date(beforeXray.date);
-  const afterDate = new Date(afterXray.date);
-  const daysBetween = Math.round((afterDate.getTime() - beforeDate.getTime()) / (1000 * 60 * 60 * 24));
-  
-  // Automatically detect and correct orientation on component mount
+  // Handle slider mode
   useEffect(() => {
-    if (autoOrient) {
-      // This would normally use AI to detect proper orientation
-      // For this demo, we just simulate auto-orientation with a timeout
-      const timer = setTimeout(() => {
-        // Simulate AI-based orientation detection
-        // In real implementation, this would analyze the images and set correct orientation
-        console.log('Auto-orienting images based on dental landmarks');
-        setBeforeOrientation({ flipped: false, rotated: 0 });
-        setAfterOrientation({ flipped: false, rotated: 0 });
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [autoOrient]);
-  
-  // Handle view mode changes
-  useEffect(() => {
-    if (viewMode === 'overlay' && overlayContainerRef.current) {
-      // Set the opacity of the overlay image
-      const overlayImage = overlayContainerRef.current.querySelector('.overlay-image') as HTMLElement;
-      if (overlayImage) {
-        overlayImage.style.opacity = (opacity / 100).toString();
-      }
-    }
-  }, [viewMode, opacity]);
-  
-  // Handle zoom changes and orientation
-  useEffect(() => {
-    const zoomScale = zoom / 100;
-    
-    if (beforeImageRef.current) {
-      const flipTransform = beforeOrientation.flipped ? 'scaleX(-1)' : '';
-      const rotateTransform = beforeOrientation.rotated ? `rotate(${beforeOrientation.rotated}deg)` : '';
-      beforeImageRef.current.style.transform = `scale(${zoomScale}) ${flipTransform} ${rotateTransform}`;
-    }
-    
-    if (afterImageRef.current) {
-      const flipTransform = afterOrientation.flipped ? 'scaleX(-1)' : '';
-      const rotateTransform = afterOrientation.rotated ? `rotate(${afterOrientation.rotated}deg)` : '';
-      afterImageRef.current.style.transform = `scale(${zoomScale}) ${flipTransform} ${rotateTransform}`;
-    }
-  }, [zoom, beforeOrientation, afterOrientation]);
-  
-  // Handle tissue visualization modes
-  useEffect(() => {
-    const applyFilter = (imgElement: HTMLImageElement | null, mode: 'none' | 'overlay' | 'combined') => {
-      if (!imgElement) return;
-      
-      // Reset filters first
-      imgElement.style.filter = '';
-      
-      if (mode === 'overlay') {
-        // Soft tissue mode - enhance visibility of soft tissues
-        imgElement.style.filter = 'contrast(1.2) brightness(1.1) saturate(0.8)';
-      } else if (mode === 'combined') {
-        // Thermal-like view for density visualization
-        imgElement.style.filter = 'hue-rotate(180deg) saturate(1.5) contrast(1.3)';
-      }
-    };
-    
-    applyFilter(beforeImageRef.current, tissueMode);
-    applyFilter(afterImageRef.current, tissueMode);
-    
-    // Apply grid overlay if enabled
-    if (beforeImageRef.current && afterImageRef.current) {
-      const beforeParent = beforeImageRef.current.parentElement;
-      const afterParent = afterImageRef.current.parentElement;
-      
-      if (beforeParent && afterParent) {
-        beforeParent.style.backgroundImage = showGrid ? 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)' : 'none';
-        beforeParent.style.backgroundSize = '20px 20px';
+    if (mode === 'slider' && sliderContainerRef.current) {
+      const handleSliderMove = (e: MouseEvent) => {
+        const container = sliderContainerRef.current;
+        if (!container) return;
         
-        afterParent.style.backgroundImage = showGrid ? 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)' : 'none';
-        afterParent.style.backgroundSize = '20px 20px';
-      }
+        const rect = container.getBoundingClientRect();
+        const position = ((e.clientX - rect.left) / rect.width) * 100;
+        setSliderPosition(Math.max(0, Math.min(100, position)));
+      };
+      
+      const handleMouseDown = () => {
+        document.addEventListener('mousemove', handleSliderMove);
+        document.addEventListener('mouseup', handleMouseUp);
+      };
+      
+      const handleMouseUp = () => {
+        document.removeEventListener('mousemove', handleSliderMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+      
+      sliderContainerRef.current.addEventListener('mousedown', handleMouseDown);
+      
+      return () => {
+        if (sliderContainerRef.current) {
+          sliderContainerRef.current.removeEventListener('mousedown', handleMouseDown);
+        }
+        document.removeEventListener('mousemove', handleSliderMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
     }
-  }, [tissueMode, showGrid]);
-  
-  // Handle timeline view
-  useEffect(() => {
-    // This would connect to a real timeline service in production
-    // to retrieve historical X-rays for the same tooth/area
-    if (showHistory) {
-      console.log('Loading historical X-ray timeline data');
-      // In a real implementation, this would fetch the patient's
-      // X-ray history for this specific tooth or region
-    }
-  }, [showHistory]);
-  
-  // Export comparison as image
-  const exportComparison = () => {
-    // In a real implementation, this would capture the current view
-    // as an image and download it
-    console.log('Exporting comparison');
-    alert('Comparison exported to patient record');
-  };
+  }, [mode]);
   
   return (
-    <Card className="w-full max-w-7xl mx-auto">
-      <CardHeader>
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-lg md:text-xl">X-Ray Comparison</CardTitle>
-            <CardDescription>
-              {beforeXray.type} X-rays for {patientName} - {daysBetween} days between captures
-            </CardDescription>
+    <div className="bg-background flex flex-col h-full w-full overflow-hidden">
+      <div className="bg-card p-4 border-b flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">{patientName} - X-ray Comparison</h2>
+          <p className="text-muted-foreground">
+            Comparing {beforeXray.type} from {formatDate(beforeXray.date)} with {afterXray.type} from {formatDate(afterXray.date)}
+            {timeDifference && (
+              <span className="ml-2">
+                ({timeDifference.value} {timeDifference.unit}{timeDifference.value !== 1 ? 's' : ''} apart)
+              </span>
+            )}
+          </p>
+        </div>
+        <Button variant="ghost" onClick={onClose} size="sm">
+          Close
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 h-full overflow-auto">
+        <div className="md:col-span-2 h-full flex flex-col">
+          <div className="mb-4 flex space-x-2">
+            <TabsList>
+              <TabsTrigger 
+                value="side-by-side" 
+                onClick={() => setMode('side-by-side')}
+                className={mode === 'side-by-side' ? 'bg-primary text-primary-foreground' : ''}
+              >
+                Side by Side
+              </TabsTrigger>
+              <TabsTrigger 
+                value="overlay" 
+                onClick={() => setMode('overlay')}
+                className={mode === 'overlay' ? 'bg-primary text-primary-foreground' : ''}
+              >
+                Overlay
+              </TabsTrigger>
+              <TabsTrigger 
+                value="slider" 
+                onClick={() => setMode('slider')}
+                className={mode === 'slider' ? 'bg-primary text-primary-foreground' : ''}
+              >
+                Slider
+              </TabsTrigger>
+            </TabsList>
+            
+            {mode === 'overlay' && (
+              <div className="flex items-center space-x-2 min-w-[180px]">
+                <span className="text-xs">Opacity:</span>
+                <Slider 
+                  value={[opacity * 100]} 
+                  onValueChange={(value) => setOpacity(value[0] / 100)}
+                  min={0} 
+                  max={100} 
+                  step={1}
+                  className="w-full"
+                />
+              </div>
+            )}
           </div>
           
-          <div className="flex items-center gap-2">
-            {(beforeXray.aiAnalyzed || afterXray.aiAnalyzed) && (
-              <Badge className="bg-primary hover:bg-primary flex items-center gap-1">
-                <Brain className="h-3 w-3" />
-                AI Analysis Applied
-              </Badge>
+          <div 
+            ref={containerRef}
+            className="relative flex-1 rounded-md overflow-hidden border shadow-lg bg-black"
+          >
+            {mode === 'side-by-side' && (
+              <div className="flex h-full">
+                <div className="w-1/2 h-full relative">
+                  <div className="absolute top-2 left-2 bg-card/80 rounded-md px-2 py-1 text-xs">
+                    {formatDate(beforeXray.date)}
+                  </div>
+                  <img 
+                    ref={beforeRef}
+                    src={beforeXray.imageUrl} 
+                    alt={`${beforeXray.type} from ${beforeXray.date}`}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div className="w-1/2 h-full relative">
+                  <div className="absolute top-2 left-2 bg-card/80 rounded-md px-2 py-1 text-xs">
+                    {formatDate(afterXray.date)}
+                  </div>
+                  <img 
+                    ref={afterRef}
+                    src={afterXray.imageUrl} 
+                    alt={`${afterXray.type} from ${afterXray.date}`}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              </div>
             )}
             
-            <Button variant="outline" size="sm" onClick={onClose}>
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back
-            </Button>
+            {mode === 'overlay' && (
+              <div className="relative w-full h-full">
+                <img 
+                  ref={beforeRef}
+                  src={beforeXray.imageUrl} 
+                  alt={`${beforeXray.type} from ${beforeXray.date}`}
+                  className="absolute top-0 left-0 w-full h-full object-contain z-10"
+                />
+                <img 
+                  ref={afterRef}
+                  src={afterXray.imageUrl} 
+                  alt={`${afterXray.type} from ${afterXray.date}`}
+                  className="absolute top-0 left-0 w-full h-full object-contain z-20"
+                  style={{ opacity: opacity }}
+                />
+                <div className="absolute top-2 left-2 bg-card/80 rounded-md px-2 py-1 text-xs z-30 flex space-x-2">
+                  <span className="bg-primary/20 px-1 rounded">{formatDate(beforeXray.date)} (base)</span>
+                  <span className="bg-secondary/20 px-1 rounded">{formatDate(afterXray.date)} (overlay)</span>
+                </div>
+              </div>
+            )}
+            
+            {mode === 'slider' && (
+              <div 
+                ref={sliderContainerRef}
+                className="relative w-full h-full cursor-col-resize"
+              >
+                <div className="absolute top-0 left-0 h-full w-full overflow-hidden">
+                  <img 
+                    ref={beforeRef}
+                    src={beforeXray.imageUrl} 
+                    alt={`${beforeXray.type} from ${beforeXray.date}`}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div 
+                  className="absolute top-0 left-0 h-full overflow-hidden"
+                  style={{ width: `${sliderPosition}%` }}
+                >
+                  <img 
+                    ref={afterRef}
+                    src={afterXray.imageUrl} 
+                    alt={`${afterXray.type} from ${afterXray.date}`}
+                    className="w-full h-full object-contain"
+                    style={{ 
+                      width: `${100 * (100 / sliderPosition)}%`,
+                      maxWidth: 'none'
+                    }}
+                  />
+                </div>
+                
+                {/* Slider handle */}
+                <div 
+                  className="absolute top-0 bottom-0 w-1 bg-white cursor-col-resize z-30"
+                  style={{ left: `calc(${sliderPosition}% - 0.5px)` }}
+                >
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white shadow-lg flex items-center justify-center">
+                    <div className="w-1 h-10 bg-gray-400 rounded-full"></div>
+                  </div>
+                </div>
+                
+                {/* Labels */}
+                <div className="absolute top-2 left-2 bg-card/80 rounded-md px-2 py-1 text-xs z-40">
+                  {formatDate(beforeXray.date)}
+                </div>
+                <div className="absolute top-2 right-2 bg-card/80 rounded-md px-2 py-1 text-xs z-40">
+                  {formatDate(afterXray.date)}
+                </div>
+              </div>
+            )}
           </div>
         </div>
         
-        {/* Timeline view */}
-        {showHistory && (
-          <div className="mt-4 pt-4 border-t">
-            <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
-              <History className="h-4 w-4" />
-              X-Ray Timeline History
-            </h4>
-            <div className="relative">
-              {/* Timeline bar */}
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-primary rounded-full" 
-                  style={{ width: '100%' }}
-                ></div>
+        <div className="flex flex-col h-full overflow-y-auto">
+          <Card className="flex-1">
+            <CardHeader className="pb-2">
+              <CardTitle>Analysis</CardTitle>
+              <CardDescription>
+                Comparing X-rays taken {timeDifference?.value} {timeDifference?.unit}{timeDifference?.value !== 1 ? 's' : ''} apart
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h4 className="font-medium mb-2 text-sm">Key Findings</h4>
+                <ul className="space-y-2">
+                  {comparativeFindings.map((finding, index) => (
+                    <li key={index} className="flex items-start">
+                      <Badge 
+                        className={`mt-0.5 mr-2 ${
+                          finding.type === 'improvement' ? 'bg-green-500' :
+                          finding.type === 'deterioration' ? 'bg-red-500' :
+                          finding.type === 'new' ? 'bg-blue-500' : 'bg-gray-500'
+                        }`}
+                      >
+                        {finding.type}
+                      </Badge>
+                      <span className="text-sm">{finding.text}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
               
-              {/* Timeline markers */}
-              <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-                <div className="flex flex-col items-center">
-                  <div className="w-3 h-3 bg-primary rounded-full mb-1"></div>
-                  <span>{new Date(beforeXray.date).toLocaleDateString()}</span>
-                </div>
-                
-                <div className="flex flex-col items-center">
-                  <div className="w-3 h-3 bg-primary rounded-full mb-1"></div>
-                  <span>{new Date(afterXray.date).toLocaleDateString()}</span>
-                </div>
-                
-                {/* In a real implementation, this would show additional historical X-rays */}
-                <div className="flex flex-col items-center opacity-50">
-                  <div className="w-3 h-3 bg-gray-400 rounded-full mb-1"></div>
-                  <span>{new Date(new Date().setDate(new Date().getDate() - 365)).toLocaleDateString()}</span>
-                </div>
+              <Separator />
+              
+              <div>
+                <h4 className="font-medium mb-2 text-sm">Original X-ray ({formatDate(beforeXray.date)})</h4>
+                <ul className="space-y-1 ml-5 list-disc text-sm text-muted-foreground">
+                  {beforeXray.aiFindings?.map((finding, index) => (
+                    <li key={index}>{finding}</li>
+                  ))}
+                </ul>
               </div>
               
-              <div className="mt-2 text-xs text-muted-foreground italic">
-                Additional historical X-rays available in patient records
+              <div>
+                <h4 className="font-medium mb-2 text-sm">Current X-ray ({formatDate(afterXray.date)})</h4>
+                <ul className="space-y-1 ml-5 list-disc text-sm text-muted-foreground">
+                  {afterXray.aiFindings?.map((finding, index) => (
+                    <li key={index}>{finding}</li>
+                  ))}
+                </ul>
               </div>
-            </div>
-          </div>
-        )}
-      </CardHeader>
-      
-      <CardContent>
-        <div className="space-y-4">
-          {/* View control tabs */}
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-full">
-            <TabsList className="w-full grid grid-cols-3">
-              <TabsTrigger value="side-by-side">Side by Side</TabsTrigger>
-              <TabsTrigger value="overlay">Overlay</TabsTrigger>
-              <TabsTrigger value="slider">Slider</TabsTrigger>
-            </TabsList>
-            
-            {/* Side by side view */}
-            <TabsContent value="side-by-side" className="mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-black rounded-lg overflow-hidden relative">
-                  <div className="absolute top-2 left-2 z-10">
-                    <Badge variant="outline" className="bg-black/70 text-white border-none">
-                      Before: {new Date(beforeXray.date).toLocaleDateString()}
-                    </Badge>
-                  </div>
-                  <div className="overflow-hidden" style={{ height: '400px' }}>
-                    <img 
-                      ref={beforeImageRef}
-                      src={beforeXray.imageUrl} 
-                      alt={`Before ${beforeXray.type} x-ray`}
-                      className="w-full h-full object-contain transition-transform duration-300 origin-center"
-                    />
-                  </div>
-                </div>
-                
-                <div className="bg-black rounded-lg overflow-hidden relative">
-                  <div className="absolute top-2 left-2 z-10">
-                    <Badge variant="outline" className="bg-black/70 text-white border-none">
-                      After: {new Date(afterXray.date).toLocaleDateString()}
-                    </Badge>
-                  </div>
-                  <div className="overflow-hidden" style={{ height: '400px' }}>
-                    <img 
-                      ref={afterImageRef}
-                      src={afterXray.imageUrl} 
-                      alt={`After ${afterXray.type} x-ray`}
-                      className="w-full h-full object-contain transition-transform duration-300 origin-center"
-                    />
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-            
-            {/* Overlay view */}
-            <TabsContent value="overlay" className="mt-4">
-              <div className="bg-black rounded-lg overflow-hidden relative" style={{ height: '400px' }}>
-                <div className="absolute top-2 left-2 z-10">
-                  <Badge variant="outline" className="bg-black/70 text-white border-none mr-2">
-                    Before: {new Date(beforeXray.date).toLocaleDateString()}
-                  </Badge>
-                  <Badge variant="outline" className="bg-black/70 text-white border-none">
-                    After: {new Date(afterXray.date).toLocaleDateString()}
-                  </Badge>
-                </div>
-                
-                <div ref={overlayContainerRef} className="relative w-full h-full">
-                  <img 
-                    src={beforeXray.imageUrl} 
-                    alt={`Before ${beforeXray.type} x-ray`}
-                    className="w-full h-full object-contain absolute top-0 left-0 z-0"
-                  />
-                  <img 
-                    src={afterXray.imageUrl} 
-                    alt={`After ${afterXray.type} x-ray`}
-                    className="w-full h-full object-contain absolute top-0 left-0 z-10 overlay-image"
-                    style={{ opacity: opacity / 100 }}
-                  />
-                </div>
-                
-                <div className="absolute bottom-4 left-0 right-0 px-4">
-                  <div className="flex items-center gap-2 text-white text-xs mb-1">
-                    <span>Before</span>
-                    <div className="flex-1"></div>
-                    <span>After</span>
-                  </div>
-                  <Slider 
-                    value={[opacity]} 
-                    min={0} 
-                    max={100} 
-                    step={1}
-                    onValueChange={(vals) => setOpacity(vals[0])}
-                    className="opacity-slider"
-                  />
-                </div>
-              </div>
-            </TabsContent>
-            
-            {/* Slider view */}
-            <TabsContent value="slider" className="mt-4">
-              <div className="bg-black rounded-lg overflow-hidden relative" style={{ height: '400px' }}>
-                <div className="absolute top-2 left-2 z-20">
-                  <Badge variant="outline" className="bg-black/70 text-white border-none mr-2">
-                    Before: {new Date(beforeXray.date).toLocaleDateString()}
-                  </Badge>
-                  <Badge variant="outline" className="bg-black/70 text-white border-none">
-                    After: {new Date(afterXray.date).toLocaleDateString()}
-                  </Badge>
-                </div>
-                
-                <div className="relative w-full h-full overflow-hidden">
-                  <img 
-                    src={beforeXray.imageUrl} 
-                    alt={`Before ${beforeXray.type} x-ray`}
-                    className="w-full h-full object-contain absolute top-0 left-0 z-0"
-                  />
-                  
-                  <div 
-                    className="absolute top-0 right-0 h-full z-10 overflow-hidden" 
-                    style={{ width: `${sliderPosition}%` }}
-                  >
-                    <img 
-                      src={afterXray.imageUrl} 
-                      alt={`After ${afterXray.type} x-ray`}
-                      className="w-full h-full object-contain absolute top-0 left-0"
-                      style={{ 
-                        width: `${100 / (sliderPosition / 100)}%`,
-                        right: 0,
-                        position: 'absolute'
-                      }}
-                    />
-                  </div>
-                  
-                  {/* The slider divider line */}
-                  <div 
-                    className="absolute top-0 bottom-0 w-1 bg-primary z-20 cursor-ew-resize"
-                    style={{ left: `${sliderPosition}%` }}
-                  ></div>
-                </div>
-                
-                <div className="absolute bottom-4 left-0 right-0 px-4">
-                  <Slider 
-                    value={[sliderPosition]} 
-                    min={0} 
-                    max={100} 
-                    step={1}
-                    onValueChange={(vals) => setSliderPosition(vals[0])}
-                    className="slider-control"
-                  />
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-          
-          {/* Controls */}
-          <div className="bg-muted p-3 rounded-lg">
-            <div className="mb-3 flex justify-between items-center">
-              <h4 className="text-sm font-medium">View Controls</h4>
-              
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={exportComparison}>
-                      <Download className="h-4 w-4 mr-1" />
-                      Export
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Export this comparison to patient record</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Zoom: {zoom}%</Label>
-                </div>
-                <Slider 
-                  value={[zoom]} 
-                  min={50} 
-                  max={200} 
-                  step={5}
-                  onValueChange={(vals) => setZoom(vals[0])}
-                />
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <Label className="mb-2 block">Display Options</Label>
-                  <div className="flex flex-wrap gap-2">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant={showAnnotations ? "default" : "outline"} 
-                            size="sm"
-                            onClick={() => setShowAnnotations(!showAnnotations)}
-                            className={showAnnotations ? "bg-primary text-primary-foreground" : ""}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Annotations
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Show or hide AI annotations</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant={showMeasurements ? "default" : "outline"} 
-                            size="sm"
-                            onClick={() => setShowMeasurements(!showMeasurements)}
-                            className={showMeasurements ? "bg-primary text-primary-foreground" : ""}
-                          >
-                            <Ruler className="h-4 w-4 mr-1" />
-                            Measurements
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Show or hide measurements</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant={showGrid ? "default" : "outline"} 
-                            size="sm"
-                            onClick={() => setShowGrid(!showGrid)}
-                            className={showGrid ? "bg-primary text-primary-foreground" : ""}
-                          >
-                            <Grid className="h-4 w-4 mr-1" />
-                            Grid
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Show measurement grid overlay</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant={showHistory ? "default" : "outline"} 
-                            size="sm"
-                            onClick={() => setShowHistory(!showHistory)}
-                            className={showHistory ? "bg-primary text-primary-foreground" : ""}
-                          >
-                            <History className="h-4 w-4 mr-1" />
-                            Timeline
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Show historical timeline comparison</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </div>
-                
-                <div>
-                  <Label className="mb-2 block">Tissue Visualization</Label>
-                  <div className="flex flex-wrap gap-2">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant={tissueMode === 'none' ? "default" : "outline"} 
-                            size="sm"
-                            onClick={() => setTissueMode('none')}
-                            className={tissueMode === 'none' ? "bg-primary text-primary-foreground" : ""}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Normal
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Standard X-ray view</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant={tissueMode === 'overlay' ? "default" : "outline"} 
-                            size="sm"
-                            onClick={() => setTissueMode('overlay')}
-                            className={tissueMode === 'overlay' ? "bg-primary text-primary-foreground" : ""}
-                          >
-                            <Layers className="h-4 w-4 mr-1" />
-                            Soft Tissue
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Highlight soft tissue structures</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant={tissueMode === 'combined' ? "default" : "outline"} 
-                            size="sm"
-                            onClick={() => setTissueMode('combined')}
-                            className={tissueMode === 'combined' ? "bg-primary text-primary-foreground" : ""}
-                          >
-                            <ThermometerSnowflake className="h-4 w-4 mr-1" />
-                            Thermal View
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Enhanced density visualization</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </div>
-                
-                <div>
-                  <Label className="mb-2 block">Orientation Controls</Label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-xs text-muted-foreground mb-1">Before Image</div>
-                      <div className="flex gap-1">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="icon"
-                                onClick={() => setBeforeOrientation(prev => ({ ...prev, rotated: (prev.rotated - 90 + 360) % 360 }))}
-                              >
-                                <RotateCcw className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Rotate counterclockwise</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="icon"
-                                onClick={() => setBeforeOrientation(prev => ({ ...prev, rotated: (prev.rotated + 90) % 360 }))}
-                              >
-                                <RotateCw className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Rotate clockwise</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="icon"
-                                onClick={() => setBeforeOrientation(prev => ({ ...prev, flipped: !prev.flipped }))}
-                              >
-                                <Shuffle className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Flip horizontally</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <div className="text-xs text-muted-foreground mb-1">After Image</div>
-                      <div className="flex gap-1">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="icon"
-                                onClick={() => setAfterOrientation(prev => ({ ...prev, rotated: (prev.rotated - 90 + 360) % 360 }))}
-                              >
-                                <RotateCcw className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Rotate counterclockwise</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="icon"
-                                onClick={() => setAfterOrientation(prev => ({ ...prev, rotated: (prev.rotated + 90) % 360 }))}
-                              >
-                                <RotateCw className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Rotate clockwise</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="icon"
-                                onClick={() => setAfterOrientation(prev => ({ ...prev, flipped: !prev.flipped }))}
-                              >
-                                <Shuffle className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Flip horizontally</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Analysis results comparison */}
-          {(beforeXray.aiAnalyzed || afterXray.aiAnalyzed) && (
-            <div className="border rounded-lg">
-              <div className="bg-primary/10 p-3 border-b rounded-t-lg">
-                <h3 className="font-medium flex items-center">
-                  <Brain className="h-4 w-4 mr-2 text-primary" />
-                  AI Analysis Comparison
-                </h3>
-              </div>
-              
-              <div className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {beforeXray.aiAnalyzed && (
-                    <div>
-                      <h4 className="font-medium mb-2 text-sm text-muted-foreground">Before ({new Date(beforeXray.date).toLocaleDateString()})</h4>
-                      <ul className="list-disc list-inside space-y-1 text-sm">
-                        {beforeXray.aiFindings?.map((finding, i) => (
-                          <li key={i}>{finding}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  
-                  {afterXray.aiAnalyzed && (
-                    <div>
-                      <h4 className="font-medium mb-2 text-sm text-muted-foreground">After ({new Date(afterXray.date).toLocaleDateString()})</h4>
-                      <ul className="list-disc list-inside space-y-1 text-sm">
-                        {afterXray.aiFindings?.map((finding, i) => (
-                          <li key={i}>{finding}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+            </CardContent>
+            <CardFooter className="flex justify-between border-t pt-4">
+              <Button variant="outline" size="sm" onClick={onClose}>
+                Close
+              </Button>
+              <Button size="sm">
+                Export Report
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
-// Label component for the slider
-function Label({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`text-sm font-medium mb-1 ${className}`}>{children}</div>;
+// Helper function to format date
+function formatDate(dateString: string) {
+  try {
+    return format(parseISO(dateString), 'MMM d, yyyy');
+  } catch {
+    return dateString;
+  }
+}
+
+// Calculate time difference between two dates
+function calculateTimeDifference(date1: string, date2: string): { value: number; unit: string } | null {
+  try {
+    const d1 = parseISO(date1);
+    const d2 = parseISO(date2);
+    
+    const monthsDiff = Math.abs(differenceInMonths(d2, d1));
+    
+    if (monthsDiff < 1) {
+      return { value: 0, unit: 'month' };
+    } else if (monthsDiff < 12) {
+      return { value: monthsDiff, unit: 'month' };
+    } else {
+      const years = Math.floor(monthsDiff / 12);
+      return { value: years, unit: 'year' };
+    }
+  } catch {
+    return null;
+  }
+}
+
+// Generate comparative findings between two X-rays
+function generateComparativeFindings(
+  beforeXray: XRayComparisonProps['beforeXray'], 
+  afterXray: XRayComparisonProps['afterXray']
+): ComparativeFinding[] {
+  const findings: ComparativeFinding[] = [];
+  
+  // Function to detect improvements between findings
+  const findImprovements = () => {
+    const beforeConditions = new Set(beforeXray.aiFindings || []);
+    const afterConditions = new Set(afterXray.aiFindings || []);
+    
+    // Simple heuristic to detect improvements
+    if (beforeConditions.size > 0 && afterConditions.size > 0) {
+      // Look for improvements in bone loss
+      const beforeBoneLoss = Array.from(beforeConditions).find(c => c.toLowerCase().includes('bone loss'));
+      const afterBoneLoss = Array.from(afterConditions).find(c => c.toLowerCase().includes('bone loss'));
+      
+      if (beforeBoneLoss && afterBoneLoss) {
+        const beforeSeverity = getSeverity(beforeBoneLoss);
+        const afterSeverity = getSeverity(afterBoneLoss);
+        
+        if (beforeSeverity > afterSeverity) {
+          findings.push({
+            text: 'Reduction in bone loss severity',
+            type: 'improvement'
+          });
+        } else if (beforeSeverity < afterSeverity) {
+          findings.push({
+            text: 'Increased bone loss severity',
+            type: 'deterioration'
+          });
+        }
+      }
+      
+      // Check for caries that have been restored
+      const beforeCaries = Array.from(beforeConditions).filter(c => 
+        c.toLowerCase().includes('caries') || c.toLowerCase().includes('decay')
+      );
+      
+      const afterRestorations = Array.from(afterConditions).filter(c => 
+        c.toLowerCase().includes('restoration') || c.toLowerCase().includes('filled')
+      );
+      
+      if (beforeCaries.length > 0 && afterRestorations.length > 0) {
+        findings.push({
+          text: 'Previous caries appear to have been restored',
+          type: 'improvement'
+        });
+      }
+      
+      // Check for new conditions
+      Array.from(afterConditions).forEach(condition => {
+        const isNew = !Array.from(beforeConditions).some(bc => 
+          bc.toLowerCase().includes(condition.toLowerCase().split(' ').slice(-1)[0])
+        );
+        
+        if (isNew && !condition.toLowerCase().includes('normal')) {
+          findings.push({
+            text: `New finding: ${condition}`,
+            type: 'new'
+          });
+        }
+      });
+    }
+  };
+  
+  findImprovements();
+  
+  // If no findings were generated, add default findings
+  if (findings.length === 0) {
+    findings.push({
+      text: 'No significant changes detected between these X-rays',
+      type: 'unchanged'
+    });
+  }
+  
+  return findings;
+}
+
+// Helper function to get severity level from text
+function getSeverity(text: string): number {
+  if (text.toLowerCase().includes('severe')) return 3;
+  if (text.toLowerCase().includes('moderate')) return 2;
+  if (text.toLowerCase().includes('mild')) return 1;
+  return 0;
 }
