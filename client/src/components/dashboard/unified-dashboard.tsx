@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { formatDate } from "@/lib/utils";
+import { SchedulerV3 } from "@/components/appointments/scheduler-v3";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -929,8 +930,8 @@ export function UnifiedDashboard({ userRole = "doctor" }: UnifiedDashboardProps)
           </div>
         </div>
 
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Today's Schedule</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium">Practice Schedule</h3>
           <div className="flex gap-2">
             <Button className="bg-primary hover:bg-primary/90">
               <Plus className="h-4 w-4 mr-1" />
@@ -938,14 +939,12 @@ export function UnifiedDashboard({ userRole = "doctor" }: UnifiedDashboardProps)
             </Button>
             <Select defaultValue="all">
               <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Filter by status" />
+                <SelectValue placeholder="Filter by provider" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="confirmed">Confirmed</SelectItem>
-                <SelectItem value="arrived">Arrived</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="canceled">Canceled</SelectItem>
+                <SelectItem value="all">All Providers</SelectItem>
+                <SelectItem value="doctor">Dentists</SelectItem>
+                <SelectItem value="hygienist">Hygienists</SelectItem>
               </SelectContent>
             </Select>
             <Button variant="outline" size="icon">
@@ -954,60 +953,75 @@ export function UnifiedDashboard({ userRole = "doctor" }: UnifiedDashboardProps)
           </div>
         </div>
         
-        <div className="space-y-3">
-          {upcomingAppointments?.map((appointment) => (
-            <Card key={appointment.id} className="overflow-hidden">
-              <div className="flex flex-col sm:flex-row">
-                {/* Time column */}
-                <div className="bg-muted p-4 text-center sm:w-32 flex flex-row sm:flex-col justify-between sm:justify-center items-center">
-                  <div className="font-medium">{appointment.time}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {appointment.date === new Date().toISOString().split('T')[0]
-                      ? "Today"
-                      : formatDate(appointment.date)
-                    }
+        {/* Enhanced Scheduler */}
+        <div className="bg-white rounded-lg border shadow-sm">
+          <SchedulerV3 
+            displayMode="weekly"
+            allowMultipleProviders={true}
+            timeIncrement={15}
+            defaultView="schedule"
+            userRole={userRole}
+          />
+        </div>
+        
+        {/* Today's Appointments List */}
+        <div className="mt-8 pt-4 border-t">
+          <h4 className="text-lg font-medium mb-4">Today's Appointments</h4>
+          <div className="space-y-3">
+            {upcomingAppointments?.map((appointment) => (
+              <Card key={appointment.id} className="overflow-hidden">
+                <div className="flex flex-col sm:flex-row">
+                  {/* Time column */}
+                  <div className="bg-muted p-4 text-center sm:w-32 flex flex-row sm:flex-col justify-between sm:justify-center items-center">
+                    <div className="font-medium">{appointment.time}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {appointment.date === new Date().toISOString().split('T')[0]
+                        ? "Today"
+                        : formatDate(appointment.date)
+                      }
+                    </div>
                   </div>
-                </div>
-                
-                {/* Appointment details */}
-                <div className="p-4 flex-1">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <div className="font-medium text-lg">{appointment.patientName}</div>
-                      <div className="text-sm text-muted-foreground flex items-center gap-2">
-                        <span>{appointment.type}</span>
-                        <span>•</span>
-                        <span>{getStatusBadge(appointment.status)}</span>
+                  
+                  {/* Appointment details */}
+                  <div className="p-4 flex-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <div className="font-medium text-lg">{appointment.patientName}</div>
+                        <div className="text-sm text-muted-foreground flex items-center gap-2">
+                          <span>{appointment.type}</span>
+                          <span>•</span>
+                          <span>{getStatusBadge(appointment.status)}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm">
+                          View Details
+                        </Button>
+                        <Button variant="default" size="sm">
+                          Check in
+                        </Button>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm">
-                        View Details
-                      </Button>
-                      <Button variant="default" size="sm">
-                        Check in
-                      </Button>
-                    </div>
                   </div>
                 </div>
+              </Card>
+            ))}
+            
+            {(!upcomingAppointments || upcomingAppointments.length === 0) && (
+              <div className="text-center py-8 border rounded-lg bg-muted/30">
+                <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                <h3 className="text-lg font-medium mb-1">No appointments today</h3>
+                <p className="text-muted-foreground mb-4">
+                  You have no appointments scheduled for today.
+                </p>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Schedule Appointment
+                </Button>
               </div>
-            </Card>
-          ))}
-          
-          {(!upcomingAppointments || upcomingAppointments.length === 0) && (
-            <div className="text-center py-8 border rounded-lg bg-muted/30">
-              <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <h3 className="text-lg font-medium mb-1">No appointments today</h3>
-              <p className="text-muted-foreground mb-4">
-                You have no appointments scheduled for today.
-              </p>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Schedule Appointment
-              </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     );
