@@ -193,8 +193,8 @@ export function PatientIntakeForm({ formToken }: { formToken: string }) {
         description: "Thank you! Your information has been submitted.",
       });
       setIsSubmitting(false);
-      // Redirect to a thank you page
-      setLocation('/form-submitted');
+      // Redirect to the form submitted thank you page
+      window.location.href = '/form-submitted';
     },
     onError: (error) => {
       console.error("Error submitting form:", error);
