@@ -5,27 +5,36 @@
  * reads messages, and processes them using AI for automated responses,
  * appointment scheduling, and information extraction.
  */
-
-import { simpleParser } from 'mailparser';
-import { ImapFlow } from 'imapflow';
 import { OpenAI } from 'openai';
-import * as nodemailer from 'nodemailer';
+import { parseEmail } from 'mailparser';
+import { ImapFlow } from 'imapflow';
+import * as fs from 'fs';
+import * as path from 'path';
 import NodeCache from 'node-cache';
 import { AIServiceType } from './ai-service-types';
 import { aiRequestQueue } from './ai-request-queue';
 
-// Cache processed emails to avoid duplicate processing
-const processedEmailCache = new NodeCache({ stdTTL: 86400 * 7 }); // Cache for 7 days
-
+// Define email connection configuration
 interface EmailConnectionConfig {
   user: string;
   password: string;
   host: string;
   port: number;
   tls: boolean;
+  folderNames?: string[];
   practiceId: string;
 }
 
+// Processing settings
+interface EmailProcessingSettings {
+  autoRespond: boolean;
+  categorizeEmails: boolean;
+  extractAppointmentRequests: boolean;
+  notifyStaff: boolean;
+  maxEmailsToProcess: number;
+}
+
+// Result of email processing
 interface EmailProcessingResult {
   messageId: string;
   subject: string;
@@ -41,113 +50,145 @@ interface EmailProcessingResult {
   aiConfidenceScore: number;
 }
 
+// Paged list of processed emails
+interface ProcessedEmailsList {
+  items: EmailProcessingResult[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+// Status response
+interface EmailProcessingStatus {
+  isConfigured: boolean;
+  isProcessing: boolean;
+  status: string;
+  stats: {
+    totalProcessed: number;
+    appointmentRequestsFound: number;
+    lastProcessedTime: string;
+  };
+}
+
+/**
+ * Service to manage email reading and AI-powered processing
+ */
 export class EmailReaderService {
   private openAI: OpenAI;
   private connectionConfigs: Map<string, EmailConnectionConfig> = new Map();
+  private processingSettings: Map<string, EmailProcessingSettings> = new Map();
   private clients: Map<string, ImapFlow> = new Map();
   private isProcessingEmails: Map<string, boolean> = new Map();
   private processingSince: Map<string, Date> = new Map();
   private lastEmailCheck: Map<string, Date> = new Map();
   private emailProcessingInterval: NodeJS.Timeout | null = null;
   private emailCheckIntervalMinutes = 5;
+  
+  // Cache for storing processed emails to avoid reprocessing
+  private processedEmailCache: NodeCache;
+  
+  // In-memory storage for processed emails (would be replaced with database in production)
+  private processedEmails: Map<string, EmailProcessingResult[]> = new Map();
+  
+  // Processing statistics
+  private processingStats: Map<string, {
+    totalProcessed: number;
+    appointmentRequestsFound: number;
+    lastProcessedTime: string;
+  }> = new Map();
 
   constructor() {
-    // Initialize OpenAI for email processing
-    this.openAI = new OpenAI({
+    // Initialize OpenAI client using the communication API key
+    this.openAI = new OpenAI({ 
       apiKey: process.env.OPENAI_API_KEY_COMMUNICATION
     });
-
+    
+    // Initialize cache with 7-day TTL
+    this.processedEmailCache = new NodeCache({ 
+      stdTTL: 60 * 60 * 24 * 7, // 7 days in seconds
+      checkperiod: 600 // Check for expired items every 10 minutes
+    });
+    
     // Start the email checking interval
     this.startEmailProcessingInterval();
   }
 
   /**
-   * Start the interval to check for new emails periodically
+   * Configure an email account for a practice
    */
-  private startEmailProcessingInterval() {
-    if (this.emailProcessingInterval) {
-      clearInterval(this.emailProcessingInterval);
-    }
-
-    this.emailProcessingInterval = setInterval(() => {
-      this.checkAllPracticeEmails();
-    }, this.emailCheckIntervalMinutes * 60 * 1000);
-  }
-
-  /**
-   * Check emails for all configured practices
-   */
-  private async checkAllPracticeEmails() {
-    for (const [practiceId, config] of this.connectionConfigs.entries()) {
-      try {
-        // Don't start a new check if one is already in progress
-        if (this.isProcessingEmails.get(practiceId)) {
-          continue;
-        }
-
-        await this.processNewEmails(practiceId);
-      } catch (error) {
-        console.error(`Error checking emails for practice ${practiceId}:`, error);
-      }
-    }
-  }
-
-  /**
-   * Configure a new practice email account for monitoring
-   */
-  async configurePracticeEmail(practiceId: string, config: EmailConnectionConfig): Promise<boolean> {
+  public async configureEmailAccount(config: EmailConnectionConfig): Promise<{ success: boolean, message: string }> {
     try {
+      // Test the connection first
+      const testResult = await this.testConnection(config);
+      if (!testResult.success) {
+        return testResult;
+      }
+      
       // Store the configuration
-      this.connectionConfigs.set(practiceId, {
-        ...config,
-        practiceId
-      });
-
-      // Test the connection
-      const client = new ImapFlow({
-        host: config.host,
-        port: config.port,
-        secure: config.tls,
-        auth: {
-          user: config.user,
-          pass: config.password
-        }
-      });
-
-      try {
-        await client.connect();
-        await client.logout();
-        console.log(`Successfully configured email for practice ${practiceId}`);
-        return true;
-      } catch (error) {
-        console.error(`Failed to connect to email for practice ${practiceId}:`, error);
-        this.connectionConfigs.delete(practiceId);
-        return false;
+      this.connectionConfigs.set(config.practiceId, config);
+      
+      // Set default processing settings if none exist
+      if (!this.processingSettings.has(config.practiceId)) {
+        this.processingSettings.set(config.practiceId, {
+          autoRespond: false,
+          categorizeEmails: true,
+          extractAppointmentRequests: true,
+          notifyStaff: true,
+          maxEmailsToProcess: 50
+        });
       }
+      
+      // Initialize stats object if it doesn't exist
+      if (!this.processingStats.has(config.practiceId)) {
+        this.processingStats.set(config.practiceId, {
+          totalProcessed: 0,
+          appointmentRequestsFound: 0,
+          lastProcessedTime: new Date().toISOString()
+        });
+      }
+      
+      return {
+        success: true,
+        message: 'Email account configured successfully'
+      };
     } catch (error) {
-      console.error(`Error configuring practice email ${practiceId}:`, error);
-      return false;
+      console.error('Error configuring email account:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error configuring email account'
+      };
     }
   }
 
   /**
-   * Process new emails for a specific practice
+   * Update email processing settings
    */
-  async processNewEmails(practiceId: string): Promise<EmailProcessingResult[]> {
-    const config = this.connectionConfigs.get(practiceId);
-    if (!config) {
-      throw new Error(`No email configuration found for practice ${practiceId}`);
-    }
-
-    // Mark that we're processing emails
-    this.isProcessingEmails.set(practiceId, true);
-    this.processingSince.set(practiceId, new Date());
-
-    let client: ImapFlow | null = null;
-    const results: EmailProcessingResult[] = [];
-
+  public async updateProcessingSettings(
+    practiceId: string, 
+    settings: EmailProcessingSettings
+  ): Promise<{ success: boolean, message: string }> {
     try {
-      // Create a new connection
+      this.processingSettings.set(practiceId, settings);
+      return {
+        success: true,
+        message: 'Email processing settings updated successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to update settings'
+      };
+    }
+  }
+
+  /**
+   * Test an email connection
+   */
+  public async testConnection(config: EmailConnectionConfig): Promise<{ success: boolean, message: string, details?: any }> {
+    let client: ImapFlow | null = null;
+    
+    try {
       client = new ImapFlow({
         host: config.host,
         port: config.port,
@@ -155,319 +196,531 @@ export class EmailReaderService {
         auth: {
           user: config.user,
           pass: config.password
-        }
+        },
+        logger: false,
+        // 10 second timeout should be enough for a connection test
+        timeoutConnection: 10000
       });
+      
+      // Try to connect and login
+      await client.connect();
+      
+      // List mailboxes to verify everything is working
+      const mailboxes = await client.list();
+      
+      await client.logout();
+      
+      return {
+        success: true,
+        message: 'Successfully connected to email server',
+        details: {
+          availableMailboxes: mailboxes.map(box => box.path)
+        }
+      };
+    } catch (error) {
+      let errorMessage = 'Failed to connect to email server';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      // Provide more user-friendly error messages based on common issues
+      if (errorMessage.includes('auth')) {
+        errorMessage = 'Authentication failed. Please check your username and password.';
+      } else if (errorMessage.includes('connect')) {
+        errorMessage = 'Connection failed. Please check your server address and port.';
+      } else if (errorMessage.includes('timeout')) {
+        errorMessage = 'Connection timed out. The server might be down or unreachable.';
+      } else if (errorMessage.includes('certificate')) {
+        errorMessage = 'SSL/TLS certificate validation failed. The server\'s certificate might be invalid.';
+      }
+      
+      return {
+        success: false,
+        message: errorMessage
+      };
+    } finally {
+      // Ensure we close the connection if it's still open
+      if (client) {
+        try {
+          client.close();
+        } catch (e) {
+          // Ignore errors on close
+        }
+      }
+    }
+  }
 
+  /**
+   * Start the interval to check for new emails periodically
+   */
+  private startEmailProcessingInterval() {
+    // Clear any existing interval
+    if (this.emailProcessingInterval) {
+      clearInterval(this.emailProcessingInterval);
+    }
+    
+    // Check for new emails every few minutes
+    this.emailProcessingInterval = setInterval(async () => {
+      await this.checkAllPracticeEmails();
+    }, this.emailCheckIntervalMinutes * 60 * 1000); // Convert minutes to milliseconds
+  }
+
+  /**
+   * Check emails for all configured practices
+   */
+  private async checkAllPracticeEmails() {
+    for (const [practiceId, config] of this.connectionConfigs.entries()) {
+      // Only check if processing is enabled for this practice
+      if (this.isProcessingEmails.get(practiceId)) {
+        try {
+          await this.processNewEmails(practiceId);
+        } catch (error) {
+          console.error(`Error processing emails for practice ${practiceId}:`, error);
+        }
+      }
+    }
+  }
+
+  /**
+   * Start processing emails for a practice
+   */
+  public async startProcessingEmails(practiceId: string): Promise<{ success: boolean, message: string, details?: any }> {
+    try {
+      if (!this.connectionConfigs.has(practiceId)) {
+        return {
+          success: false,
+          message: 'No email configuration found for this practice'
+        };
+      }
+      
+      if (this.isProcessingEmails.get(practiceId)) {
+        return {
+          success: true,
+          message: 'Email processing is already active'
+        };
+      }
+      
+      // Mark as processing
+      this.isProcessingEmails.set(practiceId, true);
+      this.processingSince.set(practiceId, new Date());
+      
+      // Process emails immediately the first time
+      await this.processNewEmails(practiceId);
+      
+      return {
+        success: true,
+        message: 'Email processing started successfully',
+        details: {
+          startedAt: this.processingSince.get(practiceId)?.toISOString()
+        }
+      };
+    } catch (error) {
+      this.isProcessingEmails.set(practiceId, false);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to start email processing'
+      };
+    }
+  }
+
+  /**
+   * Stop processing emails for a practice
+   */
+  public async stopProcessingEmails(practiceId: string): Promise<{ success: boolean, message: string }> {
+    try {
+      if (!this.isProcessingEmails.get(practiceId)) {
+        return {
+          success: true,
+          message: 'Email processing is already stopped'
+        };
+      }
+      
+      // Mark as not processing
+      this.isProcessingEmails.set(practiceId, false);
+      
+      return {
+        success: true,
+        message: 'Email processing stopped successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to stop email processing'
+      };
+    }
+  }
+
+  /**
+   * Get the current status of email processing
+   */
+  public async getEmailProcessingStatus(practiceId: string): Promise<EmailProcessingStatus> {
+    try {
+      return {
+        isConfigured: this.connectionConfigs.has(practiceId),
+        isProcessing: !!this.isProcessingEmails.get(practiceId),
+        status: this.isProcessingEmails.get(practiceId) 
+          ? 'active' 
+          : this.connectionConfigs.has(practiceId) ? 'configured' : 'not configured',
+        stats: this.processingStats.get(practiceId) || {
+          totalProcessed: 0,
+          appointmentRequestsFound: 0,
+          lastProcessedTime: ''
+        }
+      };
+    } catch (error) {
+      console.error('Error getting email processing status:', error);
+      return {
+        isConfigured: false,
+        isProcessing: false,
+        status: 'error',
+        stats: {
+          totalProcessed: 0,
+          appointmentRequestsFound: 0,
+          lastProcessedTime: ''
+        }
+      };
+    }
+  }
+
+  /**
+   * Get list of processed emails
+   */
+  public async getProcessedEmails(
+    practiceId: string,
+    page: number = 1,
+    pageSize: number = 20,
+    category?: string
+  ): Promise<ProcessedEmailsList> {
+    try {
+      // Get all processed emails for this practice
+      const allEmails = this.processedEmails.get(practiceId) || [];
+      
+      // Filter by category if provided
+      const filteredEmails = category 
+        ? allEmails.filter(email => email.category === category)
+        : allEmails;
+      
+      // Sort by date (newest first)
+      const sortedEmails = [...filteredEmails].sort((a, b) => 
+        new Date(b.sentDate).getTime() - new Date(a.sentDate).getTime()
+      );
+      
+      // Calculate pagination
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedEmails = sortedEmails.slice(startIndex, endIndex);
+      
+      return {
+        items: paginatedEmails,
+        totalCount: sortedEmails.length,
+        page,
+        pageSize,
+        totalPages: Math.ceil(sortedEmails.length / pageSize)
+      };
+    } catch (error) {
+      console.error('Error getting processed emails:', error);
+      return {
+        items: [],
+        totalCount: 0,
+        page: 1,
+        pageSize: 20,
+        totalPages: 0
+      };
+    }
+  }
+
+  /**
+   * Process new emails for a practice
+   */
+  private async processNewEmails(practiceId: string): Promise<void> {
+    if (!this.isProcessingEmails.get(practiceId)) {
+      return;
+    }
+    
+    const config = this.connectionConfigs.get(practiceId);
+    if (!config) {
+      throw new Error('No email configuration found for this practice');
+    }
+    
+    const settings = this.processingSettings.get(practiceId) || {
+      autoRespond: false,
+      categorizeEmails: true,
+      extractAppointmentRequests: true,
+      notifyStaff: true,
+      maxEmailsToProcess: 50
+    };
+    
+    let client: ImapFlow | null = null;
+    
+    try {
+      // Record the last check time
+      this.lastEmailCheck.set(practiceId, new Date());
+      
+      // Create a new IMAP client
+      client = new ImapFlow({
+        host: config.host,
+        port: config.port,
+        secure: config.tls,
+        auth: {
+          user: config.user,
+          pass: config.password
+        },
+        logger: false
+      });
+      
       // Connect to the server
       await client.connect();
-
-      // Get the last check time or use a default (24 hours ago)
-      const lastCheck = this.lastEmailCheck.get(practiceId) || new Date(Date.now() - 24 * 60 * 60 * 1000);
       
-      // Open the mailbox
-      const lock = await client.getMailboxLock('INBOX');
+      // Process each folder (or just INBOX if no folders specified)
+      const folders = config.folderNames || ['INBOX'];
       
-      try {
-        // Search for unread messages since the last check
-        const messages = await client.search({
-          since: lastCheck,
-          seen: false
-        });
-
-        // Process each message
-        for (const messageId of messages) {
-          // Skip if we've already processed this message
-          const cacheKey = `${practiceId}:${messageId}`;
-          if (processedEmailCache.has(cacheKey)) {
-            continue;
-          }
-
-          // Fetch the message
-          const message = await client.fetchOne(messageId, { source: true });
-          
-          // Parse the email
-          const parsed = await simpleParser(message.source);
-          
-          // Process the email with AI
-          const result = await this.analyzeEmailWithAI(parsed, practiceId);
-          
-          // Mark as processed
-          processedEmailCache.set(cacheKey, true);
-          
-          // Add to results
-          results.push(result);
-          
-          // Handle the email based on analysis
-          await this.handleEmailBasedOnAnalysis(result, practiceId);
-        }
-      } finally {
-        // Release the mailbox lock
-        lock.release();
+      for (const folder of folders) {
+        await this.processFolder(client, folder, practiceId, settings);
       }
-
-      // Update the last check time
-      this.lastEmailCheck.set(practiceId, new Date());
-
-      // Logout and close the connection
-      await client.logout();
-
-      return results;
+      
+      // Update the stats
+      const currentStats = this.processingStats.get(practiceId) || {
+        totalProcessed: 0,
+        appointmentRequestsFound: 0,
+        lastProcessedTime: new Date().toISOString()
+      };
+      
+      currentStats.lastProcessedTime = new Date().toISOString();
+      this.processingStats.set(practiceId, currentStats);
+      
     } catch (error) {
       console.error(`Error processing emails for practice ${practiceId}:`, error);
       throw error;
     } finally {
-      // Mark that we're done processing
-      this.isProcessingEmails.set(practiceId, false);
-      
-      // Clean up the client if it exists
+      // Ensure we close the connection
       if (client) {
         try {
-          await client.close();
-        } catch (error) {
-          console.error(`Error closing email client for practice ${practiceId}:`, error);
+          await client.logout();
+        } catch (e) {
+          // Ignore errors on logout
         }
       }
     }
   }
 
   /**
-   * Analyze an email with AI to extract information and determine next steps
+   * Process a specific email folder
    */
-  private async analyzeEmailWithAI(email: any, practiceId: string): Promise<EmailProcessingResult> {
-    const subject = email.subject || '(No Subject)';
-    const from = email.from?.text || '(No Sender)';
-    const text = email.text || '';
-    const html = email.html || '';
-    const messageId = email.messageId || `generated-${Date.now()}`;
-    const sentDate = email.date || new Date();
-
-    // Default result in case AI processing fails
-    const defaultResult: EmailProcessingResult = {
-      messageId,
-      subject,
-      from,
-      sentDate,
-      category: 'other',
-      priority: 'medium',
-      requiresResponse: true,
-      summary: `Email from ${from} with subject "${subject}"`,
-      aiConfidenceScore: 0
-    };
-
+  private async processFolder(
+    client: ImapFlow,
+    folderName: string,
+    practiceId: string,
+    settings: EmailProcessingSettings
+  ): Promise<void> {
     try {
-      // Queue the AI request
-      const aiResult = await aiRequestQueue.enqueueRequest<any>(
-        AIServiceType.COMMUNICATION,
-        async () => {
-          return this.openAI.chat.completions.create({
-            model: "gpt-4",
-            messages: [
-              {
-                role: "system",
-                content: `You are an AI assistant for a dental practice. Analyze the following email and extract key information. 
-                Categorize the email as 'appointment' (scheduling, cancellation, etc.), 'inquiry' (general questions), 
-                'clinical' (patient symptoms, concerns), 'billing' (payments, insurance), or 'other'.
-                Determine priority: 'high' (urgent issues, pain, emergencies), 'medium' (needs attention but not urgent), or 'low' (general information).
-                Determine if a response is needed, and if so, suggest a brief, professional response.
-                Extract any relevant data such as patient names, requested dates/times, symptoms mentioned, etc.
-                Return a JSON object with the following structure:
-                {
-                  "category": string,
-                  "priority": string,
-                  "requiresResponse": boolean,
-                  "requiredAction": string (optional),
-                  "summary": string,
-                  "suggestedResponse": string (optional),
-                  "extractedData": object (optional),
-                  "aiConfidenceScore": number (0-1)
-                }`
-              },
-              {
-                role: "user",
-                content: `Email Subject: ${subject}\nFrom: ${from}\nDate: ${sentDate}\n\nContent:\n${text}`
-              }
-            ],
-            response_format: { type: "json_object" }
-          });
-        },
-        60000
-      );
-
-      // Parse the AI response
-      if (aiResult?.choices?.[0]?.message?.content) {
-        try {
-          const parsedResult = JSON.parse(aiResult.choices[0].message.content);
-          return {
-            messageId,
-            subject,
-            from,
-            sentDate,
-            category: parsedResult.category || 'other',
-            priority: parsedResult.priority || 'medium',
-            requiresResponse: parsedResult.requiresResponse !== undefined ? parsedResult.requiresResponse : true,
-            requiredAction: parsedResult.requiredAction,
-            summary: parsedResult.summary || defaultResult.summary,
-            suggestedResponse: parsedResult.suggestedResponse,
-            extractedData: parsedResult.extractedData,
-            aiConfidenceScore: parsedResult.aiConfidenceScore || 0.7
-          };
-        } catch (parseError) {
-          console.error('Error parsing AI response:', parseError);
-          return defaultResult;
+      // Open the mailbox
+      const lock = await client.getMailboxLock(folderName);
+      
+      try {
+        // Get messages from the last 24 hours that haven't been processed yet
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        let count = 0;
+        
+        // Fetch messages
+        for await (const message of client.fetch({ since: yesterday }, { source: true })) {
+          // Stop if we've reached the maximum number of emails to process
+          if (count >= settings.maxEmailsToProcess) {
+            break;
+          }
+          
+          // Check if we've already processed this message
+          const cacheKey = `${practiceId}_${message.uid}`;
+          if (this.processedEmailCache.has(cacheKey)) {
+            continue;
+          }
+          
+          try {
+            // Parse the email
+            const source = message.source.toString();
+            const parsedEmail = await parseEmail(source);
+            
+            // Skip emails without a message ID
+            if (!parsedEmail.messageId) {
+              continue;
+            }
+            
+            // Process the email with AI
+            const result = await this.analyzeEmail(parsedEmail, settings, practiceId);
+            
+            // Store the result
+            if (!this.processedEmails.has(practiceId)) {
+              this.processedEmails.set(practiceId, []);
+            }
+            this.processedEmails.get(practiceId)?.push(result);
+            
+            // Mark as processed in the cache
+            this.processedEmailCache.set(cacheKey, true);
+            
+            // Update stats
+            const stats = this.processingStats.get(practiceId) || {
+              totalProcessed: 0,
+              appointmentRequestsFound: 0,
+              lastProcessedTime: new Date().toISOString()
+            };
+            
+            stats.totalProcessed++;
+            
+            if (result.category === 'appointment') {
+              stats.appointmentRequestsFound++;
+            }
+            
+            this.processingStats.set(practiceId, stats);
+            
+            // Increment processed count
+            count++;
+            
+            // Auto-respond if enabled and email requires a response
+            if (settings.autoRespond && result.requiresResponse && result.suggestedResponse) {
+              // In a production system, we would send the response here
+              // For now, just log it
+              console.log(`Would send auto-response to ${result.from} for email: ${result.subject}`);
+            }
+          } catch (emailError) {
+            console.error('Error processing email:', emailError);
+            // Continue to the next email
+          }
         }
+      } finally {
+        // Release the lock
+        lock.release();
       }
-
-      return defaultResult;
     } catch (error) {
-      console.error('Error analyzing email with AI:', error);
-      return defaultResult;
+      console.error(`Error processing folder ${folderName}:`, error);
+      throw error;
     }
   }
 
   /**
-   * Handle an email based on the AI analysis
+   * Analyze an email using AI
    */
-  private async handleEmailBasedOnAnalysis(result: EmailProcessingResult, practiceId: string) {
-    // Add to notifications in the system
-    await this.createEmailNotification(result, practiceId);
-    
-    // Handle based on category and priority
-    switch (result.category) {
-      case 'appointment':
-        // Handle appointment requests
-        if (result.extractedData?.appointmentRequest) {
-          await this.handleAppointmentRequest(result, practiceId);
-        }
-        break;
-        
-      case 'clinical':
-        // Prioritize clinical concerns, especially high priority ones
-        if (result.priority === 'high') {
-          await this.handleUrgentClinicalConcern(result, practiceId);
-        }
-        break;
-        
-      case 'inquiry':
-        // Handle standard inquiries
-        if (result.requiresResponse && result.suggestedResponse) {
-          // Could auto-respond or queue for review based on confidence
-          await this.queueResponseForReview(result, practiceId);
-        }
-        break;
-        
-      case 'billing':
-        // Process billing inquiries
-        await this.handleBillingInquiry(result, practiceId);
-        break;
-        
-      default:
-        // Default handling for other types
-        await this.queueForManualReview(result, practiceId);
+  private async analyzeEmail(
+    parsedEmail: any,
+    settings: EmailProcessingSettings,
+    practiceId: string
+  ): Promise<EmailProcessingResult> {
+    try {
+      // Extract key information from the email
+      const from = parsedEmail.from?.text || '';
+      const subject = parsedEmail.subject || '';
+      const text = parsedEmail.text || '';
+      const html = parsedEmail.html || '';
+      const messageId = parsedEmail.messageId || '';
+      const date = parsedEmail.date || new Date();
+      
+      // Use plain text content if available, otherwise extract text from HTML
+      const content = text || this.extractTextFromHtml(html);
+      
+      // AI analysis via request queue
+      const analysisPrompt = `
+      Analyze this dental practice email:
+      FROM: ${from}
+      SUBJECT: ${subject}
+      DATE: ${date.toISOString()}
+      CONTENT:
+      ${content.slice(0, 2000)} ${content.length > 2000 ? '... (content truncated)' : ''}
+      
+      Provide the following in your analysis:
+      1. Category (one of: appointment, inquiry, clinical, billing, other)
+      2. Priority (high, medium, low)
+      3. Does this require a response? (true/false)
+      4. Summarize the email content in 1-2 sentences
+      5. Suggest an appropriate response if needed
+      ${settings.extractAppointmentRequests ? '6. Extract any appointment requests (date, time, purpose)' : ''}
+      
+      Format your response as JSON.`;
+      
+      let aiResponse;
+      try {
+        // Queue the request to prevent rate limiting
+        aiResponse = await aiRequestQueue.enqueueRequest(
+          AIServiceType.COMMUNICATION,
+          async () => {
+            const response = await this.openAI.chat.completions.create({
+              model: "gpt-4o",
+              messages: [
+                { 
+                  role: "system", 
+                  content: "You are an AI assistant for a dental practice. Your job is to analyze incoming emails and categorize them appropriately."
+                },
+                { role: "user", content: analysisPrompt }
+              ],
+              response_format: { type: "json_object" }
+            });
+            
+            return response.choices[0].message.content;
+          }
+        );
+      } catch (error) {
+        console.error('Error analyzing email with AI:', error);
+        // Provide a basic fallback analysis
+        aiResponse = JSON.stringify({
+          category: "other",
+          priority: "medium",
+          requiresResponse: false,
+          summary: `Email from ${from} with subject "${subject}"`,
+          suggestedResponse: null,
+          appointmentRequest: null,
+          confidenceScore: 0.5
+        });
+      }
+      
+      // Parse the AI response
+      const analysis = JSON.parse(aiResponse || '{}');
+      
+      // Create the result
+      return {
+        messageId,
+        subject,
+        from,
+        sentDate: date,
+        category: analysis.category || 'other',
+        priority: analysis.priority || 'medium',
+        requiresResponse: analysis.requiresResponse || false,
+        requiredAction: analysis.requiredAction,
+        summary: analysis.summary || `Email from ${from} with subject "${subject}"`,
+        suggestedResponse: analysis.suggestedResponse,
+        extractedData: analysis.appointmentRequest || {},
+        aiConfidenceScore: analysis.confidenceScore || 0.7
+      };
+    } catch (error) {
+      console.error('Error analyzing email:', error);
+      
+      // Return a basic fallback result
+      return {
+        messageId: parsedEmail.messageId || '',
+        subject: parsedEmail.subject || '',
+        from: parsedEmail.from?.text || '',
+        sentDate: parsedEmail.date || new Date(),
+        category: 'other',
+        priority: 'medium',
+        requiresResponse: false,
+        summary: `Email with subject "${parsedEmail.subject || 'No subject'}"`,
+        aiConfidenceScore: 0
+      };
     }
   }
 
   /**
-   * Create a notification in the system for the email
+   * Extract readable text from HTML
    */
-  private async createEmailNotification(result: EmailProcessingResult, practiceId: string) {
-    // Implementation would connect to the notifications system
-    console.log(`[Email Notification] Practice ${practiceId}: ${result.priority} priority email - ${result.summary}`);
+  private extractTextFromHtml(html: string): string {
+    if (!html) return '';
     
-    // TODO: Connect to notification service
-    // Actual implementation would create a notification in the DentaMind system
-  }
-
-  /**
-   * Handle an appointment request extracted from an email
-   */
-  private async handleAppointmentRequest(result: EmailProcessingResult, practiceId: string) {
-    // Extract appointment details
-    const appointmentData = result.extractedData?.appointmentRequest;
-    if (!appointmentData) return;
-    
-    // Log for demonstration purposes
-    console.log(`[Appointment Request] Practice ${practiceId}: Request for ${appointmentData.date} at ${appointmentData.time}`);
-    
-    // TODO: Connect to appointment scheduling system
-    // Actual implementation would check availability and potentially schedule
-  }
-
-  /**
-   * Handle an urgent clinical concern
-   */
-  private async handleUrgentClinicalConcern(result: EmailProcessingResult, practiceId: string) {
-    // Log for demonstration purposes
-    console.log(`[URGENT CLINICAL] Practice ${practiceId}: ${result.summary}`);
-    
-    // TODO: Add to urgent notifications, potentially send SMS to provider
-    // Actual implementation would alert the appropriate provider
-  }
-
-  /**
-   * Queue a response for review before sending
-   */
-  private async queueResponseForReview(result: EmailProcessingResult, practiceId: string) {
-    // Log for demonstration purposes
-    console.log(`[Response Queue] Practice ${practiceId}: Response queued for review`);
-    
-    // TODO: Add to response queue in the UI
-    // Actual implementation would add to a review queue in the DentaMind dashboard
-  }
-
-  /**
-   * Handle a billing inquiry
-   */
-  private async handleBillingInquiry(result: EmailProcessingResult, practiceId: string) {
-    // Log for demonstration purposes
-    console.log(`[Billing Inquiry] Practice ${practiceId}: ${result.summary}`);
-    
-    // TODO: Route to billing department or financial dashboard
-    // Actual implementation would route to the appropriate staff
-  }
-
-  /**
-   * Queue an email for manual review
-   */
-  private async queueForManualReview(result: EmailProcessingResult, practiceId: string) {
-    // Log for demonstration purposes
-    console.log(`[Manual Review] Practice ${practiceId}: ${result.summary}`);
-    
-    // TODO: Add to general review queue
-    // Actual implementation would add to the inbox in the DentaMind dashboard
-  }
-
-  /**
-   * Get the status of email processing for a practice
-   */
-  getEmailProcessingStatus(practiceId: string) {
-    return {
-      isProcessing: this.isProcessingEmails.get(practiceId) || false,
-      processingSince: this.processingSince.get(practiceId),
-      lastCheck: this.lastEmailCheck.get(practiceId),
-      configured: this.connectionConfigs.has(practiceId)
-    };
-  }
-
-  /**
-   * Manually trigger email checking for a practice
-   */
-  async manuallyCheckEmails(practiceId: string): Promise<EmailProcessingResult[]> {
-    return this.processNewEmails(practiceId);
-  }
-
-  /**
-   * Update the email checking interval
-   */
-  setEmailCheckInterval(minutes: number) {
-    if (minutes < 1) minutes = 1; // Minimum 1 minute
-    if (minutes > 60) minutes = 60; // Maximum 1 hour
-    
-    this.emailCheckIntervalMinutes = minutes;
-    this.startEmailProcessingInterval(); // Restart with new interval
-    
-    return this.emailCheckIntervalMinutes;
+    // Very basic HTML to text conversion
+    // In a production system, we would use a proper HTML-to-text library
+    return html
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
   }
 }
-
-// Export a singleton instance
-export const emailReaderService = new EmailReaderService();

@@ -26,6 +26,7 @@ import PrescriptionsPage from "@/pages/prescriptions";
 import PostOpInstructionsPage from "@/pages/post-op-instructions-page";
 import AppointmentRequestPage from "@/pages/appointment-request-page";
 import UnifiedEmailPage from "@/pages/unified-email-page";
+import EmailIntegrationPage from "@/pages/email-integration-page";
 import XRayFMXPage from "@/pages/xray-fmx-page";
 import FormPage from "@/pages/form-page";
 import FormSubmittedPage from "@/pages/form-submitted-page";
@@ -76,6 +77,7 @@ function Router() {
         <ProtectedRoute path="/post-op-instructions" component={PostOpInstructionsPage} />
         <ProtectedRoute path="/appointment-request" component={AppointmentRequestPage} />
         <ProtectedRoute path="/email" component={UnifiedEmailPage} />
+        <ProtectedRoute path="/email-integration" component={EmailIntegrationPage} />
         <ProtectedRoute path="/xray-fmx">
           <XRayFMXPage />
         </ProtectedRoute>

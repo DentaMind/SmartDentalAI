@@ -1,182 +1,202 @@
-/**
- * Email Reader Routes
- * 
- * These routes allow dental practices to configure their email integration
- * with DentaMind, enabling AI-powered email processing of patient communications.
- */
-
 import express from 'express';
 import { z } from 'zod';
-import { emailReaderService } from '../services/email-reader-service';
+import { EmailReaderService } from '../services/email-reader-service';
+import { requireAuth, requireRole } from '../middleware/auth';
 
 const router = express.Router();
+const emailReaderService = new EmailReaderService();
 
-// Schema for configuring email reader
-const emailConfigSchema = z.object({
-  host: z.string(),
-  port: z.number().int().positive(),
+// Zod schema for email configuration
+const emailConnectionSchema = z.object({
   user: z.string().email(),
   password: z.string(),
-  tls: z.boolean().default(true),
+  host: z.string(),
+  port: z.number().int().positive(),
+  tls: z.boolean(),
+  folderNames: z.array(z.string()).optional(),
+  practiceId: z.string().optional()
 });
 
-// Schema for manual email check
-const manualCheckSchema = z.object({
-  practiceId: z.string()
+// Zod schema for email processing settings
+const emailProcessingSettingsSchema = z.object({
+  autoRespond: z.boolean().default(false),
+  categorizeEmails: z.boolean().default(true),
+  extractAppointmentRequests: z.boolean().default(true),
+  notifyStaff: z.boolean().default(true),
+  maxEmailsToProcess: z.number().int().positive().default(50)
 });
 
-// Configure email account for a practice
-router.post('/configure', async (req, res) => {
+// Configure email connection
+router.post('/configure', requireAuth, requireRole(['admin', 'doctor']), async (req, res) => {
   try {
-    // Verify user is authenticated and authorized
-    if (!req.session.userId) {
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
-    }
+    // Validate request body against schema
+    const connectionConfig = emailConnectionSchema.parse(req.body);
     
-    // Validate request body
-    const result = emailConfigSchema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid configuration', 
-        errors: result.error.errors 
-      });
-    }
+    // Add the user ID to track who configured this email
+    const userId = req.user?.id || 1;
     
-    // Get practice ID (in a real app, would come from the user's association)
-    // For now, we'll use the user ID as a placeholder for practiceId
-    const practiceId = req.session.userId.toString();
-    
-    // Configure email reader
-    const success = await emailReaderService.configurePracticeEmail(practiceId, {
-      ...result.data,
-      practiceId
+    // Configure the email account
+    const result = await emailReaderService.configureEmailAccount({
+      ...connectionConfig,
+      practiceId: connectionConfig.practiceId || `practice_${userId}`
     });
     
-    if (success) {
-      return res.json({ 
-        success: true, 
-        message: 'Email configuration successful',
-        status: emailReaderService.getEmailProcessingStatus(practiceId) 
-      });
-    } else {
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Email configuration failed' 
-      });
-    }
+    res.json({
+      success: true,
+      message: 'Email configuration saved successfully',
+      result
+    });
   } catch (error) {
-    console.error('Error configuring email reader:', error);
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error' 
+    console.error('Error configuring email connection:', error);
+    res.status(400).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Invalid configuration',
+      error: error instanceof z.ZodError ? error.errors : undefined
     });
   }
 });
 
-// Get email processing status
-router.get('/status', (req, res) => {
+// Update processing settings
+router.post('/settings', requireAuth, requireRole(['admin', 'doctor']), async (req, res) => {
   try {
-    // Verify user is authenticated
-    if (!req.session.userId) {
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    const settings = emailProcessingSettingsSchema.parse(req.body);
+    const userId = req.user?.id || 1;
+    
+    await emailReaderService.updateProcessingSettings(userId.toString(), settings);
+    
+    res.json({
+      success: true,
+      message: 'Email processing settings updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating email processing settings:', error);
+    res.status(400).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Invalid settings',
+      error: error instanceof z.ZodError ? error.errors : undefined
+    });
+  }
+});
+
+// Test email connection
+router.post('/test-connection', requireAuth, requireRole(['admin', 'doctor']), async (req, res) => {
+  try {
+    const connectionConfig = emailConnectionSchema.parse(req.body);
+    
+    const testResult = await emailReaderService.testConnection(connectionConfig);
+    
+    res.json({
+      success: testResult.success,
+      message: testResult.message,
+      details: testResult.details
+    });
+  } catch (error) {
+    console.error('Error testing email connection:', error);
+    res.status(400).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Invalid configuration',
+      error: error instanceof z.ZodError ? error.errors : undefined
+    });
+  }
+});
+
+// Start reading emails (manual trigger)
+router.post('/start', requireAuth, requireRole(['admin', 'doctor']), async (req, res) => {
+  try {
+    const { practiceId } = req.body;
+    const userId = req.session.userId;
+    
+    if (!practiceId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Practice ID is required'
+      });
     }
     
-    // Get practice ID (in a real app, would come from the user's association)
-    const practiceId = req.session.userId.toString();
+    const result = await emailReaderService.startProcessingEmails(practiceId);
     
-    // Get email processing status
-    const status = emailReaderService.getEmailProcessingStatus(practiceId);
-    
-    return res.json({ 
-      success: true, 
-      status 
+    res.json({
+      success: result.success,
+      message: result.message,
+      details: result.details
     });
+  } catch (error) {
+    console.error('Error starting email processing:', error);
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to start email processing'
+    });
+  }
+});
+
+// Stop reading emails (manual trigger)
+router.post('/stop', requireAuth, requireRole(['admin', 'doctor']), async (req, res) => {
+  try {
+    const { practiceId } = req.body;
+    const userId = req.session.userId;
+    
+    if (!practiceId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Practice ID is required'
+      });
+    }
+    
+    const result = await emailReaderService.stopProcessingEmails(practiceId);
+    
+    res.json({
+      success: result.success,
+      message: result.message
+    });
+  } catch (error) {
+    console.error('Error stopping email processing:', error);
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to stop email processing'
+    });
+  }
+});
+
+// Get status of email processing
+router.get('/status', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session.userId;
+    const practiceId = req.query.practiceId as string || `practice_${userId}`;
+    
+    const status = await emailReaderService.getEmailProcessingStatus(practiceId);
+    
+    res.json(status);
   } catch (error) {
     console.error('Error getting email processing status:', error);
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error' 
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to get status'
     });
   }
 });
 
-// Manually check for new emails
-router.post('/check', async (req, res) => {
+// Get processed emails
+router.get('/processed-emails', requireAuth, async (req, res) => {
   try {
-    // Verify user is authenticated
-    if (!req.session.userId) {
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
-    }
+    const userId = req.session.userId;
+    const practiceId = req.query.practiceId as string || `practice_${userId}`;
+    const page = parseInt(req.query.page as string || '1');
+    const limit = parseInt(req.query.limit as string || '20');
+    const category = req.query.category as string || undefined;
     
-    // Get practice ID (in a real app, would come from the user's association)
-    const practiceId = req.session.userId.toString();
+    const processedEmails = await emailReaderService.getProcessedEmails(
+      practiceId,
+      page,
+      limit,
+      category
+    );
     
-    // Check if email is configured
-    const status = emailReaderService.getEmailProcessingStatus(practiceId);
-    if (!status.configured) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Email not configured for this practice' 
-      });
-    }
-    
-    // Check if already processing
-    if (status.isProcessing) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Email processing already in progress',
-        status
-      });
-    }
-    
-    // Trigger email check
-    await emailReaderService.manuallyCheckEmails(practiceId);
-    
-    return res.json({ 
-      success: true, 
-      message: 'Email check completed',
-      status: emailReaderService.getEmailProcessingStatus(practiceId)
-    });
+    res.json(processedEmails);
   } catch (error) {
-    console.error('Error checking emails:', error);
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Error checking emails' 
-    });
-  }
-});
-
-// Update email check interval
-router.post('/interval', (req, res) => {
-  try {
-    // Verify user is authenticated and authorized
-    if (!req.session.userId) {
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
-    }
-    
-    // Validate request body
-    const { minutes } = req.body;
-    if (typeof minutes !== 'number' || minutes < 1 || minutes > 60) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid interval. Must be between 1 and 60 minutes.' 
-      });
-    }
-    
-    // Update interval
-    const newInterval = emailReaderService.setEmailCheckInterval(minutes);
-    
-    return res.json({ 
-      success: true, 
-      message: 'Email check interval updated',
-      interval: newInterval
-    });
-  } catch (error) {
-    console.error('Error updating email check interval:', error);
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error' 
+    console.error('Error getting processed emails:', error);
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to get processed emails'
     });
   }
 });

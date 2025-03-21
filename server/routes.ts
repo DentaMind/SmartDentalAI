@@ -11,6 +11,7 @@ import { aiServiceManager } from './services/ai-service-manager';
 import schedulerRoutes from './routes/scheduler-routes';
 import translationRoutes from './routes/translation-routes';
 import insuranceRoutes from './routes/insurance-routes';
+import emailReaderRoutes from './routes/email-reader-routes';
 import { setupPatientFormsRoutes } from './routes/patient-forms-routes';
 import { setupEmailSchedulerRoutes } from './routes/email-scheduler-routes';
 import { EmailAIService } from './services/email-ai-service';
@@ -859,6 +860,9 @@ const emailAIService = new EmailAIService(); // Create EmailAIService instance
 
 // Set up email scheduler routes
 setupEmailSchedulerRoutes(router, storage);
+
+// Set up email reader routes
+router.use('/email-reader', emailReaderRoutes);
 
 // Set up patient forms routes
 setupPatientFormsRoutes(router, storage);

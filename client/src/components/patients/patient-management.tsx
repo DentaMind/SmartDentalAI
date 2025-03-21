@@ -10,7 +10,7 @@ import { DataTable } from "../ui/data-table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-import { AddPatientForm } from "./add-patient-form";
+import { ImprovedAddPatientForm } from "./improved-add-patient-form";
 
 export function PatientManagement() {
   const { patients, loading } = usePatient();
