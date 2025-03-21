@@ -51,7 +51,7 @@ export async function analyzeXray(file: File): Promise<XrayAnalysisResult> {
     const formData = new FormData();
     formData.append('xray', file);
     
-    const response = await fetch('/api/ai/analyze-xray', {
+    const response = await fetch('/ai/analyze-xray', {
       method: 'POST',
       body: formData,
     });
@@ -84,7 +84,7 @@ export async function generateTreatmentPlan(
   patientHistory?: string
 ): Promise<TreatmentPlanResult> {
   try {
-    const response = await fetch('/api/ai/generate-treatment-plan', {
+    const response = await fetch('/ai/generate-treatment-plan', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -140,10 +140,10 @@ export interface PredictionContext {
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 export async function predictDentalCondition(context: PredictionContext): Promise<SymptomPrediction> {
   try {
-    // Use our new /api/ai/diagnosis endpoint
+    // Use the correct route path for diagnosis
     return await apiRequest<SymptomPrediction>({
       method: "POST",
-      url: "/api/ai/diagnosis",
+      url: "/ai/diagnosis",
       body: context
     });
   } catch (error) {
@@ -182,7 +182,7 @@ export async function refineDiagnosis(request: RefinementRequest): Promise<Refin
   try {
     return await apiRequest<RefinementResponse>({
       method: "POST",
-      url: "/api/ai/refine-diagnosis",
+      url: "/ai/refine-diagnosis",
       body: request
     });
   } catch (error) {
