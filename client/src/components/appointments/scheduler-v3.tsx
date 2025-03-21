@@ -3,7 +3,7 @@ import { format, addDays, subDays, setHours, setMinutes, addMinutes } from "date
 import { 
   Calendar, Clock, Plus, Filter, MapPin, ChevronLeft, ChevronRight, 
   Calendar as CalendarIcon, AlertCircle, CheckCircle2, Clock4, 
-  X, Info, Phone, User, Edit2, Trash2
+  X, Info, Phone, User, Edit2, Trash2, Zap, Search, LayoutGrid
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -152,13 +152,43 @@ const procedureTypeColors: Record<string, string> = {
 };
 
 /**
- * Enhanced scheduler component with provider columns
+ * Props for the enhanced scheduler component
  */
-export function SchedulerV3() {
+interface SchedulerV3Props {
+  /** Whether the scheduler is being displayed in compact mode (e.g. on dashboard) */
+  isCompact?: boolean;
+  /** Maximum height for the scheduler content */
+  maxHeight?: string;
+  /** Whether to show the search bar and filter options */
+  showControls?: boolean;
+  /** Whether to show notification banners */
+  showNotifications?: boolean;
+  /** Initial date to display (defaults to today) */
+  initialDate?: Date;
+  /** Optional custom list of providers (defaults to internal providers) */
+  customProviders?: Provider[];
+  /** Optional custom list of appointments (defaults to internal appointments) */
+  customAppointments?: SampleAppointment[];
+}
+
+/**
+ * Enhanced scheduler component with provider columns
+ * Supports both full-page scheduling and compact dashboard views
+ */
+export function SchedulerV3({
+  isCompact = false,
+  maxHeight = '800px',
+  showControls = true,
+  showNotifications = true,
+  initialDate = new Date(),
+  customProviders,
+  customAppointments
+}: SchedulerV3Props = {}) {
   const { toast } = useToast();
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [appointments, setAppointments] = useState<SampleAppointment[]>(sampleAppointments);
+  const [currentDate, setCurrentDate] = useState<Date>(initialDate);
+  const [appointments, setAppointments] = useState<SampleAppointment[]>(customAppointments || sampleAppointments);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeProviders, setActiveProviders] = useState<Provider[]>(customProviders || providers);
   const [selectedAppointment, setSelectedAppointment] = useState<SampleAppointment | null>(null);
   const [isNewAppointment, setIsNewAppointment] = useState(false);
   const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
