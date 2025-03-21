@@ -359,12 +359,15 @@ router.post("/ai/diagnosis", requireAuth, async (req, res) => {
     );
     
     // Add vague complaint indicator and follow-up questions to the response
-    diagnosis = {
+    const enhancedDiagnosis: any = {
       ...diagnosis,
       isVague: isVagueComplaint,
       confidenceLevel: isVagueComplaint ? "low" : "medium",
       followUpQuestions: followUpQuestions,
     };
+    
+    // Replace the diagnosis with our enhanced version
+    diagnosis = enhancedDiagnosis;
 
     res.json(diagnosis);
   } catch (error) {
@@ -1068,11 +1071,13 @@ router.post('/ai/refine-diagnosis', requireAuth, async (req, res) => {
     }
     
     // Send back the refined diagnosis and next question (if any)
-    res.json({
-      refinedDiagnosis,
-      nextQuestion,
+    const response = {
+      refinedDiagnosis: refinedDiagnosis,
+      nextQuestion: nextQuestion,
       processingDetails: "Patient response analyzed and diagnosis refined"
-    });
+    };
+    
+    res.json(response);
   } catch (error) {
     console.error('Diagnosis refinement error:', error);
     res.status(500).json({ 

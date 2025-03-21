@@ -653,11 +653,27 @@ export const appointmentRequestSchema = z.object({
 
 // Add new AI-related schemas
 export const symptomPredictionSchema = z.object({
+  possibleConditions: z.array(z.object({
+    condition: z.string(),
+    confidence: z.number(),
+    description: z.string(),
+    urgencyLevel: z.enum(["low", "medium", "high", "emergency"]).default("low"),
+    recommendations: z.array(z.string()),
+    specialistReferral: z.object({
+      type: z.string(),
+      reason: z.string(),
+    }).optional(),
+  })).or(z.array(z.object({
+    name: z.string(),
+    confidence: z.number(),
+    description: z.string(),
+  }))), // For backward compatibility
   conditions: z.array(z.object({
     name: z.string(),
     confidence: z.number(),
     description: z.string(),
-  })),
+  })).optional(), // For backward compatibility
+  generalAdvice: z.string().optional(),
   urgencyLevel: z.enum(["low", "medium", "high"]),
   recommendedTests: z.array(z.string()),
   aiDomains: z.object({
@@ -689,7 +705,18 @@ export const symptomPredictionSchema = z.object({
       findings: z.array(z.string()),
       recommendations: z.array(z.string())
     }).optional(),
-  })
+  }),
+  // New fields for vague complaint handling
+  isVague: z.boolean().optional(),
+  confidenceLevel: z.enum(["low", "medium", "high"]).optional(),
+  followUpQuestions: z.array(
+    z.object({
+      question: z.string(),
+      purpose: z.string().optional(),
+      targetCondition: z.string().optional(),
+      confidenceImpact: z.number().optional(),
+    })
+  ).optional(),
 });
 
 // Define PatientMedicalHistory type
