@@ -989,7 +989,7 @@ export function UnifiedDashboard({ userRole = "doctor" }: UnifiedDashboardProps)
                         <div className="font-medium text-lg">{appointment.patientName}</div>
                         <div className="text-sm text-muted-foreground flex items-center gap-2">
                           <span>{appointment.type}</span>
-                          <span></span>
+                          <span>•</span>
                           <span>{getStatusBadge(appointment.status)}</span>
                         </div>
                       </div>
