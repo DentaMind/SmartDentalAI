@@ -1,276 +1,138 @@
-/**
- * Email Scheduler Routes
- * 
- * API routes for scheduling and managing emails with time-based optimization
- */
-
 import express from 'express';
-import { z } from 'zod';
 import { EmailAIService } from '../services/email-ai-service';
-import { EmailSchedulerService, getEmailSchedulerService, emailScheduleSchema } from '../services/email-scheduler.ts';
+import { z } from 'zod';
 
-// Time window schema for query parameters
-const timeWindowSchema = z.object({
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-  category: z.string().optional(),
-});
-
-// Creating a simplified schema for schedule creation
-const createScheduleSchema = emailScheduleSchema.omit({
-  id: true,
-  status: true,
-}).extend({
-  recipientEmail: z.string().email(),
-  scheduledTime: z.string(),
-  optimizeDeliveryTime: z.boolean().default(false),
-}).partial({
-  tracking: true,
-});
-
-export function setupEmailSchedulerRoutes(
-  router: express.Router,
-  emailService: EmailAIService
-) {
-  const schedulerService = getEmailSchedulerService(emailService);
+/**
+ * Setup email scheduler related routes
+ */
+export function setupEmailSchedulerRoutes(router: express.Router, emailService: EmailAIService) {
   
-  // Initialize the scheduler service
-  schedulerService.initialize().then(success => {
-    console.log(`Email scheduler service initialized: ${success ? 'Success' : 'Failed'}`);
+  // Schema for scheduling email
+  const scheduleEmailSchema = z.object({
+    to: z.string().email(),
+    subject: z.string(),
+    body: z.string(),
+    scheduledTime: z.string().optional(),
+    patientId: z.number().optional(),
+    senderId: z.number().optional(),
+    templateId: z.string().optional(),
+    variables: z.record(z.string()).optional(),
+    priority: z.enum(['low', 'medium', 'high']).optional(),
+    category: z.enum(['appointment', 'reminder', 'follow-up', 'marketing', 'billing', 'general']).optional()
   });
-  
-  // Schedule a new email
-  router.post('/email-scheduler', async (req, res) => {
+
+  // Schedule an email to be sent at a specific time
+  router.post('/email/schedule', async (req, res) => {
     try {
-      // Validate request body
-      const validationResult = createScheduleSchema.safeParse(req.body);
-      if (!validationResult.success) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid request data',
-          details: validationResult.error.errors
-        });
-      }
+      const emailData = scheduleEmailSchema.parse(req.body);
       
-      // Schedule the email
-      const emailData = validationResult.data;
-      const scheduledEmail = await schedulerService.scheduleEmail(emailData);
+      // Call email service
+      const result = await emailService.scheduleEmail({
+        to: emailData.to,
+        subject: emailData.subject,
+        body: emailData.body,
+        scheduledTime: emailData.scheduledTime,
+        patientId: emailData.patientId,
+        senderId: emailData.senderId,
+        templateId: emailData.templateId,
+        variables: emailData.variables,
+        priority: emailData.priority,
+        category: emailData.category
+      });
       
-      return res.status(201).json({
+      res.json({
         success: true,
         message: 'Email scheduled successfully',
-        data: scheduledEmail
+        id: result.id
       });
-    } catch (err) {
-      console.error('Error scheduling email:', err);
-      return res.status(500).json({
+    } catch (error) {
+      console.error('Failed to schedule email:', error);
+      res.status(400).json({
         success: false,
-        message: 'Failed to schedule email',
-        error: err instanceof Error ? err.message : String(err)
+        message: error instanceof Error ? error.message : 'Failed to schedule email'
       });
     }
   });
-  
-  // Get all scheduled emails
-  router.get('/email-scheduler', async (req, res) => {
+
+  // Get scheduled emails
+  router.get('/email/scheduled', async (req, res) => {
     try {
-      const allEmails = schedulerService.getAllScheduledEmails();
-      
-      return res.status(200).json({
-        success: true,
-        count: allEmails.length,
-        data: allEmails
-      });
-    } catch (err) {
-      console.error('Error getting scheduled emails:', err);
-      return res.status(500).json({
+      const scheduledEmails = await emailService.getScheduledEmails();
+      res.json({ emails: scheduledEmails });
+    } catch (error) {
+      console.error('Failed to get scheduled emails:', error);
+      res.status(500).json({
         success: false,
-        message: 'Failed to get scheduled emails',
-        error: err instanceof Error ? err.message : String(err)
+        message: 'Failed to get scheduled emails'
       });
     }
   });
-  
-  // Get a specific scheduled email
-  router.get('/email-scheduler/:id', async (req, res) => {
+
+  // Cancel a scheduled email
+  router.delete('/email/schedule/:id', async (req, res) => {
     try {
       const { id } = req.params;
-      const email = schedulerService.getScheduledEmail(id);
+      const success = await emailService.cancelScheduledEmail(id);
       
-      if (!email) {
-        return res.status(404).json({
+      if (success) {
+        res.json({
+          success: true,
+          message: 'Email canceled successfully'
+        });
+      } else {
+        res.status(404).json({
           success: false,
           message: 'Scheduled email not found'
         });
       }
-      
-      return res.status(200).json({
-        success: true,
-        data: email
-      });
-    } catch (err) {
-      console.error('Error getting scheduled email:', err);
-      return res.status(500).json({
+    } catch (error) {
+      console.error('Failed to cancel email:', error);
+      res.status(500).json({
         success: false,
-        message: 'Failed to get scheduled email',
-        error: err instanceof Error ? err.message : String(err)
+        message: 'Failed to cancel email'
       });
     }
   });
-  
-  // Cancel a scheduled email
-  router.delete('/email-scheduler/:id', async (req, res) => {
+
+  // Send a patient form via email
+  router.post('/email/send-patient-form', async (req, res) => {
     try {
-      const { id } = req.params;
-      const success = await schedulerService.cancelScheduledEmail(id);
-      
-      if (!success) {
-        return res.status(404).json({
+      // Validate request
+      const formData = z.object({
+        to: z.string().email(),
+        patientName: z.string(),
+        formType: z.string(),
+        formUrl: z.string().url(),
+        customMessage: z.string().optional(),
+        appointmentDate: z.string().optional(),
+        sendCopy: z.boolean().optional(),
+        practiceEmail: z.string().email().optional()
+      }).parse(req.body);
+
+      // Send the email with form link
+      const result = await emailService.sendPatientForm(formData);
+
+      if (result.success) {
+        res.json({
+          success: true,
+          message: 'Patient form email sent successfully',
+          trackingId: result.trackingId
+        });
+      } else {
+        res.status(500).json({
           success: false,
-          message: 'Scheduled email not found or already sent'
+          message: 'Failed to send patient form email',
+          error: result.error
         });
       }
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Scheduled email cancelled successfully'
-      });
-    } catch (err) {
-      console.error('Error cancelling scheduled email:', err);
-      return res.status(500).json({
+    } catch (error) {
+      console.error('Error sending patient form email:', error);
+      res.status(400).json({
         success: false,
-        message: 'Failed to cancel scheduled email',
-        error: err instanceof Error ? err.message : String(err)
+        message: error instanceof Error ? error.message : 'Invalid request data'
       });
     }
   });
-  
-  // Get scheduled emails for a patient
-  router.get('/email-scheduler/patient/:patientId', async (req, res) => {
-    try {
-      const { patientId } = req.params;
-      const patientIdNum = parseInt(patientId, 10);
-      
-      if (isNaN(patientIdNum)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid patient ID'
-        });
-      }
-      
-      const emails = schedulerService.getPatientScheduledEmails(patientIdNum);
-      
-      return res.status(200).json({
-        success: true,
-        count: emails.length,
-        data: emails
-      });
-    } catch (err) {
-      console.error('Error getting patient scheduled emails:', err);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to get patient scheduled emails',
-        error: err instanceof Error ? err.message : String(err)
-      });
-    }
-  });
-  
-  // Get email analytics
-  router.get('/email-scheduler/analytics', async (req, res) => {
-    try {
-      // Validate query parameters
-      const validationResult = timeWindowSchema.safeParse(req.query);
-      if (!validationResult.success) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid query parameters',
-          details: validationResult.error.errors
-        });
-      }
-      
-      // Parse date parameters
-      const { startDate, endDate, category } = validationResult.data;
-      const startDateObj = startDate ? new Date(startDate) : undefined;
-      const endDateObj = endDate ? new Date(endDate) : undefined;
-      
-      // Get analytics
-      const analytics = schedulerService.getEmailAnalytics(
-        startDateObj,
-        endDateObj,
-        category
-      );
-      
-      return res.status(200).json({
-        success: true,
-        data: analytics
-      });
-    } catch (err) {
-      console.error('Error getting email analytics:', err);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to get email analytics',
-        error: err instanceof Error ? err.message : String(err)
-      });
-    }
-  });
-  
-  // Track email engagement (open, click)
-  router.get('/email-scheduler/track/:trackingId/:type', async (req, res) => {
-    try {
-      const { trackingId, type } = req.params;
-      
-      // Validate tracking type
-      if (!['delivered', 'opened', 'clicked'].includes(type)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid tracking type'
-        });
-      }
-      
-      // Record engagement
-      const success = await schedulerService.recordEmailEngagement(
-        trackingId,
-        type as 'delivered' | 'opened' | 'clicked'
-      );
-      
-      if (!success) {
-        return res.status(404).json({
-          success: false,
-          message: 'Email tracking ID not found'
-        });
-      }
-      
-      // For open tracking, return a 1x1 transparent pixel
-      if (type === 'opened') {
-        const pixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
-        res.setHeader('Content-Type', 'image/gif');
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-        return res.end(pixel);
-      }
-      
-      // For click tracking, redirect to the target URL
-      if (type === 'clicked') {
-        // In a real implementation, we would extract the target URL from a database
-        // For now, redirect to the application home page
-        return res.redirect('/');
-      }
-      
-      // Return success for delivered status
-      return res.status(200).json({
-        success: true,
-        message: 'Email tracking recorded successfully'
-      });
-    } catch (err) {
-      console.error('Error recording email engagement:', err);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to record email engagement',
-        error: err instanceof Error ? err.message : String(err)
-      });
-    }
-  });
-  
+
   return router;
 }
