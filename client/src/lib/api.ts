@@ -11,6 +11,27 @@ export const api = axios.create({
   withCredentials: true // Include cookies with cross-origin requests
 });
 
+/**
+ * Generic API request helper function for data mutations
+ * @param url The API endpoint URL
+ * @param method The HTTP method (POST, PUT, PATCH, DELETE)
+ * @param data Optional data payload
+ * @returns The API response data
+ */
+export const apiRequest = async (url: string, method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', data?: any) => {
+  try {
+    const response = await api({
+      url,
+      method,
+      data,
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`API ${method} request failed:`, error);
+    throw error;
+  }
+};
+
 // Request interceptor
 api.interceptors.request.use(
   (config) => {

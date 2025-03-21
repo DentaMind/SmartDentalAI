@@ -30,6 +30,9 @@ import {
   ChevronRight,
   Lightbulb,
   Mail,
+  Package,
+  Microscope,
+  Beaker,
 } from "lucide-react";
 import { ToothDoctorIcon } from "../icons/tooth-doctor-icon";
 import { LucideIcon } from "lucide-react";
@@ -79,6 +82,7 @@ export function Sidebar() {
       { name: "Clinical Tools", href: "/dental-ai-hub", icon: Stethoscope },
       { name: "Email Hub", href: "/email", icon: Mail, highlight: true },
       { name: "Staff Management", href: "/time-clock", icon: Clock },
+      { name: "Labs & Supplies", href: "/labs-supplies", icon: Beaker, highlight: true },
       { 
         name: "AI Recommendations", 
         href: "/ai-recommendations", 
@@ -99,6 +103,7 @@ export function Sidebar() {
       { name: "Time Management", href: "/time-clock", icon: Clock },
       { name: "Clinical Tools", href: "/dental-ai-hub", icon: Stethoscope },
       { name: "Email Hub", href: "/email", icon: Mail, highlight: true },
+      { name: "Labs & Supplies", href: "/labs-supplies", icon: Beaker, highlight: true },
       { 
         name: "AI Recommendations", 
         href: "/ai-recommendations", 
