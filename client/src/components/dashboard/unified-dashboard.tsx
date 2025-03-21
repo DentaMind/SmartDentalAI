@@ -283,7 +283,8 @@ export function UnifiedDashboard({ userRole = "doctor" }: UnifiedDashboardProps)
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-medium">Practice Schedule</h3>
           <div className="flex gap-2">
-            <Button className="bg-primary hover:bg-primary/90">
+            <Button className="bg-primary hover:bg-primary/90" 
+              onClick={() => window.location.href = '/appointments/new'}>
               <Plus className="h-4 w-4 mr-1" />
               Schedule Appointment
             </Button>
@@ -306,8 +307,9 @@ export function UnifiedDashboard({ userRole = "doctor" }: UnifiedDashboardProps)
         {/* Enhanced Scheduler */}
         <div className="bg-white rounded-lg border shadow-sm">
           <SchedulerV3 
-            timeIncrement={15}
-            userRole={userRole}
+            isCompact={true}
+            maxHeight="600px"
+            showControls={true}
           />
         </div>
         
@@ -362,7 +364,7 @@ export function UnifiedDashboard({ userRole = "doctor" }: UnifiedDashboardProps)
                 <p className="text-muted-foreground mb-4">
                   You have no appointments scheduled for today.
                 </p>
-                <Button>
+                <Button onClick={() => window.location.href = '/appointments/new'}>
                   <Plus className="h-4 w-4 mr-2" />
                   Schedule Appointment
                 </Button>
