@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PatientNameButton } from "@/components/patients/patient-name-button";
 import { 
   AlertCircle, 
   Calendar, 
@@ -423,7 +424,12 @@ export function AppointmentDetails({ appointmentId, onClose }: AppointmentDetail
                     {patient.firstName[0]}{patient.lastName[0]}
                   </div>
                   <div>
-                    <p className="font-medium">{patient.firstName} {patient.lastName}</p>
+                    <PatientNameButton 
+                      patientId={patient.id} 
+                      patientName={`${patient.firstName} ${patient.lastName}`}
+                      variant="link"
+                      className="px-0 py-0 h-auto font-medium"
+                    />
                     {patient.dateOfBirth && (
                       <p className="text-xs text-muted-foreground">
                         DOB: {new Date(patient.dateOfBirth).toLocaleDateString()}

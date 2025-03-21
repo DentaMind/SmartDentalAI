@@ -1,304 +1,111 @@
 /**
- * AI Key Management System
+ * AI Service Types and Key Configuration
  * 
- * This module manages the distribution of AI tasks across different API keys
- * to optimize performance, prevent rate limiting, and ensure system reliability.
+ * This file defines the service types used throughout the application
+ * and maps them to specific environment variables for API keys.
+ * 
+ * This is important for load balancing AI requests across different
+ * API keys based on their domain and importance.
  */
 
-import { OpenAI } from 'openai';
-
-// Define AI service types for different task categories
+/**
+ * Enum representing the different AI service types
+ * Used for routing requests to the appropriate AI models and API keys
+ */
 export enum AIServiceType {
-  DIAGNOSIS = 'diagnosis',
-  XRAY_ANALYSIS = 'xray_analysis',
-  TREATMENT_PLANNING = 'treatment_planning',
-  FINANCIAL = 'financial',
-  SCHEDULING = 'scheduling',
-  PATIENT_COMMUNICATION = 'patient_communication'
+  // Clinical services
+  DIAGNOSIS = 'diagnosis',           // Patient symptom analysis and diagnosis suggestions
+  TREATMENT = 'treatment',           // Treatment planning and note generation
+  XRAY = 'xray',                     // X-ray image analysis
+  
+  // Financial services
+  FINANCIAL = 'financial',           // Financial analysis and predictions
+  INSURANCE = 'insurance',           // Insurance coding and optimization
+  
+  // Communication services
+  PATIENT_COMMUNICATION = 'communication', // Patient communication and education
+  
+  // Administrative services
+  SCHEDULING = 'scheduling',         // Appointment optimization
 }
 
-// Group related services to optimize API key usage
-// This mapping allows us to share keys between similar services
-export const SERVICE_GROUPS = {
-  CLINICAL_GROUP: [AIServiceType.DIAGNOSIS, AIServiceType.TREATMENT_PLANNING],
-  OPERATIONS_GROUP: [AIServiceType.SCHEDULING, AIServiceType.FINANCIAL],
-  PATIENT_GROUP: [AIServiceType.PATIENT_COMMUNICATION],
-  IMAGING_GROUP: [AIServiceType.XRAY_ANALYSIS]
-}
-
-// Define service priorities (higher number = higher priority)
-// This helps with request queuing and load balancing
-export const SERVICE_PRIORITIES: Record<AIServiceType, number> = {
-  [AIServiceType.DIAGNOSIS]: 10,         // Critical patient services get highest priority
-  [AIServiceType.TREATMENT_PLANNING]: 8, 
-  [AIServiceType.XRAY_ANALYSIS]: 9,      // Imaging is time-sensitive
-  [AIServiceType.SCHEDULING]: 5,         // Operational services can be delayed if needed
-  [AIServiceType.FINANCIAL]: 3,
-  [AIServiceType.PATIENT_COMMUNICATION]: 6
-}
-
-// Configuration type for AI keys
-export interface AIKeyConfig {
-  provider: string;
-  apiKey: string;
-  baseUrl?: string;
-  model?: string;
-  maxTokens?: number;
-  temperature?: number;
-  backup?: AIKeyConfig;
-  rateLimitPerMinute?: number;
-}
-
-// Usage tracking for AI keys
-interface UsageStats {
-  requestCount: number;
-  lastRequestTime: number;
-  tokensUsed: number;
-}
-
-// Default configuration if specialized keys aren't available
-const DEFAULT_OPENAI_CONFIG: AIKeyConfig = {
-  provider: 'openai',
-  apiKey: process.env.OPENAI_API_KEY || '',
-  model: 'gpt-4',
-  maxTokens: 2000,
-  temperature: 0.7,
-  rateLimitPerMinute: 60
-};
-
-// Service-specific configurations
-const AI_SERVICE_CONFIGS: Record<AIServiceType, AIKeyConfig> = {
-  [AIServiceType.DIAGNOSIS]: {
-    provider: 'openai',
-    apiKey: process.env.OPENAI_API_KEY_DIAGNOSIS || process.env.OPENAI_API_KEY || '',
-    model: 'gpt-4',
-    maxTokens: 2000,
-    temperature: 0.3,
-    rateLimitPerMinute: 50,
-    backup: DEFAULT_OPENAI_CONFIG
-  },
-  [AIServiceType.XRAY_ANALYSIS]: {
-    provider: 'openai',
-    apiKey: process.env.OPENAI_API_KEY_XRAY || process.env.OPENAI_API_KEY || '',
-    model: 'gpt-4-vision-preview',
-    maxTokens: 1000,
-    temperature: 0.2,
-    rateLimitPerMinute: 30,
-    backup: DEFAULT_OPENAI_CONFIG
-  },
-  [AIServiceType.TREATMENT_PLANNING]: {
-    provider: 'openai',
-    apiKey: process.env.OPENAI_API_KEY_TREATMENT || process.env.OPENAI_API_KEY || '',
-    model: 'gpt-4',
-    maxTokens: 3000,
-    temperature: 0.7,
-    rateLimitPerMinute: 40,
-    backup: DEFAULT_OPENAI_CONFIG
-  },
-  [AIServiceType.FINANCIAL]: {
-    provider: 'openai',
-    apiKey: process.env.OPENAI_API_KEY_FINANCIAL || process.env.OPENAI_API_KEY || '',
-    model: 'gpt-4',
-    maxTokens: 2000,
-    temperature: 0.2,
-    rateLimitPerMinute: 30,
-    backup: DEFAULT_OPENAI_CONFIG
-  },
-  [AIServiceType.SCHEDULING]: {
-    provider: 'openai',
-    apiKey: process.env.OPENAI_API_KEY_SCHEDULING || process.env.OPENAI_API_KEY || '',
-    model: 'gpt-3.5-turbo',
-    maxTokens: 1000,
-    temperature: 0.3,
-    rateLimitPerMinute: 100,
-    backup: DEFAULT_OPENAI_CONFIG
-  },
-  [AIServiceType.PATIENT_COMMUNICATION]: {
-    provider: 'openai',
-    apiKey: process.env.OPENAI_API_KEY_COMMUNICATION || process.env.OPENAI_API_KEY || '',
-    model: 'gpt-4',
-    maxTokens: 1500,
-    temperature: 0.7,
-    rateLimitPerMinute: 80,
-    backup: DEFAULT_OPENAI_CONFIG
-  }
-};
-
-// Store API usage statistics
-const apiUsage: Record<AIServiceType, UsageStats> = {
-  [AIServiceType.DIAGNOSIS]: { requestCount: 0, lastRequestTime: 0, tokensUsed: 0 },
-  [AIServiceType.XRAY_ANALYSIS]: { requestCount: 0, lastRequestTime: 0, tokensUsed: 0 },
-  [AIServiceType.TREATMENT_PLANNING]: { requestCount: 0, lastRequestTime: 0, tokensUsed: 0 },
-  [AIServiceType.FINANCIAL]: { requestCount: 0, lastRequestTime: 0, tokensUsed: 0 },
-  [AIServiceType.SCHEDULING]: { requestCount: 0, lastRequestTime: 0, tokensUsed: 0 },
-  [AIServiceType.PATIENT_COMMUNICATION]: { requestCount: 0, lastRequestTime: 0, tokensUsed: 0 }
+/**
+ * Maps service types to specific OpenAI API keys based on domain
+ * This allows for load distribution and specialization
+ */
+export const SERVICE_TYPE_TO_KEY_MAP: Record<AIServiceType, string> = {
+  [AIServiceType.DIAGNOSIS]: process.env.OPENAI_API_KEY_DIAGNOSIS || process.env.OPENAI_API_KEY || '',
+  [AIServiceType.TREATMENT]: process.env.OPENAI_API_KEY_TREATMENT || process.env.OPENAI_API_KEY || '',
+  [AIServiceType.XRAY]: process.env.OPENAI_API_KEY_XRAY || process.env.OPENAI_API_KEY || '',
+  [AIServiceType.FINANCIAL]: process.env.OPENAI_API_KEY_FINANCIAL || process.env.OPENAI_API_KEY || '',
+  [AIServiceType.INSURANCE]: process.env.OPENAI_API_KEY_FINANCIAL || process.env.OPENAI_API_KEY || '',
+  [AIServiceType.PATIENT_COMMUNICATION]: process.env.OPENAI_API_KEY_COMMUNICATION || process.env.OPENAI_API_KEY || '',
+  [AIServiceType.SCHEDULING]: process.env.OPENAI_API_KEY_SCHEDULING || process.env.OPENAI_API_KEY || '',
 };
 
 /**
- * Get the configuration for a specific AI service type
+ * Default priority levels for different service types
+ * Higher numbers indicate higher priority
  */
-export function getAIConfig(serviceType: AIServiceType): AIKeyConfig {
-  return AI_SERVICE_CONFIGS[serviceType] || DEFAULT_OPENAI_CONFIG;
-}
+export const SERVICE_TYPE_PRIORITY: Record<AIServiceType, number> = {
+  [AIServiceType.DIAGNOSIS]: 10,     // Clinical diagnosis is highest priority
+  [AIServiceType.TREATMENT]: 8,      // Treatment planning is high priority
+  [AIServiceType.XRAY]: 9,          // X-ray analysis is high priority
+  [AIServiceType.FINANCIAL]: 5,      // Financial analysis is medium priority
+  [AIServiceType.INSURANCE]: 6,      // Insurance processing is medium-high priority
+  [AIServiceType.PATIENT_COMMUNICATION]: 4, // Communication is medium-low priority
+  [AIServiceType.SCHEDULING]: 3,     // Scheduling is lower priority
+};
 
 /**
- * Track API usage for monitoring purposes
+ * Default models to use for each service type
  */
-export function trackAPIUsage(serviceType: AIServiceType, tokens: number): void {
-  const now = Date.now();
-  apiUsage[serviceType].requestCount++;
-  apiUsage[serviceType].lastRequestTime = now;
-  apiUsage[serviceType].tokensUsed += tokens;
-}
+export const SERVICE_TYPE_DEFAULT_MODEL: Record<AIServiceType, string> = {
+  [AIServiceType.DIAGNOSIS]: 'gpt-4',
+  [AIServiceType.TREATMENT]: 'gpt-4',
+  [AIServiceType.XRAY]: 'gpt-4-vision-preview',
+  [AIServiceType.FINANCIAL]: 'gpt-4',
+  [AIServiceType.INSURANCE]: 'gpt-4',
+  [AIServiceType.PATIENT_COMMUNICATION]: 'gpt-4',
+  [AIServiceType.SCHEDULING]: 'gpt-3.5-turbo',
+};
 
 /**
- * Get current API usage statistics
+ * Fallback model to use if the preferred model is unavailable
  */
-export function getAPIUsageStats(): Record<AIServiceType, UsageStats> {
-  return apiUsage;
-}
+export const FALLBACK_MODEL = 'gpt-3.5-turbo';
 
 /**
- * Calculate current request rate for an AI service
- * Returns requests per minute based on recent usage
+ * Max tokens to use for different model types
  */
-export function calculateCurrentRate(serviceType: AIServiceType): number {
-  const stats = apiUsage[serviceType];
-  const now = Date.now();
-  const oneMinuteAgo = now - 60000;
-  
-  // If no recent requests, rate is 0
-  if (stats.lastRequestTime < oneMinuteAgo) {
-    return 0;
-  }
-  
-  // Calculate requests per minute based on the time window
-  const timeSinceFirstRequest = now - (now - 60000);
-  const requestsPerMinute = stats.requestCount * (60000 / timeSinceFirstRequest);
-  
-  return requestsPerMinute;
-}
+export const MODEL_MAX_TOKENS: Record<string, number> = {
+  'gpt-4': 4096,
+  'gpt-4-vision-preview': 4096,
+  'gpt-3.5-turbo': 2048,
+};
 
 /**
- * Determine if we should use the backup API key based on rate limits and priority
- * This helps prevent rate limiting errors by switching to backup keys
+ * System prompts for each service type
  */
-export function shouldUseBackup(serviceType: AIServiceType): boolean {
-  const config = AI_SERVICE_CONFIGS[serviceType];
-  if (!config.rateLimitPerMinute || !config.backup) return false;
+export const SERVICE_TYPE_SYSTEM_PROMPTS: Record<AIServiceType, string> = {
+  [AIServiceType.DIAGNOSIS]: 
+    'You are an AI dental diagnostic assistant helping dental professionals analyze patient symptoms and clinical findings.',
   
-  const stats = apiUsage[serviceType];
-  const now = Date.now();
-  const oneMinuteAgo = now - 60000;
+  [AIServiceType.TREATMENT]: 
+    'You are an AI dental treatment planning assistant helping dental professionals create comprehensive treatment plans.',
   
-  // If last request was more than a minute ago, no need for backup
-  if (stats.lastRequestTime < oneMinuteAgo) {
-    return false;
-  }
+  [AIServiceType.XRAY]: 
+    'You are an AI dental radiography specialist that can analyze dental x-rays and identify pathology with high accuracy.',
   
-  // Get current rate
-  const currentRate = calculateCurrentRate(serviceType);
+  [AIServiceType.FINANCIAL]: 
+    'You are an AI financial analyst for dental practices, specializing in revenue projections, expense analysis, and billing optimization.',
   
-  // If we've exceeded 80% of the rate limit, use backup to prevent hitting limits
-  const rateThreshold = config.rateLimitPerMinute * 0.8;
-  return currentRate >= rateThreshold;
-}
-
-/**
- * Get the optimal AI configuration based on current usage and service priority
- * Will return the main config, backup, or fallback to shared key based on load
- */
-export function getOptimalAIConfig(serviceType: AIServiceType): AIKeyConfig {
-  const config = getAIConfig(serviceType);
+  [AIServiceType.INSURANCE]: 
+    'You are an AI dental insurance specialist, helping with insurance verification, claims processing, and coding optimization.',
   
-  // Check if we need to use backup
-  if (shouldUseBackup(serviceType) && config.backup) {
-    // If the backup key is also rate limited, fall back to shared default
-    if (config.backup.apiKey !== DEFAULT_OPENAI_CONFIG.apiKey && 
-        shouldUseSharedDefault(config.backup)) {
-      console.log(`Both primary and backup keys for ${serviceType} are rate limited, using shared default`);
-      return DEFAULT_OPENAI_CONFIG;
-    }
-    console.log(`Using backup key for ${serviceType} due to rate limiting`);
-    return config.backup;
-  }
+  [AIServiceType.PATIENT_COMMUNICATION]: 
+    'You are an AI communication specialist for dental practices, helping create personalized, clear communications with patients.',
   
-  return config;
-}
-
-/**
- * Determine if a specific API key config should fall back to the shared default
- * Used to check if backup keys are also approaching rate limits
- */
-function shouldUseSharedDefault(config: AIKeyConfig): boolean {
-  // Find which service uses this API key
-  let matchingService: AIServiceType | null = null;
-  
-  for (const [service, serviceConfig] of Object.entries(AI_SERVICE_CONFIGS)) {
-    if (serviceConfig.apiKey === config.apiKey) {
-      matchingService = service as AIServiceType;
-      break;
-    }
-  }
-  
-  if (!matchingService) return false;
-  
-  // Check if this service is approaching rate limits
-  const stats = apiUsage[matchingService];
-  if (!stats || !config.rateLimitPerMinute) return false;
-  
-  const now = Date.now();
-  const oneMinuteAgo = now - 60000;
-  
-  // If no recent requests, no need to use default
-  if (stats.lastRequestTime < oneMinuteAgo) {
-    return false;
-  }
-  
-  // Calculate rate and check if approaching limits
-  const currentRate = calculateCurrentRate(matchingService);
-  const rateThreshold = config.rateLimitPerMinute * 0.9;
-  
-  return currentRate >= rateThreshold;
-}
-
-/**
- * Get AI services status for monitoring dashboard
- */
-export function getAIServicesStatus(): Record<string, {
-  status: 'available' | 'limited' | 'unavailable',
-  usage: number,
-  rateLimitPerMinute?: number
-}> {
-  const status: Record<string, any> = {};
-  
-  Object.entries(AIServiceType).forEach(([key, serviceType]) => {
-    // Skip numeric enum values
-    if (!isNaN(Number(key))) return;
-    
-    const config = getAIConfig(serviceType as AIServiceType);
-    const stats = apiUsage[serviceType as AIServiceType];
-    const rateLimit = config.rateLimitPerMinute || 60;
-    
-    // Calculate usage percentage based on rate limit
-    const now = Date.now();
-    const oneMinuteAgo = now - 60000;
-    const recentRequests = stats.lastRequestTime > oneMinuteAgo ? stats.requestCount : 0;
-    const usagePercentage = (recentRequests / rateLimit) * 100;
-    
-    let serviceStatus: 'available' | 'limited' | 'unavailable' = 'available';
-    if (usagePercentage > 90) {
-      serviceStatus = 'unavailable';
-    } else if (usagePercentage > 70) {
-      serviceStatus = 'limited';
-    }
-    
-    status[serviceType] = {
-      status: serviceStatus,
-      usage: usagePercentage,
-      rateLimitPerMinute: rateLimit
-    };
-  });
-  
-  return status;
-}
+  [AIServiceType.SCHEDULING]: 
+    'You are an AI scheduling assistant for dental practices, optimizing appointment scheduling and provider utilization.',
+};
