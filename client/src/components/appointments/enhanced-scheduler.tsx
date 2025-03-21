@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { addDays, format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday, addWeeks, subWeeks, setHours, setMinutes, isBefore, isAfter } from "date-fns";
-import { Calendar, Clock, Plus, Filter, Users, MapPin, ChevronLeft, ChevronRight, Search, MoreHorizontal, Calendar as CalendarIcon } from "lucide-react";
+import { addDays, format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday, addWeeks, subWeeks, setHours, setMinutes, isBefore, isAfter, parseISO } from "date-fns";
+import { 
+  Calendar, Clock, Plus, Filter, Users, MapPin, ChevronLeft, ChevronRight, 
+  Search, MoreHorizontal, Calendar as CalendarIcon, Coffee, CheckCircle2, 
+  Clock4, UserCheck, FileEdit, AlarmClock, X 
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
