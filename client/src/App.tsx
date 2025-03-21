@@ -27,6 +27,7 @@ import PostOpInstructionsPage from "@/pages/post-op-instructions-page";
 import AppointmentRequestPage from "@/pages/appointment-request-page";
 import UnifiedEmailPage from "@/pages/unified-email-page";
 import XRayFMXPage from "@/pages/xray-fmx-page";
+import FormPage from "@/pages/form-page";
 
 // Lazy-loaded components
 const AIHub = lazy(() => import('./pages/ai-hub'));
@@ -50,6 +51,7 @@ function Router() {
         <Route path="/auth" component={AuthPage} />
         <Route path="/auth/signup" component={AuthPage} />
         <Route path="/auth/subscription" component={SubscriptionPageWrapper} />
+        <Route path="/form/:formToken" component={FormPage} />
         <ProtectedRoute path="/" component={DashboardPage} />
         <ProtectedRoute path="/dashboard" component={DashboardPage} />
         <ProtectedRoute path="/patients" component={PatientsPage} />
@@ -85,8 +87,10 @@ function Router() {
 }
 
 function App() {
-  // Check if we're on auth pages, don't show assistant there
+  // Check if we're on auth or form pages, don't show assistant there
   const isAuthPage = window.location.pathname.includes('/auth');
+  const isFormPage = window.location.pathname.includes('/form');
+  const hideAssistant = isAuthPage || isFormPage;
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -94,7 +98,7 @@ function App() {
         <WebSocketProvider>
           <Router />
           <Toaster />
-          {!isAuthPage && <AIAssistant />}
+          {!hideAssistant && <AIAssistant />}
         </WebSocketProvider>
       </AuthProvider>
     </QueryClientProvider>

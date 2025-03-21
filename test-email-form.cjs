@@ -4,47 +4,60 @@
  * to a patient through the frontend UI.
  */
 
-const fetch = require('node-fetch');
+/**
+ * Direct test script for sending patient intake forms
+ * Using direct method to send emails without going through API endpoints
+ */
 
-async function sendTestIntakeForm() {
-  console.log('Sending test patient intake form...');
+// Import required modules
+const { EmailAIService } = require('./server/services/email-ai-service');
+const { v4: uuidv4 } = require('uuid');
+const dotenv = require('dotenv');
+
+// Load environment variables
+dotenv.config();
+
+// Function to send test email directly via the service
+async function sendTestEmail() {
+  console.log('Sending test patient intake form directly...');
   
   try {
-    // The data that would normally come from the frontend form
-    const formData = {
-      patientEmail: 'aabdin@bu.edu', // Dr. Abdin's email for testing
+    // Create email service instance
+    const emailService = new EmailAIService();
+    
+    // Generate a form token for tracking
+    const formToken = uuidv4();
+    const formUrl = `https://dentamind.replit.app/form/${formToken}`;
+    
+    // Send email using the service
+    const result = await emailService.sendPatientForm({
+      to: 'aabdin@bu.edu',
       patientName: 'Ahmad Abdin',
       formType: 'intake',
+      formUrl: formUrl,
       customMessage: 'This is a test patient intake form. Please complete it at your convenience.',
-      appointmentDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
+      appointmentDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       sendCopy: true,
       practiceEmail: 'dentamind27@gmail.com'
-    };
-    
-    // Send the request to the patient forms API
-    const response = await fetch('http://localhost:5000/api/patient-forms/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(formData)
     });
     
-    // Check the response
-    if (response.ok) {
-      const result = await response.json();
-      console.log('Success:', result);
-      console.log(`Form sent to ${formData.patientEmail}!`);
-      console.log(`Form token: ${result.token}`);
+    // Check result
+    if (result.success) {
+      console.log('Success! Email sent directly:');
+      console.log(`Form sent to aabdin@bu.edu`);
+      console.log(`Form URL: ${formUrl}`);
       console.log(`Tracking ID: ${result.trackingId}`);
     } else {
-      const errorText = await response.text();
-      console.error('Error response:', response.status, errorText);
+      console.error('Failed to send email:', result.error);
     }
   } catch (error) {
-    console.error('Error sending form:', error);
+    console.error('Error in direct email sending:', error);
+    // Log more detailed error information
+    if (error.stack) {
+      console.error('Error stack:', error.stack);
+    }
   }
 }
 
 // Run the test
-sendTestIntakeForm();
+sendTestEmail();
