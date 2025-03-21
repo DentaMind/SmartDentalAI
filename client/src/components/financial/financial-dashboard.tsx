@@ -172,7 +172,7 @@ export function FinancialDashboard({ userId, initialTab = 'tax' }: FinancialDash
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={navigateToHub} className="h-8 w-8">
+          <Button variant="ghost" size="icon" onClick={navigateBack} className="h-8 w-8">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-2xl font-bold flex items-center gap-2">
