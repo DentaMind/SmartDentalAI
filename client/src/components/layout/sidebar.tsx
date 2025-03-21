@@ -151,8 +151,8 @@ export function Sidebar() {
           <div className="flex items-center gap-3 hover:opacity-90 transition-opacity cursor-pointer">
             <div className="flex justify-center items-center h-12 w-12">
               <img 
-                src="/images/dentamind-logo.svg" 
-                alt="DentaMind Logo" 
+                src="/images/dentamind-ai-logo.png" 
+                alt="DentaMind AI Logo" 
                 className="h-12 w-12 hover:scale-110 transition-transform duration-300" 
               />
             </div>
