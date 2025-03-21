@@ -1069,12 +1069,15 @@ export function SchedulerV3({
                     />
                   </div>
                   {!isCompact && (
-                    <Select defaultValue="today">
+                    <Select 
+                      value={viewMode}
+                      onValueChange={(value: 'day' | 'week' | 'month') => setViewMode(value)}
+                    >
                       <SelectTrigger className="w-36">
                         <SelectValue placeholder="View" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="today">Day View</SelectItem>
+                        <SelectItem value="day">Day View</SelectItem>
                         <SelectItem value="week">Week View</SelectItem>
                         <SelectItem value="month">Month View</SelectItem>
                       </SelectContent>
@@ -1097,67 +1100,194 @@ export function SchedulerV3({
             )}
           </div>
           
-          <div className="flex mt-4 border-b pb-1 font-medium text-sm text-center">
-            <div className="w-16">Time</div>
-            {activeProviders.map(provider => (
-              <div 
-                key={provider.id} 
-                className="flex-1 px-2"
-                style={{ borderLeft: `4px solid ${provider.color || '#888'}` }}
-              >
-                {provider.name}
-                <Badge variant="outline" className="ml-2">
-                  {provider.role === 'doctor' ? 'Doctor' : 'Hygienist'}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </CardHeader>
-        
-        <CardContent className={`p-0 overflow-auto max-h-${maxHeight}`}>
-          <div className="flex min-w-full">
-            {/* Time column */}
-            <div className="w-16 bg-gray-50 border-r sticky left-0 z-10">
-              {timeSlots.map((timeSlot, index) => (
+          {viewMode === 'day' && (
+            <div className="flex mt-4 border-b pb-1 font-medium text-sm text-center">
+              <div className="w-16">Time</div>
+              {activeProviders.map(provider => (
                 <div 
-                  key={`time-${index}`}
-                  className={`h-16 border-b flex items-center justify-center text-xs font-medium text-gray-600
-                    ${timeSlot.isHour ? 'bg-gray-100' : ''}`}
+                  key={provider.id} 
+                  className="flex-1 px-2"
+                  style={{ borderLeft: `4px solid ${provider.color || '#888'}` }}
                 >
-                  {timeSlot.label}
+                  {provider.name}
+                  <Badge variant="outline" className="ml-2">
+                    {provider.role === 'doctor' ? 'Doctor' : 'Hygienist'}
+                  </Badge>
                 </div>
               ))}
             </div>
-            
-            {/* Provider columns */}
-            {activeProviders.map(provider => (
-              <div key={provider.id} className="flex-1 min-w-[220px]">
-                {timeSlots.map((timeSlot, index) => {
-                  const appointment = getAppointmentForTimeSlot(
-                    timeSlot.hour, 
-                    timeSlot.minute, 
-                    provider.id
-                  );
-                  
-                  // Determine which operatory to use based on provider role
-                  const operatory = provider.role === 'doctor' ? 'Room 1' : 'Hygiene Room 1';
-                  
+          )}
+          
+          {viewMode === 'week' && (
+            <div className="flex mt-4 border-b pb-1 font-medium text-sm text-center">
+              <div className="w-16">Time</div>
+              <div className="flex-1 flex justify-between">
+                {Array.from({ length: 7 }).map((_, dayIndex) => {
+                  const day = new Date(startOfWeek(currentDate));
+                  day.setDate(day.getDate() + dayIndex);
                   return (
-                    <div 
-                      key={`slot-${provider.id}-${index}`}
-                      className={`h-16 border-b border-r p-1 relative group
-                        ${timeSlot.isHour ? 'bg-gray-50' : ''}`}
-                    >
-                      {appointment ? 
-                        renderAppointment(appointment) : 
-                        renderEmptySlot(timeSlot.hour, timeSlot.minute, provider.id, operatory)
-                      }
+                    <div key={`weekday-${dayIndex}`} className="px-2 flex-1 text-center">
+                      {format(day, 'EEE')}
                     </div>
                   );
                 })}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+        </CardHeader>
+        
+        <CardContent className={`p-0 overflow-auto max-h-${maxHeight}`}>
+          {viewMode === 'day' && (
+            <div className="flex min-w-full">
+              {/* Time column */}
+              <div className="w-16 bg-gray-50 border-r sticky left-0 z-10">
+                {timeSlots.map((timeSlot, index) => (
+                  <div 
+                    key={`time-${index}`}
+                    className={`h-16 border-b flex items-center justify-center text-xs font-medium text-gray-600
+                      ${timeSlot.isHour ? 'bg-gray-100' : ''}`}
+                  >
+                    {timeSlot.label}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Provider columns */}
+              {activeProviders.map(provider => (
+                <div key={provider.id} className="flex-1 min-w-[220px]">
+                  {timeSlots.map((timeSlot, index) => {
+                    const appointment = getAppointmentForTimeSlot(
+                      timeSlot.hour, 
+                      timeSlot.minute, 
+                      provider.id
+                    );
+                    
+                    // Determine which operatory to use based on provider role
+                    const operatory = provider.role === 'doctor' ? 'Room 1' : 'Hygiene Room 1';
+                    
+                    return (
+                      <div 
+                        key={`slot-${provider.id}-${index}`}
+                        className={`h-16 border-b border-r p-1 relative group
+                          ${timeSlot.isHour ? 'bg-gray-50' : ''}`}
+                      >
+                        {appointment ? 
+                          renderAppointment(appointment) : 
+                          renderEmptySlot(timeSlot.hour, timeSlot.minute, provider.id, operatory)
+                        }
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {viewMode === 'week' && (
+            <div className="flex flex-col min-w-full">
+              
+              {/* Week body with appointments */}
+              <div className="flex min-w-full">
+                {/* Time column */}
+                <div className="w-16 bg-gray-50 border-r sticky left-0 z-10">
+                  {/* Use fewer time slots for week view */}
+                  {timeSlots.filter(slot => slot.isHour).map((timeSlot, index) => (
+                    <div 
+                      key={`time-${index}`}
+                      className="h-24 border-b flex items-center justify-center text-xs font-medium text-gray-600"
+                    >
+                      {timeSlot.label}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Days columns */}
+                {Array.from({ length: 7 }).map((_, dayIndex) => {
+                  const day = new Date(startOfWeek(currentDate));
+                  day.setDate(day.getDate() + dayIndex);
+                  
+                  const isToday = isSameDay(day, new Date());
+                  
+                  // Filter appointments for this day
+                  const dayAppointments = appointments.filter(appt => 
+                    isSameDay(new Date(appt.date), day)
+                  );
+                  
+                  return (
+                    <div 
+                      key={`day-column-${dayIndex}`} 
+                      className={`flex-1 min-w-[150px] ${isToday ? 'bg-blue-50/20' : ''}`}
+                    >
+                      {timeSlots.filter(slot => slot.isHour).map((timeSlot, timeIndex) => {
+                        // Get appointments that fall in this hour
+                        const hourAppointments = dayAppointments.filter(appt => {
+                          const apptDate = new Date(appt.date);
+                          return apptDate.getHours() === timeSlot.hour;
+                        });
+                        
+                        return (
+                          <div 
+                            key={`day-${dayIndex}-hour-${timeIndex}`}
+                            className="h-24 border-b border-r p-1 relative"
+                          >
+                            {hourAppointments.length > 0 ? (
+                              <div className="flex flex-col space-y-1 overflow-y-auto max-h-full">
+                                {hourAppointments.map(appt => (
+                                  <div 
+                                    key={`week-appt-${appt.id}`}
+                                    className={`${procedureTypeColors[appt.procedureType]} p-1 rounded text-xs cursor-pointer`}
+                                    onClick={() => handleEditAppointment(appt)}
+                                  >
+                                    <div className="font-medium truncate flex items-center">
+                                      {format(new Date(appt.date), 'h:mm a')} {appt.patientName}
+                                      {appt.patientStatus && (
+                                        <div className={`h-2 w-2 rounded-full ml-1 ${
+                                          appt.patientStatus === 'here' ? 'bg-green-500' :
+                                          appt.patientStatus === 'confirmed' ? 'bg-blue-500' :
+                                          appt.patientStatus === 'unconfirmed' ? 'bg-red-500' :
+                                          appt.patientStatus === 'noshow' ? 'bg-orange-500' : 'bg-gray-500'
+                                        }`} />
+                                      )}
+                                    </div>
+                                    <div className="truncate">
+                                      {appt.procedureType === "Other" 
+                                        ? (appt.customProcedureName || "Custom Procedure") 
+                                        : appt.procedureType}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div 
+                                className="h-full w-full rounded-md border-dashed border border-gray-200 hover:border-gray-400 flex items-center justify-center cursor-pointer"
+                                onClick={() => {
+                                  // Create appointment at the beginning of this hour on this day
+                                  const newDate = new Date(day);
+                                  newDate.setHours(timeSlot.hour, 0, 0, 0);
+                                  
+                                  // Set date directly when creating appointment from week view
+                                  setCurrentDate(newDate);
+                                  createAppointmentAt(timeSlot.hour, 0, "Room 1", 1);
+                                }}
+                              >
+                                <Plus className="h-4 w-4 text-gray-400" />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          
+          {viewMode === 'month' && (
+            <div className="p-4 text-center text-muted-foreground">
+              Month view coming soon!
+            </div>
+          )}
         </CardContent>
       </Card>
     </>
