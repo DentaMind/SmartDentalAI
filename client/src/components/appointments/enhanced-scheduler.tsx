@@ -4,7 +4,8 @@ import { addDays, format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, 
 import { 
   Calendar, Clock, Plus, Filter, Users, MapPin, ChevronLeft, ChevronRight, 
   Search, MoreHorizontal, Calendar as CalendarIcon, Coffee, CheckCircle2, 
-  Clock4, UserCheck, FileEdit, AlarmClock, X 
+  Clock4, UserCheck, FileEdit, AlarmClock, X, User, FileText, 
+  CreditCard, Info, Phone, HelpCircle
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,12 +14,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Appointment } from "../../../shared/schema";
+import { Link } from "wouter";
+// Import from shared schema
+import type { Appointment as AppointmentType } from "@/types/appointment-types";
 
 interface Provider {
   id: number;

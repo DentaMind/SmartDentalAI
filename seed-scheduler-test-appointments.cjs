@@ -3,10 +3,10 @@
  * Creates sample appointments for Dr. Abdin and Mary RDH (Hygienist)
  */
 
-import { db } from './server/db.js';
-import { appointments, users } from './shared/schema.js';
-import { eq, and, between } from 'drizzle-orm';
-import { format, addDays, parseISO, setHours, setMinutes } from 'date-fns';
+const { db } = require('./server/db');
+const { appointments, users } = require('./shared/schema');
+const { eq, and, between } = require('drizzle-orm');
+const { format, addDays, parseISO, setHours, setMinutes } = require('date-fns');
 
 async function seedSchedulerTestAppointments() {
   console.log('Connecting to database for seeding test appointments...');
