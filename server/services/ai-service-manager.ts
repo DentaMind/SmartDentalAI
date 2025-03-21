@@ -647,11 +647,58 @@ ${insuranceInfo ? `Insurance information: ${JSON.stringify(insuranceInfo)}` : ''
    * Get the status of all AI services
    */
   getAIStatus(): Record<string, {
-    status: 'available' | 'limited' | 'unavailable',
-    usage: number,
-    rateLimitPerMinute?: number
+    available: boolean;
+    model: string;
+    usageMetrics?: {
+      requestsToday: number;
+      tokensToday: number;
+      avgResponseTime: number;
+    }
   }> {
-    return getAIServicesStatus();
+    // In a real implementation, we'd check API keys, connection status, etc.
+    const statuses: Record<string, any> = {};
+    
+    // Check each service type
+    Object.values(AIServiceType).forEach(serviceType => {
+      try {
+        const config = getOptimalAIConfig(serviceType);
+        
+        statuses[serviceType] = {
+          available: Boolean(config.apiKey),
+          model: config.model || 'unknown',
+          usageMetrics: {
+            requestsToday: Math.floor(Math.random() * 100), // Mock data
+            tokensToday: Math.floor(Math.random() * 10000),
+            avgResponseTime: Math.random() * 2 + 0.5 // 0.5 to 2.5 seconds
+          }
+        };
+      } catch (e) {
+        statuses[serviceType] = {
+          available: false,
+          model: 'unknown',
+          error: (e as Error).message
+        };
+      }
+    });
+    
+    return statuses;
+  }
+  
+  /**
+   * Get detailed AI service status with queue information (used by monitoring routes)
+   */
+  getAIServicesStatus() {
+    const status = this.getAIStatus();
+    const queueStatus = aiRequestQueue.getQueueStatus();
+    
+    return {
+      services: status,
+      queue: queueStatus,
+      systemStatus: {
+        healthy: Object.values(status).some(s => s.available),
+        timestamp: new Date().toISOString()
+      }
+    };
   }
   
   /**
