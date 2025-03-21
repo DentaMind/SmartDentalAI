@@ -210,42 +210,29 @@ export const MascotCharacter: React.FC<MascotCharacterProps> = ({
         animate={isAnimating ? { rotate: [0, 15, -15, 10, -10, 5, -5, 0] } : {}}
         onClick={handleMascotClick}
       >
-        {/* Mascot face */}
+        {/* Robot head for mascot */}
         <div className="relative flex flex-col items-center justify-center">
-          {/* Eyes */}
-          <div className="flex space-x-3 mb-1">
-            <div className="relative">
-              <motion.div 
-                className={`bg-white ${emotionStyles.eyeStyle} w-3 h-3.5`}
-                animate={{ scaleY: isAnimating ? [1, 0.1, 1] : 1 }}
-                transition={{ duration: 0.5 }}
-              />
-              <div 
-                className={`absolute w-4 h-1 bg-white top-[-4px] ${emotionStyles.eyebrowStyle}`}
-              />
-            </div>
-            <div className="relative">
-              <motion.div
-                className={`bg-white ${emotionStyles.eyeStyle} w-3 h-3.5`}
-                animate={{ scaleY: isAnimating ? [1, 0.1, 1] : 1 }}
-                transition={{ duration: 0.5 }}
-              />
-              <div 
-                className={`absolute w-4 h-1 bg-white top-[-4px] ${emotionStyles.eyebrowStyle}`}
-              />
-            </div>
+          {/* Robot eyes */}
+          <div className="flex space-x-2 mb-1">
+            <motion.div 
+              className="bg-white rounded-sm w-3 h-3"
+              animate={{ scaleY: isAnimating ? [1, 0.1, 1] : 1 }}
+              transition={{ duration: 0.5 }}
+            />
+            <motion.div
+              className="bg-white rounded-sm w-3 h-3"
+              animate={{ scaleY: isAnimating ? [1, 0.1, 1] : 1 }}
+              transition={{ duration: 0.5 }}
+            />
           </div>
           
-          {/* Mouth */}
-          <div 
-            className={`bg-white ${emotionStyles.mouthStyle}`}
-            style={{ marginTop: '3px' }}
-          />
+          {/* Robot mouth/speaker */}
+          <div className="mt-1 bg-white w-6 h-1.5 rounded-sm flex justify-center items-center">
+            <div className="w-4 h-0.5 bg-current opacity-30"></div>
+          </div>
           
-          {/* Tooth accent - only show on happy and greeting emotions */}
-          {(currentEmotion === 'happy' || currentEmotion === 'greeting') && (
-            <div className="absolute bottom-[4px] w-2 h-2 bg-white rounded-b-sm" />
-          )}
+          {/* Antenna */}
+          <div className="absolute top-[-8px] w-1 h-3 bg-white rounded-full"></div>
         </div>
       </motion.div>
     </div>
