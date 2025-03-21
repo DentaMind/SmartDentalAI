@@ -53,7 +53,7 @@ async function sendTestEmail() {
           <p>This information is needed for your upcoming appointment on <strong>${new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}</strong>.</p>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="https://dentamind.replit.app/form/test" style="background-color: #28C76F; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Complete Form</a>
+            <a href="https://74fbdc8a-e87b-42f1-91e9-aa42704a64e3-00-1wqx45vp1v3o7.worf.replit.dev/form/test" style="background-color: #28C76F; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Complete Form</a>
           </div>
           
           <p>If you have any questions or need assistance, please don't hesitate to contact us at dentamind27@gmail.com or call our office.</p>
