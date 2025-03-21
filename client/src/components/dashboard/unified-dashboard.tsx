@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -151,10 +151,14 @@ interface UnifiedDashboardProps {
 export function UnifiedDashboard({ userRole = "doctor" }: UnifiedDashboardProps) {
   const [timeframe, setTimeframe] = useState<string>("month");
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
-  // Set the default view based on the user role
-  // For providers, we'll start with the clinical view since they already see the schedule
-  const defaultView = ["doctor", "hygienist"].includes(userRole) ? "clinical" : "overview";
+  // Always start with the appointments/schedule view
+  const defaultView = "appointments";
   const [currentView, setCurrentView] = useState<string>(defaultView);
+  
+  // Set initial view on component mount
+  useEffect(() => {
+    setCurrentView("appointments");
+  }, []);
   
   const { user } = useAuth();
   
@@ -909,9 +913,29 @@ export function UnifiedDashboard({ userRole = "doctor" }: UnifiedDashboardProps)
   const renderAppointmentsTab = () => {
     return (
       <div className="space-y-6">
+        {/* Welcome Message */}
+        <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
+          <div className="flex items-start">
+            <div className="mr-3 text-blue-500">
+              <Calendar className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-medium text-blue-900">Welcome to DentaMind Scheduler</h3>
+              <p className="text-sm text-blue-700 mt-1">
+                View and manage all your appointments in one place. Schedule follow-ups, manage providers, 
+                and track patient appointments.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-medium">Today's Schedule</h3>
           <div className="flex gap-2">
+            <Button className="bg-primary hover:bg-primary/90">
+              <Plus className="h-4 w-4 mr-1" />
+              Schedule Appointment
+            </Button>
             <Select defaultValue="all">
               <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="Filter by status" />
@@ -1197,15 +1221,11 @@ export function UnifiedDashboard({ userRole = "doctor" }: UnifiedDashboardProps)
       </div>
       
       {/* Dashboard Views */}
-      <Tabs defaultValue="overview" value={currentView} onValueChange={setCurrentView}>
+      <Tabs defaultValue="appointments" value={currentView} onValueChange={setCurrentView}>
         <TabsList className="mb-6">
-          <TabsTrigger value="overview" className="gap-2">
-            <LayoutDashboard className="h-4 w-4" />
-            Overview
-          </TabsTrigger>
           <TabsTrigger value="appointments" className="gap-2">
             <Calendar className="h-4 w-4" />
-            Appointments
+            Schedule
           </TabsTrigger>
           <TabsTrigger value="notifications" className="gap-2">
             <Bell className="h-4 w-4" />
@@ -1217,10 +1237,7 @@ export function UnifiedDashboard({ userRole = "doctor" }: UnifiedDashboardProps)
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="overview">
-          {renderOverviewTab()}
-        </TabsContent>
-        
+
         <TabsContent value="appointments">
           {renderAppointmentsTab()}
         </TabsContent>
