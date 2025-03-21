@@ -73,9 +73,9 @@ export function FinancialDashboard({ userId, initialTab = 'tax' }: FinancialDash
     setActiveTab(value as DashboardMode);
   };
 
-  // Navigate back to main AI hub
-  const navigateToHub = () => {
-    setLocation('/ai-hub');
+  // Navigate back to appointments/main menu
+  const navigateBack = () => {
+    setLocation('/appointments');
   };
 
   // Function to render help content for each tab
