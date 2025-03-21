@@ -14,7 +14,7 @@ import insuranceRoutes from './routes/insurance-routes';
 import emailReaderRoutes from './routes/email-reader-routes-fixed';
 import { setupPatientFormsRoutes } from './routes/patient-forms-routes';
 import { setupEmailSchedulerRoutes } from './routes/email-scheduler-routes';
-import { EmailAIService } from './services/email-ai-service';
+import { EmailAIService } from './services/email-ai-service-fixed';
 import path from 'path';
 import { PatientMedicalHistory } from '../shared/schema';
 

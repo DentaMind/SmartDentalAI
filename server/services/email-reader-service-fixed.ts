@@ -119,6 +119,8 @@ export class EmailReaderService {
    */
   public async configureEmailAccount(config: EmailConnectionConfig): Promise<{ success: boolean, message: string }> {
     try {
+      const practiceId = config.practiceId || 'default';
+      
       // Test the connection first
       const testResult = await this.testConnection(config);
       if (!testResult.success) {
@@ -126,11 +128,11 @@ export class EmailReaderService {
       }
       
       // Store the configuration
-      this.connectionConfigs.set(config.practiceId, config);
+      this.connectionConfigs.set(practiceId, config);
       
       // Set default processing settings if none exist
-      if (!this.processingSettings.has(config.practiceId)) {
-        this.processingSettings.set(config.practiceId, {
+      if (!this.processingSettings.has(practiceId)) {
+        this.processingSettings.set(practiceId, {
           autoRespond: false,
           categorizeEmails: true,
           extractAppointmentRequests: true,
@@ -140,8 +142,8 @@ export class EmailReaderService {
       }
       
       // Initialize stats object if it doesn't exist
-      if (!this.processingStats.has(config.practiceId)) {
-        this.processingStats.set(config.practiceId, {
+      if (!this.processingStats.has(practiceId)) {
+        this.processingStats.set(practiceId, {
           totalProcessed: 0,
           appointmentRequestsFound: 0,
           lastProcessedTime: new Date().toISOString()
@@ -189,7 +191,7 @@ export class EmailReaderService {
     let client: ImapFlow | null = null;
     
     try {
-      client = new ImapFlow({
+      const imapOptions: ImapFlowOptions = {
         host: config.host,
         port: config.port,
         secure: config.tls,
@@ -197,16 +199,20 @@ export class EmailReaderService {
           user: config.user,
           pass: config.password
         },
-        logger: false,
-        // 10 second timeout should be enough for a connection test
-        timeoutConnection: 10000
-      });
+        logger: false
+      };
+      
+      // Create the client
+      client = new ImapFlow(imapOptions);
       
       // Try to connect and login
       await client.connect();
       
-      // List mailboxes to verify everything is working
-      const mailboxes = await client.list();
+      // Get mailbox list to verify everything is working
+      const mailboxes = [];
+      for await (const mailbox of client.mailboxList()) {
+        mailboxes.push(mailbox);
+      }
       
       await client.logout();
       
@@ -243,9 +249,9 @@ export class EmailReaderService {
       // Ensure we close the connection if it's still open
       if (client) {
         try {
-          client.close();
+          await client.logout();
         } catch (e) {
-          // Ignore errors on close
+          // Ignore errors on logout
         }
       }
     }
@@ -457,8 +463,8 @@ export class EmailReaderService {
       // Record the last check time
       this.lastEmailCheck.set(practiceId, new Date());
       
-      // Create a new IMAP client
-      client = new ImapFlow({
+      // Create IMAP connection options
+      const imapOptions: ImapFlowOptions = {
         host: config.host,
         port: config.port,
         secure: config.tls,
@@ -467,7 +473,10 @@ export class EmailReaderService {
           pass: config.password
         },
         logger: false
-      });
+      };
+      
+      // Create the client
+      client = new ImapFlow(imapOptions);
       
       // Connect to the server
       await client.connect();
@@ -515,17 +524,19 @@ export class EmailReaderService {
   ): Promise<void> {
     try {
       // Open the mailbox
-      const lock = await client.getMailboxLock(folderName);
+      await client.mailboxOpen(folderName);
       
       try {
         // Get messages from the last 24 hours that haven't been processed yet
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         
+        // Create a search query for recent messages
+        const searchQuery = { since: yesterday };
         let count = 0;
         
-        // Fetch messages
-        for await (const message of client.fetch({ since: yesterday }, { source: true })) {
+        // Fetch messages using the fetch method with proper options
+        for await (const message of client.fetch(searchQuery, { source: true })) {
           // Stop if we've reached the maximum number of emails to process
           if (count >= settings.maxEmailsToProcess) {
             break;
@@ -538,59 +549,76 @@ export class EmailReaderService {
           }
           
           try {
-            // Parse the email
-            const source = message.source.toString();
-            const parsedEmail = await parseEmail(source);
-            
-            // Skip emails without a message ID
-            if (!parsedEmail.messageId) {
-              continue;
-            }
-            
-            // Process the email with AI
-            const result = await this.analyzeEmail(parsedEmail, settings, practiceId);
-            
-            // Store the result
-            if (!this.processedEmails.has(practiceId)) {
-              this.processedEmails.set(practiceId, []);
-            }
-            this.processedEmails.get(practiceId)?.push(result);
-            
-            // Mark as processed in the cache
-            this.processedEmailCache.set(cacheKey, true);
-            
-            // Update stats
-            const stats = this.processingStats.get(practiceId) || {
-              totalProcessed: 0,
-              appointmentRequestsFound: 0,
-              lastProcessedTime: new Date().toISOString()
-            };
-            
-            stats.totalProcessed++;
-            
-            if (result.category === 'appointment') {
-              stats.appointmentRequestsFound++;
-            }
-            
-            this.processingStats.set(practiceId, stats);
-            
-            // Increment processed count
-            count++;
-            
-            // Auto-respond if enabled and email requires a response
-            if (settings.autoRespond && result.requiresResponse && result.suggestedResponse) {
-              // In a production system, we would send the response here
-              // For now, just log it
-              console.log(`Would send auto-response to ${result.from} for email: ${result.subject}`);
+            // Parse the email if source is available
+            if (message.source) {
+              const source = message.source.toString();
+              const parsedEmail = await parseEmail(source);
+              
+              // Process the email content
+              const emailText = parsedEmail.text || '';
+              const emailHtml = parsedEmail.html || '';
+              const subject = parsedEmail.subject || '';
+              const from = parsedEmail.from?.text || '';
+              const sentDate = parsedEmail.date || new Date();
+              
+              // Use AI to analyze the email content
+              const analysis = await this.analyzeEmailContent(
+                emailText,
+                subject,
+                from
+              );
+              
+              // Create a processing result
+              const result: EmailProcessingResult = {
+                messageId: message.uid.toString(),
+                subject,
+                from,
+                sentDate,
+                category: analysis.category as any,
+                priority: analysis.priority as any,
+                requiresResponse: analysis.requiresResponse,
+                requiredAction: analysis.requiredAction,
+                summary: analysis.summary,
+                suggestedResponse: analysis.suggestedResponse,
+                extractedData: analysis.extractedData,
+                aiConfidenceScore: analysis.confidenceScore
+              };
+              
+              // Store the result
+              const practiceEmails = this.processedEmails.get(practiceId) || [];
+              practiceEmails.push(result);
+              this.processedEmails.set(practiceId, practiceEmails);
+              
+              // Add to cache to avoid reprocessing
+              this.processedEmailCache.set(cacheKey, true);
+              
+              // Update stats
+              const stats = this.processingStats.get(practiceId) || {
+                totalProcessed: 0,
+                appointmentRequestsFound: 0,
+                lastProcessedTime: new Date().toISOString()
+              };
+              
+              stats.totalProcessed++;
+              
+              // Check if this is an appointment request
+              if (result.category === 'appointment') {
+                stats.appointmentRequestsFound++;
+              }
+              
+              this.processingStats.set(practiceId, stats);
+              
+              count++;
             }
           } catch (emailError) {
-            console.error('Error processing email:', emailError);
+            console.error('Error processing individual email:', emailError);
             // Continue to the next email
           }
         }
+        
       } finally {
-        // Release the lock
-        lock.release();
+        // Close the mailbox when done
+        await client.mailboxClose();
       }
     } catch (error) {
       console.error(`Error processing folder ${folderName}:`, error);
@@ -599,128 +627,88 @@ export class EmailReaderService {
   }
 
   /**
-   * Analyze an email using AI
+   * Analyze email content using AI
    */
-  private async analyzeEmail(
-    parsedEmail: any,
-    settings: EmailProcessingSettings,
-    practiceId: string
-  ): Promise<EmailProcessingResult> {
+  private async analyzeEmailContent(
+    emailText: string,
+    subject: string,
+    from: string
+  ): Promise<{
+    category: string;
+    priority: string;
+    requiresResponse: boolean;
+    requiredAction?: string;
+    summary: string;
+    suggestedResponse?: string;
+    extractedData?: any;
+    confidenceScore: number;
+  }> {
     try {
-      // Extract key information from the email
-      const from = parsedEmail.from?.text || '';
-      const subject = parsedEmail.subject || '';
-      const text = parsedEmail.text || '';
-      const html = parsedEmail.html || '';
-      const messageId = parsedEmail.messageId || '';
-      const date = parsedEmail.date || new Date();
+      // Create a prompt for the AI
+      const prompt = `
+        Analyze the following email received by a dental practice:
+        
+        SUBJECT: ${subject}
+        FROM: ${from}
+        CONTENT:
+        ${emailText.slice(0, 1500)} // Limiting to 1500 chars to avoid token limits
+        
+        Determine:
+        1. Category (one of: appointment, inquiry, clinical, billing, other)
+        2. Priority (one of: high, medium, low)
+        3. Whether it requires a response (true/false)
+        4. A brief summary (max 100 words)
+        5. Any required action
+        6. A suggested response (if appropriate)
+        7. Any appointment requests or relevant data
+        
+        Format your response as a JSON object with these fields: category, priority, requiresResponse, summary, requiredAction, suggestedResponse, extractedData, confidenceScore (0-1)
+      `;
       
-      // Use plain text content if available, otherwise extract text from HTML
-      const content = text || this.extractTextFromHtml(html);
+      // Send the prompt to the AI
+      const response = await aiRequestQueue.enqueueRequest<string>(
+        AIServiceType.PATIENT_COMMUNICATION,
+        async () => {
+          const completion = await this.openAI.chat.completions.create({
+            model: 'gpt-4',
+            messages: [
+              { 
+                role: 'system', 
+                content: 'You are an AI assistant for a dental practice. Your job is to analyze incoming emails and extract meaningful information to help staff prioritize and respond appropriately.'
+              },
+              { role: 'user', content: prompt }
+            ],
+            response_format: { type: 'json_object' }
+          });
+          
+          return completion.choices[0].message.content || '';
+        }
+      );
       
-      // AI analysis via request queue
-      const analysisPrompt = `
-      Analyze this dental practice email:
-      FROM: ${from}
-      SUBJECT: ${subject}
-      DATE: ${date.toISOString()}
-      CONTENT:
-      ${content.slice(0, 2000)} ${content.length > 2000 ? '... (content truncated)' : ''}
+      // Parse the JSON response
+      const analysis = JSON.parse(response);
       
-      Provide the following in your analysis:
-      1. Category (one of: appointment, inquiry, clinical, billing, other)
-      2. Priority (high, medium, low)
-      3. Does this require a response? (true/false)
-      4. Summarize the email content in 1-2 sentences
-      5. Suggest an appropriate response if needed
-      ${settings.extractAppointmentRequests ? '6. Extract any appointment requests (date, time, purpose)' : ''}
-      
-      Format your response as JSON.`;
-      
-      let aiResponse;
-      try {
-        // Queue the request to prevent rate limiting
-        aiResponse = await aiRequestQueue.enqueueRequest(
-          'communication' as AIServiceType,
-          async () => {
-            const response = await this.openAI.chat.completions.create({
-              model: "gpt-4o",
-              messages: [
-                { 
-                  role: "system", 
-                  content: "You are an AI assistant for a dental practice. Your job is to analyze incoming emails and categorize them appropriately."
-                },
-                { role: "user", content: analysisPrompt }
-              ],
-              response_format: { type: "json_object" }
-            });
-            
-            return response.choices[0].message.content;
-          }
-        );
-      } catch (error) {
-        console.error('Error analyzing email with AI:', error);
-        // Provide a basic fallback analysis
-        aiResponse = JSON.stringify({
-          category: "other",
-          priority: "medium",
-          requiresResponse: false,
-          summary: `Email from ${from} with subject "${subject}"`,
-          suggestedResponse: null,
-          appointmentRequest: null,
-          confidenceScore: 0.5
-        });
-      }
-      
-      // Parse the AI response
-      const analysis = JSON.parse(aiResponse || '{}');
-      
-      // Create the result
       return {
-        messageId,
-        subject,
-        from,
-        sentDate: date,
         category: analysis.category || 'other',
         priority: analysis.priority || 'medium',
-        requiresResponse: analysis.requiresResponse || false,
+        requiresResponse: !!analysis.requiresResponse,
         requiredAction: analysis.requiredAction,
-        summary: analysis.summary || `Email from ${from} with subject "${subject}"`,
+        summary: analysis.summary || 'No summary available',
         suggestedResponse: analysis.suggestedResponse,
-        extractedData: analysis.appointmentRequest || {},
-        aiConfidenceScore: analysis.confidenceScore || 0.7
+        extractedData: analysis.extractedData,
+        confidenceScore: analysis.confidenceScore || 0.5
       };
     } catch (error) {
-      console.error('Error analyzing email:', error);
+      console.error('Error analyzing email content:', error);
       
-      // Return a basic fallback result
+      // Return a default analysis if AI fails
       return {
-        messageId: parsedEmail.messageId || '',
-        subject: parsedEmail.subject || '',
-        from: parsedEmail.from?.text || '',
-        sentDate: parsedEmail.date || new Date(),
         category: 'other',
         priority: 'medium',
-        requiresResponse: false,
-        summary: `Email with subject "${parsedEmail.subject || 'No subject'}"`,
-        aiConfidenceScore: 0
+        requiresResponse: true,
+        summary: 'Failed to analyze this email. Please review manually.',
+        confidenceScore: 0
       };
     }
-  }
-
-  /**
-   * Extract readable text from HTML
-   */
-  private extractTextFromHtml(html: string): string {
-    if (!html) return '';
-    
-    // Very basic HTML to text conversion
-    // In a production system, we would use a proper HTML-to-text library
-    return html
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/\s{2,}/g, ' ')
-      .trim();
   }
 }
