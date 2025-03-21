@@ -337,18 +337,34 @@ router.post("/ai/refine-diagnosis", requireAuth, async (req, res) => {
 // AI Diagnosis route - This is the main endpoint for the AI diagnostics page
 router.post("/ai/diagnosis", requireAuth, async (req, res) => {
   try {
-    const { symptoms, patientHistory, xrayImages } = req.body;
+    const { symptoms, patientHistory, vitalSigns, relevantTests, dentalRecords } = req.body;
 
     if (!symptoms) {
       return res.status(400).json({ message: "Symptoms are required" });
     }
 
+    // Check if the symptoms are vague (examples: "tooth pain", "pain on molar")
+    const isVagueComplaint = detectVagueComplaint(symptoms);
+    
+    // Generate appropriate follow-up questions based on the complaint type
+    const followUpQuestions = isVagueComplaint 
+      ? generateFollowUpQuestions(symptoms, patientHistory)
+      : generateConfirmationQuestions(symptoms);
+    
     // Use the aiCoordinator to analyze the diagnosis
-    const diagnosis = await aiCoordinator.analyzeDiagnosis(
+    let diagnosis = await aiCoordinator.analyzeDiagnosis(
       symptoms,
       patientHistory || "",
-      xrayImages
+      dentalRecords?.imaging
     );
+    
+    // Add vague complaint indicator and follow-up questions to the response
+    diagnosis = {
+      ...diagnosis,
+      isVague: isVagueComplaint,
+      confidenceLevel: isVagueComplaint ? "low" : "medium",
+      followUpQuestions: followUpQuestions,
+    };
 
     res.json(diagnosis);
   } catch (error) {
@@ -358,6 +374,149 @@ router.post("/ai/diagnosis", requireAuth, async (req, res) => {
     });
   }
 });
+
+// Helper function to detect vague complaints
+function detectVagueComplaint(symptoms: string): boolean {
+  const symptomText = symptoms.toLowerCase();
+  
+  // Check for common vague patterns
+  const vaguePatterns = [
+    /^pain( on)? #\d+$/i,      // "pain #30" or "pain on #30"
+    /^(tooth|molar|teeth) pain$/i,  // "tooth pain" without specifics
+    /^(hurts|ache)$/i,         // Just "hurts" or "ache"
+    /my (tooth|molar|teeth) (hurts|aches)/i, // My tooth hurts
+    /(tooth|molar|teeth) (problem|issue)/i   // Tooth problem/issue
+  ];
+  
+  // Check for specificity markers
+  const specificityMarkers = [
+    "sensitivity to cold",
+    "sensitivity to hot",
+    "lingering pain",
+    "sharp pain",
+    "dull pain",
+    "swelling",
+    "bleeding",
+    "pus",
+    "broken",
+    "cracked",
+    "chipped",
+    "when biting",
+    "days ago",
+    "weeks ago",
+    "radiolucency",
+    "filling",
+    "root canal"
+  ];
+  
+  // Check if any vague pattern matches
+  const isVaguePattern = vaguePatterns.some(pattern => pattern.test(symptomText));
+  
+  // Check if any specificity marker is present
+  const hasSpecificityMarker = specificityMarkers.some(marker => 
+    symptomText.includes(marker.toLowerCase())
+  );
+  
+  // Complaint is vague if it matches a vague pattern AND doesn't have specificity markers
+  return isVaguePattern && !hasSpecificityMarker;
+}
+
+// Generate follow-up questions for vague complaints
+function generateFollowUpQuestions(symptoms: string, patientHistory?: string): any[] {
+  const symptomText = symptoms.toLowerCase();
+  const questions = [];
+  
+  // Add tooth-specific questions
+  if (symptomText.includes("#")) {
+    // Extract tooth number if present
+    const toothMatch = symptomText.match(/#(\d+)/);
+    const toothNumber = toothMatch ? toothMatch[1] : null;
+    
+    questions.push({
+      question: `Is there pain when biting or chewing on tooth #${toothNumber || "mentioned"}?`,
+      purpose: "Determine if occlusal forces trigger pain, suggesting fracture, periapical pathology, or periodontal issues",
+      targetCondition: "Cracked tooth, periapical abscess, or periodontal disease",
+      confidenceImpact: 0.2
+    });
+    
+    questions.push({
+      question: "Is there sensitivity to hot or cold? If yes, does the pain linger after the stimulus is removed?",
+      purpose: "Assess pulpal involvement and condition",
+      targetCondition: "Pulpitis (reversible or irreversible)",
+      confidenceImpact: 0.25
+    });
+    
+    questions.push({
+      question: "Have you had any recent dental work on this tooth?",
+      purpose: "Identify potential post-operative complications or iatrogenic factors",
+      targetCondition: "Post-operative sensitivity or complication",
+      confidenceImpact: 0.15
+    });
+  } else {
+    // General questions for non-specific complaints
+    questions.push({
+      question: "Can you point to exactly which tooth or area is causing pain?",
+      purpose: "Localize the problem to specific teeth or regions",
+      confidenceImpact: 0.2
+    });
+    
+    questions.push({
+      question: "When did you first notice the pain or discomfort?",
+      purpose: "Establish timeline and progression",
+      confidenceImpact: 0.1
+    });
+  }
+  
+  // Add general diagnostic questions that apply to all vague complaints
+  questions.push({
+    question: "Is there any visible swelling, redness, or unusual appearance you've noticed?",
+    purpose: "Identify signs of infection or inflammation",
+    confidenceImpact: 0.2
+  });
+  
+  questions.push({
+    question: "Have you had any recent X-rays that showed anything unusual in this area?",
+    purpose: "Determine if radiographic findings exist",
+    targetCondition: "Periapical pathology, bone loss, or caries",
+    confidenceImpact: 0.25
+  });
+  
+  return questions;
+}
+
+// Generate confirmation questions for specific complaints
+function generateConfirmationQuestions(symptoms: string): any[] {
+  const symptomText = symptoms.toLowerCase();
+  const questions = [];
+  
+  // Check for pain characteristics that could use clarification
+  if (symptomText.includes("pain") || symptomText.includes("hurt") || symptomText.includes("ache")) {
+    if (!symptomText.includes("scale")) {
+      questions.push({
+        question: "On a scale of 1-10, how would you rate the pain?",
+        purpose: "Quantify pain severity",
+        confidenceImpact: 0.1
+      });
+    }
+    
+    if (!symptomText.includes("constant") && !symptomText.includes("intermittent")) {
+      questions.push({
+        question: "Is the pain constant or does it come and go?",
+        purpose: "Determine pain pattern",
+        confidenceImpact: 0.1
+      });
+    }
+  }
+  
+  // Add general confirmation questions based on common missing information
+  questions.push({
+    question: "Have you tried any remedies or medications for this issue? If so, did they help?",
+    purpose: "Assess patient self-treatment and response",
+    confidenceImpact: 0.1
+  });
+  
+  return questions;
+}
 
 // AI Analysis Routes
 router.post("/ai/comprehensive-analysis", requireAuth, async (req, res) => {
@@ -796,18 +955,76 @@ router.post('/ai/refine-diagnosis', requireAuth, async (req, res) => {
       question,
       response: patientResponse
     });
+    
+    // Check for key diagnostic indicators in the patient response
+    const diagnosticFlags = patientContext?.diagnosticFlags || {};
+    
+    // Create a copy of the previous diagnosis to refine
+    let refinedDiagnosis = {...previousDiagnosis};
+    let confidenceIncreased = false;
+    
+    // If response contains specific information that increases diagnostic confidence
+    if (
+      diagnosticFlags.hasBitingPain || 
+      diagnosticFlags.hasRadiolucency || 
+      patientResponse.toLowerCase().includes("yes") ||
+      patientResponse.length > 20  // Detailed response
+    ) {
+      // Update confidence levels for possible conditions
+      refinedDiagnosis.possibleConditions = refinedDiagnosis.possibleConditions.map((condition: any) => {
+        // Find matching targetCondition in the previous question if available
+        const relevantQuestion = previousDiagnosis.followUpQuestions?.find((q: any) => 
+          q.targetCondition && q.targetCondition.includes(condition.condition)
+        );
+        
+        if (relevantQuestion) {
+          // Apply confidence boost from the question
+          const confidenceBoost = relevantQuestion.confidenceImpact || 0.1;
+          const newConfidence = Math.min(condition.confidence + confidenceBoost, 1.0);
+          confidenceIncreased = confidenceIncreased || (newConfidence > condition.confidence);
+          
+          return {
+            ...condition,
+            confidence: newConfidence
+          };
+        }
+        
+        return condition;
+      });
+      
+      // Update overall confidence level
+      const avgConfidence = refinedDiagnosis.possibleConditions.reduce(
+        (sum: number, condition: any) => sum + condition.confidence, 
+        0
+      ) / refinedDiagnosis.possibleConditions.length;
+      
+      if (avgConfidence > 0.75) {
+        refinedDiagnosis.confidenceLevel = "high";
+      } else if (avgConfidence > 0.5) {
+        refinedDiagnosis.confidenceLevel = "medium";
+      } else {
+        refinedDiagnosis.confidenceLevel = "low";
+      }
+      
+      // Mark as not vague if we have specific information now
+      if (
+        diagnosticFlags.hasBitingPain || 
+        diagnosticFlags.hasRadiolucency || 
+        diagnosticFlags.hasSensitivity ||
+        diagnosticFlags.hasXrayEvidence
+      ) {
+        refinedDiagnosis.isVague = false;
+      }
+    }
 
     // In a production environment, this would be integrated with OpenAI or another AI provider
-    // For now, we'll simulate the AI refinement with a mock response
+    // For now, we'll use our confidence updates logic above
     
     // Simulate processing time
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Create a refined diagnosis based on the previous diagnosis and the new information
-    const refinedDiagnosis = { ...previousDiagnosis };
-    
-    // Increase confidence of highest confidence condition based on user response
-    if (refinedDiagnosis.possibleConditions && refinedDiagnosis.possibleConditions.length > 0) {
+    // If our confidence updates didn't change anything, boost the highest confidence condition
+    if (!confidenceIncreased && refinedDiagnosis.possibleConditions && refinedDiagnosis.possibleConditions.length > 0) {
       // Find the highest confidence condition
       const highestConfidenceIndex = refinedDiagnosis.possibleConditions
         .reduce((maxIndex: number, condition: any, index: number, array: any[]) => 
@@ -821,6 +1038,8 @@ router.post('/ai/refine-diagnosis', requireAuth, async (req, res) => {
     
     // Determine if we need another follow-up question
     let nextQuestion = null;
+    
+    // Use dental-specific follow-up questions
     const followupQuestions = [
       "Can you describe the intensity of the pain on a scale from 1-10?",
       "Does the pain wake you up at night?",
@@ -838,7 +1057,13 @@ router.post('/ai/refine-diagnosis', requireAuth, async (req, res) => {
     const remainingQuestions = followupQuestions.filter(q => !askedQuestions.includes(q));
     
     // Decide if we need another question (max 3 questions)
-    if (remainingQuestions.length > 0 && askedQuestions.length < 3) {
+    // If confidence is high, we may not need more questions
+    const needsMoreQuestions = 
+      refinedDiagnosis.confidenceLevel !== "high" && 
+      remainingQuestions.length > 0 && 
+      askedQuestions.length < 3;
+      
+    if (needsMoreQuestions) {
       nextQuestion = remainingQuestions[0];
     }
     

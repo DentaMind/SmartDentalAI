@@ -12,7 +12,15 @@ export interface SymptomPrediction {
       reason: string;
     };
   }>;
-  followUpQuestions: string[];
+  followUpQuestions: Array<{
+    question: string;
+    purpose: string;
+    targetCondition?: string;
+    confidenceImpact?: number;
+  }>;
+  isVague: boolean;
+  confidenceLevel: "low" | "medium" | "high";
+  requiredInputs?: Array<string>;
   generalAdvice: string;
   aiDomains: {
     periodontics?: {
@@ -169,6 +177,15 @@ export interface RefinementRequest {
     age?: number;
     gender?: string;
     medicalHistory?: string[];
+    diagnosticFlags?: {
+      hasBitingPain?: boolean;
+      hasRadiolucency?: boolean;
+      hasSensitivity?: boolean;
+      isVague?: boolean;
+      hasXrayEvidence?: boolean;
+      hasVisibleSwelling?: boolean;
+      hasTreatmentHistory?: boolean;
+    };
   };
 }
 

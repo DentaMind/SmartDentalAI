@@ -122,8 +122,9 @@ export default function AuthPage() {
       lastName: "",
       email: "",
       phoneNumber: "",
-      specialization: "",
       licenseNumber: "",
+      officeName: "",       // Added for practice letterhead
+      officeEmail: "",      // Added for practice letterhead
       cardName: "",
       cardNumber: "",
       expirationDate: "",
@@ -993,18 +994,43 @@ export default function AuthPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                           control={providerForm.control}
-                          name="specialization"
+                          name="officeName"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-sm font-semibold text-gray-700">Specialization</FormLabel>
+                              <FormLabel className="text-sm font-semibold text-gray-700">Practice Name</FormLabel>
                               <FormControl>
                                 <Input 
                                   {...field} 
                                   className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
-                                  placeholder="e.g., General Dentistry, Orthodontics"
+                                  placeholder="e.g., Bright Smile Dental"
                                 />
                               </FormControl>
                               <FormMessage />
+                              <FormDescription className="text-xs text-gray-500 mt-1">
+                                Used for letterhead and patient communications
+                              </FormDescription>
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={providerForm.control}
+                          name="officeEmail"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-semibold text-gray-700">Practice Email</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all hover:border-blue-400 bg-white/95"
+                                  placeholder="e.g., office@brightsmile.com"
+                                  type="email"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                              <FormDescription className="text-xs text-gray-500 mt-1">
+                                Used for patient communications and reports
+                              </FormDescription>
                             </FormItem>
                           )}
                         />

@@ -74,15 +74,29 @@ export function InteractiveDiagnosis({ patientHistory, vitalSigns, relevantTests
     onSuccess: (data) => {
       setDiagnosisResult(data);
       
-      // Add initial conversation history
-      setConversationHistory([
-        { role: "user", content: symptoms },
-        { role: "assistant", content: "I've analyzed your symptoms. Let me ask some follow-up questions to provide a more accurate diagnosis." }
-      ]);
-      
-      // Set the first follow-up question if available
-      if (data.followUpQuestions && data.followUpQuestions.length > 0) {
-        setCurrentQuestion(data.followUpQuestions[0]);
+      // Check if the complaint is vague and requires more specific information
+      if (data.isVague) {
+        // Add initial conversation with request for more specific information
+        setConversationHistory([
+          { role: "user", content: symptoms },
+          { role: "assistant", content: "I need more specific information about your symptoms to provide an accurate diagnosis. Let me ask you some follow-up questions." }
+        ]);
+        
+        // Set the first follow-up question
+        if (data.followUpQuestions && data.followUpQuestions.length > 0) {
+          setCurrentQuestion(data.followUpQuestions[0].question);
+        }
+      } else {
+        // Add initial conversation without indicating vague complaint
+        setConversationHistory([
+          { role: "user", content: symptoms },
+          { role: "assistant", content: "I've analyzed your symptoms. Let me ask some additional questions to confirm my diagnosis." }
+        ]);
+        
+        // Set follow-up question if available
+        if (data.followUpQuestions && data.followUpQuestions.length > 0) {
+          setCurrentQuestion(data.followUpQuestions[0].question);
+        }
       }
     },
     onError: (error: Error) => {
@@ -104,6 +118,24 @@ export function InteractiveDiagnosis({ patientHistory, vitalSigns, relevantTests
     }) => {
       setIsAnalyzing(true);
       try {
+        // Check if any critical information is mentioned in the response
+        // This helps with vague complaints like "pain on #30 molar"
+        const hasBitingPain = response.answer.toLowerCase().includes("biting") || 
+                             response.answer.toLowerCase().includes("chewing");
+        const hasRadiolucency = response.answer.toLowerCase().includes("radiolucency") || 
+                               response.answer.toLowerCase().includes("dark area");
+        const hasSensitivity = response.answer.toLowerCase().includes("sensitive") || 
+                              response.answer.toLowerCase().includes("cold") || 
+                              response.answer.toLowerCase().includes("hot");
+        
+        // Add context flags to help AI understand the significance of the response
+        const diagnosticFlags = {
+          hasBitingPain,
+          hasRadiolucency,
+          hasSensitivity,
+          isVague: response.previousDiagnosis.isVague,
+        };
+        
         const refinementRequest: RefinementRequest = {
           initialSymptoms: symptoms,
           patientResponse: response.answer,
@@ -113,7 +145,8 @@ export function InteractiveDiagnosis({ patientHistory, vitalSigns, relevantTests
           patientContext: {
             age: 35, // Default value, could be replaced with actual patient data
             gender: 'unknown',
-            medicalHistory: patientHistory ? [patientHistory] : []
+            medicalHistory: patientHistory ? [patientHistory] : [],
+            diagnosticFlags
           }
         };
         
@@ -139,16 +172,37 @@ export function InteractiveDiagnosis({ patientHistory, vitalSigns, relevantTests
       // Clear current user response
       setUserResponse("");
       
-      // Set the next question if available
-      if (data.nextQuestion) {
+      // Check if confidence levels are still low and more questions are needed
+      const confidenceTooLow = data.refinedDiagnosis.confidenceLevel === "low";
+      const hasMoreQuestions = data.nextQuestion !== null;
+      
+      if (hasMoreQuestions) {
+        // Continue asking questions
         setCurrentQuestion(data.nextQuestion);
+        
+        // If confidence is low, add a message explaining why more info is needed
+        if (confidenceTooLow && data.refinedDiagnosis.isVague) {
+          setConversationHistory(prev => [
+            ...prev,
+            { role: "assistant", content: "I still need more information to accurately diagnose your condition." }
+          ]);
+        }
       } else {
         // No more questions needed
         setCurrentQuestion(null);
-        setConversationHistory(prev => [
-          ...prev,
-          { role: "assistant", content: "Based on your responses, I've finalized my diagnosis. Please see the detailed assessment below." }
-        ]);
+        
+        // Add appropriate final message based on confidence level
+        if (data.refinedDiagnosis.confidenceLevel === "high") {
+          setConversationHistory(prev => [
+            ...prev,
+            { role: "assistant", content: "Thank you for the detailed information. I now have high confidence in my diagnosis. Please see the detailed assessment below." }
+          ]);
+        } else {
+          setConversationHistory(prev => [
+            ...prev,
+            { role: "assistant", content: "Based on your responses, I've finalized my diagnosis. While some uncertainty remains, here's my assessment." }
+          ]);
+        }
       }
     },
     onError: (error: Error) => {
