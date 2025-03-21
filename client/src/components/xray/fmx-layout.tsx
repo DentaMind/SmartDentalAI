@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect, useRef } from 'react';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Slider } from '@/components/ui/slider';
 import { 
   Brain, 
   Calendar, 
@@ -18,7 +19,19 @@ import {
   RefreshCw, 
   RotateCw, 
   Shuffle, 
-  Upload 
+  Upload,
+  ZoomIn,
+  ZoomOut,
+  Layers,
+  Move,
+  PanelLeftClose,
+  PanelRightClose,
+  RotateCcw,
+  Eye,
+  EyeOff,
+  Hourglass,
+  History,
+  ThermometerSnowflake
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -82,6 +95,15 @@ const FMXLayout: React.FC<FMXLayoutProps> = ({
   const [selectedXRays, setSelectedXRays] = useState<string[]>([]);
   const [uploadingSlotId, setUploadingSlotId] = useState<string | null>(null);
   const [autoRotate, setAutoRotate] = useState(true);
+  
+  // New enhanced features
+  const [showSuperimposition, setShowSuperimposition] = useState(false);
+  const [superimpositionOpacity, setSuperimpositionOpacity] = useState(50);
+  const [viewMode, setViewMode] = useState<'xray' | 'tissue' | 'combined'>('xray');
+  const [zoomLevel, setZoomLevel] = useState(100);
+  const [showGrid, setShowGrid] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(false);
+  const [selectedTimeframeXRays, setSelectedTimeframeXRays] = useState<XRaySlot[]>([]);
 
   // Get x-ray for a specific position
   const getXRayForPosition = (positionId: string): XRaySlot | undefined => {
@@ -152,6 +174,82 @@ const FMXLayout: React.FC<FMXLayoutProps> = ({
       });
     }, 2000);
   };
+  
+  // Get all X-rays for a specific position (for timeline/history view)
+  const getXRayHistoryForPosition = (positionId: string): XRaySlot[] => {
+    return xrays
+      .filter(x => x.position === positionId)
+      .sort((a, b) => {
+        if (!a.date || !b.date) return 0;
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+  };
+  
+  // Get previous X-ray for superimposition (closest date before current)
+  const getPreviousXRay = (xray: XRaySlot): XRaySlot | undefined => {
+    if (!xray || !xray.date) return undefined;
+    
+    const currentDate = new Date(xray.date);
+    const allPositionXRays = xrays
+      .filter(x => x.position === xray.position && x.id !== xray.id && x.date)
+      .sort((a, b) => {
+        if (!a.date || !b.date) return 0;
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+      
+    // Find closest date before current
+    return allPositionXRays.find(x => new Date(x.date!) < currentDate);
+  };
+  
+  // Toggle superimposition mode
+  const toggleSuperimposition = () => {
+    setShowSuperimposition(!showSuperimposition);
+    
+    if (!showSuperimposition && selectedSlotId) {
+      const currentXRay = getXRayForPosition(selectedSlotId);
+      if (currentXRay) {
+        const previousXRay = getPreviousXRay(currentXRay);
+        
+        if (previousXRay) {
+          toast({
+            title: "Superimposition enabled",
+            description: `Comparing with previous X-ray from ${new Date(previousXRay.date!).toLocaleDateString()}`,
+          });
+        } else {
+          toast({
+            description: "No previous X-rays found for comparison",
+          });
+        }
+      }
+    }
+  };
+  
+  // Toggle view mode (X-ray, tissue overlay, combined)
+  const handleViewModeChange = (mode: 'xray' | 'tissue' | 'combined') => {
+    setViewMode(mode);
+    
+    toast({
+      description: mode === 'xray' ? 
+        "Standard X-ray view" : 
+        mode === 'tissue' ? 
+          "Soft tissue overlay" : 
+          "Combined view (X-ray + tissue)",
+    });
+  };
+  
+  // Create pseudo-calendar view of X-ray history
+  const loadTimelineView = (positionId: string) => {
+    if (!positionId) return;
+    
+    const historyXRays = getXRayHistoryForPosition(positionId);
+    setSelectedTimeframeXRays(historyXRays);
+    setShowTimeline(true);
+    
+    toast({
+      title: "Timeline view",
+      description: `Showing ${historyXRays.length} historical X-rays for this position`,
+    });
+  };
 
   // Render FMX grid layout
   const renderFMXGrid = () => {
@@ -201,8 +299,25 @@ const FMXLayout: React.FC<FMXLayoutProps> = ({
     const isUploading = uploadingSlotId === positionId;
     const isSelectedForComparison = xray ? selectedXRays.includes(xray.id) : false;
     
+    // Get previous X-ray for superimposition if applicable
+    const previousXRay = xray && showSuperimposition && isSelected ? getPreviousXRay(xray) : undefined;
+    
     // Determine slot width for bitewing slots (they're wider)
     const slotWidth = isBitewing ? 'w-64' : 'w-full';
+    
+    // Style for X-ray based on view mode
+    const getXRayStyle = () => {
+      if (!isSelected) return {};
+      
+      // Default X-ray styles
+      const baseStyle = {
+        filter: viewMode === 'tissue' ? 'invert(1) hue-rotate(180deg)' : 'none',
+        transform: `scale(${zoomLevel / 100})`,
+        transition: 'all 0.3s ease-in-out',
+      };
+      
+      return baseStyle;
+    };
     
     return (
       <div 
@@ -225,14 +340,65 @@ const FMXLayout: React.FC<FMXLayoutProps> = ({
           )}
         </div>
         
-        <div className={`relative ${slotWidth} h-36 bg-black flex items-center justify-center`}>
+        <div className={`relative ${slotWidth} h-36 bg-black flex items-center justify-center overflow-hidden`}>
           {xray?.imageUrl ? (
             <div className="relative w-full h-full">
+              {/* Current X-ray */}
               <img 
                 src={xray.imageUrl} 
                 alt={`${position?.label} X-ray`}
                 className="w-full h-full object-contain"
+                style={getXRayStyle()}
               />
+              
+              {/* Superimposed previous X-ray */}
+              {previousXRay && previousXRay.imageUrl && showSuperimposition && isSelected && (
+                <img 
+                  src={previousXRay.imageUrl} 
+                  alt={`Previous ${position?.label} X-ray`}
+                  className="absolute top-0 left-0 w-full h-full object-contain"
+                  style={{
+                    opacity: superimpositionOpacity / 100,
+                    mixBlendMode: 'difference',
+                    transform: `scale(${zoomLevel / 100})`,
+                  }}
+                />
+              )}
+              
+              {/* Tissue overlay (pseudo-generated for demo) */}
+              {isSelected && (viewMode === 'tissue' || viewMode === 'combined') && (
+                <div 
+                  className="absolute top-0 left-0 w-full h-full"
+                  style={{
+                    backgroundImage: 'radial-gradient(rgba(255,0,0,0.1), rgba(255,100,100,0.2))',
+                    opacity: viewMode === 'combined' ? 0.5 : 0.8,
+                    mixBlendMode: 'screen',
+                    transform: `scale(${zoomLevel / 100})`,
+                  }}
+                />
+              )}
+              
+              {/* Grid overlay for measurements */}
+              {isSelected && showGrid && (
+                <div 
+                  className="absolute top-0 left-0 w-full h-full"
+                  style={{
+                    backgroundImage: 'linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px)',
+                    backgroundSize: '10px 10px',
+                    opacity: 0.5,
+                  }}
+                />
+              )}
+              
+              {/* Automatic orientation indicator */}
+              {isSelected && autoRotate && (
+                <div className="absolute top-1 left-1">
+                  <Badge variant="outline" className="bg-black/30 backdrop-blur-sm text-white text-xs">
+                    <RotateCw className="h-3 w-3 mr-1" />
+                    Auto-oriented
+                  </Badge>
+                </div>
+              )}
               
               {/* Indicator badges */}
               <div className="absolute top-1 right-1 flex flex-col gap-1">
@@ -256,6 +422,47 @@ const FMXLayout: React.FC<FMXLayoutProps> = ({
               </div>
               
               {/* Action buttons */}
+              {isSelected && (
+                <div className="absolute bottom-1 left-1 flex gap-1">
+                  <Button 
+                    size="icon" 
+                    variant="secondary" 
+                    className="h-6 w-6 bg-black/70 hover:bg-black/90 backdrop-blur-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSuperimposition();
+                    }}
+                  >
+                    <Layers className="h-3 w-3 text-white" />
+                  </Button>
+                  
+                  <Button 
+                    size="icon" 
+                    variant="secondary" 
+                    className="h-6 w-6 bg-black/70 hover:bg-black/90 backdrop-blur-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowGrid(!showGrid);
+                    }}
+                  >
+                    <Grid className="h-3 w-3 text-white" />
+                  </Button>
+                  
+                  <Button 
+                    size="icon" 
+                    variant="secondary" 
+                    className="h-6 w-6 bg-black/70 hover:bg-black/90 backdrop-blur-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      loadTimelineView(positionId);
+                    }}
+                  >
+                    <History className="h-3 w-3 text-white" />
+                  </Button>
+                </div>
+              )}
+              
+              {/* AI analysis button */}
               {!compareMode && (
                 <div className="absolute bottom-1 right-1 flex gap-1">
                   {!xray.aiAnalyzed && (
@@ -295,6 +502,194 @@ const FMXLayout: React.FC<FMXLayoutProps> = ({
     );
   };
 
+  // Render timeline view (history of X-rays)
+  const renderTimelineView = () => {
+    if (!showTimeline) return null;
+    
+    return (
+      <Card className="mb-4">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-base">
+              X-ray History Timeline
+            </CardTitle>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6" 
+              onClick={() => setShowTimeline(false)}
+            >
+              <PanelLeftClose className="h-4 w-4 mr-1" />
+              Close
+            </Button>
+          </div>
+          <CardDescription>
+            Click on any X-ray to view or select for comparison
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-4 gap-2">
+            {selectedTimeframeXRays.map((xray, index) => (
+              <div 
+                key={xray.id} 
+                className="border rounded overflow-hidden cursor-pointer relative"
+                onClick={() => {
+                  if (compareMode) {
+                    toggleXRaySelection(xray.id);
+                  } else {
+                    if (onXRaySelected) onXRaySelected(xray);
+                  }
+                }}
+              >
+                <div className="h-6 bg-muted/50 text-xs px-2 flex items-center justify-between">
+                  <span>{new Date(xray.date!).toLocaleDateString()}</span>
+                </div>
+                <div className="h-24 bg-black">
+                  {xray.imageUrl && (
+                    <img 
+                      src={xray.imageUrl} 
+                      alt={`X-ray from ${xray.date}`}
+                      className="w-full h-full object-contain"
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+  
+  // Render enhancement controls when an X-ray is selected
+  const renderEnhancementControls = () => {
+    const selectedXRay = selectedSlotId ? getXRayForPosition(selectedSlotId) : null;
+    if (!selectedXRay) return null;
+    
+    return (
+      <Card className="mb-4">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle className="text-base">
+                X-ray Enhancement Tools
+              </CardTitle>
+              <CardDescription>
+                {showSuperimposition 
+                  ? "Superimposition active - viewing changes over time" 
+                  : "Enhance visualization and orientation"}
+              </CardDescription>
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={() => setViewMode(viewMode === 'xray' ? 'tissue' : 'xray')}>
+                    {viewMode === 'xray' 
+                      ? <ThermometerSnowflake className="h-4 w-4" /> 
+                      : <Eye className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {viewMode === 'xray' ? "Switch to tissue view" : "Switch to X-ray view"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </CardHeader>
+        <CardContent className="pb-2">
+          <div className="space-y-3">
+            {/* Superimposition opacity control */}
+            {showSuperimposition && (
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium">Superimposition Opacity</span>
+                  <span className="text-xs text-muted-foreground">{superimpositionOpacity}%</span>
+                </div>
+                <Slider
+                  defaultValue={[superimpositionOpacity]}
+                  min={0}
+                  max={100}
+                  step={5}
+                  onValueChange={(value) => setSuperimpositionOpacity(value[0])}
+                  className="w-full"
+                />
+              </div>
+            )}
+            
+            {/* Zoom control */}
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-medium">Zoom Level</span>
+                <span className="text-xs text-muted-foreground">{zoomLevel}%</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-7 w-7" 
+                  onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))}
+                >
+                  <ZoomOut className="h-3.5 w-3.5" />
+                </Button>
+                
+                <Slider
+                  value={[zoomLevel]}
+                  min={50}
+                  max={200}
+                  step={10}
+                  onValueChange={(value) => setZoomLevel(value[0])}
+                  className="w-full"
+                />
+                
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-7 w-7" 
+                  onClick={() => setZoomLevel(Math.min(200, zoomLevel + 10))}
+                >
+                  <ZoomIn className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+            
+            {/* View mode controls */}
+            <div className="flex flex-wrap gap-2 mt-2">
+              <Button 
+                variant={viewMode === 'xray' ? "default" : "outline"} 
+                size="sm" 
+                className="h-7 gap-1"
+                onClick={() => handleViewModeChange('xray')}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                <span className="text-xs">X-ray View</span>
+              </Button>
+              
+              <Button 
+                variant={viewMode === 'tissue' ? "default" : "outline"} 
+                size="sm" 
+                className="h-7 gap-1"
+                onClick={() => handleViewModeChange('tissue')}
+              >
+                <ThermometerSnowflake className="h-3.5 w-3.5" />
+                <span className="text-xs">Tissue View</span>
+              </Button>
+              
+              <Button 
+                variant={viewMode === 'combined' ? "default" : "outline"} 
+                size="sm" 
+                className="h-7 gap-1"
+                onClick={() => handleViewModeChange('combined')}
+              >
+                <Layers className="h-3.5 w-3.5" />
+                <span className="text-xs">Combined View</span>
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -313,7 +708,12 @@ const FMXLayout: React.FC<FMXLayoutProps> = ({
             <Switch
               id="compare-mode"
               checked={compareMode}
-              onCheckedChange={setCompareMode}
+              onCheckedChange={(val) => {
+                setCompareMode(val);
+                if (!val) {
+                  setSelectedXRays([]);
+                }
+              }}
             />
             <label 
               htmlFor="compare-mode" 
@@ -337,6 +737,12 @@ const FMXLayout: React.FC<FMXLayoutProps> = ({
           </TooltipProvider>
         </div>
       </div>
+      
+      {/* Timeline view */}
+      {showTimeline && renderTimelineView()}
+      
+      {/* Enhancement controls */}
+      {selectedSlotId && renderEnhancementControls()}
       
       {/* Layout selection tabs */}
       <Tabs value={layoutType} onValueChange={(v) => setLayoutType(v as any)}>
