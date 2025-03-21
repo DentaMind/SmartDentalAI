@@ -410,16 +410,13 @@ export function SchedulerV3({
       <HoverCard>
         <HoverCardTrigger asChild>
           <div 
-            className={`${procedureTypeColors[appointment.procedureType]} p-2 rounded-md mb-1 cursor-pointer hover:shadow-md transition-shadow duration-200 relative min-h-[70px] overflow-hidden`}
+            className={`${procedureTypeColors[appointment.procedureType]} p-1 rounded-md mb-1 cursor-pointer hover:shadow-md transition-shadow duration-200 relative min-h-[50px] overflow-hidden`}
             onClick={() => handleEditAppointment(appointment)}
           >
             <div className="flex items-center mb-1">
               <Badge variant="outline" className="bg-white">
                 {appointment.operatory}
               </Badge>
-              <span className="text-xs ml-auto">
-                {format(new Date(appointment.date), "h:mm a")}
-              </span>
             </div>
             <div className="flex items-center">
               <div className="mr-2">
@@ -431,7 +428,7 @@ export function SchedulerV3({
               </div>
               <div className="flex-1 min-w-0">
                 <h5 
-                  className="font-semibold text-base truncate cursor-pointer hover:underline" 
+                  className="font-semibold text-xs truncate cursor-pointer hover:underline" 
                   onClick={(e) => {
                     e.stopPropagation(); // Prevent triggering the parent click
                     handleEditAppointment(appointment);
