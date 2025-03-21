@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { format, setHours, setMinutes, parseISO } from "date-fns";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { format, setHours, setMinutes, parseISO, addDays, subDays, addWeeks, subWeeks, startOfWeek, endOfWeek, eachDayOfInterval, isToday, isSameDay, isBefore, isAfter } from "date-fns";
 import { 
   Calendar, Clock, Plus, Filter, Users, MapPin, ChevronLeft, ChevronRight, 
   Search, MoreHorizontal, Calendar as CalendarIcon, Coffee, CheckCircle2, 
@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
