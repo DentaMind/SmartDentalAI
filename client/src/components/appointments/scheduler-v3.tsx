@@ -2,13 +2,13 @@ import React, { useState } from "react";
 import { 
   format, addDays, subDays, setHours, setMinutes, addMinutes, 
   startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth,
-  isSameDay, getDay, getDate
+  isSameDay, getDay, getDate, addMonths, subMonths, addWeeks, subWeeks
 } from "date-fns";
 import { 
   Calendar, Clock, Plus, Filter, MapPin, ChevronLeft, ChevronRight, 
   Calendar as CalendarIcon, AlertCircle, CheckCircle2, Clock4, 
   X, Info, Phone, User, Edit2, Trash2, Zap, Search, LayoutGrid,
-  CalendarDays, CalendarClock, CalendarRange
+  CalendarDays, CalendarClock, CalendarRange, Check, CircleAlert, CircleX
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,9 +39,11 @@ interface SampleAppointment {
   date: Date;
   duration: number;
   procedureType: string;
+  customProcedureName?: string;
   operatory: string;
   notes?: string;
   status: 'confirmed' | 'cancelled' | 'completed' | 'noshow' | 'pending';
+  patientStatus?: 'here' | 'confirmed' | 'unconfirmed' | 'noshow';
   providerId: number;
 }
 
@@ -211,11 +213,16 @@ export function SchedulerV3({
     date: new Date(),
     duration: 30,
     procedureType: "Comprehensive Exam",
+    customProcedureName: "",
     operatory: "Room 1",
     notes: "",
     status: "confirmed" as AppointmentStatus,
+    patientStatus: "confirmed" as 'here' | 'confirmed' | 'unconfirmed' | 'noshow',
     providerId: 1
   });
+  
+  // Show custom procedure name input when "Other" is selected
+  const [showCustomProcedure, setShowCustomProcedure] = useState(false);
   
   // Available operatories 
   const operatories = [
@@ -259,9 +266,11 @@ export function SchedulerV3({
       date: appointmentDate,
       duration: 30, // Default duration
       procedureType: "Comprehensive Exam",
+      customProcedureName: "",
       operatory: operatory,
       notes: "",
       status: "confirmed" as AppointmentStatus,
+      patientStatus: "confirmed" as 'here' | 'confirmed' | 'unconfirmed' | 'noshow',
       providerId: providerId
     });
     
@@ -366,15 +375,18 @@ export function SchedulerV3({
   // Edit appointment handler
   const handleEditAppointment = (appointment: SampleAppointment) => {
     setSelectedAppointment(appointment);
+    setShowCustomProcedure(appointment.procedureType === "Other");
     setNewAppointmentState({
       patientId: appointment.patientId,
       patientName: appointment.patientName,
       date: new Date(appointment.date),
       duration: appointment.duration,
       procedureType: appointment.procedureType,
+      customProcedureName: appointment.customProcedureName || "",
       operatory: appointment.operatory,
       notes: appointment.notes || "",
       status: appointment.status,
+      patientStatus: appointment.patientStatus || "confirmed",
       providerId: appointment.providerId
     });
     setIsNewAppointment(false);
@@ -429,9 +441,38 @@ export function SchedulerV3({
               </div>
             </div>
             <div className="text-xs mt-1 truncate">
-              <span className="font-medium">{appointment.procedureType}</span>
+              <span className="font-medium">
+                {appointment.procedureType === "Other" 
+                  ? (appointment.customProcedureName || "Custom Procedure") 
+                  : appointment.procedureType}
+              </span>
             </div>
-            <div className="absolute bottom-1 right-1">
+            <div className="absolute bottom-1 right-1 flex items-center space-x-1">
+              {/* Patient Status Indicator */}
+              {appointment.patientStatus && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className={`h-3 w-3 rounded-full ${
+                        appointment.patientStatus === 'here' ? 'bg-green-500' :
+                        appointment.patientStatus === 'confirmed' ? 'bg-blue-500' :
+                        appointment.patientStatus === 'unconfirmed' ? 'bg-red-500' :
+                        appointment.patientStatus === 'noshow' ? 'bg-orange-500' : 'bg-gray-500'
+                      }`} />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">
+                        {appointment.patientStatus === 'here' ? 'Patient is here' :
+                         appointment.patientStatus === 'confirmed' ? 'Confirmed' :
+                         appointment.patientStatus === 'unconfirmed' ? 'Unconfirmed' :
+                         appointment.patientStatus === 'noshow' ? 'No show' : 'Unknown status'}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              
+              {/* Appointment Status Indicator */}
               {appointment.status === 'confirmed' && (
                 <TooltipProvider>
                   <Tooltip>
@@ -533,13 +574,41 @@ export function SchedulerV3({
             </div>
             
             <div className="flex justify-between pt-2">
-              <Badge variant={
-                appointment.status === 'confirmed' ? 'default' : 
-                appointment.status === 'pending' ? 'outline' :
-                appointment.status === 'cancelled' ? 'destructive' : 'secondary'
-              }>
-                {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-              </Badge>
+              <div className="flex items-center space-x-2">
+                <Badge variant={
+                  appointment.status === 'confirmed' ? 'default' : 
+                  appointment.status === 'pending' ? 'outline' :
+                  appointment.status === 'cancelled' ? 'destructive' : 'secondary'
+                }>
+                  {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                </Badge>
+                
+                {appointment.patientStatus && (
+                  <Badge variant="outline" className={`
+                    ${appointment.patientStatus === 'here' ? 'bg-green-100 text-green-800 border-green-300' : 
+                      appointment.patientStatus === 'confirmed' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                      appointment.patientStatus === 'unconfirmed' ? 'bg-red-100 text-red-800 border-red-300' :
+                      appointment.patientStatus === 'noshow' ? 'bg-orange-100 text-orange-800 border-orange-300' : ''
+                    }
+                  `}>
+                    <div className="flex items-center space-x-1">
+                      <div className={`h-2 w-2 rounded-full ${
+                        appointment.patientStatus === 'here' ? 'bg-green-500' :
+                        appointment.patientStatus === 'confirmed' ? 'bg-blue-500' :
+                        appointment.patientStatus === 'unconfirmed' ? 'bg-red-500' :
+                        appointment.patientStatus === 'noshow' ? 'bg-orange-500' : 'bg-gray-500'
+                      }`} />
+                      <span>
+                        {appointment.patientStatus === 'here' ? 'Here' :
+                         appointment.patientStatus === 'confirmed' ? 'Confirmed' :
+                         appointment.patientStatus === 'unconfirmed' ? 'Unconfirmed' :
+                         appointment.patientStatus === 'noshow' ? 'No Show' : 'Unknown'}
+                      </span>
+                    </div>
+                  </Badge>
+                )}
+              </div>
+              
               <div className="space-x-1">
                 <Button 
                   size="sm" 
@@ -718,6 +787,7 @@ export function SchedulerV3({
               <Select
                 value={newAppointmentState.procedureType}
                 onValueChange={(value) => {
+                  setShowCustomProcedure(value === "Other");
                   setNewAppointmentState({
                     ...newAppointmentState,
                     procedureType: value
@@ -735,9 +805,28 @@ export function SchedulerV3({
                   <SelectItem value="Recement Crown">Recement Crown</SelectItem>
                   <SelectItem value="Prophylaxis">Prophylaxis (Cleaning)</SelectItem>
                   <SelectItem value="Perio Maintenance">Periodontal Maintenance</SelectItem>
+                  <SelectItem value="Other">Other (Manual Entry)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            
+            {showCustomProcedure && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="customProcedureName" className="text-right">Procedure Name</Label>
+                <Input
+                  id="customProcedureName"
+                  className="col-span-3"
+                  placeholder="Enter custom procedure name"
+                  value={newAppointmentState.customProcedureName}
+                  onChange={(e) => {
+                    setNewAppointmentState({
+                      ...newAppointmentState,
+                      customProcedureName: e.target.value
+                    });
+                  }}
+                />
+              </div>
+            )}
             
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="operatory" className="text-right">Operatory</Label>
@@ -807,6 +896,49 @@ export function SchedulerV3({
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="noshow">No Show</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="patientStatus" className="text-right">Patient Status</Label>
+              <Select
+                value={newAppointmentState.patientStatus}
+                onValueChange={(value) => {
+                  setNewAppointmentState({
+                    ...newAppointmentState,
+                    patientStatus: value as 'here' | 'confirmed' | 'unconfirmed' | 'noshow'
+                  });
+                }}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select patient status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="here">
+                    <div className="flex items-center">
+                      <div className="h-2 w-2 rounded-full bg-green-500 mr-2"></div>
+                      Patient is Here
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="confirmed">
+                    <div className="flex items-center">
+                      <div className="h-2 w-2 rounded-full bg-blue-500 mr-2"></div>
+                      Confirmed
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="unconfirmed">
+                    <div className="flex items-center">
+                      <div className="h-2 w-2 rounded-full bg-red-500 mr-2"></div>
+                      Unconfirmed
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="noshow">
+                    <div className="flex items-center">
+                      <div className="h-2 w-2 rounded-full bg-orange-500 mr-2"></div>
+                      No Show
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
