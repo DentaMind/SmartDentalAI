@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <!-- Debug script to verify browser execution -->
     <script>
       console.log('HTML loaded, initializing app debugging');
@@ -26,7 +26,63 @@
       </div>
     </noscript>
     <div id="app-loading-indicator" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; position:absolute; top:0; left:0; background:#f8fafc; z-index:1000;">
-      <img src="./src/assets/dentamind-logo.png" alt="DentaMind AI Logo" style="width:200px; margin-bottom:20px;" />
+      <div style="width:100px; height:100px; margin-bottom:20px;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100" height="100">
+          <!-- Tooth outline with digital/circuit styling -->
+          <path 
+            d="M7,8 C5.5,8 4.5,9.5 4.5,11 C4.5,13 5.5,15 5.5,17 C5.5,18.5 6.5,19.5 8,19.5 C9,19.5 10,18 11.5,18 C13,18 14,19.5 15,19.5 C16.5,19.5 17.5,18.5 17.5,17 C17.5,15 18.5,13 18.5,11 C18.5,9.5 17.5,8 16,8 C14.5,8 13.5,9.5 11.5,9.5 C9.5,9.5 8.5,8 7,8 Z" 
+            fill="rgba(0,0,0,0.15)" 
+            stroke="#28C76F"
+            stroke-width="1.5"
+          />
+          <!-- Circuit paths with animation -->
+          <path
+            d="M6,8.5 L6,6.5 L8,6.5 M8,6.5 L10,6.5 M10,6.5 L10,4.5 M14,6.5 L16,6.5 M16,6.5 L18,6.5 L18,8.5"
+            fill="none"
+            stroke="#28C76F"
+            stroke-width="1.2"
+            stroke-dasharray="10"
+            stroke-dashoffset="10"
+            style="animation: circuit 3s infinite linear"
+          />
+          <!-- Additional circuits -->
+          <path
+            d="M4.5,11 L2.5,11 M19.5,11 L21.5,11"
+            fill="none"
+            stroke="#28C76F"
+            stroke-width="1.2"
+            stroke-dasharray="5"
+            stroke-dashoffset="5"
+            style="animation: circuit 2s infinite linear"
+          />
+          <!-- Vertical circuits -->
+          <path
+            d="M8,19.5 L8,21.5 M16,19.5 L16,21.5"
+            fill="none" 
+            stroke="#28C76F"
+            stroke-width="1.2"
+            stroke-dasharray="5"
+            stroke-dashoffset="5"
+            style="animation: circuit 4s infinite linear"
+          />
+          <!-- Connection points/nodes with animation -->
+          <circle cx="6" cy="8.5" r="0.5" fill="#28C76F" style="animation: pulse 2s infinite" />
+          <circle cx="8" cy="6.5" r="0.5" fill="#28C76F" style="animation: pulse 2s infinite 0.5s" />
+          <circle cx="10" cy="6.5" r="0.5" fill="#28C76F" style="animation: pulse 2s infinite 1s" />
+          <circle cx="10" cy="4.5" r="0.5" fill="#28C76F" style="animation: pulse 2s infinite 1.5s" />
+          <circle cx="14" cy="6.5" r="0.5" fill="#28C76F" style="animation: pulse 2s infinite 0.2s" />
+          <circle cx="16" cy="6.5" r="0.5" fill="#28C76F" style="animation: pulse 2s infinite 0.7s" />
+          <circle cx="18" cy="8.5" r="0.5" fill="#28C76F" style="animation: pulse 2s infinite 1.2s" />
+          <circle cx="4.5" cy="11" r="0.5" fill="#28C76F" style="animation: pulse 2s infinite 0.3s" />
+          <circle cx="19.5" cy="11" r="0.5" fill="#28C76F" style="animation: pulse 2s infinite 0.9s" />
+          <circle cx="8" cy="19.5" r="0.5" fill="#28C76F" style="animation: pulse 2s infinite 0.1s" />
+          <circle cx="16" cy="19.5" r="0.5" fill="#28C76F" style="animation: pulse 2s infinite 0.6s" />
+          <circle cx="8" cy="21.5" r="0.5" fill="#28C76F" style="animation: pulse 2s infinite 1.1s" />
+          <circle cx="16" cy="21.5" r="0.5" fill="#28C76F" style="animation: pulse 2s infinite 1.6s" />
+          <circle cx="2.5" cy="11" r="0.5" fill="#28C76F" style="animation: pulse 2s infinite 0.4s" />
+          <circle cx="21.5" cy="11" r="0.5" fill="#28C76F" style="animation: pulse 2s infinite 0.8s" />
+        </svg>
+      </div>
       <p style="font-family:system-ui,-apple-system,sans-serif; font-size:16px; color:#64748b;">Loading DentaMind AI...</p>
       <div style="margin-top:20px; width:50px; height:50px; border:5px solid #f3f3f3; border-top:5px solid #28C76F; border-radius:50%; animation:spin 1s linear infinite;"></div>
     </div>
@@ -34,6 +90,14 @@
       @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
+      }
+      @keyframes pulse {
+        0% { opacity: 0.3; r: 0.5; }
+        50% { opacity: 1; r: 0.7; }
+        100% { opacity: 0.3; r: 0.5; }
+      }
+      @keyframes circuit {
+        to { stroke-dashoffset: 0; }
       }
     </style>
     <script>
@@ -76,7 +140,49 @@
             if (rootElement && rootElement.children.length === 0) {
               rootElement.innerHTML = `
                 <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:system-ui,-apple-system,sans-serif;">
-                  <img src="./src/assets/dentamind-logo.png" alt="DentaMind AI Logo" style="width:200px; margin-bottom:20px;" />
+                  <div style="width:120px; height:120px; margin-bottom:20px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="120" height="120">
+                      <path 
+                        d="M7,8 C5.5,8 4.5,9.5 4.5,11 C4.5,13 5.5,15 5.5,17 C5.5,18.5 6.5,19.5 8,19.5 C9,19.5 10,18 11.5,18 C13,18 14,19.5 15,19.5 C16.5,19.5 17.5,18.5 17.5,17 C17.5,15 18.5,13 18.5,11 C18.5,9.5 17.5,8 16,8 C14.5,8 13.5,9.5 11.5,9.5 C9.5,9.5 8.5,8 7,8 Z" 
+                        fill="rgba(0,0,0,0.05)" 
+                        stroke="#28C76F"
+                        stroke-width="1.5"
+                      />
+                      <path
+                        d="M6,8.5 L6,6.5 L8,6.5 M8,6.5 L10,6.5 M10,6.5 L10,4.5 M14,6.5 L16,6.5 M16,6.5 L18,6.5 L18,8.5"
+                        fill="none"
+                        stroke="#28C76F"
+                        stroke-width="1.2"
+                      />
+                      <path
+                        d="M4.5,11 L2.5,11 M19.5,11 L21.5,11"
+                        fill="none"
+                        stroke="#28C76F"
+                        stroke-width="1.2"
+                      />
+                      <path
+                        d="M8,19.5 L8,21.5 M16,19.5 L16,21.5"
+                        fill="none" 
+                        stroke="#28C76F"
+                        stroke-width="1.2"
+                      />
+                      <circle cx="6" cy="8.5" r="0.5" fill="#28C76F" />
+                      <circle cx="8" cy="6.5" r="0.5" fill="#28C76F" />
+                      <circle cx="10" cy="6.5" r="0.5" fill="#28C76F" />
+                      <circle cx="10" cy="4.5" r="0.5" fill="#28C76F" />
+                      <circle cx="14" cy="6.5" r="0.5" fill="#28C76F" />
+                      <circle cx="16" cy="6.5" r="0.5" fill="#28C76F" />
+                      <circle cx="18" cy="8.5" r="0.5" fill="#28C76F" />
+                      <circle cx="4.5" cy="11" r="0.5" fill="#28C76F" />
+                      <circle cx="19.5" cy="11" r="0.5" fill="#28C76F" />
+                      <circle cx="8" cy="19.5" r="0.5" fill="#28C76F" />
+                      <circle cx="16" cy="19.5" r="0.5" fill="#28C76F" />
+                      <circle cx="8" cy="21.5" r="0.5" fill="#28C76F" />
+                      <circle cx="16" cy="21.5" r="0.5" fill="#28C76F" />
+                      <circle cx="2.5" cy="11" r="0.5" fill="#28C76F" />
+                      <circle cx="21.5" cy="11" r="0.5" fill="#28C76F" />
+                    </svg>
+                  </div>
                   <h2 style="color:#28C76F; margin-bottom:10px">DentaMind AI</h2>
                   <p style="margin-bottom:20px">Please sign in to continue</p>
                   <a href="/auth" style="background:#28C76F; color:white; padding:10px 20px; border-radius:5px; text-decoration:none;">Go to Login</a>

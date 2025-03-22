@@ -35,6 +35,7 @@ import {
   Beaker,
 } from "lucide-react";
 import { ToothDoctorIcon } from "../icons/tooth-doctor-icon";
+import { CircuitToothIcon } from "../icons/circuit-tooth-icon";
 import { LucideIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -75,7 +76,7 @@ export function Sidebar() {
       { 
         name: "AI Hub", 
         href: "/ai-hub", 
-        icon: ToothDoctorIcon,
+        icon: CircuitToothIcon,
         highlight: true 
       },
       { name: "Patients", href: "/patients", icon: Users },
@@ -96,7 +97,7 @@ export function Sidebar() {
       { 
         name: "AI Hub", 
         href: "/ai-hub", 
-        icon: ToothDoctorIcon,
+        icon: CircuitToothIcon,
         highlight: true 
       },
       { name: "Patients", href: "/patients", icon: Users },
@@ -155,10 +156,9 @@ export function Sidebar() {
         <Link href="/">
           <div className="flex items-center gap-3 hover:opacity-90 transition-opacity cursor-pointer">
             <div className="flex justify-center items-center h-12 w-12">
-              <img 
-                src="/images/dentamind-ai-logo.png" 
-                alt="DentaMind AI Logo" 
-                className="h-12 w-12 hover:scale-110 transition-transform duration-300" 
+              <CircuitToothIcon 
+                size={48} 
+                className="hover:scale-110 transition-transform duration-300" 
               />
             </div>
             {!collapsed && (
