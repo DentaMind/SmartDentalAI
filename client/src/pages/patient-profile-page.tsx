@@ -74,27 +74,42 @@ export default function PatientProfilePage() {
   const [emergencyStatus, setEmergencyStatus] = useState(false);
 
   // Fetch the patient's data
-  const { data: patient, isLoading } = useQuery<PatientWithUser>({
+  const { data: patient, isLoading, error: patientError } = useQuery<PatientWithUser>({
     queryKey: [`/api/patients/${patientId}`],
     enabled: !isNaN(patientId),
+    retry: 2,
+    onError: (error) => {
+      console.error("Error fetching patient data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load patient data. Please try again.",
+        variant: "destructive",
+      });
+    }
   });
 
   // Get appointments for the patient
   const { data: appointments, isLoading: appointmentsLoading } = useQuery({
     queryKey: [`/api/patients/${patientId}/appointments`],
-    enabled: !isNaN(patientId),
+    enabled: !isNaN(patientId) && !!patient,
+    retry: 1,
   });
 
   // Get treatment plans for the patient
   const { data: treatmentPlans, isLoading: treatmentPlansLoading } = useQuery({
     queryKey: [`/api/patients/${patientId}/treatment-plans`],
-    enabled: !isNaN(patientId),
+    enabled: !isNaN(patientId) && !!patient,
+    retry: 1,
+    onError: (error) => {
+      console.error("Error fetching treatment plans:", error);
+    }
   });
 
   // Get medical notes for the patient
   const { data: medicalNotes, isLoading: medicalNotesLoading } = useQuery({
     queryKey: [`/api/patients/${patientId}/medical-notes`],
-    enabled: !isNaN(patientId),
+    enabled: !isNaN(patientId) && !!patient,
+    retry: 1,
   });
 
   if (isLoading) {

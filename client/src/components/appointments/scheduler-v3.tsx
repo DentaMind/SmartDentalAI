@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { PatientNameButton } from "@/components/patients/patient-name-button";
+import { apiRequest } from "@/lib/queryClient";
 
 // Types
 interface Provider {
