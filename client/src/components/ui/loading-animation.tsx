@@ -8,7 +8,7 @@ interface LoadingAnimationProps {
 }
 
 export function LoadingAnimation({ className }: LoadingAnimationProps) {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true); // Start visible immediately
   const [loadingMessages, setLoadingMessages] = useState<string[]>([
     "Analyzing patient data...",
     "Loading AI models...",
@@ -19,54 +19,68 @@ export function LoadingAnimation({ className }: LoadingAnimationProps) {
   const [currentMessage, setCurrentMessage] = useState(0);
 
   useEffect(() => {
-    // Only show loading after 300ms delay
-    const timer = setTimeout(() => setVisible(true), 300);
-
     // Message rotation
     const messageInterval = setInterval(() => {
       setCurrentMessage((current) => (current + 1) % loadingMessages.length);
     }, 2000);
 
     return () => {
-      clearTimeout(timer);
       clearInterval(messageInterval);
     };
   }, [loadingMessages.length]);
 
-  if (!visible) return null;
-
+  // We removed the visibility check to ensure logo is always shown
+  
   return (
-    <div className={cn("flex flex-col items-center", className)}>
-      {/* DentaMind logo with swinging animation */}
-      <div className="relative h-40 w-40 mb-6">
-        {/* Background glow effect */}
-        <div className="absolute inset-0 rounded-full bg-cyan-500/10 blur-xl animate-pulse"></div>
-        <div className="absolute inset-0 rounded-full bg-cyan-400/5 blur-lg animate-pulse" 
+    <div className={cn("flex flex-col items-center justify-center", className)}>
+      <h1 className="text-2xl font-bold text-green-600 mb-4">DentaMind AI</h1>
+      
+      {/* DentaMind logo with swinging animation - ENHANCED */}
+      <div className="relative h-48 w-48 mb-8" style={{ transform: 'scale(1.2)' }}>
+        {/* Background glow effect - ENHANCED */}
+        <div className="absolute inset-0 rounded-full bg-green-500/20 blur-xl animate-pulse"></div>
+        <div className="absolute inset-0 rounded-full bg-green-400/15 blur-lg animate-pulse" 
              style={{ animationDelay: '300ms' }}></div>
         
-        {/* Logo with swinging animation */}
-        <div className="absolute inset-0 animate-swing origin-top logo-container">
+        {/* Logo with swinging animation - FIXED */}
+        <div className="animate-swing" style={{ 
+          transformOrigin: 'top center', 
+          display: 'flex',
+          justifyContent: 'center',
+          width: '100%',
+          position: 'relative',
+          zIndex: 10
+        }}>
           <img 
             src={dentaMindLogo} 
             alt="DentaMind Logo" 
-            className="h-full w-full object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]"
-            style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)', borderRadius: '50%', padding: '4px' }}
+            style={{ 
+              width: '110px', 
+              height: '110px', 
+              backgroundColor: 'rgba(255, 255, 255, 0.25)', 
+              borderRadius: '50%', 
+              padding: '8px',
+              boxShadow: '0 0 15px rgba(40, 199, 111, 0.6)'
+            }}
           />
         </div>
         
         {/* Orbit effect around the logo */}
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-          <div className="absolute w-2 h-2 rounded-full bg-cyan-400 animate-orbit opacity-70" 
+          <div className="absolute w-3 h-3 rounded-full bg-green-400 animate-orbit opacity-80" 
               style={{ top: '5%', left: '50%', animationDelay: '0ms' }}></div>
-          <div className="absolute w-1.5 h-1.5 rounded-full bg-blue-400 animate-orbit opacity-70" 
+          <div className="absolute w-2 h-2 rounded-full bg-emerald-400 animate-orbit opacity-80" 
               style={{ top: '25%', left: '75%', animationDelay: '250ms' }}></div>
-          <div className="absolute w-1 h-1 rounded-full bg-teal-400 animate-orbit opacity-70" 
+          <div className="absolute w-2 h-2 rounded-full bg-teal-400 animate-orbit opacity-80" 
               style={{ top: '65%', left: '85%', animationDelay: '500ms' }}></div>
         </div>
       </div>
       
+      {/* Loading text with DentaMind branding */}
+      <p className="text-lg font-medium text-green-700 mb-1">Loading DentaMind AI</p>
+      
       {/* Loading message that cycles with fade transition */}
-      <div className="relative text-sm text-blue-300 opacity-80 h-5 text-center min-w-[220px] overflow-hidden">
+      <div className="relative text-sm text-green-600 opacity-80 h-5 text-center min-w-[220px] overflow-hidden">
         {loadingMessages.map((message, index) => (
           <div 
             key={index}
@@ -80,6 +94,11 @@ export function LoadingAnimation({ className }: LoadingAnimationProps) {
             {message}
           </div>
         ))}
+      </div>
+      
+      {/* Loading progress bar */}
+      <div className="w-48 h-1 bg-gray-200 rounded-full mt-4 overflow-hidden">
+        <div className="h-full bg-green-500 animate-loading-progress rounded-full"></div>
       </div>
     </div>
   );
