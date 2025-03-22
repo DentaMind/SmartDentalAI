@@ -461,15 +461,17 @@ export function SchedulerV3({
                 </Avatar>
               </div>
               <div className="flex-1 min-w-0">
-                <h5 
-                  className="font-semibold text-xs truncate cursor-pointer hover:underline" 
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent triggering the parent click
-                    handleEditAppointment(appointment);
-                  }}
-                >
-                  {appointment.patientName}
-                </h5>
+                {/* Use PatientNameButton component for better navigation */}
+                <div className="font-semibold text-xs truncate">
+                  <PatientNameButton
+                    patientId={appointment.patientId}
+                    patientName={appointment.patientName}
+                    size="sm"
+                    variant="link"
+                    className="p-0 h-auto font-semibold"
+                    showIcon={false}
+                  />
+                </div>
                 <p className="text-xs truncate">
                   {format(new Date(appointment.date), "h:mm a")} - 
                   {format(
@@ -562,8 +564,14 @@ export function SchedulerV3({
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h4 className="text-sm font-semibold">{appointment.patientName}</h4>
-                <p className="text-xs text-muted-foreground">
+                <PatientNameButton
+                  patientId={appointment.patientId}
+                  patientName={appointment.patientName}
+                  size="sm"
+                  variant="default"
+                  className="h-7 px-2 bg-primary font-semibold text-sm"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
                   {patient?.dateOfBirth 
                     ? `DOB: ${format(new Date(patient.dateOfBirth), "MMM d, yyyy")}` 
                     : 'No DOB'}
@@ -663,19 +671,14 @@ export function SchedulerV3({
                     <Edit2 className="h-3.5 w-3.5 mr-1" />
                     Edit
                   </Button>
-                  <Button
+                  <PatientNameButton
+                    patientId={appointment.patientId}
+                    patientName="Profile"
                     size="sm"
                     variant="default"
                     className="h-7 px-2 bg-primary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Navigate to patient profile - using direct navigation instead of window.location
-                      window.open(`/patients/${appointment.patientId}`, '_blank');
-                    }}
-                  >
-                    <User className="h-3.5 w-3.5 mr-1" />
-                    Profile
-                  </Button>
+                    showIcon={true}
+                  />
               </div>
             </div>
           </div>
