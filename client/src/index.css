@@ -15,8 +15,18 @@
   --dentamind-soft-white: #F8FAFC;
 }
 
+/* Force background colors on all elements to prevent white screen */
+html {
+  background-color: #ffffff;
+}
+
 body {
-  background-color: #f8f9fa;
+  background-color: #ffffff;
+  min-height: 100vh;
+}
+
+#root {
+  background-color: #ffffff;
   min-height: 100vh;
 }
 

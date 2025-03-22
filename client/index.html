@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="background-color: #ffffff;">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -14,9 +14,26 @@
       window.APP_DEBUG.initSteps.push('HTML document loaded');
     </script>
     <title>DentaMind - AI-Powered Dental Excellence</title>
+    <style>
+      /* Critical CSS that loads immediately */
+      html, body {
+        background-color: #ffffff !important;
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+      }
+      #root {
+        background-color: #ffffff !important;
+        min-height: 100vh;
+      }
+      .auth-background {
+        background-color: #28C76F !important;
+      }
+    </style>
   </head>
-  <body>
-    <div id="root"></div>
+  <body style="background-color: #ffffff; margin: 0; padding: 0;">
+    <div id="root" style="background-color: #ffffff; min-height: 100vh;"></div>
     <script type="module" src="/src/main.tsx"></script>
     <!-- Fallback content in case React doesn't render -->
     <noscript>
