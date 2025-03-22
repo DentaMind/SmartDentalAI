@@ -48,8 +48,15 @@ const EmailIntegrationWrapper = () => <EmailIntegrationPage />;
 const XRayFMXWrapper = () => <XRayFMXPage />;
 const XRayComparisonTestWrapper = () => <XRayComparisonTestPage />;
 
-// Loading fallback
-const Loading = () => <div className="flex items-center justify-center h-screen">Loading...</div>;
+// Import enhanced loading animation
+import { LoadingAnimation } from "@/components/ui/loading-animation";
+
+// Loading fallback with enhanced animation and proper background color
+const Loading = () => (
+  <div className="flex items-center justify-center h-screen bg-white">
+    <LoadingAnimation />
+  </div>
+);
 
 function Router() {
   return (
@@ -103,9 +110,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <WebSocketProvider>
-          <Router />
-          <Toaster />
-          {!hideAssistant && <AIAssistant />}
+          <div className="min-h-screen bg-white">
+            <Router />
+            <Toaster />
+            {!hideAssistant && <AIAssistant />}
+          </div>
         </WebSocketProvider>
       </AuthProvider>
     </QueryClientProvider>

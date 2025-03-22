@@ -337,7 +337,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-[#28C76F]">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden auth-background">
       {/* Enhanced background with multiple gradient layers using DentaMind green theme */}
       <div className="absolute inset-0 bg-[#28C76F]">
         <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 via-green-600/80 to-green-700/90 backdrop-blur-3xl"></div>
@@ -355,11 +355,12 @@ export default function AuthPage() {
             <div className="flex items-center justify-center mb-2 relative">
               {/* Adding a cyan glow effect for the high-tech dental look */}
               <div className="absolute inset-0 rounded-full blur-xl bg-cyan-500/30"></div>
-              <div className="animate-swing origin-top">
+              <div className="animate-swing origin-top logo-container">
                 <img 
                   src={dentaMindLogo} 
                   alt="DentaMind Logo" 
                   className="h-44 w-auto drop-shadow-[0_0_20px_rgba(59,130,246,0.6)] relative z-10"
+                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.25)', borderRadius: '50%', padding: '8px' }}
                 />
               </div>
             </div>

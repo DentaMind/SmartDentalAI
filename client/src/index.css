@@ -2,6 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Add global background styles to ensure visibility */
+:root {
+  --dentamind-green: #28C76F;
+  --dentamind-green-dark: #1ea55b;
+  --dentamind-blue: #3B82F6;
+  --dentamind-blue-dark: #2563EB;
+  --dentamind-cyan: #22D3EE;
+  --dentamind-gray: #64748B;
+  --dentamind-orange: #F97316;
+  --dentamind-deep-blue: #1E40AF;
+  --dentamind-soft-white: #F8FAFC;
+}
+
+body {
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+/* Force the login background color */
+.auth-background {
+  background-color: var(--dentamind-green) !important;
+}
+
+/* Ensure logo is visible with white background fallback */
+.logo-container {
+  position: relative;
+  z-index: 10;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  padding: 0.5rem;
+}
+
+/* Fix for the animation */
+@keyframes swing {
+  0% { transform: rotate(0deg); }
+  10% { transform: rotate(10deg); }
+  30% { transform: rotate(-8deg); }
+  50% { transform: rotate(6deg); }
+  70% { transform: rotate(-4deg); }
+  90% { transform: rotate(2deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.animate-swing {
+  animation: swing 2s ease-in-out infinite;
+}
+
 @layer base {
   * {
     @apply border-border;

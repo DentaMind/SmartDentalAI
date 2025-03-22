@@ -45,11 +45,12 @@ export function LoadingAnimation({ className }: LoadingAnimationProps) {
              style={{ animationDelay: '300ms' }}></div>
         
         {/* Logo with swinging animation */}
-        <div className="absolute inset-0 animate-swing origin-top">
+        <div className="absolute inset-0 animate-swing origin-top logo-container">
           <img 
             src={dentaMindLogo} 
             alt="DentaMind Logo" 
-            className="h-full w-full object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" 
+            className="h-full w-full object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+            style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)', borderRadius: '50%', padding: '4px' }}
           />
         </div>
         
