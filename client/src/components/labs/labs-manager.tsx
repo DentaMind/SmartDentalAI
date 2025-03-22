@@ -551,14 +551,21 @@ export function LabsManager() {
                         <TableCell>{new Date(labCase.dueDate).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <Badge 
-                            variant={statusBadgeVariants[labCase.status as keyof typeof statusBadgeVariants]}
+                            variant={statusBadgeVariants[labCase.status as keyof typeof statusBadgeVariants] || "default"}
                             className="capitalize"
                           >
                             {labCase.status.replace('_', ' ')}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => {
+                              setSelectedLabCase(labCase);
+                              setIsLabDetailsOpen(true);
+                            }}
+                          >
                             View
                           </Button>
                         </TableCell>
@@ -571,6 +578,296 @@ export function LabsManager() {
           )}
         </CardContent>
       </Card>
+    
+      {/* Lab Details Dialog */}
+      <Dialog open={isLabDetailsOpen} onOpenChange={setIsLabDetailsOpen}>
+        <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
+          {selectedLabCase && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setIsLabDetailsOpen(false)}
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                  <DialogTitle>Lab Case #{selectedLabCase.id}: {selectedLabCase.description}</DialogTitle>
+                </div>
+                <DialogDescription>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <Badge variant={statusBadgeVariants[selectedLabCase.status as keyof typeof statusBadgeVariants] || "default"} className="capitalize">
+                      {selectedLabCase.status.replace('_', ' ')}
+                    </Badge>
+                    <Badge variant="outline">{selectedLabCase.caseType}</Badge>
+                    <Badge variant="outline">Due: {new Date(selectedLabCase.dueDate).toLocaleDateString()}</Badge>
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+              
+              <Tabs defaultValue="details">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="details">Case Details</TabsTrigger>
+                  <TabsTrigger value="prescription">Prescription</TabsTrigger>
+                  <TabsTrigger value="lab-contact">Lab Contact</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="details" className="space-y-4 pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium">Patient Information</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-lg font-semibold">{selectedLabCase.patientName}</div>
+                        <div className="text-sm text-muted-foreground">Patient ID: {selectedLabCase.patientId}</div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium">Provider Information</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-lg font-semibold">Dr. John Smith</div>
+                        <div className="text-sm text-muted-foreground">Provider ID: 1001</div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card className="md:col-span-2">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium">Lab Information</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-lg font-semibold">{selectedLabCase.labName}</div>
+                        <div className="text-sm text-muted-foreground">Lab ID: {selectedLabCase.labId}</div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">Case Instructions</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm">
+                        {selectedLabCase.instructions || "No specific instructions provided for this case."}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">Timeline</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="w-24 justify-center">Created</Badge>
+                          <span className="text-sm">{new Date(selectedLabCase.createdAt).toLocaleString()}</span>
+                        </div>
+                        {selectedLabCase.updatedAt && selectedLabCase.updatedAt !== selectedLabCase.createdAt && (
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="w-24 justify-center">Updated</Badge>
+                            <span className="text-sm">{new Date(selectedLabCase.updatedAt).toLocaleString()}</span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="prescription" className="space-y-4 pt-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileSpreadsheet className="h-5 w-5" />
+                        Lab Prescription
+                      </CardTitle>
+                      <CardDescription>
+                        Specify detailed requirements for the lab
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="material">Material</Label>
+                            <Select defaultValue="porcelain">
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select material" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="porcelain">Porcelain</SelectItem>
+                                <SelectItem value="zirconia">Zirconia</SelectItem>
+                                <SelectItem value="emax">E.max</SelectItem>
+                                <SelectItem value="pfm">PFM</SelectItem>
+                                <SelectItem value="composite">Composite</SelectItem>
+                                <SelectItem value="metal">Metal</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="shade">Shade</Label>
+                            <Select defaultValue="a2">
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select shade" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="a1">A1</SelectItem>
+                                <SelectItem value="a2">A2</SelectItem>
+                                <SelectItem value="a3">A3</SelectItem>
+                                <SelectItem value="a3.5">A3.5</SelectItem>
+                                <SelectItem value="a4">A4</SelectItem>
+                                <SelectItem value="b1">B1</SelectItem>
+                                <SelectItem value="b2">B2</SelectItem>
+                                <SelectItem value="custom">Custom</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="teeth">Teeth Numbers</Label>
+                          <Input id="teeth" placeholder="e.g. 12, 13, 14" />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="special-instructions">Special Instructions</Label>
+                          <Textarea 
+                            id="special-instructions" 
+                            placeholder="Enter any special instructions or notes for the lab"
+                            className="min-h-[100px]"
+                          />
+                        </div>
+                        
+                        <div className="pt-4 flex justify-end">
+                          <Button className="flex items-center gap-2">
+                            <Send className="h-4 w-4" />
+                            Send to Lab
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="lab-contact" className="space-y-4 pt-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Building className="h-5 w-5" />
+                        Lab Contact Information
+                      </CardTitle>
+                      <CardDescription>
+                        Contact details for {selectedLabCase.labName}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-2">
+                          <Building className="h-5 w-5 text-muted-foreground mt-0.5" />
+                          <div>
+                            <div className="font-medium">{selectedLabCase.labName}</div>
+                            <div className="text-sm text-muted-foreground">123 Lab Avenue, Suite 200</div>
+                            <div className="text-sm text-muted-foreground">San Francisco, CA 94107</div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-5 w-5 text-muted-foreground" />
+                          <div>
+                            <div className="text-sm">contact@{selectedLabCase.labName.toLowerCase().replace(/\s+/g, '')}.com</div>
+                          </div>
+                        </div>
+                        
+                        <div className="pt-4">
+                          <Label className="mb-2 block">Physical Address</Label>
+                          <div className="rounded-md border h-[200px] bg-muted flex items-center justify-center text-muted-foreground text-sm">
+                            <MapPin className="h-4 w-4 mr-2" />
+                            Map view would be displayed here
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+              
+              <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-between sm:space-x-2">
+                <div className="flex space-x-2 mt-4 sm:mt-0">
+                  <Button variant="outline" onClick={() => setIsLabDetailsOpen(false)}>
+                    Close
+                  </Button>
+                </div>
+                
+                <div className="flex space-x-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsPrescriptionDialogOpen(true);
+                      setIsLabDetailsOpen(false);
+                    }}
+                  >
+                    Send Prescription
+                  </Button>
+                  <Button>
+                    Update Status
+                  </Button>
+                </div>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Lab Contact Dialog */}
+      <Dialog open={isLabContactDialogOpen} onOpenChange={setIsLabContactDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Lab Contact Information</DialogTitle>
+            <DialogDescription>
+              Contact details for the dental lab
+            </DialogDescription>
+          </DialogHeader>
+          {selectedLabCase && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Lab Name</Label>
+                <Input value={selectedLabCase.labName} readOnly />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input 
+                  placeholder="lab@example.com" 
+                  value={`contact@${selectedLabCase.labName.toLowerCase().replace(/\s+/g, '')}.com`}
+                  readOnly
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Phone</Label>
+                <Input placeholder="(555) 123-4567" value="(555) 123-4567" readOnly />
+              </div>
+              <div className="space-y-2">
+                <Label>Address</Label>
+                <Textarea 
+                  readOnly
+                  value="123 Lab Avenue, Suite 200&#10;San Francisco, CA 94107"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsLabContactDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
     </div>
   );
 }

@@ -374,7 +374,7 @@ export function SuppliesManager() {
           <span>Shipped</span>
         </Badge>;
       case 'delivered':
-        return <Badge variant="success" className="flex items-center gap-1">
+        return <Badge variant="default" className="bg-green-100 text-green-800 flex items-center gap-1">
           <CheckCircle2 className="h-3 w-3" />
           <span>Delivered</span>
         </Badge>;
@@ -384,7 +384,7 @@ export function SuppliesManager() {
           <span>Cancelled</span>
         </Badge>;
       case 'returned':
-        return <Badge variant="warning" className="flex items-center gap-1">
+        return <Badge variant="outline" className="bg-amber-100 text-amber-800 flex items-center gap-1">
           <AlertTriangle className="h-3 w-3" />
           <span>Returned</span>
         </Badge>;
