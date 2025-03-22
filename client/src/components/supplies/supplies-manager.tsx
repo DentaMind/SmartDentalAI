@@ -252,7 +252,7 @@ export function SuppliesManager() {
     data: supplyItems = mockSupplyItems,
     isLoading: isItemsLoading, 
     isError: isItemsError
-  } = useQuery({
+  } = useQuery<typeof mockSupplyItems>({
     queryKey: ['/api/supply-items'],
     enabled: false, // Disabled for now as we're using mock data
   });
