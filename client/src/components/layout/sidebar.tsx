@@ -153,26 +153,27 @@ export function Sidebar() {
       </Button>
       
       <div className="flex items-center justify-center h-20 px-2">
-        <Link href="/">
-          <div className="flex items-center gap-3 hover:opacity-90 transition-opacity cursor-pointer">
-            <div className="flex justify-center items-center h-12 w-12">
-              <CircuitToothIcon 
-                size={48} 
-                className="hover:scale-110 transition-transform duration-300" 
-              />
-            </div>
-            {!collapsed && (
-              <div className="flex flex-col">
-                <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary-600 bg-clip-text text-transparent">
-                  DentaMind
-                </span>
-                <span className="text-xs text-gray-500 font-medium">
-                  AI-Powered Dental Excellence
-                </span>
-              </div>
-            )}
+        <div 
+          onClick={() => window.location.href = "/"}
+          className="flex items-center gap-3 hover:opacity-90 transition-opacity cursor-pointer"
+        >
+          <div className="flex justify-center items-center h-12 w-12">
+            <CircuitToothIcon 
+              size={48} 
+              className="hover:scale-110 transition-transform duration-300" 
+            />
           </div>
-        </Link>
+          {!collapsed && (
+            <div className="flex flex-col">
+              <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary-600 bg-clip-text text-transparent">
+                DentaMind
+              </span>
+              <span className="text-xs text-gray-500 font-medium">
+                AI-Powered Dental Excellence
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       <nav className="flex-1 px-2 py-4 space-y-1">
@@ -183,38 +184,37 @@ export function Sidebar() {
             return (
               <Tooltip key={item.href} delayDuration={collapsed ? 100 : 1000}>
                 <TooltipTrigger asChild>
-                  <Link href={item.href}>
-                    <div
-                      className={`
-                        flex items-center ${collapsed ? 'justify-center' : 'px-3'} py-2 text-sm font-medium rounded-lg 
-                        ${collapsed ? 'gap-0' : 'gap-3'}
-                        transition-all duration-200 group cursor-pointer
-                        ${item.highlight && !collapsed ? 'bg-gradient-to-r from-primary/10 to-primary/5' : ''}
-                        ${isActive
-                          ? "bg-primary text-white shadow-md"
-                          : "text-gray-600 hover:bg-primary/10 hover:text-primary hover:shadow-sm"}
-                      `}
-                    >
-                      <div className={`
-                        p-1.5 rounded-md transition-colors duration-200
-                        ${isActive 
-                          ? "bg-white/20" 
-                          : "bg-primary/10 group-hover:bg-primary/20"}
-                      `}>
-                        <Icon className={`h-5 w-5 ${isActive ? "text-white" : "text-primary"}`} />
-                      </div>
-                      {!collapsed && (
-                        <>
-                          {item.name}
-                          {item.highlight && (
-                            <span className="ml-auto px-2 py-0.5 text-xs font-semibold bg-primary/20 text-primary rounded-full">
-                              New
-                            </span>
-                          )}
-                        </>
-                      )}
+                  <div
+                    onClick={() => window.location.href = item.href}
+                    className={`
+                      flex items-center ${collapsed ? 'justify-center' : 'px-3'} py-2 text-sm font-medium rounded-lg 
+                      ${collapsed ? 'gap-0' : 'gap-3'}
+                      transition-all duration-200 group cursor-pointer
+                      ${item.highlight && !collapsed ? 'bg-gradient-to-r from-primary/10 to-primary/5' : ''}
+                      ${isActive
+                        ? "bg-primary text-white shadow-md"
+                        : "text-gray-600 hover:bg-primary/10 hover:text-primary hover:shadow-sm"}
+                    `}
+                  >
+                    <div className={`
+                      p-1.5 rounded-md transition-colors duration-200
+                      ${isActive 
+                        ? "bg-white/20" 
+                        : "bg-primary/10 group-hover:bg-primary/20"}
+                    `}>
+                      <Icon className={`h-5 w-5 ${isActive ? "text-white" : "text-primary"}`} />
                     </div>
-                  </Link>
+                    {!collapsed && (
+                      <>
+                        {item.name}
+                        {item.highlight && (
+                          <span className="ml-auto px-2 py-0.5 text-xs font-semibold bg-primary/20 text-primary rounded-full">
+                            New
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </TooltipTrigger>
                 {collapsed && (
                   <TooltipContent side="right">
@@ -262,12 +262,13 @@ export function Sidebar() {
             <TooltipProvider>
               <Tooltip delayDuration={collapsed ? 100 : 1000}>
                 <TooltipTrigger asChild>
-                  <Link href="/security">
-                    <div className={`flex items-center ${collapsed ? 'justify-center px-0' : 'px-4'} py-2 text-gray-700 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors cursor-pointer`}>
-                      <Shield className={`w-5 h-5 ${collapsed ? '' : 'mr-3'}`} />
-                      {!collapsed && "Security"}
-                    </div>
-                  </Link>
+                  <div 
+                    onClick={() => window.location.href = "/security"}
+                    className={`flex items-center ${collapsed ? 'justify-center px-0' : 'px-4'} py-2 text-gray-700 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors cursor-pointer`}
+                  >
+                    <Shield className={`w-5 h-5 ${collapsed ? '' : 'mr-3'}`} />
+                    {!collapsed && "Security"}
+                  </div>
                 </TooltipTrigger>
                 {collapsed && (
                   <TooltipContent side="right">
