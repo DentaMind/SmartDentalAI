@@ -91,10 +91,25 @@ export default {
             height: "0",
           },
         },
+        "swing": {
+          "0%": { transform: "rotate(0deg)" },
+          "10%": { transform: "rotate(10deg)" },
+          "30%": { transform: "rotate(-8deg)" },
+          "50%": { transform: "rotate(6deg)" },
+          "70%": { transform: "rotate(-4deg)" },
+          "90%": { transform: "rotate(2deg)" },
+          "100%": { transform: "rotate(0deg)" }
+        },
+        "orbit": {
+          "0%": { transform: "rotate(0deg) translateX(50px) rotate(0deg)" },
+          "100%": { transform: "rotate(360deg) translateX(50px) rotate(-360deg)" }
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "swing": "swing 2s ease-in-out infinite",
+        "orbit": "orbit 8s linear infinite"
       },
     },
   },

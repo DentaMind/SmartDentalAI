@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
-import { Stethoscope, BrainCircuit, ScanFace, ZoomIn, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+// Import the DentaMind logo
+import dentaMindLogo from "../../assets/dentamind-logo.png";
 
 interface LoadingAnimationProps {
   className?: string;
 }
 
 export function LoadingAnimation({ className }: LoadingAnimationProps) {
-  const [activeIndex, setActiveIndex] = useState(0);
   const [visible, setVisible] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState<string[]>([
     "Analyzing patient data...",
@@ -18,23 +18,9 @@ export function LoadingAnimation({ className }: LoadingAnimationProps) {
   ]);
   const [currentMessage, setCurrentMessage] = useState(0);
 
-  // More AI/dental tech-focused icons
-  const tools = [
-    { icon: BrainCircuit, color: "text-blue-400" },
-    { icon: ScanFace, color: "text-cyan-400" },
-    { icon: Stethoscope, color: "text-indigo-400" },
-    { icon: ZoomIn, color: "text-purple-400" },
-    { icon: Sparkles, color: "text-sky-400" },
-  ];
-
   useEffect(() => {
-    // Only show loading after 300ms delay (reduced from 500ms for better UX)
+    // Only show loading after 300ms delay
     const timer = setTimeout(() => setVisible(true), 300);
-
-    // Icon rotation animation
-    const iconInterval = setInterval(() => {
-      setActiveIndex((current) => (current + 1) % tools.length);
-    }, 800); // Slowed down slightly for better visibility
 
     // Message rotation
     const messageInterval = setInterval(() => {
@@ -43,7 +29,6 @@ export function LoadingAnimation({ className }: LoadingAnimationProps) {
 
     return () => {
       clearTimeout(timer);
-      clearInterval(iconInterval);
       clearInterval(messageInterval);
     };
   }, [loadingMessages.length]);
@@ -52,45 +37,31 @@ export function LoadingAnimation({ className }: LoadingAnimationProps) {
 
   return (
     <div className={cn("flex flex-col items-center", className)}>
-      {/* AI icon animation with glowing effect */}
-      <div className="relative h-16 w-16 mb-2">
-        {/* Background glow with multi-layered effect */}
-        <div className="absolute inset-0 rounded-full bg-blue-500/10 blur-xl animate-pulse"></div>
+      {/* DentaMind logo with swinging animation */}
+      <div className="relative h-40 w-40 mb-6">
+        {/* Background glow effect */}
+        <div className="absolute inset-0 rounded-full bg-cyan-500/10 blur-xl animate-pulse"></div>
         <div className="absolute inset-0 rounded-full bg-cyan-400/5 blur-lg animate-pulse" 
              style={{ animationDelay: '300ms' }}></div>
-        <div className="absolute inset-1 rounded-full bg-indigo-400/8 blur-md animate-pulse" 
-             style={{ animationDelay: '600ms' }}></div>
         
-        {/* Icon animations */}
-        {tools.map((Tool, index) => {
-          const isActive = index === activeIndex;
-          return (
-            <div
-              key={index}
-              className={cn(
-                "absolute inset-0 transition-all duration-700 ease-in-out transform",
-                Tool.color,
-                isActive
-                  ? "opacity-100 scale-100 rotate-0"
-                  : "opacity-0 scale-75 rotate-90 translate-y-2"
-              )}
-            >
-              <Tool.icon className="h-16 w-16 stroke-1 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-              
-              {/* Orbit effect */}
-              {isActive && (
-                <div className="absolute top-0 left-0 w-full h-full">
-                  <div className="absolute w-2 h-2 rounded-full bg-blue-400 animate-orbit opacity-70" 
-                       style={{ top: '0%', left: '50%', animationDelay: '0ms' }}></div>
-                  <div className="absolute w-1.5 h-1.5 rounded-full bg-cyan-400 animate-orbit opacity-70" 
-                       style={{ top: '25%', left: '100%', animationDelay: '250ms' }}></div>
-                  <div className="absolute w-1 h-1 rounded-full bg-indigo-400 animate-orbit opacity-70" 
-                       style={{ top: '75%', left: '100%', animationDelay: '500ms' }}></div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {/* Logo with swinging animation */}
+        <div className="absolute inset-0 animate-swing origin-top">
+          <img 
+            src={dentaMindLogo} 
+            alt="DentaMind Logo" 
+            className="h-full w-full object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" 
+          />
+        </div>
+        
+        {/* Orbit effect around the logo */}
+        <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+          <div className="absolute w-2 h-2 rounded-full bg-cyan-400 animate-orbit opacity-70" 
+              style={{ top: '5%', left: '50%', animationDelay: '0ms' }}></div>
+          <div className="absolute w-1.5 h-1.5 rounded-full bg-blue-400 animate-orbit opacity-70" 
+              style={{ top: '25%', left: '75%', animationDelay: '250ms' }}></div>
+          <div className="absolute w-1 h-1 rounded-full bg-teal-400 animate-orbit opacity-70" 
+              style={{ top: '65%', left: '85%', animationDelay: '500ms' }}></div>
+        </div>
       </div>
       
       {/* Loading message that cycles with fade transition */}
