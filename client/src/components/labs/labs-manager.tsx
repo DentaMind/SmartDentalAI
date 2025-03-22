@@ -697,7 +697,7 @@ export function LabsManager() {
                           <div className="space-y-2">
                             <Label htmlFor="material">Material</Label>
                             <Select defaultValue="porcelain">
-                              <SelectTrigger>
+                              <SelectTrigger id="material">
                                 <SelectValue placeholder="Select material" />
                               </SelectTrigger>
                               <SelectContent>
@@ -714,7 +714,7 @@ export function LabsManager() {
                           <div className="space-y-2">
                             <Label htmlFor="shade">Shade</Label>
                             <Select defaultValue="a2">
-                              <SelectTrigger>
+                              <SelectTrigger id="shade">
                                 <SelectValue placeholder="Select shade" />
                               </SelectTrigger>
                               <SelectContent>
@@ -786,8 +786,8 @@ export function LabsManager() {
                         </div>
                         
                         <div className="pt-4">
-                          <Label className="mb-2 block">Physical Address</Label>
-                          <div className="rounded-md border h-[200px] bg-muted flex items-center justify-center text-muted-foreground text-sm">
+                          <Label htmlFor="physical-address" className="mb-2 block">Physical Address</Label>
+                          <div id="physical-address" className="rounded-md border h-[200px] bg-muted flex items-center justify-center text-muted-foreground text-sm">
                             <MapPin className="h-4 w-4 mr-2" />
                             Map view would be displayed here
                           </div>
@@ -837,24 +837,26 @@ export function LabsManager() {
           {selectedLabCase && (
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Lab Name</Label>
-                <Input value={selectedLabCase.labName} readOnly />
+                <Label htmlFor="lab-name">Lab Name</Label>
+                <Input id="lab-name" value={selectedLabCase.labName} readOnly />
               </div>
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label htmlFor="lab-email">Email</Label>
                 <Input 
+                  id="lab-email"
                   placeholder="lab@example.com" 
                   value={`contact@${selectedLabCase.labName.toLowerCase().replace(/\s+/g, '')}.com`}
                   readOnly
                 />
               </div>
               <div className="space-y-2">
-                <Label>Phone</Label>
-                <Input placeholder="(555) 123-4567" value="(555) 123-4567" readOnly />
+                <Label htmlFor="lab-phone">Phone</Label>
+                <Input id="lab-phone" placeholder="(555) 123-4567" value="(555) 123-4567" readOnly />
               </div>
               <div className="space-y-2">
-                <Label>Address</Label>
+                <Label htmlFor="lab-address">Address</Label>
                 <Textarea 
+                  id="lab-address"
                   readOnly
                   value="123 Lab Avenue, Suite 200&#10;San Francisco, CA 94107"
                 />
