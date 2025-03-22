@@ -58,6 +58,11 @@ const providers: Provider[] = [
     specialization: "General Dentist",
     color: "#4338ca" // indigo-700
   },
+  // Empty columns between doctors and hygienists
+  { id: 100, name: "Empty 1", role: "empty", specialization: "", color: "#d1d5db" },
+  { id: 101, name: "Empty 2", role: "empty", specialization: "", color: "#d1d5db" },
+  { id: 102, name: "Empty 3", role: "empty", specialization: "", color: "#d1d5db" },
+  { id: 103, name: "Empty 4", role: "empty", specialization: "", color: "#d1d5db" },
   { 
     id: 2, 
     name: "Mary RDH", 
@@ -233,10 +238,10 @@ export function SchedulerV3({
     { id: "hyg2", name: "Hygiene Op 2", type: "hygiene" }
   ];
   
-  // Time slot generation (7am to 5pm in 15-minute increments)
+  // Time slot generation (7am to 7pm in 15-minute increments)
   const generateTimeSlots = () => {
     const slots = [];
-    for (let hour = 7; hour <= 17; hour++) {
+    for (let hour = 7; hour <= 19; hour++) { // Extended to 7pm (19:00)
       for (let minute = 0; minute < 60; minute += 15) {
         const showLabel = minute === 0 || minute === 30;
         slots.push({
@@ -304,17 +309,31 @@ export function SchedulerV3({
   
   // Helper function to get all appointments for a time slot for a specific provider
   // This allows for side booking (multiple appointments in the same slot)
+  // Enhanced function that gets appointments for a time slot, now considering duration span
   const getAppointmentsForTimeSlot = (hour: number, minute: number, providerId: number) => {
+    // Convert current slot to minutes since midnight for easier comparison
+    const slotTimeInMinutes = hour * 60 + minute;
+    
     return appointments.filter(appointment => {
       const apptDate = new Date(appointment.date);
-      return (
-        appointment.providerId === providerId &&
-        apptDate.getHours() === hour &&
-        apptDate.getMinutes() === minute &&
+      
+      // Only consider appointments for today and the specified provider
+      const isSameDay = 
         apptDate.getDate() === currentDate.getDate() &&
         apptDate.getMonth() === currentDate.getMonth() &&
-        apptDate.getFullYear() === currentDate.getFullYear()
-      );
+        apptDate.getFullYear() === currentDate.getFullYear();
+        
+      if (!isSameDay || appointment.providerId !== providerId) {
+        return false;
+      }
+      
+      // Calculate appointment start and end times in minutes since midnight
+      const apptStartMinutes = apptDate.getHours() * 60 + apptDate.getMinutes();
+      const apptEndMinutes = apptStartMinutes + appointment.duration;
+      
+      // For rendering purposes, only render the appointment card at its start time
+      // This prevents duplicate renders across multiple time slots
+      return apptStartMinutes === slotTimeInMinutes;
     });
   };
   
@@ -406,11 +425,17 @@ export function SchedulerV3({
     
     const patient = getPatientById(appointment.patientId);
     
+    // Calculate height based on duration (each 15 min = 64px height) 
+    // for a 60 min appointment: 64px * (60/15) = 256px
+    const slotCount = Math.max(1, Math.ceil(appointment.duration / 15));
+    const heightStyle = `${slotCount * 64 - 8}px`; // Subtract 8px for padding/margins
+    
     return (
       <HoverCard>
         <HoverCardTrigger asChild>
           <div 
-            className={`${procedureTypeColors[appointment.procedureType]} p-1 rounded-md mb-1 cursor-pointer hover:shadow-md transition-shadow duration-200 relative min-h-[50px] overflow-hidden`}
+            className={`${procedureTypeColors[appointment.procedureType]} p-1 rounded-md mb-1 cursor-pointer hover:shadow-md transition-shadow duration-200 relative overflow-hidden`}
+            style={{ height: heightStyle, position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}
             onClick={() => handleEditAppointment(appointment)}
           >
             <div className="flex items-center mb-1">
@@ -460,9 +485,10 @@ export function SchedulerV3({
                     <TooltipTrigger asChild>
                       <div className={`h-3 w-3 rounded-full ${
                         appointment.patientStatus === 'here' ? 'bg-green-500' :
-                        appointment.patientStatus === 'confirmed' ? 'bg-blue-500' :
+                        appointment.patientStatus === 'confirmed' ? 'bg-green-500' :
                         appointment.patientStatus === 'unconfirmed' ? 'bg-red-500' :
-                        appointment.patientStatus === 'noshow' ? 'bg-orange-500' : 'bg-gray-500'
+                        appointment.patientStatus === 'noshow' ? 'bg-orange-500' : 
+                        appointment.status === 'cancelled' ? 'bg-purple-500' : 'bg-gray-500'
                       }`} />
                     </TooltipTrigger>
                     <TooltipContent>
@@ -591,17 +617,19 @@ export function SchedulerV3({
                 {appointment.patientStatus && (
                   <Badge variant="outline" className={`
                     ${appointment.patientStatus === 'here' ? 'bg-green-100 text-green-800 border-green-300' : 
-                      appointment.patientStatus === 'confirmed' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                      appointment.patientStatus === 'confirmed' ? 'bg-green-100 text-green-800 border-green-300' :
                       appointment.patientStatus === 'unconfirmed' ? 'bg-red-100 text-red-800 border-red-300' :
-                      appointment.patientStatus === 'noshow' ? 'bg-orange-100 text-orange-800 border-orange-300' : ''
+                      appointment.patientStatus === 'noshow' ? 'bg-orange-100 text-orange-800 border-orange-300' :
+                      appointment.status === 'cancelled' ? 'bg-purple-100 text-purple-800 border-purple-300' : ''
                     }
                   `}>
                     <div className="flex items-center space-x-1">
                       <div className={`h-2 w-2 rounded-full ${
                         appointment.patientStatus === 'here' ? 'bg-green-500' :
-                        appointment.patientStatus === 'confirmed' ? 'bg-blue-500' :
+                        appointment.patientStatus === 'confirmed' ? 'bg-green-500' :
                         appointment.patientStatus === 'unconfirmed' ? 'bg-red-500' :
-                        appointment.patientStatus === 'noshow' ? 'bg-orange-500' : 'bg-gray-500'
+                        appointment.patientStatus === 'noshow' ? 'bg-orange-500' :
+                        appointment.status === 'cancelled' ? 'bg-purple-500' : 'bg-gray-500'
                       }`} />
                       <span>
                         {appointment.patientStatus === 'here' ? 'Here' :
@@ -941,7 +969,7 @@ export function SchedulerV3({
                   </SelectItem>
                   <SelectItem value="confirmed">
                     <div className="flex items-center">
-                      <div className="h-2 w-2 rounded-full bg-blue-500 mr-2"></div>
+                      <div className="h-2 w-2 rounded-full bg-green-500 mr-2"></div>
                       Confirmed
                     </div>
                   </SelectItem>
@@ -1171,7 +1199,28 @@ export function SchedulerV3({
               
               {/* Provider columns */}
               {activeProviders.map(provider => (
-                <div key={provider.id} className="flex-1 min-w-[220px]">
+                <div key={provider.id} className={`flex-1 min-w-[220px] ${provider.role === 'empty' ? 'bg-gray-50 opacity-80' : ''}`}>
+                  {/* Provider header with add button for empty columns */}
+                  {provider.role === 'empty' ? (
+                    <div className="h-12 border-b border-r p-2 flex items-center justify-center">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full h-full border-dashed"
+                        onClick={() => {
+                          // Create a new provider in this empty column
+                          toast({
+                            title: "Add Provider",
+                            description: "This would open a dialog to add a new provider in this column.",
+                          });
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Provider
+                      </Button>
+                    </div>
+                  ) : null}
+                  
                   {timeSlots.map((timeSlot, index) => {
                     const slotAppointments = getAppointmentsForTimeSlot(
                       timeSlot.hour, 
@@ -1180,7 +1229,26 @@ export function SchedulerV3({
                     );
                     
                     // Determine which operatory to use based on provider role
-                    const operatory = provider.role === 'doctor' ? 'Room 1' : 'Hygiene Room 1';
+                    const operatory = provider.role === 'doctor' ? 'Room 1' : 
+                                     provider.role === 'hygienist' ? 'Hygiene Room 1' : 
+                                     'New Operatory';
+                    
+                    // Skip rendering content for empty columns
+                    if (provider.role === 'empty') {
+                      return (
+                        <div 
+                          key={`slot-${provider.id}-${index}`}
+                          className="h-16 border-b border-r opacity-60"
+                        ></div>
+                      );
+                    }
+                    
+                    // Calculate appointment height based on duration
+                    const getAppointmentHeightClass = (appointment: SampleAppointment) => {
+                      // Each 15 minutes = 16px height (h-16)
+                      const slotCount = Math.max(1, Math.floor(appointment.duration / 15));
+                      return `h-[${slotCount * 64}px]`;
+                    };
                     
                     return (
                       <div 
@@ -1189,9 +1257,15 @@ export function SchedulerV3({
                           ${timeSlot.isHour ? 'bg-gray-50' : ''}`}
                       >
                         {slotAppointments.length > 0 ? (
-                          <div className="flex h-full space-x-1 overflow-x-auto">
+                          <div className="flex h-full space-x-1 overflow-visible">
                             {slotAppointments.map((appointment, appIdx) => (
-                              <div key={`app-${appointment.id}`} className="flex-1 min-w-0" style={{ maxWidth: slotAppointments.length > 1 ? `${100 / slotAppointments.length}%` : '100%' }}>
+                              <div 
+                                key={`app-${appointment.id}`} 
+                                className="flex-1 min-w-0 relative" 
+                                style={{ 
+                                  maxWidth: slotAppointments.length > 1 ? `${100 / slotAppointments.length}%` : '100%',
+                                }}
+                              >
                                 {renderAppointment(appointment)}
                               </div>
                             ))}
@@ -1280,9 +1354,10 @@ export function SchedulerV3({
                                               {appt.patientStatus && (
                                                 <div className={`h-2 w-2 rounded-full ml-1 ${
                                                   appt.patientStatus === 'here' ? 'bg-green-500' :
-                                                  appt.patientStatus === 'confirmed' ? 'bg-blue-500' :
+                                                  appt.patientStatus === 'confirmed' ? 'bg-green-500' :
                                                   appt.patientStatus === 'unconfirmed' ? 'bg-red-500' :
-                                                  appt.patientStatus === 'noshow' ? 'bg-orange-500' : 'bg-gray-500'
+                                                  appt.patientStatus === 'noshow' ? 'bg-orange-500' :
+                                                  appt.status === 'cancelled' ? 'bg-purple-500' : 'bg-gray-500'
                                                 }`} />
                                               )}
                                             </div>
@@ -1306,9 +1381,10 @@ export function SchedulerV3({
                                           {minuteAppts[0].patientStatus && (
                                             <div className={`h-2 w-2 rounded-full ml-1 ${
                                               minuteAppts[0].patientStatus === 'here' ? 'bg-green-500' :
-                                              minuteAppts[0].patientStatus === 'confirmed' ? 'bg-blue-500' :
+                                              minuteAppts[0].patientStatus === 'confirmed' ? 'bg-green-500' :
                                               minuteAppts[0].patientStatus === 'unconfirmed' ? 'bg-red-500' :
-                                              minuteAppts[0].patientStatus === 'noshow' ? 'bg-orange-500' : 'bg-gray-500'
+                                              minuteAppts[0].patientStatus === 'noshow' ? 'bg-orange-500' :
+                                              minuteAppts[0].status === 'cancelled' ? 'bg-purple-500' : 'bg-gray-500'
                                             }`} />
                                           )}
                                         </div>
