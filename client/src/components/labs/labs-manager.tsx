@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "wouter";
 import { 
   Card, 
   CardContent, 
   CardDescription, 
   CardHeader, 
-  CardTitle 
+  CardTitle,
+  CardFooter
 } from "@/components/ui/card";
 import {
   Table,
@@ -36,6 +38,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Form, 
   FormControl, 
@@ -46,7 +49,9 @@ import {
   FormMessage 
 } from "@/components/ui/form";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Beaker, Plus, Search, FileText, AlertCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { Beaker, Plus, Search, FileText, AlertCircle, ArrowLeft, Building, Mail, MapPin, FileSpreadsheet, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -85,9 +90,14 @@ type LabCaseFormValues = z.infer<typeof labCaseSchema>;
 
 export function LabsManager() {
   const { toast } = useToast();
+  const [navigate, setLocation] = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [selectedLabCase, setSelectedLabCase] = useState<any>(null);
+  const [isLabDetailsOpen, setIsLabDetailsOpen] = useState(false);
+  const [isPrescriptionDialogOpen, setIsPrescriptionDialogOpen] = useState(false);
+  const [isLabContactDialogOpen, setIsLabContactDialogOpen] = useState(false);
 
   // Setup form with default values
   const form = useForm<LabCaseFormValues>({
