@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Beaker, Plus, Search, FileText, AlertCircle, ArrowLeft, Building, Mail, MapPin, FileSpreadsheet, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";

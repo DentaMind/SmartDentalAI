@@ -261,7 +261,7 @@ export function SuppliesManager() {
     data: supplyOrders = mockSupplyOrders, 
     isLoading: isOrdersLoading, 
     isError: isOrdersError 
-  } = useQuery({
+  } = useQuery<typeof mockSupplyOrders>({
     queryKey: ['/api/supply-orders'],
     enabled: false, // Disabled for now as we're using mock data
   });
@@ -269,7 +269,7 @@ export function SuppliesManager() {
   const { 
     data: vendors = mockVendors, 
     isLoading: isVendorsLoading
-  } = useQuery({
+  } = useQuery<typeof mockVendors>({
     queryKey: ['/api/vendors'],
     enabled: false, // Disabled for now as we're using mock data
   });
@@ -327,8 +327,13 @@ export function SuppliesManager() {
     }
   }
 
+  // Define types based on mock data structure
+  type SupplyItem = typeof mockSupplyItems[0];
+  type SupplyOrder = typeof mockSupplyOrders[0];
+  type OrderItem = SupplyOrder['items'][0];
+
   // Filter supply items based on search query, category filter, and low stock filter
-  const filteredItems = supplyItems.filter((item: any) => {
+  const filteredItems = supplyItems.filter((item: SupplyItem) => {
     const matchesSearch = searchQuery === "" || 
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -342,10 +347,10 @@ export function SuppliesManager() {
   });
 
   // Filter supply orders based on search query and status filter
-  const filteredOrders = supplyOrders.filter((order: any) => {
+  const filteredOrders = supplyOrders.filter((order: SupplyOrder) => {
     const matchesSearch = searchQuery === "" || 
       order.vendorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.items.some((item: any) => 
+      order.items.some((item: OrderItem) => 
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.notes?.toLowerCase().includes(searchQuery.toLowerCase())
       );
