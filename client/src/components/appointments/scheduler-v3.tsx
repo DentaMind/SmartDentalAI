@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -210,6 +210,14 @@ export function SchedulerV3({
   const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [addProviderDialogOpen, setAddProviderDialogOpen] = useState(false);
+  const [newProviderColumnId, setNewProviderColumnId] = useState<number | null>(null);
+  const [newProviderState, setNewProviderState] = useState({
+    name: "",
+    role: "doctor",
+    color: "#28C76F",
+    specialization: ""
+  });
   
   // New appointment form state
   const [newAppointmentState, setNewAppointmentState] = useState({
@@ -496,7 +504,8 @@ export function SchedulerV3({
                         {appointment.patientStatus === 'here' ? 'Patient is here' :
                          appointment.patientStatus === 'confirmed' ? 'Confirmed' :
                          appointment.patientStatus === 'unconfirmed' ? 'Unconfirmed' :
-                         appointment.patientStatus === 'noshow' ? 'No show' : 'Unknown status'}
+                         appointment.patientStatus === 'noshow' ? 'No show' : 
+                         appointment.status === 'cancelled' ? 'Cancelled' : 'Unknown status'}
                       </p>
                     </TooltipContent>
                   </Tooltip>
@@ -635,7 +644,8 @@ export function SchedulerV3({
                         {appointment.patientStatus === 'here' ? 'Here' :
                          appointment.patientStatus === 'confirmed' ? 'Confirmed' :
                          appointment.patientStatus === 'unconfirmed' ? 'Unconfirmed' :
-                         appointment.patientStatus === 'noshow' ? 'No Show' : 'Unknown'}
+                         appointment.patientStatus === 'noshow' ? 'No Show' : 
+                         appointment.status === 'cancelled' ? 'Cancelled' : 'Unknown'}
                       </span>
                     </div>
                   </Badge>
@@ -985,6 +995,12 @@ export function SchedulerV3({
                       No Show
                     </div>
                   </SelectItem>
+                  <SelectItem value="cancelled" disabled={newAppointmentState.status !== 'cancelled'}>
+                    <div className="flex items-center">
+                      <div className="h-2 w-2 rounded-full bg-purple-500 mr-2"></div>
+                      Cancelled
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1030,6 +1046,129 @@ export function SchedulerV3({
         </DialogContent>
       </Dialog>
       
+      {/* Add Provider Dialog */}
+      <Dialog open={addProviderDialogOpen} onOpenChange={setAddProviderDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add New Provider</DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Create a new provider for the schedule.
+            </p>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="providerName" className="text-right">
+                Name
+              </Label>
+              <Input
+                id="providerName"
+                value={newProviderState.name}
+                onChange={(e) => setNewProviderState({...newProviderState, name: e.target.value})}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="providerRole" className="text-right">
+                Role
+              </Label>
+              <Select 
+                value={newProviderState.role}
+                onValueChange={(value) => setNewProviderState({...newProviderState, role: value})}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="doctor">Doctor</SelectItem>
+                  <SelectItem value="hygienist">Hygienist</SelectItem>
+                  <SelectItem value="assistant">Assistant</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="providerColor" className="text-right">
+                Color
+              </Label>
+              <div className="col-span-3 flex items-center gap-2">
+                <Input
+                  id="providerColor"
+                  type="color"
+                  value={newProviderState.color}
+                  onChange={(e) => setNewProviderState({...newProviderState, color: e.target.value})}
+                  className="w-16 h-8 p-0"
+                />
+                <div 
+                  className="w-6 h-6 rounded" 
+                  style={{ backgroundColor: newProviderState.color }}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="providerSpecialization" className="text-right">
+                Specialization
+              </Label>
+              <Input
+                id="providerSpecialization"
+                value={newProviderState.specialization}
+                onChange={(e) => setNewProviderState({...newProviderState, specialization: e.target.value})}
+                placeholder="Optional"
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddProviderDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              // Generate a unique ID for the new provider
+              const newId = Math.max(...activeProviders.map(p => p.id), 0) + 1;
+              
+              // Create the new provider
+              const newProvider: Provider = {
+                id: newId,
+                name: newProviderState.name || `New Provider ${newId}`,
+                role: newProviderState.role as "doctor" | "hygienist" | "assistant",
+                color: newProviderState.color,
+                specialization: newProviderState.specialization || undefined
+              };
+              
+              // Update the providers list
+              let updatedProviders = [...activeProviders];
+              
+              // If we're replacing an empty column, find and replace it
+              if (newProviderColumnId !== null) {
+                updatedProviders = updatedProviders.map(p => 
+                  p.id === newProviderColumnId ? newProvider : p
+                );
+              } else {
+                // Otherwise just add to the end
+                updatedProviders.push(newProvider);
+              }
+              
+              setActiveProviders(updatedProviders);
+              setAddProviderDialogOpen(false);
+              
+              toast({
+                title: "Provider Added",
+                description: `${newProvider.name} has been added to the schedule.`,
+              });
+              
+              // Reset the form
+              setNewProviderState({
+                name: "",
+                role: "doctor",
+                color: "#28C76F",
+                specialization: ""
+              });
+              setNewProviderColumnId(null);
+            }}>
+              Add Provider
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
@@ -1208,11 +1347,17 @@ export function SchedulerV3({
                         size="sm" 
                         className="w-full h-full border-dashed"
                         onClick={() => {
-                          // Create a new provider in this empty column
-                          toast({
-                            title: "Add Provider",
-                            description: "This would open a dialog to add a new provider in this column.",
+                          // Set the column ID that we're adding to
+                          setNewProviderColumnId(provider.id);
+                          // Reset the form
+                          setNewProviderState({
+                            name: "",
+                            role: "doctor",
+                            color: "#28C76F",
+                            specialization: ""
                           });
+                          // Open the dialog
+                          setAddProviderDialogOpen(true);
                         }}
                       >
                         <Plus className="h-4 w-4 mr-2" />
