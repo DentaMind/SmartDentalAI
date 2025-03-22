@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LogOut, BellRing, Settings, User, Calendar, Activity, FileText, DollarSign, BarChart, Mail, Menu, X } from 'lucide-react';
+import { CircuitToothIcon } from '../icons/circuit-tooth-icon';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Link, useLocation } from 'wouter';
@@ -36,9 +37,9 @@ const navigationItems = [
 const SidebarItem = ({ icon, label, href, count, active }: SidebarItemProps) => {
   return (
     <Link href={href}>
-      <a
+      <div
         className={cn(
-          "flex items-center py-2 px-3 rounded-md text-sm font-medium transition-colors",
+          "flex items-center py-2 px-3 rounded-md text-sm font-medium transition-colors cursor-pointer",
           active 
             ? "bg-primary text-primary-foreground" 
             : "hover:bg-muted text-muted-foreground hover:text-foreground"
@@ -51,7 +52,7 @@ const SidebarItem = ({ icon, label, href, count, active }: SidebarItemProps) => 
             {count}
           </span>
         )}
-      </a>
+      </div>
     </Link>
   );
 };
@@ -71,7 +72,7 @@ export const DashboardLayout = ({
         <div className="flex flex-col h-full py-4">
           <div className="px-4 mb-6">
             <div className="flex items-center h-12">
-              <img src="/logo-64.png" alt="DentaMind" className="h-8 w-8" />
+              <CircuitToothIcon size={32} className="text-primary" />
               <h1 className="ml-2 text-xl font-bold tracking-tight">DentaMind</h1>
             </div>
           </div>
@@ -124,7 +125,7 @@ export const DashboardLayout = ({
             <div className="flex flex-col h-full py-4">
               <div className="px-4 mb-6 flex justify-between items-center">
                 <div className="flex items-center h-12">
-                  <img src="/logo-64.png" alt="DentaMind" className="h-8 w-8" />
+                  <CircuitToothIcon size={32} className="text-primary" />
                   <h1 className="ml-2 text-xl font-bold tracking-tight">DentaMind</h1>
                 </div>
               </div>
