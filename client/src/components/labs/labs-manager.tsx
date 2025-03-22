@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { 
   Card, 
   CardContent, 
@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -60,16 +61,16 @@ import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/api";
 
 // Status badge mapping for visual states
-const statusBadgeVariants = {
+const statusBadgeVariants: Record<string, "outline" | "secondary" | "default" | "destructive"> = {
   draft: "outline",
   submitted: "secondary",
   in_progress: "default",
-  shipped: "info", 
-  delivered: "success",
-  completed: "success",
-  on_hold: "warning",
+  shipped: "default", 
+  delivered: "default",
+  completed: "default",
+  on_hold: "outline",
   cancelled: "destructive",
-} as const;
+};
 
 // Lab case form schema
 const labCaseSchema = z.object({
@@ -90,7 +91,7 @@ type LabCaseFormValues = z.infer<typeof labCaseSchema>;
 
 export function LabsManager() {
   const { toast } = useToast();
-  const [navigate, setLocation] = useNavigate();
+  const [_, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -184,7 +185,7 @@ export function LabsManager() {
   const { 
     data: patients = mockPatients, 
     isLoading: isPatientsLoading
-  } = useQuery({
+  } = useQuery<typeof mockPatients>({
     queryKey: ['/api/patients'],
     enabled: false, // Disabled for now as we're using mock data
   });
@@ -192,7 +193,7 @@ export function LabsManager() {
   const { 
     data: dentalLabs = mockDentalLabs, 
     isLoading: isLabsLoading
-  } = useQuery({
+  } = useQuery<typeof mockDentalLabs>({
     queryKey: ['/api/dental-labs'],
     enabled: false, // Disabled for now as we're using mock data
   });
@@ -225,7 +226,7 @@ export function LabsManager() {
   }
 
   // Filter lab cases based on search query and status filter
-  const filteredCases = labCases.filter((labCase: any) => {
+  const filteredCases = (labCases as any[]).filter((labCase: any) => {
     const matchesSearch = searchQuery === "" || 
       labCase.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       labCase.caseType.toLowerCase().includes(searchQuery.toLowerCase()) ||
