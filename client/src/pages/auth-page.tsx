@@ -337,14 +337,9 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden auth-background" style={{backgroundColor: '#28C76F'}}>
-      {/* Enhanced background with multiple gradient layers using DentaMind green theme */}
-      <div className="absolute inset-0 bg-[#28C76F]" style={{backgroundColor: '#28C76F !important'}}>
-        <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 via-green-600/80 to-green-700/90 backdrop-blur-3xl"></div>
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#28C76F_1px,transparent_1px)] [background-size:20px_20px]"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(40,199,111,0.15),transparent_70%)]"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(40,199,111,0.15),transparent_70%)]"></div>
-      </div>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{backgroundColor: '#28C76F !important'}}>
+      {/* Simple solid background */}
+      <div className="absolute inset-0" style={{backgroundColor: '#28C76F !important'}}></div>
       
 
       
