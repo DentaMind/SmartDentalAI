@@ -39,8 +39,10 @@ export default function PatientsPage() {
   const [selectedPatient, setSelectedPatient] = useState<PatientWithUser | null>(null);
   const [_, navigate] = useLocation();
 
-  const { data: patients, isLoading } = useQuery<PatientWithUser[]>({
+  const { data: patients, isLoading, isError } = useQuery<PatientWithUser[]>({
     queryKey: ["/api/patients"],
+    refetchOnWindowFocus: false,
+    retry: 1,
   });
 
   // Get today's appointments count (mock data for now)
@@ -141,6 +143,19 @@ export default function PatientsPage() {
                 <LoadingAnimation />
                 <p className="text-gray-600">Loading patient data...</p>
               </div>
+            ) : isError ? (
+              <div className="flex flex-col items-center justify-center h-32 gap-4">
+                <AlertCircle className="h-8 w-8 text-red-500" />
+                <p className="text-gray-600">Error loading patients data. Please try again.</p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.location.reload()}
+                  className="gap-2"
+                >
+                  <ArrowUpRight className="h-4 w-4" />
+                  Refresh Page
+                </Button>
+              </div>
             ) : (
               <Table>
                 <TableHeader>
@@ -153,41 +168,42 @@ export default function PatientsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {patients?.map((patient) => (
-                    <TableRow key={patient.id} className="cursor-pointer hover:bg-muted/50">
-                      <TableCell className="font-medium">
-                        {`${patient.user.firstName} ${patient.user.lastName}`}
-                      </TableCell>
-                      <TableCell>{patient.user.dateOfBirth}</TableCell>
-                      <TableCell>{patient.user.phoneNumber || patient.user.email}</TableCell>
-                      <TableCell className="max-w-xs truncate">
-                        {patient.medicalHistory}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => setSelectedPatient(patient)}
-                            className="gap-2"
-                          >
-                            <Eye className="h-4 w-4" />
-                            {t("common.view")}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate(`/patients/${patient.id}`)}
-                            className="gap-2"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            Profile
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {!patients?.length && (
+                  {Array.isArray(patients) && patients.length > 0 ? (
+                    patients.map((patient) => (
+                      <TableRow key={patient.id} className="cursor-pointer hover:bg-muted/50">
+                        <TableCell className="font-medium">
+                          {patient.user && `${patient.user.firstName || ''} ${patient.user.lastName || ''}`}
+                        </TableCell>
+                        <TableCell>{patient.user?.dateOfBirth || 'N/A'}</TableCell>
+                        <TableCell>{patient.user?.phoneNumber || patient.user?.email || 'N/A'}</TableCell>
+                        <TableCell className="max-w-xs truncate">
+                          {patient.medicalHistory || 'No medical history recorded'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => setSelectedPatient(patient)}
+                              className="gap-2"
+                            >
+                              <Eye className="h-4 w-4" />
+                              {t("common.view")}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(`/patients/${patient.id}`)}
+                              className="gap-2"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              Profile
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
                     <TableRow>
                       <TableCell colSpan={5} className="h-24 text-center">
                         {t("patient.noPatients")}
