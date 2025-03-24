@@ -5,7 +5,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "./hooks/use-auth";
 import NotFound from "@/pages/not-found";
-import AuthPage from "@/pages/auth-page";
+// Use the new simplified auth page
+import SimpleAuthPage from "@/pages/simple-auth";
 import HomePage from "@/pages/home-page";
 import PatientsPage from "@/pages/patients-page";
 import AppointmentsPage from "@/pages/appointments-page";
@@ -48,22 +49,20 @@ const EmailIntegrationWrapper = () => <EmailIntegrationPage />;
 const XRayFMXWrapper = () => <XRayFMXPage />;
 const XRayComparisonTestWrapper = () => <XRayComparisonTestPage />;
 
-// Import enhanced loading animation
-import { LoadingAnimation } from "@/components/ui/loading-animation";
-
-// Loading fallback with enhanced animation and proper background color
-const Loading = () => (
-  <div className="flex items-center justify-center h-screen bg-white">
-    <LoadingAnimation />
+// Simple loading component that doesn't rely on LoadingAnimation
+const SimpleLoading = () => (
+  <div className="flex flex-col items-center justify-center h-screen bg-white">
+    <div className="w-16 h-16 border-4 border-t-green-500 border-gray-200 rounded-full animate-spin"></div>
+    <p className="mt-4 text-gray-600">Loading DentaMind...</p>
   </div>
 );
 
 function Router() {
   return (
-    <Suspense fallback={<Loading />}>
+    <Suspense fallback={<SimpleLoading />}>
       <Switch>
-        <Route path="/auth" component={AuthPage} />
-        <Route path="/auth/signup" component={AuthPage} />
+        <Route path="/auth" component={SimpleAuthPage} />
+        <Route path="/auth/signup" component={SimpleAuthPage} />
         <Route path="/auth/subscription" component={SubscriptionPageWrapper} />
         <Route path="/form/:formToken" component={FormPage} />
         <Route path="/form-submitted" component={FormSubmittedPage} />
