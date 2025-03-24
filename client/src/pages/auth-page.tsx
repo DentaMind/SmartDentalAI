@@ -102,7 +102,8 @@ export default function AuthPage() {
     },
   });
 
-  const providerForm = useForm<UserRegistrationData & {
+  // Extended user registration data with additional provider fields
+  type ProviderRegistrationData = UserRegistrationData & {
     cardName?: string;
     cardNumber?: string;
     expirationDate?: string;
@@ -112,7 +113,12 @@ export default function AuthPage() {
     state?: string;
     zipCode?: string;
     subscriptionPlan?: string;
-  }>({
+    // Added practice information fields
+    officeName?: string;
+    officeEmail?: string;
+  };
+
+  const providerForm = useForm<ProviderRegistrationData>({
     resolver: zodResolver(
       insertUserSchema.omit({ 
         role: true,
@@ -129,8 +135,8 @@ export default function AuthPage() {
       email: "",
       phoneNumber: "",
       licenseNumber: "",
-      officeName: "",       // Added for practice letterhead
-      officeEmail: "",      // Added for practice letterhead
+      officeName: "",       // Practice name for letterhead
+      officeEmail: "",      // Practice email for correspondence
       cardName: "",
       cardNumber: "",
       expirationDate: "",
@@ -178,7 +184,7 @@ export default function AuthPage() {
     }
   };
 
-  const onProviderRegister = async (data: UserRegistrationData) => {
+  const onProviderRegister = async (data: ProviderRegistrationData) => {
     console.log("Registering provider with data:", data);
 
     // Get the selected subscription plan from radio buttons
@@ -445,13 +451,21 @@ export default function AuthPage() {
                   <form onSubmit={loginForm.handleSubmit(async (data) => {
                     try {
                       console.log("Attempting login for:", data.username);
+                      console.log("Form data:", data);
                       
-                      // Adding debug info
-                      if (data.username === 'patient1' && data.password === 'patient123') {
+                      // Adding explicit test account handling for debugging
+                      if (data.username === 'dentist' && data.password === 'password') {
+                        console.log("Using known test credentials for dentist account");
+                      } else if (data.username === 'patient1' && data.password === 'patient123') {
                         console.log("Using test credentials for patient1");
+                      } else if (data.username === 'drabdin' && data.password === 'password') {
+                        console.log("Using test credentials for drabdin");
+                      } else if (data.username === 'maryrdh' && data.password === 'password') {
+                        console.log("Using test credentials for maryrdh");
                       }
                       
                       // Attempt login
+                      console.log("Calling login function...");
                       await login(data.username, data.password);
                       console.log("Login successful");
                     } catch (err) {
