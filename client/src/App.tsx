@@ -51,7 +51,7 @@ const XRayComparisonTestWrapper = () => <XRayComparisonTestPage />;
 // Import enhanced loading animation
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 
-// Loading fallback with enhanced animation and proper background color
+// Loading fallback with simplified animation and proper background color
 const Loading = () => (
   <div className="flex items-center justify-center h-screen bg-white">
     <LoadingAnimation />

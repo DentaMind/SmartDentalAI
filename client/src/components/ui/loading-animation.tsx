@@ -35,16 +35,13 @@ export function LoadingAnimation({ className }: LoadingAnimationProps) {
     <div className={cn("flex flex-col items-center justify-center", className)}>
       <h1 className="text-2xl font-bold text-green-600 mb-4">DentaMind AI</h1>
       
-      {/* DentaMind logo with swinging animation - ENHANCED */}
-      <div className="relative h-48 w-48 mb-8" style={{ transform: 'scale(1.2)' }}>
-        {/* Background glow effect - ENHANCED */}
+      {/* Single DentaMind logo with simpler animation */}
+      <div className="relative h-32 w-32 mb-6">
+        {/* Background glow effect */}
         <div className="absolute inset-0 rounded-full bg-green-500/20 blur-xl animate-pulse"></div>
-        <div className="absolute inset-0 rounded-full bg-green-400/15 blur-lg animate-pulse" 
-             style={{ animationDelay: '300ms' }}></div>
         
-        {/* Logo with swinging animation - FIXED */}
-        <div className="animate-swing" style={{ 
-          transformOrigin: 'top center', 
+        {/* Logo - static, no swinging */}
+        <div style={{ 
           display: 'flex',
           justifyContent: 'center',
           width: '100%',
@@ -63,16 +60,6 @@ export function LoadingAnimation({ className }: LoadingAnimationProps) {
               boxShadow: '0 0 15px rgba(40, 199, 111, 0.6)'
             }}
           />
-        </div>
-        
-        {/* Orbit effect around the logo */}
-        <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-          <div className="absolute w-3 h-3 rounded-full bg-green-400 animate-orbit opacity-80" 
-              style={{ top: '5%', left: '50%', animationDelay: '0ms' }}></div>
-          <div className="absolute w-2 h-2 rounded-full bg-emerald-400 animate-orbit opacity-80" 
-              style={{ top: '25%', left: '75%', animationDelay: '250ms' }}></div>
-          <div className="absolute w-2 h-2 rounded-full bg-teal-400 animate-orbit opacity-80" 
-              style={{ top: '65%', left: '85%', animationDelay: '500ms' }}></div>
         </div>
       </div>
       
