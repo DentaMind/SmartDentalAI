@@ -1,5 +1,5 @@
 import React from "react";
-import dentaMindLogo from "../assets/dentamind-logo-tooth.png";
+import dentaMindLogo from "../assets/dentamind-logo-tooth-hq.png"; // Use the high-quality logo
 
 interface LogoProps {
   className?: string;

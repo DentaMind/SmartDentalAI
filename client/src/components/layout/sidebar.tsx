@@ -159,7 +159,7 @@ export function Sidebar() {
         >
           <div className="flex justify-center items-center h-14 w-14">
             <img 
-              src="/src/assets/dentamind-logo-tooth.png" 
+              src="/src/assets/dentamind-logo-tooth-hq.png" 
               alt="DentaMind Logo" 
               className="h-14 w-14 animate-pulse-subtle hover:scale-110 transition-transform duration-300" 
             />

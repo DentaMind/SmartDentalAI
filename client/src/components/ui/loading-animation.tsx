@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 // Import the DentaMind logo
-import dentaMindLogo from "../../assets/dentamind-logo-tooth.png";
+import dentaMindLogo from "../../assets/dentamind-logo-tooth-hq.png"; // Use the high-quality logo
 
 interface LoadingAnimationProps {
   className?: string;

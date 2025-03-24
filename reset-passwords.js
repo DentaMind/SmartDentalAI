@@ -54,7 +54,7 @@ async function resetTestPasswords() {
         
         await pool.query(
           `INSERT INTO users 
-           (username, password_hash, email, first_name, last_name, role, phone_number, 
+           (username, password, email, first_name, last_name, role, phone_number, 
             mfa_secret, mfa_enabled, created_at, updated_at)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
           [
@@ -78,7 +78,7 @@ async function resetTestPasswords() {
         const passwordHash = await hashPassword(user.password);
         
         await pool.query(
-          'UPDATE users SET password_hash = $1 WHERE username = $2',
+          'UPDATE users SET password = $1 WHERE username = $2',
           [passwordHash, user.username]
         );
         
