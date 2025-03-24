@@ -359,12 +359,12 @@ export default function AuthPage() {
             {/* Enhanced logo with subtle glow effect - increased size */}
             <div className="flex items-center justify-center mb-2 relative">
               {/* Adding a cyan glow effect for the high-tech dental look */}
-              <div className="absolute inset-0 rounded-full blur-xl bg-cyan-500/30"></div>
+              <div className="absolute inset-0 rounded-full blur-xl bg-primary/30"></div>
               <div className="logo-container">
                 <img 
                   src={dentaMindLogo} 
                   alt="DentaMind Logo" 
-                  className="h-44 w-auto drop-shadow-[0_0_20px_rgba(59,130,246,0.6)] relative z-10"
+                  className="h-52 w-auto drop-shadow-[0_0_20px_rgba(40,199,111,0.6)] relative z-10 animate-pulse-subtle"
                   style={{ backgroundColor: 'rgba(255, 255, 255, 0.25)', borderRadius: '50%', padding: '8px' }}
                 />
               </div>

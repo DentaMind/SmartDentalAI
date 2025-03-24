@@ -161,7 +161,7 @@ export function Sidebar() {
             <img 
               src="/src/assets/dentamind-logo-tooth.png" 
               alt="DentaMind Logo" 
-              className="h-10 w-10 animate-pulse-subtle hover:scale-110 transition-transform duration-300" 
+              className="h-12 w-12 animate-pulse-subtle hover:scale-110 transition-transform duration-300" 
             />
           </div>
           {!collapsed && (
