@@ -355,9 +355,9 @@ export default function AuthPage() {
             <div className="flex items-center justify-center mb-2 relative">
               {/* Adding a cyan glow effect for the high-tech dental look */}
               <div className="absolute inset-0 rounded-full blur-xl bg-cyan-500/30"></div>
-              <div className="animate-swing origin-top logo-container">
+              <div className="logo-container">
                 <img 
-                  src={dentaMindLogo} 
+                  src="/logo.png" 
                   alt="DentaMind Logo" 
                   className="h-44 w-auto drop-shadow-[0_0_20px_rgba(59,130,246,0.6)] relative z-10"
                   style={{ backgroundColor: 'rgba(255, 255, 255, 0.25)', borderRadius: '50%', padding: '8px' }}
@@ -386,7 +386,7 @@ export default function AuthPage() {
             {/* Improved image container with vibrant display - NO overlay to ensure bright teeth */}
             <div className="relative rounded-2xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.3)]">
               <img 
-                src={smileImage}
+                src="/smile.jpg"
                 alt="Beautiful dental smile" 
                 className="w-full h-[240px] object-cover brightness-125 contrast-110"
               />
