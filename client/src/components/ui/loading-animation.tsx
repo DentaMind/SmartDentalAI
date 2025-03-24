@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 // Import the DentaMind logo
-import dentaMindLogo from "../../assets/dentamind-logo.png";
+import dentaMindLogo from "../../assets/dentamind-logo-tooth.png";
 
 interface LoadingAnimationProps {
   className?: string;
@@ -35,12 +35,12 @@ export function LoadingAnimation({ className }: LoadingAnimationProps) {
     <div className={cn("flex flex-col items-center justify-center", className)}>
       <h1 className="text-2xl font-bold text-green-600 mb-4">DentaMind AI</h1>
       
-      {/* Single DentaMind logo with simpler animation */}
-      <div className="relative h-32 w-32 mb-6">
+      {/* DentaMind tooth logo with glow animation */}
+      <div className="relative h-36 w-36 mb-6">
         {/* Background glow effect */}
         <div className="absolute inset-0 rounded-full bg-green-500/20 blur-xl animate-pulse"></div>
         
-        {/* Logo - static, no swinging */}
+        {/* Logo with glowing effect */}
         <div style={{ 
           display: 'flex',
           justifyContent: 'center',
@@ -52,13 +52,12 @@ export function LoadingAnimation({ className }: LoadingAnimationProps) {
             src={dentaMindLogo} 
             alt="DentaMind Logo" 
             style={{ 
-              width: '110px', 
-              height: '110px', 
-              backgroundColor: 'rgba(255, 255, 255, 0.25)', 
-              borderRadius: '50%', 
-              padding: '8px',
-              boxShadow: '0 0 15px rgba(40, 199, 111, 0.6)'
+              width: '130px', 
+              height: '130px', 
+              padding: '5px',
+              filter: 'drop-shadow(0 0 8px rgba(255, 100, 50, 0.7))'
             }}
+            className="animate-pulse-subtle"
           />
         </div>
       </div>

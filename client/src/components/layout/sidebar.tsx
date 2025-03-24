@@ -158,9 +158,10 @@ export function Sidebar() {
           className="flex items-center gap-3 hover:opacity-90 transition-opacity cursor-pointer"
         >
           <div className="flex justify-center items-center h-12 w-12">
-            <CircuitToothIcon 
-              size={48} 
-              className="hover:scale-110 transition-transform duration-300" 
+            <img 
+              src="/src/assets/dentamind-logo-tooth.png" 
+              alt="DentaMind Logo" 
+              className="h-10 w-10 animate-pulse-subtle hover:scale-110 transition-transform duration-300" 
             />
           </div>
           {!collapsed && (

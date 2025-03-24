@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Redirect } from "wouter";
 // Import the logo directly to avoid potential issues
-import dentaMindLogo from "../assets/dentamind-logo.png"; // This import will use our updated logo file
+import dentaMindLogo from "../assets/dentamind-logo-tooth.png"; // Use the new tooth logo
 // Import smile images
 import dentalSmile from "../assets/dental-smile.jpg";
 import smileImage from "../assets/iStock-526222203.jpg";

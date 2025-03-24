@@ -103,13 +103,26 @@ export default {
         "orbit": {
           "0%": { transform: "rotate(0deg) translateX(50px) rotate(0deg)" },
           "100%": { transform: "rotate(360deg) translateX(50px) rotate(-360deg)" }
+        },
+        "pulse-subtle": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.9" }
+        },
+        "loading-progress": {
+          "0%": { width: "0%" },
+          "50%": { width: "60%" },
+          "75%": { width: "75%" },
+          "90%": { width: "90%" },
+          "100%": { width: "100%" }
         }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "swing": "swing 2s ease-in-out infinite",
-        "orbit": "orbit 8s linear infinite"
+        "orbit": "orbit 8s linear infinite",
+        "pulse-subtle": "pulse-subtle 3s ease-in-out infinite",
+        "loading-progress": "loading-progress 2.5s ease-in-out infinite"
       },
     },
   },

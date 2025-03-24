@@ -1,5 +1,5 @@
 import React from "react";
-import dentaMindLogo from "../assets/dentamind-logo.png";
+import dentaMindLogo from "../assets/dentamind-logo-tooth.png";
 
 interface LogoProps {
   className?: string;
@@ -19,12 +19,12 @@ export function DentaMindLogo({ className = "", size = "md", showText = true }: 
       <img 
         src={dentaMindLogo} 
         alt="DentaMind Logo" 
-        className={`${sizeMap[size]} object-contain`}
+        className={`${sizeMap[size]} object-contain animate-pulse-subtle`}
       />
       {showText && (
         <div className="ml-3">
-          <span className="font-bold text-cyan-500 text-xl tracking-wider">DentaMind</span>
-          <span className="block text-sm text-gray-500 font-medium">Advanced Dental Intelligence</span>
+          <span className="font-bold text-xl tracking-wider bg-gradient-to-r from-primary to-primary-600 bg-clip-text text-transparent">DentaMind</span>
+          <span className="block text-sm text-gray-500 font-medium">AI-Powered Dental Excellence</span>
         </div>
       )}
     </div>
