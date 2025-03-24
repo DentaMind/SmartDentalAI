@@ -33,40 +33,31 @@ export function LoadingAnimation({ className }: LoadingAnimationProps) {
   
   return (
     <div className={cn("flex flex-col items-center justify-center", className)}>
-      <h1 className="text-2xl font-bold text-green-600 mb-4">DentaMind AI</h1>
+      <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary-600 bg-clip-text text-transparent mb-4">DentaMind AI</h1>
       
       {/* DentaMind tooth logo with glow animation */}
       <div className="relative h-36 w-36 mb-6">
         {/* Background glow effect */}
-        <div className="absolute inset-0 rounded-full bg-green-500/20 blur-xl animate-pulse"></div>
+        <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-pulse"></div>
         
         {/* Logo with glowing effect */}
-        <div style={{ 
-          display: 'flex',
-          justifyContent: 'center',
-          width: '100%',
-          position: 'relative',
-          zIndex: 10
-        }}>
+        <div className="flex justify-center w-full relative z-10">
           <img 
             src={dentaMindLogo} 
             alt="DentaMind Logo" 
+            className="w-[130px] h-[130px] p-[5px] animate-pulse-subtle"
             style={{ 
-              width: '130px', 
-              height: '130px', 
-              padding: '5px',
-              filter: 'drop-shadow(0 0 8px rgba(255, 100, 50, 0.7))'
+              filter: 'drop-shadow(0 0 8px rgba(40, 199, 111, 0.7))'
             }}
-            className="animate-pulse-subtle"
           />
         </div>
       </div>
       
       {/* Loading text with DentaMind branding */}
-      <p className="text-lg font-medium text-green-700 mb-1">Loading DentaMind AI</p>
+      <p className="text-lg font-medium text-primary mb-1">Loading DentaMind AI</p>
       
       {/* Loading message that cycles with fade transition */}
-      <div className="relative text-sm text-green-600 opacity-80 h-5 text-center min-w-[220px] overflow-hidden">
+      <div className="relative text-sm text-primary opacity-80 h-5 text-center min-w-[220px] overflow-hidden">
         {loadingMessages.map((message, index) => (
           <div 
             key={index}
@@ -84,7 +75,7 @@ export function LoadingAnimation({ className }: LoadingAnimationProps) {
       
       {/* Loading progress bar */}
       <div className="w-48 h-1 bg-gray-200 rounded-full mt-4 overflow-hidden">
-        <div className="h-full bg-green-500 animate-loading-progress rounded-full"></div>
+        <div className="h-full bg-primary animate-loading-progress rounded-full"></div>
       </div>
     </div>
   );
