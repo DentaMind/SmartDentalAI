@@ -179,8 +179,37 @@ router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (r
 router.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res) => {
   try {
     const patient = await storage.getPatient(Number(req.params.id));
+    
+    if (!patient) {
+      return res.status(404).json({ message: "Patient not found" });
+    }
+    
+    // Make sure user property exists and has the right shape
+    if (!patient.user) {
+      // Create a minimal user object with required fields from schema
+      patient.user = {
+        id: patient.userId,
+        username: "patient",
+        firstName: "Unknown",
+        lastName: "Patient",
+        email: "unknown@example.com",
+        password: "[REDACTED]", // This will never be exposed to the client
+        role: "patient",
+        language: "en",
+        // Leave other fields as optional/nullable
+      };
+    }
+    
+    // Remove password from the response for security
+    if (patient.user) {
+      const userWithoutPassword = { ...patient.user };
+      delete (userWithoutPassword as any).password;
+      patient.user = userWithoutPassword;
+    }
+    
     res.json(patient);
   } catch (error) {
+    console.error("Error getting patient:", error);
     res.status(500).json({ message: error instanceof Error ? error.message : "Server error" });
   }
 });
@@ -196,16 +225,22 @@ router.get("/patients", requireAuth, async (req, res) => {
     const formattedPatients = patients.map(patient => {
       // Ensure user property exists and has the right shape
       if (!patient.user) {
+        // Create a minimal user object with required fields
         patient.user = {
           id: patient.userId,
+          username: "patient",
           firstName: "Unknown",
           lastName: "Patient",
-          email: "",
-          phoneNumber: "",
-          dateOfBirth: null,
-          username: "",
+          email: "unknown@example.com",
           role: "patient",
+          language: "en",
+          // Other fields remain undefined/null
         };
+      } else {
+        // Remove password from the response for security
+        const userWithoutPassword = { ...patient.user };
+        delete (userWithoutPassword as any).password;
+        patient.user = userWithoutPassword;
       }
       return patient;
     });
