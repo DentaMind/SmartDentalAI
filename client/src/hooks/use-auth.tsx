@@ -13,7 +13,7 @@ interface User {
   lastName: string;
   email: string;
   role: string;
-  specialization?: string;
+  specialization?: string | null;
 }
 
 interface AuthContextType {
@@ -43,7 +43,7 @@ interface RegisterData {
   firstName: string;
   lastName: string;
   role: string;
-  specialization?: string;
+  specialization?: string | null;
   licenseNumber?: string;
   // Added fields for provider subscription
   subscriptionPlan?: string;
