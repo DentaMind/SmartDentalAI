@@ -4,7 +4,7 @@ import axios from 'axios';
 // Create an axios instance with default configurations
 export const api = axios.create({
   baseURL: '/',
-  timeout: 30000,
+  timeout: 10000, // Reduced timeout to avoid long-running requests
   headers: {
     'Content-Type': 'application/json',
   },
@@ -50,28 +50,44 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Handle authentication errors globally
-    if (error.response && error.response.status === 401) {
-      // Only redirect if we're not already on the auth page and not in a redirect loop
-      if (!window.location.pathname.includes('/auth') && sessionStorage.getItem("inAuthPage") !== "true") {
-        console.log('Not authenticated, redirecting to auth page');
-        sessionStorage.setItem("inAuthPage", "true");
-        window.location.href = '/auth';
+    // Check if it's a valid axios error
+    if (axios.isAxiosError(error)) {
+      // Handle authentication errors globally
+      if (error.response && error.response.status === 401) {
+        // Only redirect if we're not already on the auth page and not in a redirect loop
+        if (!window.location.pathname.includes('/auth') && sessionStorage.getItem("inAuthPage") !== "true") {
+          console.log('Not authenticated, redirecting to auth page');
+          sessionStorage.setItem("inAuthPage", "true");
+          window.location.href = '/auth';
+        } else {
+          console.log('Already on auth page or redirecting prevented');
+        }
+      }
+      
+      // Handle timeout errors appropriately
+      if (error.code === 'ECONNABORTED') {
+        console.warn('API request timed out:', error.config?.url);
+      }
+      
+      // Create a standardized error message
+      const errorMessage = 
+        error.response?.data?.message || 
+        error.message || 
+        'An unknown error occurred';
+      
+      // Add the error message to the error object for more readable access
+      error.displayMessage = errorMessage;
+      
+      console.error('API Error:', errorMessage);
+    } else {
+      // Handle non-Axios errors
+      console.error('Non-Axios error occurred:', error);
+      if (error instanceof Error) {
+        error.displayMessage = error.message;
       } else {
-        console.log('Already on auth page or redirecting prevented');
+        error.displayMessage = 'Unknown error occurred';
       }
     }
-    
-    // Create a standardized error message
-    const errorMessage = 
-      error.response?.data?.message || 
-      error.message || 
-      'An unknown error occurred';
-    
-    // Add the error message to the error object
-    error.displayMessage = errorMessage;
-    
-    console.error('API Error:', errorMessage);
     
     return Promise.reject(error);
   }

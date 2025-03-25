@@ -216,9 +216,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshAuth = async () => {
     try {
       // For session-based auth, we just need to check if the session is still valid
+      console.log('Attempting to refresh authentication status');
       const response = await api.get('/user');
       
       if (response.status === 200) {
+        console.log('Authentication refreshed successfully');
         setUser(response.data);
         // Store updated user data
         localStorage.setItem('user', JSON.stringify(response.data));
@@ -226,14 +228,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return false;
     } catch (err: unknown) {
-      console.error('Auth refresh failed:', err);
-      // Only clear user data if the error is a 401 (unauthorized)
-      // This prevents clearing user data on network errors
-      if (isAxiosError(err) && err.response?.status === 401) {
-        console.log('Session expired or invalid, clearing user data');
-        localStorage.removeItem('user');
-        setUser(null);
+      // Handle timeout errors differently from auth errors
+      if (isAxiosError(err)) {
+        // Check for timeout error (ECONNABORTED is axios's timeout error code)
+        if ('code' in err && err.code === 'ECONNABORTED') {
+          console.warn('Auth refresh request timed out - maintaining previous auth state');
+          // On timeout, maintain previous auth state rather than clearing it
+          // This prevents logout on temporary server issues
+          return !!user; // Return true if we had a user, false otherwise
+        } else if (err.response?.status === 401) {
+          console.log('Session expired or invalid, clearing user data');
+          localStorage.removeItem('user');
+          setUser(null);
+          return false;
+        } else {
+          const errorMessage = 'message' in err ? err.message : 'Unknown error';
+          console.error('Auth refresh failed with error:', errorMessage);
+        }
+      } else {
+        console.error('Auth refresh failed with unknown error:', err);
       }
+      
+      // For network errors, maintain previous auth state but return false to indicate refresh failed
       return false;
     }
   };

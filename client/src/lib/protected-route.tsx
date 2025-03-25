@@ -21,9 +21,30 @@ export function ProtectedRoute({
     // Only attempt to refresh if we're on this route path and not already authenticated
     if (location === path && !user && !isLoading) {
       console.log(`[protected-route] Attempting to refresh authentication for path: ${path}`);
-      refreshAuth().catch(error => {
-        console.error("[protected-route] Auth refresh failed:", error);
-      });
+      
+      // Set a timeout for the auth refresh to prevent UI from being stuck
+      const timeoutId = setTimeout(() => {
+        console.warn("[protected-route] Authentication refresh timed out");
+        // If we have a stored user in localStorage, use it temporarily
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          console.log("[protected-route] Using stored user data while waiting for server response");
+        }
+      }, 3000); // 3 second timeout for visual feedback
+      
+      refreshAuth()
+        .then(success => {
+          clearTimeout(timeoutId);
+          if (success) {
+            console.log("[protected-route] Authentication refreshed successfully");
+          } else {
+            console.warn("[protected-route] Authentication refresh returned false");
+          }
+        })
+        .catch(error => {
+          clearTimeout(timeoutId);
+          console.error("[protected-route] Auth refresh failed:", error);
+        });
     }
   }, [path, location, user, isLoading, refreshAuth]);
 
