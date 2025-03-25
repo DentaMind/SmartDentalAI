@@ -17,7 +17,7 @@ import { setupEmailSchedulerRoutes } from './routes/email-scheduler-routes';
 import { EmailAIService } from './services/email-ai-service-fixed';
 import dicomRoutes from './routes/dicom-routes';
 import path from 'path';
-import { PatientMedicalHistory } from '../shared/schema';
+import { PatientMedicalHistory, User } from '../shared/schema';
 
 // Create OpenAI instance for diagnosis refinement
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY_DIAGNOSIS });
@@ -187,17 +187,19 @@ router.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res
     // Make sure user property exists and has the right shape
     if (!patient.user) {
       // Create a minimal user object with required fields from schema
+      // Create a minimal user object with required fields based on the schema
       patient.user = {
         id: patient.userId,
         username: "patient",
         firstName: "Unknown",
         lastName: "Patient",
         email: "unknown@example.com",
-        password: "[REDACTED]", // This will never be exposed to the client
         role: "patient",
         language: "en",
-        // Leave other fields as optional/nullable
-      };
+        password: "****",  // Include required fields from schema (will be removed before sending)
+        createdAt: new Date(),
+        updatedAt: new Date()
+      } as User;
     }
     
     // Remove password from the response for security
@@ -229,13 +231,15 @@ router.get("/patients", requireAuth, async (req, res) => {
         patient.user = {
           id: patient.userId,
           username: "patient",
-          firstName: "Unknown",
+          firstName: "Unknown", 
           lastName: "Patient",
           email: "unknown@example.com",
           role: "patient",
           language: "en",
-          // Other fields remain undefined/null
-        };
+          password: "****",
+          createdAt: new Date(),
+          updatedAt: new Date()
+        } as User;
       } else {
         // Remove password from the response for security
         const userWithoutPassword = { ...patient.user };
@@ -666,7 +670,7 @@ function generateFollowUpQuestions(symptoms: string, patientHistory?: string): a
 }
 
 // Generate confirmation questions for specific complaints
-function generateConfirmationQuestions(symptoms: string): any[] {
+function generateConfirmationQuestions(symptoms: string, patientHistory?: string): any[] {
   const symptomText = symptoms.toLowerCase();
   const questions = [];
   
