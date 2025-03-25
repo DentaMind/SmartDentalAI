@@ -35,7 +35,7 @@ interface User {
   firstName: string;
   lastName: string;
   role: string;
-  passwordHash: string;
+  password: string; // Changed from passwordHash to match the DB schema
   mfaSecret: string;
   mfaEnabled: boolean;
   specialization?: string;
@@ -110,12 +110,11 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentId++;
-    // Map password to passwordHash for the storage format
-    const { password, ...userDataWithoutPassword } = insertUser;
+    // Keep password in the password field for consistency with DB
     const user: User = {
       id,
-      ...userDataWithoutPassword,
-      passwordHash: password,
+      ...insertUser,
+      password: insertUser.password, // Use password directly
       mfaSecret: '',
       mfaEnabled: false,
       language: insertUser.language || "en",
