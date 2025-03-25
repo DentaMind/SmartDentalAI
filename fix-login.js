@@ -5,6 +5,7 @@ import { scrypt, randomBytes } from 'crypto';
 import { promisify } from 'util';
 import pg from 'pg';
 
+const { Pool } = pg;
 const scryptAsync = promisify(scrypt);
 
 async function hashPassword(password) {
@@ -49,7 +50,7 @@ async function addTestAdmin() {
       const passwordHash = await hashPassword(adminData.password);
       
       await pool.query(
-        'UPDATE users SET password_hash = $1 WHERE username = $2',
+        'UPDATE users SET password = $1 WHERE username = $2',
         [passwordHash, adminData.username]
       );
       
@@ -63,8 +64,8 @@ async function addTestAdmin() {
     // Insert the admin user
     const result = await pool.query(
       `INSERT INTO users 
-       (username, password_hash, email, first_name, last_name, role, phone_number, date_of_birth, specialization, license_number, mfa_secret, mfa_enabled, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+       (username, password, email, first_name, last_name, role, phone_number, date_of_birth, specialization, license_number)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING id`,
       [
         adminData.username,
@@ -76,11 +77,7 @@ async function addTestAdmin() {
         adminData.phoneNumber,
         adminData.dateOfBirth,
         adminData.specialization,
-        adminData.licenseNumber,
-        "", // mfa_secret
-        false, // mfa_enabled
-        new Date(), // created_at
-        new Date() // updated_at
+        adminData.licenseNumber
       ]
     );
     
@@ -96,7 +93,7 @@ async function addTestAdmin() {
       const passwordHash = await hashPassword(password);
       
       await pool.query(
-        'UPDATE users SET password_hash = $1 WHERE username = $2',
+        'UPDATE users SET password = $1 WHERE username = $2',
         [passwordHash, username]
       );
       
