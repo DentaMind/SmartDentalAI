@@ -28,21 +28,22 @@ import crypto from 'crypto';
 
 const MemoryStore = createMemoryStore(session);
 
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-  password: string; // Changed from passwordHash to match the DB schema
-  mfaSecret: string;
-  mfaEnabled: boolean;
-  specialization?: string;
-  licenseNumber?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+// Using the imported User type from schema.ts, not defining our own interface
+// interface User {
+//  id: number;
+//  username: string;
+//  email: string;
+//  firstName: string;
+//  lastName: string;
+//  role: string;
+//  password: string;
+//  mfaSecret: string;
+//  mfaEnabled: boolean;
+//  specialization?: string;
+//  licenseNumber?: string;
+//  createdAt: Date;
+//  updatedAt: Date;
+// }
 
 interface Notification {
   id: string;
@@ -110,22 +111,27 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentId++;
-    // Keep password in the password field for consistency with DB
-    const user: User = {
+    // Create a user object with the correct structure
+    const user = {
       id,
-      ...insertUser,
-      password: insertUser.password, // Use password directly
-      mfaSecret: '',
-      mfaEnabled: false,
-      language: insertUser.language || "en",
+      username: insertUser.username,
+      password: insertUser.password, // Use password directly for storage
+      email: insertUser.email || '',
+      firstName: insertUser.firstName || '',
+      lastName: insertUser.lastName || '',
+      role: insertUser.role,
+      language: insertUser.language || 'en',
       phoneNumber: insertUser.phoneNumber || null,
       dateOfBirth: insertUser.dateOfBirth || null,
       insuranceProvider: insertUser.insuranceProvider || null,
       insuranceNumber: insertUser.insuranceNumber || null,
       specialization: insertUser.specialization || null,
       licenseNumber: insertUser.licenseNumber || null,
+      mfaSecret: '',
+      mfaEnabled: false,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      metadata: {}
     };
     this.users.set(id, user);
     return user;
