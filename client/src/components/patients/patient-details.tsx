@@ -1,4 +1,4 @@
-import { Patient, User } from "@shared/schema";
+import { Patient } from "@shared/schema";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import {
@@ -18,8 +18,23 @@ import { Button } from "@/components/ui/button";
 import { ArrowUpRight } from "lucide-react";
 import { SymptomPredictor } from "@/components/ai/symptom-predictor";
 
+// Define a simplified user type compatible with what comes from the server
+type UserInfo = {
+  id: number;
+  username: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string | null;
+  dateOfBirth?: string | null;
+  role: string;
+  language?: string;
+  insuranceProvider?: string | null;
+  insuranceNumber?: string | null;
+};
+
 interface PatientDetailsProps {
-  patient: Patient & { user: User };
+  patient: Patient & { user: UserInfo };
   isOpen: boolean;
   onClose: () => void;
 }

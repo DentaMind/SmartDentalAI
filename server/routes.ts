@@ -186,9 +186,7 @@ router.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res
     
     // Make sure user property exists and has the right shape
     if (!patient.user) {
-      // Create a minimal user object with required fields from schema
-      // Create a minimal user object with required fields based on the schema
-      // Use unknown cast to avoid type conflicts between schema and storage definitions
+      // Create a minimal user object with required fields
       patient.user = {
         id: patient.userId,
         username: "patient",
@@ -197,20 +195,27 @@ router.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res
         email: "unknown@example.com",
         role: "patient",
         language: "en",
-        // Fields needed for User type in storage.ts
-        passwordHash: "[REDACTED]",
-        mfaSecret: "",
-        mfaEnabled: false,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      } as unknown as User;
-    }
-    
-    // Remove password from the response for security
-    if (patient.user) {
-      const userWithoutPassword = { ...patient.user };
-      delete (userWithoutPassword as any).password;
-      patient.user = userWithoutPassword;
+        phoneNumber: null,
+        dateOfBirth: null,
+        insuranceProvider: null,
+        insuranceNumber: null
+      };
+    } else {
+      // Extract only the properties needed by the frontend
+      const simplifiedUser = {
+        id: patient.user.id,
+        username: patient.user.username,
+        firstName: patient.user.firstName,
+        lastName: patient.user.lastName,
+        email: patient.user.email,
+        role: patient.user.role,
+        language: patient.user.language,
+        phoneNumber: patient.user.phoneNumber,
+        dateOfBirth: patient.user.dateOfBirth,
+        insuranceProvider: patient.user.insuranceProvider,
+        insuranceNumber: patient.user.insuranceNumber
+      };
+      patient.user = simplifiedUser;
     }
     
     res.json(patient);
@@ -232,7 +237,6 @@ router.get("/patients", requireAuth, async (req, res) => {
       // Ensure user property exists and has the right shape
       if (!patient.user) {
         // Create a minimal user object with required fields
-        // Use unknown cast to avoid type conflicts between schema and storage definitions
         patient.user = {
           id: patient.userId,
           username: "patient",
@@ -241,18 +245,27 @@ router.get("/patients", requireAuth, async (req, res) => {
           email: "unknown@example.com",
           role: "patient",
           language: "en",
-          // Fields needed for User type in storage.ts
-          passwordHash: "[REDACTED]",
-          mfaSecret: "",
-          mfaEnabled: false,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        } as unknown as User;
+          phoneNumber: null,
+          dateOfBirth: null,
+          insuranceProvider: null,
+          insuranceNumber: null
+        };
       } else {
-        // Remove password from the response for security
-        const userWithoutPassword = { ...patient.user };
-        delete (userWithoutPassword as any).password;
-        patient.user = userWithoutPassword;
+        // Extract only the properties needed by the frontend
+        const simplifiedUser = {
+          id: patient.user.id,
+          username: patient.user.username,
+          firstName: patient.user.firstName,
+          lastName: patient.user.lastName,
+          email: patient.user.email,
+          role: patient.user.role,
+          language: patient.user.language,
+          phoneNumber: patient.user.phoneNumber,
+          dateOfBirth: patient.user.dateOfBirth,
+          insuranceProvider: patient.user.insuranceProvider,
+          insuranceNumber: patient.user.insuranceNumber
+        };
+        patient.user = simplifiedUser;
       }
       return patient;
     });

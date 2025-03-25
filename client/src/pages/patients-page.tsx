@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Patient, User } from "@shared/schema";
+import { Patient } from "@shared/schema";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
@@ -27,9 +27,24 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 
+// Define a simplified user type compatible with what comes from the server
+type UserInfo = {
+  id: number;
+  username: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string | null;
+  dateOfBirth?: string | null;
+  role: string;
+  language?: string;
+  insuranceProvider?: string | null;
+  insuranceNumber?: string | null;
+};
+
 // Extended type to include user information
 type PatientWithUser = Patient & {
-  user: User;
+  user: UserInfo;
 };
 
 export default function PatientsPage() {
