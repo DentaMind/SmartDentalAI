@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Eye, UserRound, Calendar, AlertCircle, ExternalLink } from "lucide-react";
+import { Plus, Eye, UserRound, Calendar, AlertCircle, ExternalLink, ArrowUpRight } from "lucide-react";
 import {
   Dialog,
   DialogContent,

@@ -191,8 +191,27 @@ router.get("/patients", requireAuth, async (req, res) => {
     console.log("Getting all patients...");
     const patients = await storage.getAllPatients();
     console.log("Patient count:", patients.length);
-    console.log("Patients:", JSON.stringify(patients, null, 2));
-    res.json(patients);
+    
+    // Make sure patients data is properly formatted for the frontend
+    const formattedPatients = patients.map(patient => {
+      // Ensure user property exists and has the right shape
+      if (!patient.user) {
+        patient.user = {
+          id: patient.userId,
+          firstName: "Unknown",
+          lastName: "Patient",
+          email: "",
+          phoneNumber: "",
+          dateOfBirth: null,
+          username: "",
+          role: "patient",
+        };
+      }
+      return patient;
+    });
+    
+    console.log("Formatted patients data ready to send");
+    res.json(formattedPatients);
   } catch (error) {
     console.error("Error getting all patients:", error);
     res.status(500).json({ message: "Failed to get patients" });
