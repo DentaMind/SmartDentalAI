@@ -188,6 +188,7 @@ router.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res
     if (!patient.user) {
       // Create a minimal user object with required fields from schema
       // Create a minimal user object with required fields based on the schema
+      // Use unknown cast to avoid type conflicts between schema and storage definitions
       patient.user = {
         id: patient.userId,
         username: "patient",
@@ -196,10 +197,13 @@ router.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res
         email: "unknown@example.com",
         role: "patient",
         language: "en",
-        password: "****",  // Include required fields from schema (will be removed before sending)
+        // Fields needed for User type in storage.ts
+        passwordHash: "[REDACTED]",
+        mfaSecret: "",
+        mfaEnabled: false,
         createdAt: new Date(),
         updatedAt: new Date()
-      } as User;
+      } as unknown as User;
     }
     
     // Remove password from the response for security
@@ -228,6 +232,7 @@ router.get("/patients", requireAuth, async (req, res) => {
       // Ensure user property exists and has the right shape
       if (!patient.user) {
         // Create a minimal user object with required fields
+        // Use unknown cast to avoid type conflicts between schema and storage definitions
         patient.user = {
           id: patient.userId,
           username: "patient",
@@ -236,10 +241,13 @@ router.get("/patients", requireAuth, async (req, res) => {
           email: "unknown@example.com",
           role: "patient",
           language: "en",
-          password: "****",
+          // Fields needed for User type in storage.ts
+          passwordHash: "[REDACTED]",
+          mfaSecret: "",
+          mfaEnabled: false,
           createdAt: new Date(),
           updatedAt: new Date()
-        } as User;
+        } as unknown as User;
       } else {
         // Remove password from the response for security
         const userWithoutPassword = { ...patient.user };
@@ -407,7 +415,7 @@ router.post("/ai/diagnosis", requireAuth, async (req, res) => {
     // Generate appropriate follow-up questions based on the complaint type
     const followUpQuestions = isVagueComplaint 
       ? generateFollowUpQuestions(symptoms, patientHistory)
-      : generateConfirmationQuestions(symptoms);
+      : generateConfirmationQuestions(symptoms, patientHistory);
     
     // Use the aiCoordinator to analyze the diagnosis
     let diagnosis = await aiCoordinator.analyzeDiagnosis(
