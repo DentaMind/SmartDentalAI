@@ -32,6 +32,7 @@ import XRayComparisonTestPage from "@/pages/xray-comparison-test";
 import FormPage from "@/pages/form-page";
 import FormSubmittedPage from "@/pages/form-submitted-page";
 import LabsSuppliesPage from "@/pages/labs-supplies-page";
+import DebugAuthPage from "@/pages/debug-auth";
 
 // Lazy-loaded components
 const AIHub = lazy(() => import('./pages/ai-hub'));
@@ -65,6 +66,7 @@ function Router() {
         <Route path="/auth" component={AuthPage} />
         <Route path="/auth/signup" component={AuthPage} />
         <Route path="/auth/subscription" component={SubscriptionPageWrapper} />
+        <Route path="/debug-auth" component={DebugAuthPage} />
         <Route path="/form/:formToken" component={FormPage} />
         <Route path="/form-submitted" component={FormSubmittedPage} />
         <ProtectedRoute path="/" component={AppointmentsPage} />
