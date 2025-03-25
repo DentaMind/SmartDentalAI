@@ -16,7 +16,7 @@ type AuthUser = {
   lastName: string;
   email: string;
   role: string;
-  specialization?: string | null;
+  specialization: string | null;
 };
 
 // Extend Express User interface for TypeScript type checking
@@ -88,8 +88,8 @@ export function setupAuth(router: express.Router) {
           lastName: user.lastName,
           email: user.email,
           role: user.role,
-          // Only include specialization if it exists in the user object
-          ...(user.specialization && { specialization: user.specialization }),
+          // Handle specialization properly - it may not exist in the user object schema
+          specialization: user.specialization || null,
         };
 
         return done(null, authUser);
@@ -121,8 +121,8 @@ export function setupAuth(router: express.Router) {
         lastName: user.lastName || '',
         email: user.email || '',
         role: user.role,
-        // Only include specialization if it exists in the user object
-        ...(user.specialization && { specialization: user.specialization }),
+        // Handle specialization properly - it may not exist in the user object schema
+        specialization: null,
       };
       
       done(null, authUser);
@@ -228,8 +228,8 @@ export function setupAuth(router: express.Router) {
         lastName: user.lastName,
         email: user.email,
         role: user.role,
-        // Only include specialization if it exists in the user object
-        ...(user.specialization && { specialization: user.specialization }),
+        // Handle specialization properly - it may not exist in the user object schema
+        specialization: null,
       };
 
       req.login(authUser, (err) => {

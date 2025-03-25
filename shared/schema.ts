@@ -89,6 +89,7 @@ export const users = pgTable("users", {
   dateOfBirth: text("date_of_birth"),
   insuranceProvider: text("insurance_provider"),
   insuranceNumber: text("insurance_number"),
+  specialization: text("specialization"),   // Doctor's specialty
   licenseNumber: text("license_number"),
   officeName: text("office_name"),     // Added for practice letterhead
   officeEmail: text("office_email"),   // Added for practice letterhead
