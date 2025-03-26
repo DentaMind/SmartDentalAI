@@ -36,6 +36,10 @@ export const ReminderTimeframe = z.enum(['24h', '48h', '1week']);
 export const ReminderPriority = z.enum(['low', 'medium', 'high']);
 export const ReminderMethod = z.enum(['email', 'sms', 'both']);
 
+// Training and Certification Enums
+export const CertificationType = z.enum(['hipaa', 'osha', 'ada', 'cpr', 'infection_control', 'emergency_protocols', 'custom']);
+export const CertificationStatus = z.enum(['not_started', 'in_progress', 'completed', 'expired']);
+
 // Schema for a single reminder type configuration
 export const reminderTypeSchema = z.object({
   timeframe: ReminderTimeframe,
