@@ -1,0 +1,195 @@
+import React, { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import jsPDF from "jspdf";
+
+const assistantModules = [
+  // Existing modules...
+  {
+    title: "ADA Patient Rights & Accessibility (Dental)",
+    description: "Required training for dental professionals to ensure equal treatment, communication access, and physical accommodations for all patients, in accordance with ADA and ADEA standards.",
+    steps: [
+      "Treat all patients with dignity, respect, and without discrimination.",
+      "Ensure your practice is physically accessible — ramps, elevators, wide doors, accessible restrooms.",
+      "Use respectful language when referring to people with disabilities.",
+      "Offer alternate communication methods (writing, typing, sign interpreter) if a patient is hearing/speech impaired.",
+      "Be prepared to assist patients who use wheelchairs or mobility aids without making them feel singled out.",
+      "Do not delay or deny care due to a patient’s disability — this is illegal and unethical.",
+      "Comply with the ADEA's emphasis on access to care and non-discrimination in education and treatment."
+    ],
+    image: "/images/ada_accessibility.png",
+    quiz: [
+      {
+        question: "What does the ADA require regarding disabled patients?",
+        options: ["Charge more", "Offer faster appointments", "Equal access and no discrimination", "Separate waiting areas"],
+        answer: "Equal access and no discrimination"
+      },
+      {
+        question: "Which of the following is a required physical accommodation?",
+        options: ["TV in lobby", "Wheelchair ramps and accessible restrooms", "Longer counters", "Curtains at every door"],
+        answer: "Wheelchair ramps and accessible restrooms"
+      },
+      {
+        question: "What’s the best way to speak to a patient who is hearing impaired?",
+        options: ["Yell", "Ignore them", "Use writing or offer a sign interpreter", "Talk to their caregiver only"],
+        answer: "Use writing or offer a sign interpreter"
+      },
+      {
+        question: "When assisting someone in a wheelchair, what’s important?",
+        options: ["Lift without asking", "Use jokes", "Offer assistance respectfully and don’t grab their chair", "Move them quickly"],
+        answer: "Offer assistance respectfully and don’t grab their chair"
+      },
+      {
+        question: "Which law protects patients from being refused care due to disability?",
+        options: ["HIPAA", "OSHA", "Americans with Disabilities Act (ADA)", "EPA"],
+        answer: "Americans with Disabilities Act (ADA)"
+      },
+      {
+        question: "What principle does ADEA promote for dental teams?",
+        options: ["Maximize production", "Avoid talking to patients", "Educational equity and access to care", "Charge by condition"],
+        answer: "Educational equity and access to care"
+      },
+      {
+        question: "Can a front desk deny scheduling due to a patient’s disability?",
+        options: ["Yes, if busy", "Only if it’s a physical issue", "No, it’s illegal", "Sometimes"],
+        answer: "No, it’s illegal"
+      },
+      {
+        question: "If a patient needs a longer appointment due to disability, what should staff do?",
+        options: ["Charge more", "Reschedule often", "Deny care", "Accommodate and schedule accordingly"],
+        answer: "Accommodate and schedule accordingly"
+      },
+      {
+        question: "What does respectful language mean?",
+        options: ["Say 'they're wheelchair-bound'", "Say 'the handicapped'", "Say 'a person who uses a wheelchair'", "Avoid talking to them"],
+        answer: "Say 'a person who uses a wheelchair'"
+      },
+      {
+        question: "When must ADA compliance be re-trained?",
+        options: ["Every 5 years", "Only for new hires", "Annually or when laws are updated", "Never"],
+        answer: "Annually or when laws are updated"
+      }
+    ]
+  }
+];
+
+export default function AssistantTab() {
+  const [quizResults, setQuizResults] = useState({});
+  const [certified, setCertified] = useState({ hipaa: false, osha: false, ada: false });
+
+  const handleQuizSubmit = (title, score) => {
+    setQuizResults(prev => ({ ...prev, [title]: score }));
+    if (title.includes("HIPAA") && score >= 90) setCertified(prev => ({ ...prev, hipaa: true }));
+    if (title.includes("OSHA") && score >= 90) setCertified(prev => ({ ...prev, osha: true }));
+    if (title.includes("ADA") && score >= 90) setCertified(prev => ({ ...prev, ada: true }));
+  };
+
+  const generateCertificate = (type) => {
+    const doc = new jsPDF();
+    const today = new Date().toLocaleDateString();
+    doc.setFontSize(20);
+    doc.text(`${type} Compliance Certificate`, 20, 30);
+    doc.setFontSize(14);
+    doc.text(`This certifies that ___________________`, 20, 50);
+    doc.text(`has successfully completed ${type} compliance training`, 20, 60);
+    doc.text(`in accordance with ADA, ADEA, and federal standards.`, 20, 70);
+    doc.text(`Date: ${today}`, 20, 90);
+    doc.text("Issued by: DentaMind Training Platform", 20, 100);
+    doc.save(`${type}_Certificate.pdf`);
+  };
+
+  return (
+    <div className="p-6 grid gap-6">
+      {assistantModules.map((module, idx) => (
+        <Card key={idx} className="p-4 rounded-2xl shadow">
+          <h2 className="text-xl font-bold mb-2">{module.title}</h2>
+          <p className="mb-4">{module.description}</p>
+          <img src={module.image} alt={module.title} className="mb-4 w-full max-w-md rounded" />
+          <ul className="list-disc ml-6 mb-4">
+            {module.steps.map((step, i) => (
+              <li key={i}>{step}</li>
+            ))}
+          </ul>
+          <Quiz 
+            module={module.title} 
+            questions={module.quiz} 
+            onSubmit={handleQuizSubmit} 
+          />
+          {quizResults[module.title] >= 90 && (
+            <p className="text-green-600 font-semibold mt-2">✅ Passed with {quizResults[module.title]}%</p>
+          )}
+        </Card>
+      ))}
+
+      {certified.hipaa && (
+        <Card className="p-4 mt-4 text-center shadow-md rounded-xl">
+          <h3 className="text-lg font-semibold mb-2">HIPAA Certificate Ready</h3>
+          <Button onClick={() => generateCertificate("HIPAA")}>Download HIPAA Certificate</Button>
+        </Card>
+      )}
+
+      {certified.osha && (
+        <Card className="p-4 mt-4 text-center shadow-md rounded-xl">
+          <h3 className="text-lg font-semibold mb-2">OSHA Certificate Ready</h3>
+          <Button onClick={() => generateCertificate("OSHA")}>Download OSHA Certificate</Button>
+        </Card>
+      )}
+
+      {certified.ada && (
+        <Card className="p-4 mt-4 text-center shadow-md rounded-xl">
+          <h3 className="text-lg font-semibold mb-2">ADA Certificate Ready</h3>
+          <Button onClick={() => generateCertificate("ADA")}>Download ADA Certificate</Button>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function Quiz({ module, questions, onSubmit }) {
+  const [answers, setAnswers] = useState({});
+  const [submitted, setSubmitted] = useState(false);
+  const [score, setScore] = useState(null);
+
+  const handleChange = (qIndex, value) => {
+    setAnswers(prev => ({ ...prev, [qIndex]: value }));
+  };
+
+  const handleSubmit = () => {
+    let correct = 0;
+    questions.forEach((q, i) => {
+      if (answers[i] === q.answer) correct++;
+    });
+    const result = Math.round((correct / questions.length) * 100);
+    setScore(result);
+    setSubmitted(true);
+    onSubmit(module, result);
+  };
+
+  return (
+    <div className="mt-6">
+      <h3 className="font-semibold text-lg mb-2">Quiz</h3>
+      {questions.map((q, i) => (
+        <div key={i} className="mb-4">
+          <p className="mb-1 font-medium">{i + 1}. {q.question}</p>
+          {q.options.map((opt, j) => (
+            <label key={j} className="block">
+              <input
+                type="radio"
+                name={`q-${module}-${i}`}
+                value={opt}
+                onChange={() => handleChange(i, opt)}
+                disabled={submitted}
+              /> {opt}
+            </label>
+          ))}
+        </div>
+      ))}
+      {!submitted && (
+        <Button onClick={handleSubmit}>Submit Quiz</Button>
+      )}
+      {submitted && (
+        <p className="mt-2 font-semibold">Score: {score}%</p>
+      )}
+    </div>
+  );
+}
