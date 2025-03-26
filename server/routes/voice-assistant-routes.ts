@@ -1,127 +1,171 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { z } from 'zod';
-import { OpenAI } from 'openai';
+import { requireAuth, requireRole } from '../middleware/auth';
+import { aiServiceManager } from '../services/ai-service-manager';
 import { AIServiceType } from '../services/ai-service-types';
+import { storage } from '../storage';
+import { log } from '../vite';
 
-// Schema for voice transcript processing
-const voiceProcessSchema = z.object({
-  transcript: z.string(),
-  context: z.enum(['patient_notes', 'prescription', 'treatment_plan', 'general']).optional().default('general'),
-  patientInfo: z.object({
-    id: z.number(),
-    name: z.string(),
-    age: z.number().optional(),
-    gender: z.string().optional(),
-  }).optional(),
-});
-
-// Set up the router
 const router = express.Router();
 
-// Configure OpenAI with the key from environment
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY_TREATMENT || '',
+// Schema for transcript processing
+const transcriptSchema = z.object({
+  transcript: z.string().min(1, "Transcript is required"),
+  patientId: z.number().int().positive("Valid patient ID is required"),
+  category: z.string().optional(),
+  addContextFromNotes: z.boolean().optional().default(false),
 });
 
 /**
- * Process speech transcript with AI
- * Uses OpenAI to analyze speech and extract structured data or insights
+ * @route POST /api/voice-assistant/process
+ * @desc Process a voice transcript using AI to enhance and structure the note
+ * @access Private
  */
-router.post('/process-speech', async (req, res) => {
+router.post('/process', requireAuth, async (req: Request, res: Response) => {
   try {
     // Validate the request body
-    const validatedData = voiceProcessSchema.parse(req.body);
-    const { transcript, context, patientInfo } = validatedData;
+    const result = transcriptSchema.safeParse(req.body);
     
-    // Skip empty transcripts
-    if (!transcript || transcript.trim() === '') {
+    if (!result.success) {
       return res.status(400).json({
-        success: false,
-        error: 'Empty transcript provided'
+        message: 'Invalid request data',
+        errors: result.error.format()
       });
     }
     
-    // Configure prompt based on context
-    let systemPrompt = `You are an AI assistant for dental professionals using the DentaMind platform. `;
+    const { transcript, patientId, category, addContextFromNotes } = result.data;
     
-    switch (context) {
-      case 'patient_notes':
-        systemPrompt += `Extract relevant clinical information from the dentist's dictation and format it as a clean, professional clinical note. Include only factual information mentioned by the dentist. Format using appropriate clinical sections.`;
-        break;
-        
-      case 'prescription':
-        systemPrompt += `Extract prescription details from the dentist's dictation. Identify medication name, dosage, frequency, duration, and special instructions. Format as a structured prescription.`;
-        break;
-        
-      case 'treatment_plan':
-        systemPrompt += `Extract treatment plan details from the dentist's dictation. Identify procedures, sequence, estimates, and recommendations. Format as a structured treatment plan with clear steps.`;
-        break;
-        
-      default:
-        systemPrompt += `Analyze the dentist's speech and provide helpful insights or actions based on what was said. Respond in a professional, concise manner.`;
-    }
+    // Log the request for audit purposes
+    log(`Voice assistant processing request for patient ${patientId}`, 'voice-assistant');
     
-    // If patient info is provided, add it to the prompt
-    if (patientInfo) {
-      systemPrompt += `\n\nThis is regarding patient: ${patientInfo.name}`;
-      if (patientInfo.age) systemPrompt += `, ${patientInfo.age} years old`;
-      if (patientInfo.gender) systemPrompt += `, ${patientInfo.gender}`;
-    }
-    
-    // Call OpenAI API to process the transcript
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o", // Use the latest available model
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt
-        },
-        {
-          role: "user",
-          content: transcript
+    // Get context from previous notes if requested
+    let contextData = "";
+    if (addContextFromNotes) {
+      try {
+        const recentNotes = await storage.getPatientMedicalNotes(patientId, req.user?.role || '');
+        if (recentNotes && recentNotes.length > 0) {
+          // Use the most recent 3 notes for context
+          const relevantNotes = recentNotes
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, 3);
+            
+          contextData = "Previous notes context:\n" + 
+            relevantNotes.map(note => 
+              `[${new Date(note.createdAt).toLocaleDateString()}] ${note.content.substring(0, 200)}...`
+            ).join("\n\n");
         }
-      ],
-      max_tokens: 500,
-      temperature: 0.2, // Low temperature for more deterministic responses
-    });
-    
-    // Extract the response text
-    const result = completion.choices[0]?.message?.content || 'No response generated';
-    
-    return res.json({
-      success: true,
-      result,
-      context,
-      transcript,
-    });
-  } catch (error: any) {
-    console.error('Error processing voice transcript:', error);
-    
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid request data',
-        details: error.errors
-      });
+      } catch (error) {
+        log(`Error fetching context notes: ${error}`, 'voice-assistant');
+        // Continue without context if there's an error
+      }
     }
     
-    // Handle OpenAI API errors
-    if (error.response) {
-      return res.status(500).json({
-        success: false,
-        error: 'AI processing error',
-        details: error.response.data
-      });
+    // Get patient information for better AI context
+    let patientContext = "";
+    try {
+      const patient = await storage.getPatient(patientId);
+      if (patient) {
+        patientContext = `Patient Information:\n- Name: ${patient.firstName} ${patient.lastName}\n- ID: ${patientId}`;
+        
+        if (patient.medicalHistory) {
+          patientContext += `\n- Medical History Highlights: ${
+            typeof patient.medicalHistory === 'string' 
+              ? patient.medicalHistory.substring(0, 200) 
+              : JSON.stringify(patient.medicalHistory).substring(0, 200)
+          }`;
+        }
+      }
+    } catch (error) {
+      log(`Error fetching patient context: ${error}`, 'voice-assistant');
+      // Continue without patient context if there's an error
     }
     
-    // Generic error handler
+    // Build the prompt for the AI
+    const promptTemplate = `
+    You are a dental professional assistant helping with clinical note creation. 
+    Please take the following voice transcript and transform it into a well-structured, 
+    professional clinical note in the ${category || 'general'} category.
+    
+    ${patientContext}
+    
+    ${contextData ? contextData + "\n\n" : ""}
+    
+    VOICE TRANSCRIPT:
+    "${transcript}"
+    
+    Instructions:
+    1. Format this into a complete, professional note using proper dental terminology
+    2. Organize information into logical sections (examination, treatment, recommendations, etc.)
+    3. Correct any dictation errors or mistranscribed dental terms
+    4. Use proper syntax and complete sentences
+    5. Expand abbreviations where appropriate
+    6. Add proper structure and formatting
+    
+    Respond only with the completed note text, no explanations or additional commentary.
+    `;
+    
+    // Process with AI
+    let enhancedTranscript;
+    try {
+      if (category === 'treatment' || category === 'procedure') {
+        enhancedTranscript = await aiServiceManager.generateTreatmentNote(promptTemplate);
+      } else {
+        enhancedTranscript = await aiServiceManager.generateDiagnosis(promptTemplate);
+      }
+      
+      // Ensure we got a valid response
+      if (!enhancedTranscript || typeof enhancedTranscript !== 'string') {
+        log(`Invalid AI response for voice transcript processing`, 'voice-assistant');
+        throw new Error('Invalid AI response format');
+      }
+      
+      return res.json({
+        success: true,
+        enhancedTranscript: enhancedTranscript.trim(),
+        category: category || 'general',
+      });
+    } catch (error) {
+      log(`Error processing transcript with AI: ${error}`, 'voice-assistant');
+      
+      // Fall back to the original transcript
+      return res.status(200).json({
+        success: false,
+        message: 'Failed to enhance with AI, using original transcript',
+        enhancedTranscript: transcript,
+        category: category || 'general',
+      });
+    }
+  } catch (error) {
+    log(`Voice assistant processing error: ${error}`, 'voice-assistant');
     return res.status(500).json({
-      success: false,
-      error: 'Failed to process voice transcript',
-      message: error.message || 'Unknown error'
+      message: 'Failed to process voice transcript',
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
-export default router;
+/**
+ * @route GET /api/voice-assistant/status
+ * @desc Check status of voice assistant service
+ * @access Private
+ */
+router.get('/status', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const serviceStatus = {
+      available: true,
+      aiIntegration: true,
+      speechRecognitionSupported: true, // This is checked client-side
+      enhancementAvailable: true
+    };
+    
+    return res.json(serviceStatus);
+  } catch (error) {
+    log(`Voice assistant status check error: ${error}`, 'voice-assistant');
+    return res.status(500).json({ message: 'Error checking service status' });
+  }
+});
+
+export function setupVoiceAssistantRoutes(app: express.Express) {
+  app.use('/api/voice-assistant', router);
+  log('Voice assistant routes initialized', 'setup');
+}

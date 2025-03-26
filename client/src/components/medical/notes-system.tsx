@@ -54,8 +54,18 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Pencil, Check, FileText, Clock, AlertCircle, Search, Mic, Download } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Pencil, Check, FileText, Clock, AlertCircle, Search, Mic, Download, Sparkles } from 'lucide-react';
 import { AiTreatmentNoteGenerator } from './ai-treatment-note-generator';
+import { VoiceAssistant } from '@/components/advanced/voice-assistant/voice-assistant';
 
 // Define schema for the note form
 const noteFormSchema = z.object({

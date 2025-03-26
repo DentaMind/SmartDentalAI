@@ -18,6 +18,7 @@ import { setupCertificationRoutes } from './routes/certification-routes';
 import { setupEmailAIRoutes } from './routes/email-ai-routes';
 import { setupEmailReaderRoutes } from './routes/email-reader-routes-fixed';
 import { setupEmailSchedulerRoutes } from './routes/email-scheduler-routes';
+import { setupVoiceAssistantRoutes } from './routes/voice-assistant-routes';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -172,6 +173,8 @@ app.use("/api", certificationRouter);
 app.use("/api", setupEmailAIRoutes(express.Router()));
 app.use("/api", setupEmailReaderRoutes(express.Router()));
 app.use("/api", setupEmailSchedulerRoutes(express.Router(), storage));
+// Setup voice assistant routes
+setupVoiceAssistantRoutes(app);
 
 // Add a route for static demo version
 app.get('/static', (req, res) => {

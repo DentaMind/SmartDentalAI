@@ -1,425 +1,349 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Mic, MicOff, Volume2, StopCircle, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Mic, MicOff, Loader2, Check, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { apiRequest } from '@/lib/queryClient';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 
-type VoiceAssistantProps = {
-  onTranscriptComplete?: (transcript: string) => void;
-  context?: 'patient_notes' | 'prescription' | 'treatment_plan' | 'general';
-  patientInfo?: {
-    id: number;
-    name: string;
-    age?: number;
-    gender?: string;
-  };
+interface VoiceAssistantProps {
+  onTranscriptGenerated: (transcript: string) => void;
+  patientId: number;
+  disabled?: boolean;
+  category?: string;
+  addContextFromNotes?: boolean;
 }
 
-type VoiceCommand = {
-  trigger: string;
-  action: 'create_note' | 'check_schedule' | 'add_prescription' | 'check_patient_history' | 'template' | 'other';
-  description: string;
-  template?: string;
-  requires_confirmation?: boolean;
-}
-
-const VOICE_COMMANDS: VoiceCommand[] = [
-  {
-    trigger: 'create note',
-    action: 'create_note',
-    description: 'Creates a new clinical note',
-  },
-  {
-    trigger: 'schedule for',
-    action: 'check_schedule',
-    description: 'Shows schedule for a specific date',
-  },
-  {
-    trigger: 'add prescription',
-    action: 'add_prescription',
-    description: 'Adds a prescription',
-  },
-  {
-    trigger: 'patient history',
-    action: 'check_patient_history',
-    description: 'Shows patient history',
-  },
-  {
-    trigger: 'template soap',
-    action: 'template',
-    description: 'Uses SOAP note template',
-    template: 'Subjective:\n\nObjective:\n\nAssessment:\n\nPlan:\n',
-  },
-  {
-    trigger: 'template procedure',
-    action: 'template',
-    description: 'Uses procedure note template',
-    template: 'Procedure: \nAnesthesia: \nIsolation: \nMaterials: \nFindings: \nPostoperative Instructions: ',
-  }
-];
-
-/**
- * Voice Assistant component for hands-free operation
- * 
- * This component provides a voice interface for providers to create notes,
- * check schedules, add prescriptions, and more, all hands-free.
- */
-export function VoiceAssistant({ onTranscriptComplete, context = 'general', patientInfo }: VoiceAssistantProps) {
+export function VoiceAssistant({
+  onTranscriptGenerated,
+  patientId,
+  disabled = false,
+  category = 'general',
+  addContextFromNotes = false,
+}: VoiceAssistantProps) {
+  const { toast } = useToast();
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const [processing, setProcessing] = useState(false);
-  const [lastCommand, setLastCommand] = useState<VoiceCommand | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [aiResponse, setAiResponse] = useState<string | null>(null);
-  
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const { toast } = useToast();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [confidenceScore, setConfidenceScore] = useState(0);
+  const [errorMessage, setErrorMessage] = useState('');
+  const recognition = useRef<SpeechRecognition | null>(null);
+  const processingTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Set up speech recognition
+  // Initialize speech recognition if supported
   useEffect(() => {
-    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+    if (typeof window !== 'undefined' && 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = 'en-US';
-      
-      recognitionRef.current.onresult = (event) => {
-        const current = event.resultIndex;
-        const transcriptText = event.results[current][0].transcript;
-        setTranscript((prev) => prev + ' ' + transcriptText);
-        
-        // Check for voice commands in real-time
-        checkForCommands(transcriptText);
+      recognition.current = new SpeechRecognition();
+      recognition.current.continuous = true;
+      recognition.current.interimResults = true;
+      recognition.current.lang = 'en-US';
+
+      recognition.current.onresult = (event) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript + ' ';
+            setConfidenceScore(event.results[i][0].confidence * 100);
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+
+        setTranscript((prev) => {
+          const updatedTranscript = prev + finalTranscript;
+          return updatedTranscript;
+        });
       };
-      
-      recognitionRef.current.onerror = (event) => {
+
+      recognition.current.onerror = (event) => {
         console.error('Speech recognition error', event.error);
+        setErrorMessage(event.error);
+        setIsListening(false);
         toast({
-          title: 'Voice Assistant Error',
+          title: 'Speech Recognition Error',
           description: `Error: ${event.error}. Please try again.`,
           variant: 'destructive',
         });
-        setIsListening(false);
       };
-      
-      recognitionRef.current.onend = () => {
+
+      recognition.current.onend = () => {
         if (isListening) {
-          try {
-            recognitionRef.current?.start();
-          } catch (e) {
-            console.error('Could not restart recognition', e);
-          }
+          // Restart if it ended but we're still supposed to be listening
+          recognition.current?.start();
         }
       };
     } else {
+      setErrorMessage('Speech recognition not supported in this browser');
       toast({
-        title: 'Voice Assistant Not Supported',
-        description: 'Your browser does not support speech recognition.',
+        title: 'Browser Not Supported',
+        description: 'Speech recognition is not supported in your browser. Please try using Chrome, Edge, or Safari.',
         variant: 'destructive',
       });
     }
-    
+
     return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
+      if (recognition.current && isListening) {
+        recognition.current.stop();
+      }
+      
+      if (processingTimer.current) {
+        clearInterval(processingTimer.current);
       }
     };
-  }, [toast, isListening]);
-  
-  // Toggle listening state
+  }, [isListening, toast]);
+
   const toggleListening = () => {
+    if (!recognition.current) {
+      toast({
+        title: 'Speech Recognition Not Available',
+        description: 'Your browser does not support speech recognition. Please try using Chrome, Edge, or Safari.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (isListening) {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
+      recognition.current.stop();
       setIsListening(false);
     } else {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.start();
-          setIsListening(true);
-        } catch (e) {
-          console.error('Could not start recognition', e);
-          toast({
-            title: 'Voice Assistant Error',
-            description: 'Could not start voice recognition. Please try again.',
-            variant: 'destructive',
-          });
-        }
+      setTranscript('');
+      setErrorMessage('');
+      setConfidenceScore(0);
+      try {
+        recognition.current.start();
+        setIsListening(true);
+        toast({
+          title: 'Listening',
+          description: 'Speak clearly and the assistant will transcribe your voice.',
+        });
+      } catch (error) {
+        console.error('Failed to start speech recognition:', error);
+        toast({
+          title: 'Failed to Start',
+          description: 'There was an error starting speech recognition. Please try again.',
+          variant: 'destructive',
+        });
       }
     }
   };
-  
-  // Check for voice commands in the transcript
-  const checkForCommands = (text: string) => {
-    const lowerText = text.toLowerCase();
-    
-    for (const command of VOICE_COMMANDS) {
-      if (lowerText.includes(command.trigger)) {
-        setLastCommand(command);
-        executeCommand(command);
-        break;
-      }
-    }
-  };
-  
-  // Execute a voice command
-  const executeCommand = async (command: VoiceCommand) => {
-    setProcessing(true);
-    
-    try {
-      switch (command.action) {
-        case 'template':
-          if (command.template) {
-            setTranscript(command.template);
-            speakText(`Template applied: ${command.description}`);
-          }
-          break;
-          
-        case 'create_note':
-          // This would typically integrate with your note creation system
-          setAiResponse("Ready to create a new clinical note. What would you like to include?");
-          speakText("Ready to create a new clinical note. What would you like to include?");
-          break;
-          
-        case 'check_schedule':
-          // This would fetch the schedule from your backend
-          const today = new Date().toLocaleDateString();
-          setAiResponse(`Checking schedule for ${today}. You have 3 appointments today.`);
-          speakText(`Checking schedule for ${today}. You have 3 appointments today.`);
-          break;
-          
-        case 'add_prescription':
-          if (patientInfo) {
-            setAiResponse(`Ready to add prescription for ${patientInfo.name}. What medication would you like to prescribe?`);
-            speakText(`Ready to add prescription for ${patientInfo.name}. What medication would you like to prescribe?`);
-          } else {
-            setAiResponse("Please select a patient first before adding a prescription.");
-            speakText("Please select a patient first before adding a prescription.");
-          }
-          break;
-          
-        case 'check_patient_history':
-          if (patientInfo) {
-            setAiResponse(`Retrieving patient history for ${patientInfo.name}. Please wait...`);
-            speakText(`Retrieving patient history for ${patientInfo.name}.`);
-            // Here you would fetch patient history
-            setTimeout(() => {
-              setAiResponse(`${patientInfo.name}'s last visit was on March 15, 2025 for a routine cleaning. Previous procedures include fillings on teeth 14 and 15 in January 2025.`);
-              speakText(`${patientInfo.name}'s last visit was on March 15 for a routine cleaning. Previous procedures include fillings in January.`);
-            }, 1500);
-          } else {
-            setAiResponse("Please select a patient first to check their history.");
-            speakText("Please select a patient first to check their history.");
-          }
-          break;
-          
-        default:
-          setAiResponse("Command recognized but not implemented yet.");
-          speakText("Command recognized but not implemented yet.");
-      }
-    } catch (error) {
-      console.error('Error executing command', error);
+
+  const processTranscript = async () => {
+    if (!transcript.trim()) {
       toast({
-        title: 'Command Execution Error',
-        description: 'Error executing voice command. Please try again.',
+        title: 'Empty Transcript',
+        description: 'Please record some speech before processing.',
         variant: 'destructive',
       });
-    } finally {
-      setProcessing(false);
+      return;
     }
-  };
-  
-  // Use the Web Speech API to speak text back to the user
-  const speakText = (text: string) => {
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.1; // Slightly faster than normal
-      utterance.pitch = 1.0;
-      window.speechSynthesis.speak(utterance);
-    }
-  };
-  
-  // Clear the transcript
-  const clearTranscript = () => {
-    setTranscript('');
-    setAiResponse(null);
-    setLastCommand(null);
-  };
-  
-  // Complete the transcript and pass it to parent component
-  const completeTranscript = () => {
-    if (onTranscriptComplete && transcript) {
-      onTranscriptComplete(transcript);
-      clearTranscript();
-    }
-  };
-  
-  // Process the transcript with AI to get insights
-  const processWithAI = async () => {
-    if (!transcript.trim()) return;
+
+    setIsProcessing(true);
+    setProcessingProgress(0);
     
-    setProcessing(true);
+    // Simulated progress for UX feedback
+    processingTimer.current = setInterval(() => {
+      setProcessingProgress((prev) => {
+        const newProgress = prev + Math.random() * 10;
+        return newProgress >= 95 ? 95 : newProgress;
+      });
+    }, 300);
+
     try {
-      // You would make an API call to process this with OpenAI
-      const response = await apiRequest('/api/ai/process-speech', {
+      // Send the transcript to the AI for enhancement and structuring
+      const response = await apiRequest('/api/voice-assistant/process', {
         method: 'POST',
-        data: {
+        body: JSON.stringify({
           transcript,
-          context,
-          patientInfo
-        }
+          patientId,
+          category,
+          addContextFromNotes,
+        }),
       });
+
+      clearInterval(processingTimer.current as NodeJS.Timeout);
+      setProcessingProgress(100);
       
-      setAiResponse(response.result || 'No insights available from AI for this transcript.');
-      
+      if (response && response.enhancedTranscript) {
+        // Pass the enhanced transcript back to the parent component
+        onTranscriptGenerated(response.enhancedTranscript);
+        
+        toast({
+          title: 'Processing Complete',
+          description: 'Your dictation has been processed and enhanced with AI assistance.',
+        });
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
-      console.error('Error processing with AI', error);
+      console.error('Error processing transcript:', error);
+      clearInterval(processingTimer.current as NodeJS.Timeout);
+      
+      // Fallback to using raw transcript if AI processing fails
+      onTranscriptGenerated(transcript);
+      
       toast({
-        title: 'AI Processing Error',
-        description: 'Could not process text with AI. Please try again.',
+        title: 'Processing Warning',
+        description: 'Could not enhance transcript with AI. Using raw transcript instead.',
         variant: 'destructive',
       });
-      setAiResponse('Error processing with AI. Please try again.');
     } finally {
-      setProcessing(false);
+      setIsProcessing(false);
+      setIsListening(false);
+      setTranscript('');
+      if (recognition.current) {
+        recognition.current.stop();
+      }
     }
   };
-  
+
+  const cancelRecording = () => {
+    if (recognition.current) {
+      recognition.current.stop();
+    }
+    setIsListening(false);
+    setTranscript('');
+    toast({
+      title: 'Recording Cancelled',
+      description: 'Voice recording has been cancelled.',
+    });
+  };
+
   return (
-    <div className={`voice-assistant ${isExpanded ? 'expanded' : 'collapsed'}`}>
-      <Card className="shadow-md">
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-lg flex items-center">
-              {isListening ? (
-                <Mic className="h-5 w-5 mr-2 text-green-500 animate-pulse" />
-              ) : (
-                <MicOff className="h-5 w-5 mr-2 text-gray-400" />
-              )}
-              Voice Assistant
-            </CardTitle>
-            <div className="flex gap-1">
-              {lastCommand && (
-                <Badge variant="outline" className="bg-blue-50">
-                  {lastCommand.description}
-                </Badge>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="h-6 w-6"
-              >
-                {isExpanded ? (
-                  <span className="text-xs">▼</span>
-                ) : (
-                  <span className="text-xs">▲</span>
-                )}
-              </Button>
-            </div>
-          </div>
-          {isExpanded && (
-            <CardDescription>
-              Hands-free voice control for DentaMind. Say commands like "create note" or "patient history".
-            </CardDescription>
+    <Card className="w-full border-2 shadow-sm">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg flex items-center gap-2">
+          {isListening ? (
+            <Mic className="h-5 w-5 text-primary animate-pulse" />
+          ) : (
+            <Mic className="h-5 w-5 text-muted-foreground" />
           )}
-        </CardHeader>
+          Voice Assistant
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <div className="flex flex-col space-y-2">
+          {isListening && (
+            <Badge 
+              variant="outline" 
+              className="self-start bg-red-50 text-red-800 border-red-200 animate-pulse"
+            >
+              Listening...
+            </Badge>
+          )}
+          {isProcessing && (
+            <Badge 
+              variant="outline" 
+              className="self-start bg-blue-50 text-blue-800 border-blue-200"
+            >
+              Processing with AI...
+            </Badge>
+          )}
+          
+          <div className={`min-h-[60px] p-3 rounded-md border bg-muted/20 ${isListening ? 'border-primary' : ''}`}>
+            {transcript ? (
+              <p className="text-sm">{transcript}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">
+                {isListening 
+                  ? 'Speak now... Your words will appear here.' 
+                  : 'Click the microphone button and speak clearly to record your notes.'}
+              </p>
+            )}
+          </div>
+          
+          {isProcessing && (
+            <div className="w-full space-y-1">
+              <Progress value={processingProgress} className="h-2 w-full" />
+              <p className="text-xs text-muted-foreground text-right">
+                {processingProgress.toFixed(0)}% complete
+              </p>
+            </div>
+          )}
+          
+          {confidenceScore > 0 && !isProcessing && (
+            <p className="text-xs text-muted-foreground">
+              Speech recognition confidence: {confidenceScore.toFixed(0)}%
+            </p>
+          )}
+          
+          {errorMessage && (
+            <p className="text-xs text-destructive">Error: {errorMessage}</p>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between pt-1">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={cancelRecording}
+          disabled={!isListening || isProcessing || disabled}
+        >
+          <X className="h-4 w-4 mr-1" />
+          Cancel
+        </Button>
         
-        {isExpanded && (
-          <>
-            <CardContent className="space-y-2">
-              <div className="min-h-[100px] max-h-[200px] overflow-y-auto bg-gray-50 rounded p-2 text-sm">
-                {transcript ? transcript : <span className="text-gray-400">Your speech will appear here...</span>}
-              </div>
-              
-              {aiResponse && (
-                <div className="bg-blue-50 rounded p-2 text-sm border-l-4 border-blue-500">
-                  <h4 className="font-medium text-xs text-blue-700 mb-1">Assistant Response:</h4>
-                  {aiResponse}
-                </div>
-              )}
-              
-              {isExpanded && (
-                <div className="text-xs text-gray-500">
-                  <h4 className="font-medium mb-1">Available Commands:</h4>
-                  <ul className="list-disc pl-4 space-y-1">
-                    {VOICE_COMMANDS.map((cmd, i) => (
-                      <li key={i}>"{cmd.trigger}" - {cmd.description}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </CardContent>
-            
-            <CardFooter className="flex justify-between pt-2">
-              <div className="flex gap-2">
-                <Button
-                  onClick={toggleListening}
-                  variant={isListening ? "destructive" : "default"}
-                  size="sm"
-                  className="gap-1"
-                >
-                  {isListening ? (
-                    <>
-                      <StopCircle className="h-4 w-4" /> Stop
-                    </>
-                  ) : (
-                    <>
-                      <Mic className="h-4 w-4" /> Listen
-                    </>
-                  )}
-                </Button>
-                
-                <Button
-                  onClick={processWithAI}
-                  variant="outline"
-                  size="sm"
-                  disabled={!transcript || processing}
-                  className="gap-1"
-                >
-                  <Volume2 className="h-4 w-4" /> Process
-                </Button>
-              </div>
-              
-              <div className="flex gap-2">
-                <Button
-                  onClick={clearTranscript}
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1"
-                >
-                  <RotateCcw className="h-4 w-4" /> Clear
-                </Button>
-                
-                {onTranscriptComplete && (
-                  <Button
-                    onClick={completeTranscript}
-                    variant="secondary"
-                    size="sm"
-                    disabled={!transcript}
-                  >
-                    Use Text
-                  </Button>
-                )}
-              </div>
-            </CardFooter>
-          </>
-        )}
-      </Card>
-    </div>
+        <div className="flex gap-2">
+          <Button
+            variant={isListening ? "destructive" : "outline"}
+            size="sm"
+            onClick={toggleListening}
+            disabled={isProcessing || disabled}
+            className="gap-1"
+          >
+            {isListening ? (
+              <>
+                <MicOff className="h-4 w-4" />
+                Stop
+              </>
+            ) : (
+              <>
+                <Mic className="h-4 w-4" />
+                Record
+              </>
+            )}
+          </Button>
+          
+          <Button
+            variant="default"
+            size="sm"
+            onClick={processTranscript}
+            disabled={!transcript || isListening || isProcessing || disabled}
+            className="gap-1"
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Check className="h-4 w-4" />
+                Use Transcript
+              </>
+            )}
+          </Button>
+        </div>
+      </CardFooter>
+    </Card>
   );
 }
 
-// Add window type definition for WebkitSpeechRecognition
+// TypeScript augmentation for the SpeechRecognition API
 declare global {
   interface Window {
+    SpeechRecognition: typeof SpeechRecognition;
     webkitSpeechRecognition: typeof SpeechRecognition;
   }
 }
-
-export default VoiceAssistant;
