@@ -34,7 +34,7 @@ export default function PatientsPage() {
 
   // Basic fetch for patients data
   useEffect(() => {
-    fetch("/api/patients")
+    fetch("/patients")
       .then(res => res.json())
       .then(data => {
         console.log("Patient data received:", data);
