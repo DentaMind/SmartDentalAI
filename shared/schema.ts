@@ -751,6 +751,10 @@ export type ReminderType = z.infer<typeof reminderTypeSchema>;
 export type ReminderSettings = z.infer<typeof reminderSettingsSchema>;
 export type ReminderStats = z.infer<typeof reminderStatsSchema>;
 
+// Training and certification types
+export type CertificationTypeEnum = z.infer<typeof CertificationType>;
+export type CertificationStatusEnum = z.infer<typeof CertificationStatus>;
+
 // Combined type with settings and stats
 export type CompleteReminderSettings = ReminderSettings & ReminderStats;
 
@@ -842,7 +846,13 @@ export type InsertVendorProfile = z.infer<typeof insertVendorProfileSchema>;
 export type OrthodonticCase = typeof orthodonticCases.$inferSelect;
 export type InsertOrthodonticCase = z.infer<typeof insertOrthodonticCaseSchema>;
 export type OrthodonticTelehealthSession = typeof orthodonticTelehealthSessions.$inferSelect;
-export type InsertOrthodonticTelehealthSession = z.infer<typeof insertOrthodonticTelehealthSessionSchema>;// PHARMACY AND E-PRESCRIPTION TABLES
+export type InsertOrthodonticTelehealthSession = z.infer<typeof insertOrthodonticTelehealthSessionSchema>;
+
+// Training and certification types
+export type TrainingModule = typeof trainingModules.$inferSelect;
+export type InsertTrainingModule = z.infer<typeof insertTrainingModuleSchema>;
+export type UserCertification = typeof userCertifications.$inferSelect;
+export type InsertUserCertification = z.infer<typeof insertUserCertificationSchema>;// PHARMACY AND E-PRESCRIPTION TABLES
 export const pharmacies = pgTable("pharmacies", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -1120,7 +1130,51 @@ export const orthodonticTelehealthSessions = pgTable("orthodontic_telehealth_ses
   followUpActions: jsonb("follow_up_actions"),
   reminderSent: boolean("reminder_sent").default(false),
   feedback: jsonb("feedback"), // Patient feedback after session
-});// Create insertion schemas for lab & supply tables
+});
+
+// Training and certification tables
+export const trainingModules = pgTable("training_modules", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  requiredRoles: jsonb("required_roles"), // Array of roles that are required to complete this module
+  steps: jsonb("steps"), // Array of training steps
+  quizQuestions: jsonb("quiz_questions"), // Array of questions
+  imageUrl: text("image_url"),
+  moduleType: text("module_type", {
+    enum: ["hipaa", "osha", "ada", "cpr", "infection_control", "emergency_protocols", "custom"]
+  }).notNull().default("custom"),
+  passingScore: integer("passing_score").notNull().default(90),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  isActive: boolean("is_active").default(true),
+  expirationPeriod: integer("expiration_period"), // Number of days until certification expires
+});
+
+export const userCertifications = pgTable("user_certifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  moduleId: integer("module_id").notNull(),
+  status: text("status", {
+    enum: ["not_started", "in_progress", "completed", "expired"]
+  }).notNull().default("not_started"),
+  score: integer("score"),
+  completedAt: timestamp("completed_at"),
+  expiresAt: timestamp("expires_at"),
+  certificateUrl: text("certificate_url"),
+  lastAttemptAt: timestamp("last_attempt_at"),
+  attempts: integer("attempts").default(0),
+  quizResults: jsonb("quiz_results"), // Detailed results of the quiz
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Create insertion schemas for lab & supply tables
+// Insert schemas for training and certification
+export const insertTrainingModuleSchema = createInsertSchema(trainingModules);
+export const insertUserCertificationSchema = createInsertSchema(userCertifications);
+
+// Insert schemas for labs, supplies and orthodontics
 export const insertLabCaseSchema = createInsertSchema(labCases);
 export const insertSupplyItemSchema = createInsertSchema(supplyItems);
 export const insertSupplyOrderSchema = createInsertSchema(supplyOrders);
