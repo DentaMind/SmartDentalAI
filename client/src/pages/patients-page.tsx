@@ -87,17 +87,38 @@ const PatientsPage = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {patients.map((p) => {
-              let history = {};
+              // Define expected structure for history
+              interface MedicalHistory {
+                systemicConditions?: string[];
+                medications?: string[];
+                allergies?: string[];
+                [key: string]: any;
+              }
+              
+              let history: MedicalHistory = {};
               try {
                 history = p.medicalHistory ? JSON.parse(p.medicalHistory) : {};
               } catch (err) {
                 console.warn("Failed to parse medicalHistory for patient:", p.id);
               }
 
-              const allergies =
-                p.allergies && typeof p.allergies === "string"
-                  ? p.allergies.replace(/[\[\]"]/g, "")
-                  : "None";
+              // Parse and format the allergies string
+              let allergies = "None";
+              try {
+                if (p.allergies && typeof p.allergies === "string") {
+                  // Try to parse if it's a JSON string
+                  if (p.allergies.startsWith("[")) {
+                    const allergiesArray = JSON.parse(p.allergies);
+                    allergies = allergiesArray.join(", ");
+                  } else {
+                    // Just use as is if not JSON
+                    allergies = p.allergies;
+                  }
+                }
+              } catch (err) {
+                // If parsing fails, just use the original string with basic cleanup
+                allergies = p.allergies ? p.allergies.replace(/[\[\]"]/g, "") : "None";
+              }
 
               return (
                 <Card key={p.id} className="p-4 shadow-md">
@@ -112,11 +133,11 @@ const PatientsPage = () => {
                     <p><strong>Allergies:</strong> <span className="text-red-600">{allergies}</span></p>
                     <p>
                       <strong>Conditions:</strong>{" "}
-                      {(history as any)?.systemicConditions?.join(", ") || "None"}
+                      {history.systemicConditions?.join(", ") || "None"}
                     </p>
                     <p>
                       <strong>Medications:</strong>{" "}
-                      {(history as any)?.medications?.join(", ") || "None"}
+                      {history.medications?.join(", ") || "None"}
                     </p>
                   </div>
                   <Button
