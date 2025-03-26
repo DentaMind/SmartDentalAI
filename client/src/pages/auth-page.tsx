@@ -113,6 +113,7 @@ export default function AuthPage() {
     state?: string;
     zipCode?: string;
     subscriptionPlan?: string;
+    promoCode?: string; // Added promotion code field
     // Added practice information fields
     officeName?: string;
     officeEmail?: string;
@@ -145,6 +146,7 @@ export default function AuthPage() {
       city: "",
       state: "",
       zipCode: "",
+      promoCode: "",       // Promotion code for discounts
       subscriptionPlan: "professional", // Default to professional plan
     },
   });
