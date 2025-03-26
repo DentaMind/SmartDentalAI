@@ -48,26 +48,6 @@ const assistantModules = [
         question: "What should you do if you witness a HIPAA violation?",
         options: ["Ignore it", "Post about it online", "Report it immediately", "Tell other patients"],
         answer: "Report it immediately"
-      },
-      {
-        question: "How often must HIPAA training be completed?",
-        options: ["Once when hired", "Every 5 years", "Annually", "Only when violations occur"],
-        answer: "Annually"
-      },
-      {
-        question: "Who enforces HIPAA regulations?",
-        options: ["Local police", "Department of Health and Human Services", "Dental board only", "The practice owner only"],
-        answer: "Department of Health and Human Services"
-      },
-      {
-        question: "What does the HIPAA Security Rule primarily address?",
-        options: ["Electronic PHI protection", "Patient rights", "Staff hiring", "Insurance billing"],
-        answer: "Electronic PHI protection"
-      },
-      {
-        question: "What is the penalty for knowingly violating HIPAA?",
-        options: ["Verbal warning", "Up to $50,000 and criminal charges", "$100 fine", "No real penalties"],
-        answer: "Up to $50,000 and criminal charges"
       }
     ]
   },
@@ -107,45 +87,18 @@ const assistantModules = [
         question: "How should contaminated sharps be disposed of?",
         options: ["Regular trash", "Recycling", "Puncture-resistant containers", "Flush down sink"],
         answer: "Puncture-resistant containers"
-      },
-      {
-        question: "Which best prevents aerosol contamination?",
-        options: ["Open windows", "Using high-volume evacuation", "Turning off A/C", "Using fans"],
-        answer: "Using high-volume evacuation"
-      },
-      {
-        question: "What is the proper order for removing PPE?",
-        options: ["Gloves first, then mask", "Mask first, then gloves", "Order doesn't matter", "Remove all at once"],
-        answer: "Gloves first, then mask"
-      },
-      {
-        question: "How should you handle clothing contaminated with blood?",
-        options: ["Wash with other laundry", "Dispose as hazardous waste", "Place in laundry bag and wash separately", "Bleach immediately"],
-        answer: "Place in laundry bag and wash separately"
-      },
-      {
-        question: "What is the best way to prevent needlestick injuries?",
-        options: ["Recap needles carefully", "Never recap needles", "Bend needles first", "Use fingers to recap"],
-        answer: "Never recap needles"
-      },
-      {
-        question: "How often should eyewash stations be tested?",
-        options: ["Monthly", "Weekly", "Yearly", "When broken"],
-        answer: "Weekly"
       }
     ]
   },
   {
     title: "ADA Patient Rights & Accessibility",
-    description: "Required training for dental professionals to ensure equal treatment, communication access, and physical accommodations for all patients.",
+    description: "Required training for dental professionals to ensure equal treatment and accessibility for all patients.",
     steps: [
       "Treat all patients with dignity, respect, and without discrimination.",
-      "Ensure your practice is physically accessible — ramps, elevators, wide doors, accessible restrooms.",
+      "Ensure your practice is physically accessible — ramps, elevators, wide doors.",
       "Use respectful language when referring to people with disabilities.",
-      "Offer alternate communication methods (writing, typing, sign interpreter) if a patient is hearing/speech impaired.",
-      "Be prepared to assist patients who use wheelchairs or mobility aids without making them feel singled out.",
-      "Do not delay or deny care due to a patient's disability — this is illegal and unethical.",
-      "Comply with the ADEA's emphasis on access to care and non-discrimination in education and treatment."
+      "Offer alternate communication methods if a patient is hearing/speech impaired.",
+      "Be prepared to assist patients who use mobility aids or wheelchairs."
     ],
     image: "/images/ada_accessibility.png",
     quiz: [
@@ -173,31 +126,6 @@ const assistantModules = [
         question: "Which law protects patients from being refused care due to disability?",
         options: ["HIPAA", "OSHA", "Americans with Disabilities Act (ADA)", "EPA"],
         answer: "Americans with Disabilities Act (ADA)"
-      },
-      {
-        question: "What principle does ADEA promote for dental teams?",
-        options: ["Maximize production", "Avoid talking to patients", "Educational equity and access to care", "Charge by condition"],
-        answer: "Educational equity and access to care"
-      },
-      {
-        question: "Can a front desk deny scheduling due to a patient's disability?",
-        options: ["Yes, if busy", "Only if it's a physical issue", "No, it's illegal", "Sometimes"],
-        answer: "No, it's illegal"
-      },
-      {
-        question: "If a patient needs a longer appointment due to disability, what should staff do?",
-        options: ["Charge more", "Reschedule often", "Deny care", "Accommodate and schedule accordingly"],
-        answer: "Accommodate and schedule accordingly"
-      },
-      {
-        question: "What does respectful language mean?",
-        options: ["Say 'they're wheelchair-bound'", "Say 'the handicapped'", "Say 'a person who uses a wheelchair'", "Avoid talking to them"],
-        answer: "Say 'a person who uses a wheelchair'"
-      },
-      {
-        question: "When must ADA compliance be re-trained?",
-        options: ["Every 5 years", "Only for new hires", "Annually or when laws are updated", "Never"],
-        answer: "Annually or when laws are updated"
       }
     ]
   }
@@ -335,106 +263,107 @@ export default function AssistantTab() {
 
             <div className="grid gap-6">
               {assistantModules.map((module, idx) => (
-          <Card key={idx} className="overflow-hidden">
-            <div 
-              className="p-4 cursor-pointer flex justify-between items-center hover:bg-gray-50"
-              onClick={() => toggleModule(module.title)}
-            >
-              <div>
-                <h2 className="text-xl font-bold">{module.title}</h2>
-                <p className="text-gray-600">{module.description}</p>
-              </div>
-              <div className="flex items-center">
-                {typeof quizResults[module.title] === 'number' && quizResults[module.title] >= 90 && (
-                  <span className="mr-2 text-green-600 font-semibold">✅ Passed</span>
-                )}
-                <span className="text-blue-500">
-                  {expandedModule === module.title ? "▲ Hide" : "▼ Show"}
-                </span>
-              </div>
+                <Card key={idx} className="overflow-hidden">
+                  <div 
+                    className="p-4 cursor-pointer flex justify-between items-center hover:bg-gray-50"
+                    onClick={() => toggleModule(module.title)}
+                  >
+                    <div>
+                      <h2 className="text-xl font-bold">{module.title}</h2>
+                      <p className="text-gray-600">{module.description}</p>
+                    </div>
+                    <div className="flex items-center">
+                      {typeof quizResults[module.title] === 'number' && quizResults[module.title] >= 90 && (
+                        <span className="mr-2 text-green-600 font-semibold">✅ Passed</span>
+                      )}
+                      <span className="text-blue-500">
+                        {expandedModule === module.title ? "▲ Hide" : "▼ Show"}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {expandedModule === module.title && (
+                    <div className="p-4 pt-0 border-t">
+                      <img 
+                        src={module.image} 
+                        alt={module.title} 
+                        className="mb-4 w-full max-w-md rounded mx-auto" 
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "https://placehold.co/600x400?text=Dental+Training";
+                        }}
+                      />
+                      <h3 className="font-semibold mb-2">Key Steps:</h3>
+                      <ul className="list-disc pl-5 mb-4 space-y-1">
+                        {module.steps.map((step, i) => (
+                          <li key={i}>{step}</li>
+                        ))}
+                      </ul>
+                      
+                      <Quiz 
+                        module={module.title} 
+                        questions={module.quiz} 
+                        onSubmit={handleQuizSubmit} 
+                      />
+                    </div>
+                  )}
+                </Card>
+              ))}
             </div>
-            
-            {expandedModule === module.title && (
-              <div className="p-4 pt-0 border-t">
-                <img 
-                  src={module.image} 
-                  alt={module.title} 
-                  className="mb-4 w-full max-w-md rounded mx-auto" 
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = "https://placehold.co/600x400?text=Dental+Training";
-                  }}
-                />
-                <h3 className="font-semibold mb-2">Key Steps:</h3>
-                <ul className="list-disc pl-5 mb-4 space-y-1">
-                  {module.steps.map((step, i) => (
-                    <li key={i}>{step}</li>
-                  ))}
-                </ul>
-                
-                <Quiz 
-                  module={module.title} 
-                  questions={module.quiz} 
-                  onSubmit={handleQuizSubmit} 
-                />
-              </div>
-            )}
-          </Card>
-        ))}
-      </div>
 
-      {(certified.hipaa || certified.osha || certified.ada) && (
-        <Card className="p-4 bg-green-50 border-green-200">
-          <h3 className="text-lg font-semibold mb-4">Your Certifications</h3>
-          
-          <div className="space-y-3">
-            {certified.hipaa && (
-              <div className="flex justify-between items-center">
-                <div>
-                  <span className="font-medium">HIPAA Compliance</span>
-                  <p className="text-sm text-gray-600">Score: {quizResults["HIPAA Compliance & Patient Privacy"] || 0}%</p>
+            {(certified.hipaa || certified.osha || certified.ada) && (
+              <Card className="p-4 bg-green-50 border-green-200">
+                <h3 className="text-lg font-semibold mb-4">Your Certifications</h3>
+                
+                <div className="space-y-3">
+                  {certified.hipaa && (
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="font-medium">HIPAA Compliance</span>
+                        <p className="text-sm text-gray-600">Score: {quizResults["HIPAA Compliance & Patient Privacy"] || 0}%</p>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        onClick={() => generateCertificate("HIPAA")}
+                      >
+                        Download Certificate
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {certified.osha && (
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="font-medium">OSHA Compliance</span>
+                        <p className="text-sm text-gray-600">Score: {quizResults["OSHA Compliance & Workplace Safety"] || 0}%</p>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        onClick={() => generateCertificate("OSHA")}
+                      >
+                        Download Certificate
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {certified.ada && (
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="font-medium">ADA Compliance</span>
+                        <p className="text-sm text-gray-600">Score: {quizResults["ADA Patient Rights & Accessibility"] || 0}%</p>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        onClick={() => generateCertificate("ADA")}
+                      >
+                        Download Certificate
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                <Button 
-                  size="sm" 
-                  onClick={() => generateCertificate("HIPAA")}
-                >
-                  Download Certificate
-                </Button>
-              </div>
-            )}
-            
-            {certified.osha && (
-              <div className="flex justify-between items-center">
-                <div>
-                  <span className="font-medium">OSHA Compliance</span>
-                  <p className="text-sm text-gray-600">Score: {quizResults["OSHA Compliance & Workplace Safety"] || 0}%</p>
-                </div>
-                <Button 
-                  size="sm" 
-                  onClick={() => generateCertificate("OSHA")}
-                >
-                  Download Certificate
-                </Button>
-              </div>
-            )}
-            
-            {certified.ada && (
-              <div className="flex justify-between items-center">
-                <div>
-                  <span className="font-medium">ADA Compliance</span>
-                  <p className="text-sm text-gray-600">Score: {quizResults["ADA Patient Rights & Accessibility"] || 0}%</p>
-                </div>
-                <Button 
-                  size="sm" 
-                  onClick={() => generateCertificate("ADA")}
-                >
-                  Download Certificate
-                </Button>
-              </div>
+              </Card>
             )}
           </div>
-        </Card>
-      )}
         </TabsContent>
         
         <TabsContent value="reference" className="mt-4">

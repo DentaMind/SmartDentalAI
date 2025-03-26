@@ -268,12 +268,26 @@ export function setupAuth(router: express.Router) {
       console.log("Login attempt:", { username: req.body.username });
 
       if (!req.body.username || !req.body.password) {
+        console.log("Login rejected - missing credentials");
         return res.status(400).json({ message: "Username and password are required" });
+      }
+
+      // Log the test account recognition for debugging
+      if (req.body.username === 'dentist' && req.body.password === 'password') {
+        console.log("Recognized test account: dentist");
+      } else if (req.body.username === 'drabdin' && req.body.password === 'password') {
+        console.log("Recognized test account: drabdin");
+      } else if (req.body.username === 'maryrdh' && req.body.password === 'password') {
+        console.log("Recognized test account: maryrdh");
+      } else if (req.body.username === 'patient1' && req.body.password === 'patient123') {
+        console.log("Recognized test account: patient1");
+      } else if (req.body.username === 'patient2' && req.body.password === 'patient123') {
+        console.log("Recognized test account: patient2");
       }
 
       passport.authenticate("local", (err: Error | null, user: AuthUser | false, info: { message: string } | undefined) => {
         if (err) {
-          console.error("Login error:", err);
+          console.error("Login authentication error:", err);
           return next(err);
         }
 
@@ -282,12 +296,23 @@ export function setupAuth(router: express.Router) {
           return res.status(401).json({ message: info?.message || "Invalid username or password" });
         }
 
+        console.log("Authentication successful, establishing session for:", user.username);
+        
         req.login(user, (err) => {
           if (err) {
-            console.error("Session error:", err);
+            console.error("Session creation error:", err);
             return next(err);
           }
-          console.log(`User logged in successfully: ${user.username}`);
+          
+          // Validate session was created properly
+          if (!req.user) {
+            console.error("Session creation failed - no user in request after login");
+            return res.status(500).json({ message: "Failed to establish session" });
+          }
+          
+          console.log(`User logged in successfully: ${user.username} (${user.role})`);
+          
+          // Return user data for client-side state
           res.status(200).json(user);
         });
       })(req, res, next);

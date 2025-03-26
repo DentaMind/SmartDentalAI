@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Redirect } from "wouter";
 // Import the logo directly to avoid potential issues
-import dentaMindLogo from "../assets/dentamind-logo-tooth-hq.png"; // Use the high-quality tooth logo
+import dentaMindLogo from "../assets/dentamind-logo-new.jpg"; // Using new DentaMind logo
 // Import smile images
 import dentalSmile from "../assets/dental-smile.jpg";
 import smileImage from "../assets/iStock-526222203.jpg";
@@ -464,7 +464,26 @@ export default function AuthPage() {
                   <form onSubmit={loginForm.handleSubmit(async (data) => {
                     try {
                       console.log("Attempting login for:", data.username);
-                      console.log("Form data:", data);
+                      
+                      // Reset any previous form errors
+                      loginForm.clearErrors();
+                      
+                      // Check for empty fields
+                      if (!data.username || !data.password) {
+                        if (!data.username) {
+                          loginForm.setError("username", {
+                            type: "manual",
+                            message: "Username is required"
+                          });
+                        }
+                        if (!data.password) {
+                          loginForm.setError("password", {
+                            type: "manual",
+                            message: "Password is required"
+                          });
+                        }
+                        return;
+                      }
                       
                       // Adding explicit test account handling for debugging
                       if (data.username === 'dentist' && data.password === 'password') {
@@ -478,16 +497,27 @@ export default function AuthPage() {
                       }
                       
                       // Attempt login
-                      console.log("Calling login function...");
-                      await login(data.username, data.password);
-                      console.log("Login successful");
+                      console.log("Login page - Calling login function...");
+                      try {
+                        await login(data.username, data.password);
+                        console.log("Login page - Login successful");
+                      } catch (loginError) {
+                        console.error("Login page - Login function rejected:", loginError);
+                        throw loginError;
+                      }
                     } catch (err) {
-                      console.error("Login failed:", err);
+                      console.error("Login page - Login failed:", err);
+                      
                       // Add a manual form error to show on the UI
                       loginForm.setError("password", {
                         type: "manual",
                         message: "Invalid username or password. Please try again."
                       });
+                      
+                      // Add detailed error for debugging (hidden from user)
+                      if (err instanceof Error) {
+                        console.error("Login page - Detailed error:", err.message);
+                      }
                     }
                   })} className="space-y-8">
                     <FormField

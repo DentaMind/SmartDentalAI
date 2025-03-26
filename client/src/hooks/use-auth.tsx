@@ -107,6 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear any existing auth flags to prevent UI issues
       sessionStorage.removeItem("inAuthPage");
       
+      console.log("Auth hook: Attempting login for user:", username);
+      
       const response = await api.post('/auth/login', { 
         username, 
         password,
@@ -115,6 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       const userData = response.data;
       
+      console.log("Auth hook: Login response received:", { authenticated: !!userData });
+      
       // Handle MFA required response
       if (userData.status === 'mfa_required') {
         setIsLoading(false);
@@ -122,23 +126,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('MFA_REQUIRED');
       }
       
+      // Add extra validation for the user data
+      if (!userData || !userData.id || !userData.username) {
+        console.error('Auth hook: Invalid user data received from server:', userData);
+        throw new Error('Invalid user data received from server');
+      }
+      
       // For session-based auth, we don't need to store tokens
       // Instead, just store user data for UI purposes
       localStorage.setItem('user', JSON.stringify(userData));
       
+      console.log('Auth hook: Setting user state with:', userData);
       setUser(userData);
-      console.log('User logged in successfully');
+      console.log('Auth hook: User logged in successfully');
       
       // Clear redirected path on successful login
       const redirectedFrom = sessionStorage.getItem("redirectedFrom");
       if (redirectedFrom) {
         console.log('Will redirect to:', redirectedFrom);
       }
+      
+      return userData;
     } catch (err: unknown) {
       // Format error message for user-friendly display
       let message = 'Login failed. Please check your credentials.';
       
       if (isAxiosError(err)) {
+        console.error('Auth hook: Axios error during login:', err.response?.status, err.response?.data);
         if (err.response?.status === 401) {
           message = 'Invalid username or password. Please try again.';
         } else if (err.response?.status === 429) {
@@ -149,6 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           message = err.response.data.message;
         }
       } else if (err instanceof Error) {
+        console.error('Auth hook: Error during login:', err.message);
         if (err.message === 'MFA_REQUIRED') {
           message = 'Multi-factor authentication required';
         } else if (err.message) {
@@ -156,7 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
       
-      console.error('Login error:', message);
+      console.error('Auth hook: Login error:', message);
       setError(message);
       throw err;
     } finally {
