@@ -5,53 +5,44 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 
-// Import the proper types from our shared types file
-import { Patient as PatientType, User as UserType } from "@/types/patient-types";
-
-// Extended interface for our component
-interface User extends UserType {
-  insuranceProvider?: string | null;
+interface User {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phoneNumber?: string;
+  dateOfBirth?: string;
+  insuranceProvider?: string;
 }
 
-interface Patient extends PatientType {
-  id: number;
-  userId: number;
+interface Patient {
+  id: string;
   user: User;
   allergies?: string;
   medicalHistory?: string;
-  currentMedications?: string;
-  emergencyContactName?: string;
-  emergencyContactPhone?: string;
 }
 
-// Interface for parsed medical history
-interface MedicalHistory {
-  systemicConditions?: string[];
-  medications?: string[];
-  allergies?: string[];
-  [key: string]: any;
-}
-
-export default function PatientsPage() {
+const PatientsPage = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [_, navigate] = useLocation();
 
-  // Basic fetch for patients data
   useEffect(() => {
-    fetch("/patients")
-      .then(res => res.json())
-      .then(data => {
+    const fetchPatients = async () => {
+      try {
+        const res = await fetch("/patients");
+        const data = await res.json();
         console.log("Patient data received:", data);
         setPatients(data);
-        setLoading(false);
-      })
-      .catch(err => {
+      } catch (err) {
         console.error("Error fetching patients:", err);
         setError(true);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    fetchPatients();
   }, []);
 
   // Add debug log to confirm component rendering
@@ -100,17 +91,17 @@ export default function PatientsPage() {
               try {
                 history = p.medicalHistory ? JSON.parse(p.medicalHistory) : {};
               } catch (err) {
-                console.error("Error parsing medicalHistory:", err);
+                console.warn("Failed to parse medicalHistory for patient:", p.id);
               }
 
               const allergies =
                 p.allergies && typeof p.allergies === "string"
-                  ? p.allergies.replace(/[\[\]"]/g, "").replace(/,/g, ", ")
+                  ? p.allergies.replace(/[\[\]"]/g, "")
                   : "None";
 
               return (
                 <Card key={p.id} className="p-4 shadow-md">
-                  <h2 className="text-lg font-semibold mb-1">
+                  <h2 className="text-lg font-semibold mb-2">
                     {p.user?.firstName ?? "Unknown"} {p.user?.lastName ?? ""}
                   </h2>
                   <div className="space-y-1 text-sm">
@@ -118,14 +109,14 @@ export default function PatientsPage() {
                     <p><strong>Phone:</strong> {p.user?.phoneNumber ?? "N/A"}</p>
                     <p><strong>DOB:</strong> {p.user?.dateOfBirth ?? "N/A"}</p>
                     <p><strong>Insurance:</strong> {p.user?.insuranceProvider ?? "N/A"}</p>
-                    <p><strong>Allergies:</strong> {allergies}</p>
+                    <p><strong>Allergies:</strong> <span className="text-red-600">{allergies}</span></p>
                     <p>
                       <strong>Conditions:</strong>{" "}
-                      {history?.systemicConditions?.join(", ") || "None"}
+                      {(history as any)?.systemicConditions?.join(", ") || "None"}
                     </p>
                     <p>
                       <strong>Medications:</strong>{" "}
-                      {history?.medications?.join(", ") || "None"}
+                      {(history as any)?.medications?.join(", ") || "None"}
                     </p>
                   </div>
                   <Button
@@ -143,4 +134,6 @@ export default function PatientsPage() {
       </div>
     </div>
   );
-}
+};
+
+export default PatientsPage;
