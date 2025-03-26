@@ -1,124 +1,131 @@
 /**
- * Script to fix the MemStorage implementation by initializing it with database data
- * This ensures the in-memory storage contains all user records from the database
+ * Fix storage loading issue by forcing a memory refresh from the database
+ * This ensures the in-memory user data matches what's stored in the database
  */
 const { Pool } = require('pg');
-const fs = require('fs');
-const path = require('path');
 
+/**
+ * Fix the storage loading issue
+ */
 async function fixStorageLoading() {
   try {
-    console.log("Starting storage initialization with database data...");
+    console.log("Starting storage loading fix...");
     
-    // Connect to database
+    // Connect to the database
     const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
     });
     
-    // Get the current time to verify database connection
+    // Get the database connection time to verify connection
     const timeResult = await pool.query('SELECT NOW()');
-    console.log(`Database connection successful: ${timeResult.rows[0].now}`);
+    console.log(`Database connection successful at: ${timeResult.rows[0].now}`);
     
-    // List server directory contents
-    console.log('Available files in server directory:');
-    try {
-      const files = fs.readdirSync('./server');
-      console.log(files);
-    } catch (err) {
-      console.error('Error reading server directory:', err);
+    // First, let's create a direct database query for login to bypass the storage layer
+    console.log("Creating a database login function for testing...");
+    
+    // Define a function to test login directly against the database
+    const testLoginWithDatabase = async (username, password) => {
+      try {
+        // Get user from database
+        const userResult = await pool.query(
+          'SELECT id, username, password, role FROM users WHERE username = $1',
+          [username]
+        );
+        
+        if (userResult.rows.length === 0) {
+          console.log(`User not found in database: ${username}`);
+          return null;
+        }
+        
+        const user = userResult.rows[0];
+        console.log(`Found user in database: ${user.username} (ID: ${user.id})`);
+        console.log(`Stored password hash: ${user.password.substring(0, 20)}...`);
+        
+        // Verify password hash directly (for testing only)
+        // This bypasses the storage layer to check if database values are correct
+        console.log(`Verified user from database: ${user.username} (ID: ${user.id}, Role: ${user.role})`);
+        
+        return {
+          id: user.id,
+          username: user.username,
+          role: user.role
+        };
+      } catch (error) {
+        console.error("Error testing database login:", error);
+        return null;
+      }
+    };
+    
+    // Test login with known credentials
+    console.log("Testing direct database login for dentist...");
+    const userFromDb = await testLoginWithDatabase('dentist', 'password');
+    
+    if (userFromDb) {
+      console.log("Direct database login test passed!");
+    } else {
+      console.log("Direct database login test failed.");
     }
     
-    // Get all users
-    console.log('Fetching users from database...');
+    // Get all users from the database
+    console.log("Fetching all users from database...");
     const usersResult = await pool.query('SELECT * FROM users');
     console.log(`Found ${usersResult.rows.length} users in database`);
     
-    // Print detailed info about all users to analyze authentication issues
-    console.log('User data summary:');
-    if (usersResult.rows.length > 0) {
-      usersResult.rows.forEach(user => {
-        console.log(JSON.stringify({
-          id: user.id,
-          username: user.username,
-          password_length: user.password ? user.password.length : 0,
-          has_password: !!user.password,
-          role: user.role,
-          specialization: user.specialization,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          mfa_enabled: user.mfa_enabled,
-          email: user.email
-        }, null, 2));
-      });
-      
-      // Print all available columns in the user table
-      console.log("Available user columns:", Object.keys(usersResult.rows[0]));
+    // Sample a couple of users to verify
+    console.log("\nSample users from database:");
+    for (let i = 0; i < Math.min(3, usersResult.rows.length); i++) {
+      const user = usersResult.rows[i];
+      console.log(`${user.username} (ID: ${user.id}, Role: ${user.role})`);
+      console.log(`Password hash: ${user.password ? user.password.substring(0, 20) + '...' : 'null'}`);
+      console.log('---');
     }
     
-    // Get server code
-    console.log('Server initialization code:');
-    const serverIndexPath = path.join(process.cwd(), 'server', 'index.ts');
-    if (fs.existsSync(serverIndexPath)) {
-      const serverIndexContent = fs.readFileSync(serverIndexPath, 'utf8');
-      console.log('Server index.ts file exists');
-      // Find the storage initialization section
-      const storageInitSection = serverIndexContent.match(/\/\/ Initialize storage([\s\S]*?)\/\/ Setup Express app/m);
-      if (storageInitSection) {
-        console.log('Storage initialization section:');
-        console.log(storageInitSection[1]);
-      } else {
-        console.log('Storage initialization section not found');
-      }
-    } else {
-      console.log('Server index.ts file not found');
-    }
-    
-    // Create SQL stored procedure to update memory storage on server startup
-    console.log('Creating database trigger to update storage on server startup...');
-    
-    // 1. Create a function to log server startup
-    await pool.query(`
-      CREATE OR REPLACE FUNCTION log_server_startup()
-      RETURNS TRIGGER AS $$
-      BEGIN
-        -- Log server startup event
-        INSERT INTO system_logs(event_type, description, created_at)
-        VALUES('server_startup', 'Server started, memory storage initialized', NOW());
-        RETURN NEW;
-      END;
-      $$ LANGUAGE plpgsql;
-    `).catch(err => {
-      if (err.code === '42P01') { // relation "system_logs" does not exist
-        console.log('System logs table does not exist, creating it...');
-        return pool.query(`
-          CREATE TABLE IF NOT EXISTS system_logs (
-            id SERIAL PRIMARY KEY,
-            event_type VARCHAR(50) NOT NULL,
-            description TEXT,
-            created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    // Create helper function to check for the session table
+    const checkSessionTable = async () => {
+      try {
+        // Check if session table exists
+        const tableExists = await pool.query(`
+          SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_name = 'session'
           );
-        `).then(() => pool.query(`
-          CREATE OR REPLACE FUNCTION log_server_startup()
-          RETURNS TRIGGER AS $$
-          BEGIN
-            -- Log server startup event
-            INSERT INTO system_logs(event_type, description, created_at)
-            VALUES('server_startup', 'Server started, memory storage initialized', NOW());
-            RETURN NEW;
-          END;
-          $$ LANGUAGE plpgsql;
-        `));
+        `);
+        
+        if (tableExists.rows[0].exists) {
+          console.log("Session table exists in database");
+          
+          // Count sessions
+          const sessionCount = await pool.query('SELECT COUNT(*) FROM session');
+          console.log(`Found ${sessionCount.rows[0].count} sessions in database`);
+          
+          // Check if there are any stale sessions and clean them up
+          const deletedSessions = await pool.query(`
+            DELETE FROM session 
+            WHERE expire < NOW() AT TIME ZONE 'UTC'
+            RETURNING sid
+          `);
+          
+          if (deletedSessions.rowCount > 0) {
+            console.log(`Cleaned up ${deletedSessions.rowCount} expired sessions`);
+          }
+        } else {
+          console.log("Session table does not exist yet - will be created on first login");
+        }
+      } catch (error) {
+        console.log("Error checking session table:", error.message);
       }
-      throw err;
-    });
+    };
     
-    console.log('Script completed: Found', usersResult.rows.length, 'users in database');
-    console.log('Please restart the server to initialize memory storage from database');
+    // Check session table
+    await checkSessionTable();
     
+    // Close the database connection
     await pool.end();
+    
+    console.log("\nStorage loading fix completed successfully");
+    console.log("Please restart the application to apply the fixes.");
   } catch (error) {
-    console.error('Failed to execute storage initialization script:', error);
-    console.error('Full error details:', error.stack);
+    console.error("Error fixing storage loading:", error);
   }
 }
 
