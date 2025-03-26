@@ -6,6 +6,8 @@ import { setupVite, log } from "./vite";
 import { securityService } from "./services/security";
 import { schedulerService } from "./services/scheduler";
 import { seedDatabase } from "./seed-data";
+import { pool } from './db';
+import { storage } from './storage';
 
 dotenv.config();
 
@@ -86,19 +88,13 @@ const startServer = async () => {
         try {
           console.log('Loading users from database into memory storage...');
           
-          // Connect to database
-          const { Pool } = await import('pg');
-          const pool = new Pool({
-            connectionString: process.env.DATABASE_URL,
-          });
-          
+          // Using the already imported modules
           // Get all users
           console.log('Fetching users from database...');
           const usersResult = await pool.query('SELECT * FROM users');
           console.log(`Found ${usersResult.rows.length} users in database`);
           
           // Initialize users in storage
-          const { storage } = await import('./storage');
           for (const dbUser of usersResult.rows) {
             // Convert database column names to camelCase for the User object
             const user = {
@@ -118,7 +114,11 @@ const startServer = async () => {
               licenseNumber: dbUser.license_number || null,
               officeName: dbUser.office_name || null,
               officeEmail: dbUser.office_email || null,
-              metadata: dbUser.metadata || null
+              mfaSecret: dbUser.mfa_secret || '',
+              mfaEnabled: dbUser.mfa_enabled || false,
+              createdAt: dbUser.created_at || new Date(),
+              updatedAt: dbUser.updated_at || new Date(),
+              metadata: dbUser.metadata || {}
             };
             
             // Add the user to storage
@@ -137,6 +137,12 @@ const startServer = async () => {
             const patient = {
               id: dbPatient.id,
               userId: dbPatient.user_id,
+              firstName: dbPatient.first_name || null,
+              lastName: dbPatient.last_name || null,
+              email: dbPatient.email || null,
+              phoneNumber: dbPatient.phone_number || null,
+              dateOfBirth: dbPatient.date_of_birth || null,
+              
               // Include all relevant fields from the database schema
               homeAddress: dbPatient.home_address || null,
               emergencyContactName: dbPatient.emergency_contact_name || null,
@@ -147,7 +153,15 @@ const startServer = async () => {
               allergies: dbPatient.allergies || null,
               currentMedications: dbPatient.current_medications || null,
               medicalHistory: dbPatient.medical_history || null,
-              // Add any other properties from the patients table
+              
+              // Dental-specific fields
+              dentalHistory: dbPatient.dental_history || null,
+              lastVisitDate: dbPatient.last_visit_date || null,
+              
+              // Consent and compliance fields
+              consentFormSigned: dbPatient.consent_form_signed || false,
+              hipaaFormSigned: dbPatient.hipaa_form_signed || false,
+              officePolicy: dbPatient.office_policy || false
             };
             
             // Add the patient to storage
@@ -155,7 +169,6 @@ const startServer = async () => {
             console.log(`Loaded patient ID: ${patient.id} (User ID: ${patient.userId}) into memory storage`);
           }
           
-          await pool.end();
           console.log('Successfully loaded database data into memory storage');
         } catch (loadError) {
           console.error('Failed to load database data into memory storage:', loadError);
