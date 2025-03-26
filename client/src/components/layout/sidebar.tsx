@@ -33,6 +33,9 @@ import {
   Package,
   Microscope,
   Beaker,
+  BookOpen,
+  GraduationCap,
+  Award,
 } from "lucide-react";
 import { ToothDoctorIcon } from "../icons/tooth-doctor-icon";
 import { CircuitToothIcon } from "../icons/circuit-tooth-icon";
@@ -89,6 +92,17 @@ export function Sidebar() {
         href: "/ai-recommendations", 
         icon: Lightbulb,
         highlight: true 
+      },
+      { 
+        name: "Training Center", 
+        href: "/assistant-training", 
+        icon: BookOpen 
+      },
+      { 
+        name: "Training Dashboard", 
+        href: "/training-dashboard", 
+        icon: GraduationCap,
+        highlight: true 
       }
     ];
 
@@ -110,6 +124,12 @@ export function Sidebar() {
         href: "/ai-recommendations", 
         icon: Lightbulb,
         highlight: true 
+      },
+      { 
+        name: "Training Center", 
+        href: "/assistant-training", 
+        icon: BookOpen,
+        highlight: true
       }
     ];
 

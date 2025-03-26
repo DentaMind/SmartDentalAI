@@ -270,7 +270,11 @@ export default function AssistantTab() {
   });
 
   const handleQuizSubmit = (title: string, score: number) => {
-    setQuizResults(prev => ({ ...prev, [title]: score }));
+    setQuizResults(prev => {
+      const newResults = { ...prev };
+      newResults[title] = score;
+      return newResults;
+    });
     
     // Update certification status
     if (title.includes("HIPAA") && score >= 90) {
@@ -286,7 +290,10 @@ export default function AssistantTab() {
 
   // Calculate overall progress
   const completedModules = Object.keys(quizResults).filter(
-    module => quizResults[module] >= 90
+    module => {
+      const score = quizResults[module];
+      return typeof score === 'number' && score >= 90;
+    }
   ).length;
   
   const progressPercentage = (completedModules / assistantModules.length) * 100;
@@ -328,7 +335,7 @@ export default function AssistantTab() {
                 <p className="text-gray-600">{module.description}</p>
               </div>
               <div className="flex items-center">
-                {quizResults[module.title] >= 90 && (
+                {typeof quizResults[module.title] === 'number' && quizResults[module.title] >= 90 && (
                   <span className="mr-2 text-green-600 font-semibold">✅ Passed</span>
                 )}
                 <span className="text-blue-500">
@@ -375,7 +382,7 @@ export default function AssistantTab() {
               <div className="flex justify-between items-center">
                 <div>
                   <span className="font-medium">HIPAA Compliance</span>
-                  <p className="text-sm text-gray-600">Score: {quizResults["HIPAA Compliance & Patient Privacy"]}%</p>
+                  <p className="text-sm text-gray-600">Score: {quizResults["HIPAA Compliance & Patient Privacy"] || 0}%</p>
                 </div>
                 <Button 
                   size="sm" 
