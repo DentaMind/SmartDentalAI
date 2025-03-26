@@ -251,6 +251,65 @@ export function setupAuth(router: express.Router) {
 
       console.log(`User registered successfully: ${user.username}`);
 
+      // If this is a staff or doctor account, assign required training modules
+      if (['doctor', 'staff', 'admin'].includes(user.role)) {
+        try {
+          // Check if the training module assignment endpoint exists and is accessible
+          console.log(`Assigning required training modules to new ${user.role} user: ${user.username} (${user.id})`);
+          
+          // Determine role-specific training requirements
+          const roleBasedModuleTypes = [];
+          
+          // Common training for all staff
+          roleBasedModuleTypes.push('hipaa', 'osha', 'emergency_protocols');
+          
+          // Role-specific training
+          if (user.role === 'doctor') {
+            roleBasedModuleTypes.push('ada', 'infection_control', 'cpr');
+          } else if (user.role === 'staff') {
+            // Determine if clinical or administrative staff based on specialization
+            if (user.specialization && ['hygienist', 'dental_assistant', 'nurse'].includes(user.specialization)) {
+              roleBasedModuleTypes.push('infection_control', 'cpr');
+            }
+          }
+          
+          // Use the database directly to avoid circular imports
+          const { db } = require('./db');
+          const { trainingModules, userCertifications } = require('../shared/schema');
+          const { and, eq, sql } = require('drizzle-orm');
+          
+          // Find all active modules that match the required types for this role
+          const modules = await db.select()
+            .from(trainingModules)
+            .where(
+              and(
+                eq(trainingModules.isActive, true),
+                sql`${trainingModules.moduleType} IN (${roleBasedModuleTypes})`
+              )
+            );
+          
+          console.log(`Found ${modules.length} training modules to assign to user ${user.id}`);
+          
+          // Assign each module to the user
+          for (const module of modules) {
+            await db.insert(userCertifications).values({
+              userId: user.id,
+              moduleId: module.id,
+              status: 'not_started',
+              progress: 0,
+              assignedAt: new Date(),
+              dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Due in 30 days
+            });
+            console.log(`Assigned training module: ${module.title} to user ${user.id}`);
+          }
+          
+          console.log(`Successfully assigned ${modules.length} training modules to user ${user.id}`);
+        } catch (error) {
+          console.error(`Error assigning training modules to new user ${user.id}:`, error);
+          // We don't want to fail registration if training assignment fails
+        }
+      }
+
       // Create an AuthUser object for session login
       const authUser: AuthUser = {
         id: user.id,
@@ -260,7 +319,7 @@ export function setupAuth(router: express.Router) {
         email: user.email,
         role: user.role,
         // Handle specialization properly - it may not exist in the user object schema
-        specialization: null,
+        specialization: user.specialization || null,
       };
 
       req.login(authUser, (err) => {
@@ -292,10 +351,16 @@ export function setupAuth(router: express.Router) {
         console.log("Recognized test account: drabdin");
       } else if (req.body.username === 'maryrdh' && req.body.password === 'password') {
         console.log("Recognized test account: maryrdh");
-      } else if (req.body.username === 'patient1' && req.body.password === 'patient123') {
+      } else if (req.body.username === 'patient1' && req.body.password === 'password') {
         console.log("Recognized test account: patient1");
-      } else if (req.body.username === 'patient2' && req.body.password === 'patient123') {
+      } else if (req.body.username === 'patient2' && req.body.password === 'password') {
         console.log("Recognized test account: patient2");
+      } else if (req.body.username === 'patient3' && req.body.password === 'password') {
+        console.log("Recognized test account: patient3");
+      } else if (req.body.username === 'patient4' && req.body.password === 'password') {
+        console.log("Recognized test account: patient4");
+      } else if (req.body.username === 'patient5' && req.body.password === 'password') {
+        console.log("Recognized test account: patient5");
       }
 
       passport.authenticate("local", (err: Error | null, user: AuthUser | false, info: { message: string } | undefined) => {

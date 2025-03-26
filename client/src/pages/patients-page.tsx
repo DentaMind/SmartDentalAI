@@ -54,17 +54,71 @@ export default function PatientsPage() {
   const [selectedPatient, setSelectedPatient] = useState<PatientWithUser | null>(null);
   const [_, navigate] = useLocation();
 
-  const { data: patientsData, isLoading, isError } = useQuery<PatientWithUser[]>({
+  const { data: patientsData, isLoading, isError } = useQuery<any>({
     queryKey: ["/api/patients"],
     refetchOnWindowFocus: false,
     retry: 1,
   });
   
   // Process the patient data to ensure it's properly formatted
-  const patients = Array.isArray(patientsData) ? patientsData : [];
+  // Handle both array response and object response formats
+  let patients: PatientWithUser[] = [];
+  
+  if (patientsData) {
+    if (Array.isArray(patientsData)) {
+      // If data is already an array, use it directly
+      patients = patientsData;
+    } else if (typeof patientsData === 'object') {
+      // If data is an object with items property (paginated response)
+      if (Array.isArray(patientsData.items)) {
+        patients = patientsData.items;
+      } else {
+        // If it's just a JSON object not in the expected format,
+        // try to convert it to an array of patients
+        try {
+          // Attempt to process raw JSON object to extract patients
+          if (patientsData.patients && Array.isArray(patientsData.patients)) {
+            patients = patientsData.patients;
+          } else {
+            // As a last resort, try to convert object properties to an array
+            patients = Object.values(patientsData).filter(
+              (item: any) => item && typeof item === 'object' && 'id' in item
+            ) as PatientWithUser[];
+          }
+        } catch (error) {
+          console.error("Error processing patient data:", error);
+        }
+      }
+    }
+  }
+  
+  // Format patients to ensure they have user data
+  const formattedPatients = patients.map(patient => {
+    // If patient doesn't have a user property or it's incomplete, create a placeholder
+    if (!patient.user || !patient.user.firstName) {
+      return {
+        ...patient,
+        user: {
+          id: patient.userId || 0,
+          username: "",
+          firstName: patient.firstName || "",
+          lastName: patient.lastName || "",
+          email: patient.email || "",
+          phoneNumber: patient.phoneNumber || null,
+          dateOfBirth: patient.dateOfBirth || null,
+          role: "patient",
+          language: "en",
+          insuranceProvider: patient.insuranceProvider || null,
+          insuranceNumber: patient.insuranceNumber || null,
+        }
+      };
+    }
+    return patient;
+  });
   
   // For debugging
-  console.log("Patient data received:", patients);
+  console.log("Original patient data received:", patientsData);
+  console.log("Processed patient data:", formattedPatients);
 
   // Get today's appointments count (mock data for now)
   const todayAppointments = 5;
@@ -95,7 +149,7 @@ export default function PatientsPage() {
                 <UserRound className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{patients?.length || 0}</div>
+                <div className="text-2xl font-bold">{formattedPatients?.length || 0}</div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Total patients in your care
                 </p>
@@ -189,8 +243,8 @@ export default function PatientsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {Array.isArray(patients) && patients.length > 0 ? (
-                    patients.map((patient) => (
+                  {Array.isArray(formattedPatients) && formattedPatients.length > 0 ? (
+                    formattedPatients.map((patient) => (
                       <TableRow key={patient.id} className="cursor-pointer hover:bg-muted/50">
                         <TableCell className="font-medium">
                           {patient.user && `${patient.user.firstName || ''} ${patient.user.lastName || ''}`}
