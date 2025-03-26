@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useTranslation } from "react-i18next";
@@ -17,31 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { AddPatientForm } from "@/components/patients/add-patient-form";
 import { PatientDetails } from "@/components/patients/patient-details";
-
-// Define a type for patients that matches the server response
-type Patient = {
-  id: number;
-  userId: number;
-  user: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phoneNumber: string | null;
-    dateOfBirth: string | null;
-    insuranceProvider?: string | null;
-    insuranceNumber?: string | null;
-    role: string;
-    language?: string;
-  };
-  medicalHistory?: string;
-  allergies?: string | string[];
-  currentMedications?: string;
-  emergencyContactName?: string;
-  emergencyContactPhone?: string;
-  emergencyContactRelationship?: string;
-  formattedAllergies?: string; // Add this for our UI display
-};
+import { Patient } from "@/types/patient-types";
 
 export default function PatientsPage() {
   const { t } = useTranslation();
@@ -55,51 +31,6 @@ export default function PatientsPage() {
     queryKey: ["/api/patients"],
     refetchOnWindowFocus: false,
     retry: 2,
-  });
-
-  // Process patients to ensure they have the right format
-  const formattedPatients = (patients || []).map(patient => {
-    // Handle case where patient.user might be missing or incomplete
-    if (!patient.user) {
-      return {
-        ...patient,
-        user: {
-          id: patient.userId || 0,
-          firstName: "",
-          lastName: "",
-          email: "",
-          phoneNumber: null,
-          dateOfBirth: null,
-          role: "patient",
-          language: "en",
-          insuranceProvider: null,
-          insuranceNumber: null,
-        }
-      } as Patient;
-    }
-    
-    // Format allergies if they're in JSON string format
-    let allergiesDisplay = "None";
-    if (patient.allergies) {
-      if (typeof patient.allergies === 'string' && patient.allergies.startsWith('[')) {
-        try {
-          const parsed = JSON.parse(patient.allergies);
-          allergiesDisplay = Array.isArray(parsed) ? parsed.join(', ') : patient.allergies;
-        } catch (e) {
-          allergiesDisplay = patient.allergies;
-        }
-      } else if (Array.isArray(patient.allergies)) {
-        allergiesDisplay = patient.allergies.join(', ');
-      } else {
-        allergiesDisplay = String(patient.allergies);
-      }
-    }
-    
-    // Return processed patient with formatted fields
-    return {
-      ...patient,
-      formattedAllergies: allergiesDisplay
-    } as Patient & { formattedAllergies: string };
   });
 
   // Today's stats (placeholders for now)
@@ -131,7 +62,7 @@ export default function PatientsPage() {
                 <UserRound className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formattedPatients?.length || 0}</div>
+                <div className="text-2xl font-bold">{patients?.length || 0}</div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Total patients in your care
                 </p>
@@ -212,19 +143,19 @@ export default function PatientsPage() {
                 Refresh Page
               </Button>
             </div>
-          ) : formattedPatients.length === 0 ? (
+          ) : !patients || patients.length === 0 ? (
             <div className="bg-card rounded-lg border shadow-sm p-8 text-center">
               <p className="text-lg text-muted-foreground">No patients found.</p>
               <p className="mt-2 text-sm text-muted-foreground">Click the "Add Patient" button to create your first patient record.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {formattedPatients.map((patient) => (
+              {patients.map((patient) => (
                 <Card key={patient.id} className="hover:shadow-md transition-shadow">
                   <CardHeader className="pb-2">
                     <CardTitle className="flex justify-between items-center">
                       <span>
-                        {patient.user?.firstName || ''} {patient.user?.lastName || ''}
+                        {patient.user?.firstName || 'First'} {patient.user?.lastName || 'Last'}
                       </span>
                       <div className="flex gap-2">
                         <Button
@@ -250,17 +181,19 @@ export default function PatientsPage() {
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Allergies:</span>
                         <span className="truncate max-w-[150px]">
-                          {patient.formattedAllergies || (
-                            patient.allergies ? 
-                              (typeof patient.allergies === 'string' ? 
-                                patient.allergies : 
-                                (Array.isArray(patient.allergies) ? 
-                                  patient.allergies.join(', ') : 
-                                  'None'
-                                )
-                              ) : 
-                              'None'
-                          )}
+                          {patient.allergies ? (
+                            typeof patient.allergies === 'string' ? 
+                              patient.allergies.replace(/[\[\]"]/g, "") : 
+                              Array.isArray(patient.allergies) ? 
+                                patient.allergies.join(', ') : 
+                                'None'
+                          ) : 'None'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Medical History:</span>
+                        <span className="truncate max-w-[150px]">
+                          {patient.medicalHistory ? 'View details' : 'None recorded'}
                         </span>
                       </div>
                     </div>

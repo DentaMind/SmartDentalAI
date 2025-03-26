@@ -16,31 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight } from "lucide-react";
 import { SymptomPredictor } from "@/components/ai/symptom-predictor";
-
-// Patient type that matches what's used in patients-page.tsx
-type Patient = {
-  id: number;
-  userId: number;
-  user: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phoneNumber: string | null;
-    dateOfBirth: string | null;
-    insuranceProvider?: string | null;
-    insuranceNumber?: string | null;
-    role: string;
-    language?: string;
-  };
-  medicalHistory?: string;
-  allergies?: string | string[];
-  currentMedications?: string;
-  emergencyContactName?: string;
-  emergencyContactPhone?: string;
-  emergencyContactRelationship?: string;
-  formattedAllergies?: string; // Added by our formatting process
-};
+import { Patient } from "@/types/patient-types";
 
 interface PatientDetailsProps {
   patient: Patient;
@@ -52,15 +28,15 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
 
-  // Format data if not already formatted by the parent component
-  const allergiesDisplay = patient.formattedAllergies || ((): string => {
+  // Format allergies for display
+  const allergiesDisplay = (() => {
     if (!patient.allergies) return 'No known allergies';
     
     if (typeof patient.allergies === 'string') {
-      if (patient.allergies.startsWith('[')) {
+      if (patient.allergies.includes('[') || patient.allergies.includes('"')) {
         try {
-          const parsed = JSON.parse(patient.allergies);
-          return Array.isArray(parsed) ? parsed.join(', ') : patient.allergies;
+          // Replace brackets and quotes for cleaner display
+          return patient.allergies.replace(/[\[\]"]/g, "");
         } catch (e) {
           return patient.allergies;
         }
@@ -82,7 +58,14 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
     if (typeof patient.medicalHistory === 'string') {
       if (patient.medicalHistory.startsWith('{') || patient.medicalHistory.startsWith('[')) {
         try {
-          return JSON.stringify(JSON.parse(patient.medicalHistory), null, 2);
+          const parsed = JSON.parse(patient.medicalHistory);
+          if (parsed.systemicConditions) {
+            return `Systemic Conditions: ${parsed.systemicConditions.join(', ')}\n` + 
+                   (parsed.medications ? `Medications: ${parsed.medications.join(', ')}\n` : '') +
+                   (parsed.allergies ? `Allergies: ${parsed.allergies.join(', ')}\n` : '') +
+                   (parsed.surgicalHistory ? `Surgical History: ${parsed.surgicalHistory.join(', ')}` : '');
+          }
+          return JSON.stringify(parsed, null, 2);
         } catch (e) {
           return patient.medicalHistory;
         }
@@ -90,11 +73,7 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
       return patient.medicalHistory;
     }
     
-    if (typeof patient.medicalHistory === 'object') {
-      return JSON.stringify(patient.medicalHistory, null, 2);
-    }
-    
-    return String(patient.medicalHistory);
+    return 'No medical history recorded';
   })();
 
   const navigateToProfile = () => {
@@ -123,7 +102,7 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
         <DialogHeader className="sticky top-0 bg-background z-10 pb-4 mb-4 border-b">
           <div className="flex justify-between items-center">
             <DialogTitle className="text-2xl">
-              {patient.user?.firstName || ''} {patient.user?.lastName || ''}
+              {patient?.user?.firstName || 'First'} {patient?.user?.lastName || 'Last'}
             </DialogTitle>
             <Button 
               variant="outline" 
@@ -144,19 +123,19 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
             <CardContent className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-gray-500">{t("patient.dob")}</p>
-                <p className="mt-1">{patient.user?.dateOfBirth || 'Not provided'}</p>
+                <p className="mt-1">{patient?.user?.dateOfBirth || 'Not provided'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">{t("patient.contact")}</p>
-                <p className="mt-1">{patient.user?.phoneNumber || patient.user?.email || 'Not provided'}</p>
+                <p className="mt-1">{patient?.user?.phoneNumber || patient?.user?.email || 'Not provided'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Insurance Provider</p>
-                <p className="mt-1">{patient.user?.insuranceProvider || 'Not provided'}</p>
+                <p className="mt-1">{patient?.user?.insuranceProvider || 'Not provided'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Insurance Number</p>
-                <p className="mt-1">{patient.user?.insuranceNumber || 'Not provided'}</p>
+                <p className="mt-1">{patient?.user?.insuranceNumber || 'Not provided'}</p>
               </div>
             </CardContent>
           </Card>
