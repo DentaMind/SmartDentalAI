@@ -39,6 +39,13 @@ async function comparePasswords(supplied: string, stored: string) {
     // For test accounts and development environment, allow direct comparison
     // This makes dev/testing easier while maintaining security in production
     if (process.env.NODE_ENV !== 'production') {
+      // Direct match for testing (stored password IS the password)
+      if (stored === supplied) {
+        console.log('Development mode: Direct password match');
+        return true;
+      }
+      
+      // Test account special handling
       if (supplied === 'password' && ['dentist', 'drabdin', 'maryrdh', 'patient1', 'patient2', 'patient3', 'patient4', 'patient5'].some(
         username => stored.includes(username) || stored === 'password'
       )) {
