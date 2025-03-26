@@ -1,5 +1,5 @@
 import React from "react";
-import AssistantTab from "@/components/training/assistant-tab";
+import AssistantTab from "../components/training/assistant-tab";
 import { Card } from "@/components/ui/card";
 
 export default function AssistantTrainingPage() {
