@@ -90,11 +90,24 @@ export function setupAuth(router: express.Router) {
           return done(null, false, { message: "Invalid username or password" });
         }
 
-        // For the updated DB structure, direct access password field
-        const isValidPassword = await comparePasswords(password, user.password || "");
+        // Handle both possible password field names (password and passwordHash)
+        // First try 'password' field, then fall back to 'passwordHash' if it exists
+        let storedPassword = user.password;
+        if (!storedPassword && 'passwordHash' in user) {
+          storedPassword = (user as any).passwordHash;
+          console.log(`Using passwordHash field for user ${username}`);
+        }
+        
+        if (!storedPassword) {
+          console.error(`No password field found for user ${username}`);
+          return done(null, false, { message: "Invalid username or password" });
+        }
+        
+        const isValidPassword = await comparePasswords(password, storedPassword);
         console.log(`Password validation result for ${username}: ${isValidPassword}`);
 
         if (!isValidPassword) {
+          console.log(`Password validation failed for ${username}`);
           return done(null, false, { message: "Invalid username or password" });
         }
 
