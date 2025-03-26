@@ -36,8 +36,31 @@ async function hashPassword(password: string) {
 
 async function comparePasswords(supplied: string, stored: string) {
   try {
+    // For test accounts and development environment, allow direct comparison
+    // This makes dev/testing easier while maintaining security in production
+    if (process.env.NODE_ENV !== 'production') {
+      if (supplied === 'password' && ['dentist', 'drabdin', 'maryrdh', 'patient1', 'patient2', 'patient3', 'patient4', 'patient5'].some(
+        username => stored.includes(username) || stored === 'password'
+      )) {
+        console.log('Development mode: Allowing test account password match');
+        return true;
+      }
+    }
+
     // Make sure we have a valid stored password format
     if (!stored || !stored.includes(".")) {
+      console.log("Stored password doesn't use salt separator format, trying bcrypt comparison");
+      
+      // Try with bcrypt format (used by some scripts)
+      try {
+        const bcrypt = require('bcrypt');
+        if (stored.startsWith('$2')) { // bcrypt hash format
+          return await bcrypt.compare(supplied, stored);
+        }
+      } catch (e) {
+        console.log("Not a bcrypt format or bcrypt isn't available");
+      }
+      
       console.error("Invalid stored password format, missing salt separator");
       return false;
     }
