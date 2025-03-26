@@ -238,6 +238,13 @@ export default function AuthPage() {
       // Process subscription first (in a real app, this would connect to a payment gateway)
       console.log(`Processing ${subscriptionPlan} subscription plan...`);
       
+      // Check for promotion code
+      if (data.promoCode) {
+        console.log(`Applying promotion code: ${data.promoCode}`);
+        // In a real app, this would validate the promo code with the backend
+        // and apply any discounts to the subscription
+      }
+      
       // Create the provider account with the subscription plan details
       await register({
         ...data,
@@ -245,8 +252,9 @@ export default function AuthPage() {
         subscriptionPlan: subscriptionPlan
       });
       
-      // Display success with subscription details
-      console.log(`Provider registration successful with ${subscriptionPlan} plan`);
+      // Display success with subscription details and promo code if used
+      const promoText = data.promoCode ? ` with promotion code ${data.promoCode}` : '';
+      console.log(`Provider registration successful with ${subscriptionPlan} plan${promoText}`);
     } catch (err) {
       console.error("Registration failed:", err);
       
@@ -1072,6 +1080,39 @@ export default function AuthPage() {
                               </FormControl>
                               <FormMessage />
                               <p className="text-xs text-gray-500 mt-1">Required for verification purposes.</p>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Promotion Code */}
+                    <div className="pt-3 pb-2">
+                      <div className="flex items-center mb-2">
+                        <FormField
+                          control={providerForm.control}
+                          name="promoCode"
+                          render={({ field }) => (
+                            <FormItem className="w-full">
+                              <FormLabel className="text-sm font-semibold text-gray-700">
+                                <div className="flex items-center gap-2">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M5 5a3 3 0 015-2.236A3 3 0 0114.83 6H16a2 2 0 110 4h-5V9a1 1 0 10-2 0v1H4a2 2 0 110-4h1.17A3 3 0 015 5zm5 1V5a1 1 0 10-2 0v1H5a1 1 0 000 2h3v1a2 2 0 104 0V8h3a1 1 0 100-2h-3V5a1 1 0 10-2 0v1z" clipRule="evenodd" />
+                                  </svg>
+                                  Promotion Code
+                                </div>
+                              </FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  className="h-12 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-green-500 focus:ring-2 focus:ring-green-500/40 transition-all hover:border-green-400 bg-white/95"
+                                  placeholder="Enter promo code (optional)"
+                                />
+                              </FormControl>
+                              <FormDescription className="text-xs text-gray-500 mt-1">
+                                Enter a valid promotion code for subscription discounts
+                              </FormDescription>
+                              <FormMessage />
                             </FormItem>
                           )}
                         />
