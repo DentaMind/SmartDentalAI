@@ -1,104 +1,147 @@
-import { useState, useEffect } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { CertificationBadge } from "@/components/training/certification-badge";
-import { apiRequest } from "@/lib/queryClient";
+import React, { useState, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { CertificationBadge, CertificationStatusGroup } from '../training/certification-badge';
+import { CertificationType } from 'shared/schema';
+import { useQuery } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'wouter';
 
 interface ProviderCertificationStatusProps {
-  providerId: number;
-  showSkeleton?: boolean;
+  userId: number;
+  name: string;
+  role: string;
+  compact?: boolean;
 }
 
-export function ProviderCertificationStatus({
-  providerId,
-  showSkeleton = true,
-}: ProviderCertificationStatusProps) {
-  const [loading, setLoading] = useState(true);
-  const [certifications, setCertifications] = useState<Record<string, string>>({});
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchCertifications = async () => {
-      try {
-        const data = await apiRequest<Record<string, string>>(
-          `/api/certifications/user/${providerId}`
-        );
-        setCertifications(data);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching certifications:", err);
-        setError("Failed to load certification status");
-        setLoading(false);
-      }
-    };
-
-    fetchCertifications();
-  }, [providerId]);
-
-  if (loading && showSkeleton) {
+/**
+ * Component for displaying provider's certification status
+ * Used in scheduler to indicate whether providers are certified
+ */
+export const ProviderCertificationStatus: React.FC<ProviderCertificationStatusProps> = ({
+  userId,
+  name,
+  role,
+  compact = false
+}) => {
+  const navigate = useNavigate();
+  const [showAllCertifications, setShowAllCertifications] = useState(false);
+  
+  // Fetch provider's certifications
+  const { data: certifications, isLoading, isError } = useQuery({
+    queryKey: ['/api/certifications/users', userId],
+    queryFn: () => apiRequest(`/api/certifications/users/${userId}`),
+    enabled: !!userId,
+    // Don't refresh too often, certifications don't change frequently
+    staleTime: 1000 * 60 * 5 // 5 minutes
+  });
+  
+  // Determine if there are any expired or missing certifications
+  const hasIssues = !!certifications?.some(
+    cert => cert.status === 'expired' || cert.status === 'not_started'
+  );
+  
+  // Compact view shown in scheduler
+  if (compact) {
+    if (isLoading) {
+      return <div className="text-xs text-gray-500">Loading...</div>;
+    }
+    
+    if (isError || !certifications || certifications.length === 0) {
+      return (
+        <div className="flex items-center gap-1 text-xs text-amber-500">
+          <AlertTriangle size={14} />
+          <span>Certification status unknown</span>
+        </div>
+      );
+    }
+    
+    // Display certification badges in compact view
     return (
-      <div className="flex gap-1">
-        <Skeleton className="h-5 w-14 rounded-full" />
-        <Skeleton className="h-5 w-14 rounded-full" />
-        <Skeleton className="h-5 w-14 rounded-full" />
+      <div className="mt-1">
+        <CertificationStatusGroup 
+          certifications={certifications.map(cert => ({
+            moduleType: cert.module.moduleType as CertificationType,
+            status: cert.status,
+            progress: cert.progress,
+            expiresAt: cert.expiresAt
+          }))}
+          size="sm"
+        />
       </div>
     );
   }
-
-  if (error) {
-    return <div className="text-xs text-muted-foreground">{error}</div>;
-  }
-
-  // Core certifications to display
-  const coreCertifications = ["hipaa", "osha", "ada"];
-
-  return (
-    <div className="flex gap-1 flex-wrap">
-      {coreCertifications.map((certType) => (
-        <CertificationBadge
-          key={certType}
-          userId={providerId}
-          certificationType={certType}
-          showTooltip={true}
-        />
-      ))}
-    </div>
-  );
-}
-
-export function ProviderCertificationFilter() {
-  const [filter, setFilter] = useState<string | null>(null);
   
+  // Full view shown in staff directory or profile pages
   return (
-    <div className="flex flex-col space-y-2 p-2 border rounded-md">
-      <h4 className="font-medium text-sm">Filter by Certification</h4>
-      <div className="flex flex-wrap gap-1">
-        <CertificationBadge 
-          userId={0} 
-          certificationType="hipaa" 
-          variant={filter === "hipaa" ? "default" : "outline"}
-          showTooltip={false}
-          onClick={() => setFilter(filter === "hipaa" ? null : "hipaa")}
-        />
-        <CertificationBadge 
-          userId={0} 
-          certificationType="osha" 
-          variant={filter === "osha" ? "default" : "outline"}
-          showTooltip={false}
-          onClick={() => setFilter(filter === "osha" ? null : "osha")}
-        />
-        <CertificationBadge 
-          userId={0} 
-          certificationType="ada" 
-          variant={filter === "ada" ? "default" : "outline"}
-          showTooltip={false}
-          onClick={() => setFilter(filter === "ada" ? null : "ada")}
-        />
-      </div>
-      {filter && (
-        <div className="text-xs text-muted-foreground">
-          Showing providers certified in {filter.toUpperCase()}
-        </div>
-      )}
-    </div>
+    <Card className="w-full shadow-sm">
+      <CardHeader className="py-3">
+        <CardTitle className="text-lg flex items-center justify-between">
+          <span>Certification Status</span>
+          {hasIssues && (
+            <span className="text-sm font-normal flex items-center gap-1.5 text-amber-500">
+              <AlertTriangle size={16} />
+              <span>Certification issues found</span>
+            </span>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pb-4">
+        {isLoading ? (
+          <div className="py-4 text-center text-gray-500">Loading certification status...</div>
+        ) : isError ? (
+          <div className="py-4 text-center text-red-500">
+            Error loading certification status
+          </div>
+        ) : certifications && certifications.length > 0 ? (
+          <div className="space-y-3">
+            <CertificationStatusGroup 
+              certifications={certifications.map(cert => ({
+                moduleType: cert.module.moduleType as CertificationType,
+                status: cert.status,
+                progress: cert.progress,
+                expiresAt: cert.expiresAt
+              }))}
+              showAll={showAllCertifications}
+              size="md"
+            />
+            
+            {certifications.length > 3 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowAllCertifications(!showAllCertifications)}
+              >
+                {showAllCertifications ? 'Show less' : `Show all (${certifications.length})`}
+              </Button>
+            )}
+            
+            {hasIssues && (
+              <Button 
+                variant="secondary"
+                className="w-full mt-2"
+                onClick={() => navigate('/training')}
+              >
+                Review Training Requirements
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="py-4 text-center text-amber-500 flex flex-col items-center gap-2">
+            <AlertTriangle size={24} />
+            <div>No certifications found for this provider</div>
+            <Button 
+              variant="secondary"
+              size="sm"
+              onClick={() => navigate('/training')}
+              className="mt-2"
+            >
+              Assign Training Modules
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
-}
+};

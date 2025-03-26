@@ -1,160 +1,233 @@
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../db';
-import { eq, and } from 'drizzle-orm';
-import { userCertifications, trainingModules } from '../../shared/schema';
+import { userCertifications, trainingModules } from 'shared/schema';
+import { eq, and, inArray } from 'drizzle-orm';
+import { Session } from 'express-session';
 
 /**
- * Middleware to check if a user has the required certification before accessing a feature
- * Can be used to restrict access to specific routes based on certification status
- * 
- * @param certificationType The type of certification required (hipaa, osha, ada, etc.)
- * @returns Middleware function that will allow or deny access
+ * Middleware to check if a user is a training admin
+ * Used to restrict access to training module management
  */
-export function requireCertification(certificationType: string) {
+export const requireTrainingAdmin = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.session || !req.session.user?.id) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+
+  const userRole = req.session.user.role;
+  
+  // Only admins and super_admins can manage training modules
+  if (userRole === 'admin' || userRole === 'super_admin') {
+    return next();
+  }
+  
+  return res.status(403).json({ message: 'Access denied. Training administrator role required.' });
+};
+
+/**
+ * Middleware to check if a user has the required certification
+ * Used to restrict access to certain features until certification is completed
+ */
+export const requireCertification = (moduleType: string, redirectRoute = '/training-dashboard') => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    // Ensure the user is authenticated
-    if (!req.session?.user?.id) {
+    // First check if user is authenticated
+    if (!req.session || !req.session.user?.id) {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
     const userId = req.session.user.id;
 
     try {
-      // Find the training module for this certification type
-      const modules = await db.select()
-        .from(trainingModules)
-        .where(eq(trainingModules.moduleType, certificationType))
-        .where(eq(trainingModules.isActive, true));
+      // Query for user's certification of the specified type
+      const certifications = await db.select()
+        .from(userCertifications)
+        .innerJoin(trainingModules, eq(userCertifications.moduleId, trainingModules.id))
+        .where(
+          and(
+            eq(userCertifications.userId, userId),
+            eq(trainingModules.moduleType, moduleType),
+            eq(userCertifications.status, 'completed')
+          )
+        );
 
-      if (modules.length === 0) {
-        // If the certification module doesn't exist, log it but allow access
-        console.warn(`Required certification module '${certificationType}' not found`);
+      // If user has a valid certification, allow access
+      if (certifications.length > 0) {
         return next();
       }
 
-      const moduleId = modules[0].id;
-
-      // Check if the user has this certification and it's completed
-      const certifications = await db.select()
-        .from(userCertifications)
-        .where(and(
-          eq(userCertifications.userId, userId),
-          eq(userCertifications.moduleId, moduleId),
-          eq(userCertifications.status, 'completed')
-        ));
-
-      if (certifications.length === 0) {
-        // User doesn't have the required certification
+      // If API request, return 403 with message
+      if (req.path.startsWith('/api/')) {
         return res.status(403).json({ 
           message: 'Certification required',
-          requiredCertification: certificationType,
-          redirectTo: '/training'
+          requiredCertification: moduleType,
+          redirectRoute
         });
       }
 
-      // Check if the certification has expired
-      const certification = certifications[0];
-      if (certification.expiresAt && new Date(certification.expiresAt) < new Date()) {
+      // For page requests, redirect to training dashboard
+      return res.redirect(redirectRoute);
+    } catch (error) {
+      console.error('Certification check error:', error);
+      return res.status(500).json({ message: 'Error checking certification status' });
+    }
+  };
+};
+
+/**
+ * Middleware to check if a user has any of the required certifications
+ * Used for less strict access requirements (any one of several certifications)
+ */
+export const requireAnyCertification = (moduleTypes: string[], redirectRoute = '/training-dashboard') => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    // First check if user is authenticated
+    if (!req.session || !req.session.user?.id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const userId = req.session.user.id;
+
+    try {
+      // Query for user's certifications of any of the specified types
+      const certifications = await db.select()
+        .from(userCertifications)
+        .innerJoin(trainingModules, eq(userCertifications.moduleId, trainingModules.id))
+        .where(
+          and(
+            eq(userCertifications.userId, userId),
+            inArray(trainingModules.moduleType, moduleTypes),
+            eq(userCertifications.status, 'completed')
+          )
+        );
+
+      // If user has any valid certification in the list, allow access
+      if (certifications.length > 0) {
+        return next();
+      }
+
+      // If API request, return 403 with message
+      if (req.path.startsWith('/api/')) {
         return res.status(403).json({ 
-          message: 'Certification has expired',
-          requiredCertification: certificationType,
-          redirectTo: '/training' 
+          message: 'Certification required',
+          requiredCertifications: moduleTypes,
+          redirectRoute
         });
       }
 
-      // User has the required certification, proceed
+      // For page requests, redirect to training dashboard
+      return res.redirect(redirectRoute);
+    } catch (error) {
+      console.error('Certification check error:', error);
+      return res.status(500).json({ message: 'Error checking certification status' });
+    }
+  };
+};
+
+/**
+ * Middleware to check if a user has active certifications based on role
+ * Admin users bypass this check
+ */
+export const requireRoleBasedCertifications = (redirectRoute = '/training-dashboard') => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    // First check if user is authenticated
+    if (!req.session || !req.session.user?.id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const userId = req.session.user.id;
+    const userRole = req.session.user.role;
+
+    // Admins bypass certification checks
+    if (userRole === 'admin' || userRole === 'super_admin') {
+      return next();
+    }
+
+    try {
+      // Get required certifications for the user's role
+      const requiredModules = await db.select()
+        .from(trainingModules)
+        .where(
+          inArray('requiredRoles', [userRole])
+        );
+
+      if (requiredModules.length === 0) {
+        // No certifications required for this role
+        return next();
+      }
+
+      const requiredModuleIds = requiredModules.map(module => module.id);
+
+      // Check if user has completed the required certifications for their role
+      const completedCertifications = await db.select()
+        .from(userCertifications)
+        .where(
+          and(
+            eq(userCertifications.userId, userId),
+            inArray(userCertifications.moduleId, requiredModuleIds),
+            eq(userCertifications.status, 'completed')
+          )
+        );
+
+      const completedModuleIds = new Set(completedCertifications.map(cert => cert.moduleId));
+      
+      // Check if all required certifications are completed
+      const missingCertifications = requiredModules.filter(module => !completedModuleIds.has(module.id));
+
+      if (missingCertifications.length === 0) {
+        // All required certifications completed
+        return next();
+      }
+
+      // If API request, return 403 with message
+      if (req.path.startsWith('/api/')) {
+        return res.status(403).json({ 
+          message: 'Required certifications incomplete',
+          missingCertifications: missingCertifications.map(m => ({ 
+            id: m.id, 
+            title: m.title, 
+            type: m.moduleType 
+          })),
+          redirectRoute
+        });
+      }
+
+      // For page requests, redirect to training dashboard
+      return res.redirect(redirectRoute);
+    } catch (error) {
+      console.error('Role-based certification check error:', error);
+      return res.status(500).json({ message: 'Error checking certification status' });
+    }
+  };
+};
+
+// Helper to add certification information to user session
+export const attachCertificationInfo = () => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.session || !req.session.user?.id) {
+      return next();
+    }
+
+    try {
+      const userId = req.session.user.id;
+      
+      // Get user's certifications
+      const certifications = await db.select()
+        .from(userCertifications)
+        .innerJoin(trainingModules, eq(userCertifications.moduleId, trainingModules.id))
+        .where(eq(userCertifications.userId, userId));
+      
+      // Add to session for easy access
+      (req.session as any).certifications = certifications.map(row => ({
+        id: row.user_certifications.id,
+        moduleId: row.user_certifications.moduleId,
+        status: row.user_certifications.status,
+        progress: row.user_certifications.progress,
+        moduleType: row.training_modules.moduleType,
+        title: row.training_modules.title
+      }));
+      
       next();
     } catch (error) {
-      console.error('Error checking certification:', error);
-      // In case of an error, allow access rather than blocking legitimate users
+      console.error('Error attaching certification info:', error);
       next();
     }
   };
-}
-
-/**
- * Utility function to check if a user has a specific certification
- * Can be used to conditionally show/hide UI elements
- * 
- * @param userId The user ID
- * @param certificationType The type of certification to check
- * @returns True if the user has the certification, false otherwise
- */
-export async function checkUserCertification(userId: number, certificationType: string): Promise<boolean> {
-  try {
-    // Find the training module for this certification type
-    const modules = await db.select()
-      .from(trainingModules)
-      .where(eq(trainingModules.moduleType, certificationType))
-      .where(eq(trainingModules.isActive, true));
-
-    if (modules.length === 0) {
-      return false;
-    }
-
-    const moduleId = modules[0].id;
-
-    // Check if the user has this certification and it's completed
-    const certifications = await db.select()
-      .from(userCertifications)
-      .where(and(
-        eq(userCertifications.userId, userId),
-        eq(userCertifications.moduleId, moduleId),
-        eq(userCertifications.status, 'completed')
-      ));
-
-    if (certifications.length === 0) {
-      return false;
-    }
-
-    // Check if the certification has expired
-    const certification = certifications[0];
-    if (certification.expiresAt && new Date(certification.expiresAt) < new Date()) {
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error checking certification:', error);
-    return false;
-  }
-}
-
-/**
- * Get all certification statuses for a user
- * 
- * @param userId The user ID
- * @returns Object with certification types as keys and their status as values
- */
-export async function getUserCertifications(userId: number): Promise<Record<string, string>> {
-  try {
-    // Join userCertifications and trainingModules to get module types
-    const result = await db.select({
-      moduleType: trainingModules.moduleType,
-      status: userCertifications.status,
-      expiresAt: userCertifications.expiresAt
-    })
-    .from(userCertifications)
-    .innerJoin(trainingModules, eq(userCertifications.moduleId, trainingModules.id))
-    .where(eq(userCertifications.userId, userId));
-
-    // Convert to a record of moduleType -> status, handling expired certifications
-    const certStatuses: Record<string, string> = {};
-    
-    result.forEach(cert => {
-      let status = cert.status;
-      
-      // If the certification has expired, mark it as such
-      if (status === 'completed' && cert.expiresAt && new Date(cert.expiresAt) < new Date()) {
-        status = 'expired';
-      }
-      
-      certStatuses[cert.moduleType] = status;
-    });
-    
-    return certStatuses;
-  } catch (error) {
-    console.error('Error getting user certifications:', error);
-    return {};
-  }
-}
+};

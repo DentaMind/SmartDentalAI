@@ -848,11 +848,7 @@ export type InsertOrthodonticCase = z.infer<typeof insertOrthodonticCaseSchema>;
 export type OrthodonticTelehealthSession = typeof orthodonticTelehealthSessions.$inferSelect;
 export type InsertOrthodonticTelehealthSession = z.infer<typeof insertOrthodonticTelehealthSessionSchema>;
 
-// Training and certification types
-export type TrainingModule = typeof trainingModules.$inferSelect;
-export type InsertTrainingModule = z.infer<typeof insertTrainingModuleSchema>;
-export type UserCertification = typeof userCertifications.$inferSelect;
-export type InsertUserCertification = z.infer<typeof insertUserCertificationSchema>;// PHARMACY AND E-PRESCRIPTION TABLES
+// PHARMACY AND E-PRESCRIPTION TABLES
 export const pharmacies = pgTable("pharmacies", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -1059,6 +1055,50 @@ export const vendorProfiles = pgTable("vendor_profiles", {
   apiEndpoints: jsonb("api_endpoints"),
 });
 
+// TRAINING AND CERTIFICATION TABLES
+export const trainingModules = pgTable("training_modules", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  moduleType: text("module_type", { 
+    enum: ["hipaa", "osha", "ada", "cpr", "infection_control", "emergency_protocols", "custom"]
+  }).notNull(),
+  content: jsonb("content").notNull(), // Structured content with steps, videos, etc.
+  steps: jsonb("steps"), // Ordered steps for training
+  quizQuestions: jsonb("quiz_questions"), // Quiz at the end of module
+  imageUrl: text("image_url"), // Cover image for the module
+  requiredRoles: jsonb("required_roles"), // Which roles need this training
+  isActive: boolean("is_active").default(true),
+  passingScore: integer("passing_score").default(80), // Percentage needed to pass
+  estimatedDuration: integer("estimated_duration"), // Minutes
+  expirationPeriod: integer("expiration_period"), // Days until certification expires
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const userCertifications = pgTable("user_certifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  moduleId: integer("module_id").notNull(),
+  status: text("status", { 
+    enum: ["not_started", "in_progress", "completed", "expired"] 
+  }).notNull().default("not_started"),
+  progress: integer("progress").default(0), // Percentage through the module
+  currentStep: integer("current_step").default(0),
+  score: integer("score"), // Final score
+  startedAt: timestamp("started_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+  expiresAt: timestamp("expires_at"),
+  attempts: integer("attempts").default(0),
+  lastAttemptAt: timestamp("last_attempt_at"),
+  lastAnswers: jsonb("last_answers"), // Store quiz responses
+  certificateUrl: text("certificate_url"), // Generated certificate PDF
+  quizResults: jsonb("quiz_results"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+
 // ORTHODONTIC TELEHEALTH TABLES
 
 // Table for orthodontic cases
@@ -1132,47 +1172,15 @@ export const orthodonticTelehealthSessions = pgTable("orthodontic_telehealth_ses
   feedback: jsonb("feedback"), // Patient feedback after session
 });
 
-// Training and certification tables
-export const trainingModules = pgTable("training_modules", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description"),
-  requiredRoles: jsonb("required_roles"), // Array of roles that are required to complete this module
-  steps: jsonb("steps"), // Array of training steps
-  quizQuestions: jsonb("quiz_questions"), // Array of questions
-  imageUrl: text("image_url"),
-  moduleType: text("module_type", {
-    enum: ["hipaa", "osha", "ada", "cpr", "infection_control", "emergency_protocols", "custom"]
-  }).notNull().default("custom"),
-  passingScore: integer("passing_score").notNull().default(90),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-  isActive: boolean("is_active").default(true),
-  expirationPeriod: integer("expiration_period"), // Number of days until certification expires
-});
-
-export const userCertifications = pgTable("user_certifications", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  moduleId: integer("module_id").notNull(),
-  status: text("status", {
-    enum: ["not_started", "in_progress", "completed", "expired"]
-  }).notNull().default("not_started"),
-  score: integer("score"),
-  completedAt: timestamp("completed_at"),
-  expiresAt: timestamp("expires_at"),
-  certificateUrl: text("certificate_url"),
-  lastAttemptAt: timestamp("last_attempt_at"),
-  attempts: integer("attempts").default(0),
-  quizResults: jsonb("quiz_results"), // Detailed results of the quiz
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Create insertion schemas for lab & supply tables
-// Insert schemas for training and certification
+// Create insertion schemas for training and certification
 export const insertTrainingModuleSchema = createInsertSchema(trainingModules);
 export const insertUserCertificationSchema = createInsertSchema(userCertifications);
+
+// Define types for training and certification
+export type TrainingModule = typeof trainingModules.$inferSelect;
+export type UserCertification = typeof userCertifications.$inferSelect;
+export type InsertTrainingModule = z.infer<typeof insertTrainingModuleSchema>;
+export type InsertUserCertification = z.infer<typeof insertUserCertificationSchema>;
 
 // Insert schemas for labs, supplies and orthodontics
 export const insertLabCaseSchema = createInsertSchema(labCases);
