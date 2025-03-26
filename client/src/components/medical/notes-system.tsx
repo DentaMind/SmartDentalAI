@@ -287,6 +287,10 @@ export function NotesSystem({
       setVoiceTranscript(transcript);
       setShowVoiceTranscript(true);
       setIsRecording(false);
+      
+      // Add the transcript to the current note content
+      const currentContent = form.getValues('content');
+      form.setValue('content', currentContent ? `${currentContent}\n\n${transcript}` : transcript);
     }
   };
 
@@ -707,10 +711,9 @@ export function NotesSystem({
               Cancel
             </Button>
             <Button 
-              onClick={() => {
-                closeVoiceAssistant();
-              }}
+              onClick={closeVoiceAssistant}
               className="gap-1"
+              variant="default"
             >
               <Sparkles className="h-4 w-4" /> 
               Add to Note
