@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/use-auth';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { CertificationBadge } from '@/components/training/certification-badge';
 import { CheckCircle, AlertCircle, Clock, XCircle, ChevronRight, HelpCircle, Award, Users } from 'lucide-react';
 import { CertificationTypeEnum } from 'shared/schema';
@@ -16,7 +16,7 @@ import { CertificationTypeEnum } from 'shared/schema';
 const TrainingDashboardPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState('my-training');
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
