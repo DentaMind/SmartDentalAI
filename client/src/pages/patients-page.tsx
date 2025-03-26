@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import { useLocation } from "wouter";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Button } from "@/components/ui/button";
@@ -15,13 +15,14 @@ interface User {
 }
 
 interface Patient {
-  id: string;
+  id: number;
+  userId: number;
   user: User;
   allergies?: string;
   medicalHistory?: string;
 }
 
-const PatientsPage = () => {
+const PatientsPage: React.FC = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -30,12 +31,13 @@ const PatientsPage = () => {
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const res = await fetch("/patients");
+        console.log("Attempting to fetch from /patients");
+        const res = await fetch('/patients');
         const data = await res.json();
-        console.log("Patient data received:", data);
+        console.log("SUCCESS: Patient data received:", data);
         setPatients(data);
-      } catch (err) {
-        console.error("Error fetching patients:", err);
+      } catch (error) {
+        console.error('Error fetching patients:', error);
         setError(true);
       } finally {
         setLoading(false);
@@ -44,9 +46,6 @@ const PatientsPage = () => {
 
     fetchPatients();
   }, []);
-
-  // Add debug log to confirm component rendering
-  console.log("Rendering patients page with", patients.length, "records");
 
   if (loading) {
     return (
@@ -85,60 +84,32 @@ const PatientsPage = () => {
             <p>No patients found.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {patients.map((p) => {
-              // Define expected structure for history
-              interface MedicalHistory {
-                systemicConditions?: string[];
-                medications?: string[];
-                allergies?: string[];
-                [key: string]: any;
-              }
-              
-              let history: MedicalHistory = {};
-              try {
-                history = p.medicalHistory ? JSON.parse(p.medicalHistory) : {};
-              } catch (err) {
-                console.warn("Failed to parse medicalHistory for patient:", p.id);
-              }
+              let allergies: string[] = [];
+              let conditions: string[] = [];
 
-              // Parse and format the allergies string
-              let allergies = "None";
               try {
-                if (p.allergies && typeof p.allergies === "string") {
-                  // Try to parse if it's a JSON string
-                  if (p.allergies.startsWith("[")) {
-                    const allergiesArray = JSON.parse(p.allergies);
-                    allergies = allergiesArray.join(", ");
-                  } else {
-                    // Just use as is if not JSON
-                    allergies = p.allergies;
-                  }
-                }
-              } catch (err) {
-                // If parsing fails, just use the original string with basic cleanup
-                allergies = p.allergies ? p.allergies.replace(/[\[\]"]/g, "") : "None";
-              }
+                if (p.allergies) allergies = JSON.parse(p.allergies);
+              } catch {}
+
+              try {
+                const parsed = p.medicalHistory ? JSON.parse(p.medicalHistory) : {};
+                conditions = parsed.systemicConditions || [];
+              } catch {}
 
               return (
                 <Card key={p.id} className="p-4 shadow-md">
                   <h2 className="text-lg font-semibold mb-2">
-                    {p.user?.firstName ?? "Unknown"} {p.user?.lastName ?? ""}
+                    {p.user?.firstName || "Unknown"} {p.user?.lastName || ""}
                   </h2>
                   <div className="space-y-1 text-sm">
-                    <p><strong>Email:</strong> {p.user?.email ?? "N/A"}</p>
-                    <p><strong>Phone:</strong> {p.user?.phoneNumber ?? "N/A"}</p>
-                    <p><strong>DOB:</strong> {p.user?.dateOfBirth ?? "N/A"}</p>
-                    <p><strong>Insurance:</strong> {p.user?.insuranceProvider ?? "N/A"}</p>
-                    <p><strong>Allergies:</strong> <span className="text-red-600">{allergies}</span></p>
-                    <p>
-                      <strong>Conditions:</strong>{" "}
-                      {history.systemicConditions?.join(", ") || "None"}
-                    </p>
-                    <p>
-                      <strong>Medications:</strong>{" "}
-                      {history.medications?.join(", ") || "None"}
-                    </p>
+                    <p><strong>Email:</strong> {p.user?.email ?? 'N/A'}</p>
+                    <p><strong>DOB:</strong> {p.user?.dateOfBirth ?? 'N/A'}</p>
+                    <p><strong>Phone:</strong> {p.user?.phoneNumber ?? 'N/A'}</p>
+                    <p><strong>Insurance:</strong> {p.user?.insuranceProvider ?? 'N/A'}</p>
+                    <p><strong>Allergies:</strong> {allergies.join(', ') || 'None'}</p>
+                    <p><strong>Conditions:</strong> {conditions.join(', ') || 'None'}</p>
                   </div>
                   <Button
                     className="w-full mt-4"
