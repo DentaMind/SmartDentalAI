@@ -1166,6 +1166,22 @@ export const userCertifications = pgTable("user_certifications", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Table for user training notes and personal learning reflections
+export const userTrainingNotes = pgTable("user_training_notes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  moduleId: integer("module_id").notNull(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  tags: jsonb("tags"), // Array of tags for categorization
+  isPrivate: boolean("is_private").default(true), // Whether note is private or shared with admin/team
+  stepId: integer("step_id"), // Which step in the training this note relates to
+  keyInsights: jsonb("key_insights"), // User-highlighted key learnings
+  mediaUrls: jsonb("media_urls"), // Optional screenshots or recordings
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 
 // ORTHODONTIC TELEHEALTH TABLES
 
@@ -1243,12 +1259,15 @@ export const orthodonticTelehealthSessions = pgTable("orthodontic_telehealth_ses
 // Create insertion schemas for training and certification
 export const insertTrainingModuleSchema = createInsertSchema(trainingModules);
 export const insertUserCertificationSchema = createInsertSchema(userCertifications);
+export const insertUserTrainingNoteSchema = createInsertSchema(userTrainingNotes);
 
 // Define types for training and certification
 export type TrainingModule = typeof trainingModules.$inferSelect;
 export type UserCertification = typeof userCertifications.$inferSelect;
+export type UserTrainingNote = typeof userTrainingNotes.$inferSelect;
 export type InsertTrainingModule = z.infer<typeof insertTrainingModuleSchema>;
 export type InsertUserCertification = z.infer<typeof insertUserCertificationSchema>;
+export type InsertUserTrainingNote = z.infer<typeof insertUserTrainingNoteSchema>;
 
 // Add the enums for bonus system
 export const BonusGoalTypeEnum = z.enum(['practice', 'role', 'individual']);

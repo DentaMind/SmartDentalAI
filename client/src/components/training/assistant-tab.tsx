@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AssistantTerminology from "./assistant-terminology";
+import TrainingNotes from "./training-notes";
 
 // Training modules
 const assistantModules = [
@@ -198,6 +199,7 @@ export default function AssistantTab() {
     osha: false, 
     ada: false 
   });
+  const [activeTabValue, setActiveTabValue] = useState("training");
 
   const handleQuizSubmit = (title: string, score: number) => {
     setQuizResults(prev => {
@@ -206,15 +208,38 @@ export default function AssistantTab() {
       return newResults;
     });
     
-    // Update certification status
+    // Update certification status and switch to notes tab if passed
+    let certificationPassed = false;
+    let certType = '';
+    
     if (title.includes("HIPAA") && score >= 90) {
       setCertified(prev => ({ ...prev, hipaa: true }));
+      certificationPassed = true;
+      certType = 'HIPAA';
     }
     if (title.includes("OSHA") && score >= 90) {
       setCertified(prev => ({ ...prev, osha: true }));
+      certificationPassed = true;
+      certType = 'OSHA';
     }
     if (title.includes("ADA") && score >= 90) {
       setCertified(prev => ({ ...prev, ada: true }));
+      certificationPassed = true;
+      certType = 'ADA';
+    }
+    
+    // If certification was passed, switch to notes tab after a short delay
+    if (certificationPassed) {
+      // Store the certification type in sessionStorage for the training notes component
+      sessionStorage.setItem('recentCertification', certType);
+      
+      // Show a congratulatory message
+      alert(`Congratulations! You've passed the ${certType} certification with a score of ${score}%.\n\nPlease take a moment to document key points you've learned in the Training Notes tab.`);
+      
+      // Switch to notes tab
+      setTimeout(() => {
+        setActiveTabValue("notes");
+      }, 500);
     }
   };
 
@@ -243,9 +268,10 @@ export default function AssistantTab() {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="training" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs value={activeTabValue} onValueChange={setActiveTabValue} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="training">Certification Training</TabsTrigger>
+          <TabsTrigger value="notes">Training Notes</TabsTrigger>
           <TabsTrigger value="reference">Dental Terminology</TabsTrigger>
         </TabsList>
         
@@ -364,6 +390,10 @@ export default function AssistantTab() {
               </Card>
             )}
           </div>
+        </TabsContent>
+        
+        <TabsContent value="notes" className="mt-4">
+          <TrainingNotes />
         </TabsContent>
         
         <TabsContent value="reference" className="mt-4">

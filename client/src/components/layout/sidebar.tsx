@@ -146,6 +146,17 @@ export function Sidebar() {
       { name: "Financial Dashboard", href: "/financial-dashboard", icon: DollarSign },
     ];
 
+    const adminItems: NavigationItem[] = [
+      { name: "Schedule", href: "/appointments", icon: Calendar },
+      { name: "Patients", href: "/patients", icon: Users },
+      { name: "AI Hub", href: "/ai-hub", icon: CircuitToothIcon, highlight: true },
+      { name: "Staff Management", href: "/time-clock", icon: Clock },
+      { name: "Email Hub", href: "/email", icon: Mail, highlight: true },
+      { name: "Labs & Supplies", href: "/labs-supplies", icon: Beaker, highlight: true },
+      { name: "Financial Dashboard", href: "/financial-dashboard", icon: DollarSign },
+      { name: "Training Dashboard", href: "/training-dashboard", icon: GraduationCap, highlight: true }
+    ];
+
     switch (user?.role) {
       case "doctor":
         return [...baseItems, ...doctorItems, ...financialItems];
@@ -153,8 +164,10 @@ export function Sidebar() {
         return [...baseItems, ...staffItems, ...financialItems];
       case "patient":
         return [...baseItems, ...patientItems]; // No financial items for patients
+      case "admin":
+        return [...baseItems, ...adminItems];
       default:
-        return [...baseItems, ...financialItems];
+        return [...doctorItems, ...financialItems]; // Show doctor items by default
     }
   };
 

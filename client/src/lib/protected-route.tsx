@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Redirect, Route, useLocation } from "wouter";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 import { useEffect } from "react";
-import dentaMindLogo from "../assets/dentamind-logo.png";
+import dentaMindLogo from "../assets/dentamind-logo-tooth-hq.png";
 
 export function ProtectedRoute({
   path,

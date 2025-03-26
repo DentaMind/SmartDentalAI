@@ -15,6 +15,7 @@ import medicalNotesRoutes from './routes/medical-notes-routes';
 import prescriptionRoutes from './routes/prescription-routes';
 import postOpRoutes from './routes/post-op-routes';
 import { setupCertificationRoutes } from './routes/certification-routes';
+import { setupTrainingNotesRoutes } from './routes/training-notes-routes';
 import { setupEmailAIRoutes } from './routes/email-ai-routes';
 import { setupEmailReaderRoutes } from './routes/email-reader-routes-fixed';
 import { setupEmailSchedulerRoutes } from './routes/email-scheduler-routes';
@@ -170,6 +171,12 @@ app.use("/api", postOpRoutes);
 const certificationRouter = express.Router();
 setupCertificationRoutes(certificationRouter);
 app.use("/api", certificationRouter);
+
+// Setup training notes routes
+const trainingNotesRouter = express.Router();
+setupTrainingNotesRoutes(trainingNotesRouter);
+app.use("/api", trainingNotesRouter);
+
 app.use("/api", setupEmailAIRoutes(express.Router()));
 app.use("/api", setupEmailReaderRoutes(express.Router()));
 app.use("/api", setupEmailSchedulerRoutes(express.Router(), storage));
