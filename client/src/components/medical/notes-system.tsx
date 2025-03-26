@@ -695,11 +695,10 @@ export function NotesSystem({
           <div className="py-4">
             {/* Voice Assistant Component */}
             <VoiceAssistant 
-              onTranscriptReady={handleVoiceAssistantTranscript}
-              onClose={closeVoiceAssistant}
+              onTranscriptGenerated={handleVoiceAssistantTranscript}
               patientId={patientId}
-              noteType={form.getValues('category')}
-              className="min-h-[300px]"
+              category={form.getValues('category')}
+              disabled={false}
             />
           </div>
           
