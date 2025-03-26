@@ -26,12 +26,29 @@ export default function PatientsPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
-  // Fetch patients data
-  const { data: patients, isLoading, isError } = useQuery<Patient[]>({
-    queryKey: ["/api/patients"],
-    refetchOnWindowFocus: false,
-    retry: 2,
-  });
+  // Fetch patients data with a direct fetch call for more reliable data access
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/patients")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setPatients(data);
+        } else {
+          console.error("Unexpected data format:", data);
+          setError(true);
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error loading patients:", err);
+        setError(true);
+        setLoading(false);
+      });
+  }, []);
 
   // Today's stats (placeholders for now)
   const todayAppointments = 5;
@@ -125,12 +142,12 @@ export default function PatientsPage() {
           </div>
 
           {/* Patient Cards */}
-          {isLoading ? (
+          {loading ? (
             <div className="flex flex-col items-center justify-center h-32 gap-4">
               <LoadingAnimation />
               <p className="text-gray-600">Loading patient data...</p>
             </div>
-          ) : isError ? (
+          ) : error ? (
             <div className="flex flex-col items-center justify-center h-32 gap-4">
               <AlertCircle className="h-8 w-8 text-red-500" />
               <p className="text-gray-600">Error loading patients data. Please try again.</p>
@@ -150,65 +167,84 @@ export default function PatientsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {patients.map((patient) => (
-                <Card key={patient.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex justify-between items-center">
-                      <span>
-                        {patient.user?.firstName || 'First'} {patient.user?.lastName || 'Last'}
-                      </span>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSelectedPatient(patient)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-2">
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Date of Birth:</span>
-                        <span>{patient.user?.dateOfBirth || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Contact:</span>
-                        <span className="truncate max-w-[150px]">{patient.user?.phoneNumber || patient.user?.email || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Allergies:</span>
-                        <span className="truncate max-w-[150px]">
-                          {patient.allergies ? (
-                            typeof patient.allergies === 'string' ? 
-                              patient.allergies.replace(/[\[\]"]/g, "") : 
-                              Array.isArray(patient.allergies) ? 
-                                patient.allergies.join(', ') : 
-                                'None'
-                          ) : 'None'}
+              {patients.map((patient) => {
+                let allergies = "None";
+                if (patient.allergies) {
+                  if (typeof patient.allergies === 'string') {
+                    allergies = patient.allergies.replace(/[\[\]"]/g, "");
+                  } else if (Array.isArray(patient.allergies)) {
+                    allergies = patient.allergies.join(', ');
+                  }
+                }
+
+                let medicalHistoryText = "None recorded";
+                if (patient.medicalHistory) {
+                  if (typeof patient.medicalHistory === 'string') {
+                    if (patient.medicalHistory.startsWith('{') || patient.medicalHistory.startsWith('[')) {
+                      try {
+                        const parsed = JSON.parse(patient.medicalHistory);
+                        if (parsed.systemicConditions && Array.isArray(parsed.systemicConditions)) {
+                          medicalHistoryText = `${parsed.systemicConditions.length} condition(s)`;
+                        }
+                      } catch (e) {
+                        medicalHistoryText = "View details";
+                      }
+                    } else {
+                      medicalHistoryText = "View details";
+                    }
+                  }
+                }
+
+                return (
+                  <Card key={patient.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex justify-between items-center">
+                        <span>
+                          {patient.user?.firstName || 'First'} {patient.user?.lastName || 'Last'}
                         </span>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedPatient(patient)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-2">
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Date of Birth:</span>
+                          <span>{patient.user?.dateOfBirth || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Contact:</span>
+                          <span className="truncate max-w-[150px]">{patient.user?.phoneNumber || patient.user?.email || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Allergies:</span>
+                          <span className="truncate max-w-[150px]">{allergies}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Medical History:</span>
+                          <span className="truncate max-w-[150px]">{medicalHistoryText}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Medical History:</span>
-                        <span className="truncate max-w-[150px]">
-                          {patient.medicalHistory ? 'View details' : 'None recorded'}
-                        </span>
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/patients/${patient.id}`)}
-                      className="w-full mt-4 gap-2"
-                    >
-                      <span>View Full Profile</span>
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/patients/${patient.id}`)}
+                        className="w-full mt-4 gap-2"
+                      >
+                        <span>View Full Profile</span>
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
