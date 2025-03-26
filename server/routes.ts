@@ -16,6 +16,7 @@ import { setupPatientFormsRoutes } from './routes/patient-forms-routes';
 import { setupEmailSchedulerRoutes } from './routes/email-scheduler-routes';
 import { EmailAIService } from './services/email-ai-service-fixed';
 import dicomRoutes from './routes/dicom-routes';
+import { setupBonusSystemRoutes } from './routes/bonus-system-routes';
 import path from 'path';
 import { PatientMedicalHistory, User } from '../shared/schema';
 
@@ -1300,6 +1301,9 @@ setupEmailReaderRoutes(router);
 
 // Set up patient forms routes
 setupPatientFormsRoutes(router);
+
+// Set up bonus system routes
+setupBonusSystemRoutes(router);
 
 // Set up other route modules
 router.use('/scheduler', schedulerRoutes);

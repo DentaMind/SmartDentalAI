@@ -897,6 +897,74 @@ export const insertPharmacySchema = createInsertSchema(pharmacies);
 export const insertFavoritePharmacySchema = createInsertSchema(favoritePharmacies);
 export const insertPrescriptionLogSchema = createInsertSchema(prescriptionLogs);
 
+// PRODUCTION BONUS SYSTEM TABLES
+
+export const bonusGoals = pgTable("bonus_goals", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  targetAmount: integer("target_amount").notNull(), // In cents
+  bonusAmount: integer("bonus_amount").notNull(), // In cents
+  goalType: text("goal_type", {
+    enum: ["practice", "role", "individual"]
+  }).notNull().default("practice"),
+  roleType: text("role_type", {
+    enum: ["doctor", "staff", "hygienist", "assistant", "frontdesk", "all"]
+  }).default("all"),
+  userId: integer("user_id"), // For individual goals
+  timeframe: text("timeframe", {
+    enum: ["daily", "weekly", "monthly", "quarterly", "annual"]
+  }).notNull().default("monthly"),
+  startDate: timestamp("start_date").notNull().defaultNow(),
+  endDate: timestamp("end_date"),
+  isActive: boolean("is_active").notNull().default(true),
+  notificationEnabled: boolean("notification_enabled").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  createdBy: integer("created_by").notNull(),
+});
+
+export const bonusGoalTiers = pgTable("bonus_goal_tiers", {
+  id: serial("id").primaryKey(),
+  goalId: integer("goal_id").notNull(),
+  tierLevel: integer("tier_level").notNull(), // 1, 2, 3, etc.
+  targetAmount: integer("target_amount").notNull(), // In cents
+  bonusAmount: integer("bonus_amount").notNull(), // In cents
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const bonusAchievements = pgTable("bonus_achievements", {
+  id: serial("id").primaryKey(),
+  goalId: integer("goal_id").notNull(),
+  userId: integer("user_id").notNull(),
+  tierId: integer("tier_id"),
+  achievedAmount: integer("achieved_amount").notNull(), // In cents
+  achievedDate: timestamp("achieved_date").notNull().defaultNow(),
+  bonusAmount: integer("bonus_amount").notNull(), // In cents
+  isPaid: boolean("is_paid").notNull().default(false),
+  paidDate: timestamp("paid_date"),
+  approvedBy: integer("approved_by"),
+  approvedDate: timestamp("approved_date"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const bonusNotifications = pgTable("bonus_notifications", {
+  id: serial("id").primaryKey(),
+  goalId: integer("goal_id").notNull(),
+  userId: integer("user_id").notNull(),
+  achievementId: integer("achievement_id"),
+  notificationType: text("notification_type", {
+    enum: ["approaching", "achieved", "tier_achieved", "goal_completed", "payment_processed"]
+  }).notNull(),
+  message: text("message").notNull(),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // LAB AND SUPPLY ORDERING TABLES
 
 // Table for dental lab cases
@@ -1190,3 +1258,9 @@ export const insertSupplyReceiptSchema = createInsertSchema(supplyReceipts);
 export const insertVendorProfileSchema = createInsertSchema(vendorProfiles);
 export const insertOrthodonticCaseSchema = createInsertSchema(orthodonticCases);
 export const insertOrthodonticTelehealthSessionSchema = createInsertSchema(orthodonticTelehealthSessions);
+
+// Bonus System insert schemas
+export const insertBonusGoalSchema = createInsertSchema(bonusGoals);
+export const insertBonusGoalTierSchema = createInsertSchema(bonusGoalTiers);
+export const insertBonusAchievementSchema = createInsertSchema(bonusAchievements);
+export const insertBonusNotificationSchema = createInsertSchema(bonusNotifications);
