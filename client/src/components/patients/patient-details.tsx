@@ -43,15 +43,59 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
 
-  // Process the patient data to handle potential raw JSON strings
+  // Process the patient data to handle all potential formats
   const processedPatient = {
     ...patient,
-    medicalHistory: typeof patient.medicalHistory === 'string' && patient.medicalHistory.startsWith('{') 
-      ? JSON.stringify(JSON.parse(patient.medicalHistory), null, 2) 
-      : patient.medicalHistory,
-    allergies: typeof patient.allergies === 'string' && patient.allergies.startsWith('[') 
-      ? JSON.stringify(JSON.parse(patient.allergies), null, 2)
-      : patient.allergies
+    // Handle medical history data in various formats
+    medicalHistory: (() => {
+      if (!patient.medicalHistory) return 'No medical history recorded';
+      
+      // If it's a JSON string, parse and pretty print it
+      if (typeof patient.medicalHistory === 'string') {
+        if (patient.medicalHistory.startsWith('{') || patient.medicalHistory.startsWith('[')) {
+          try {
+            return JSON.stringify(JSON.parse(patient.medicalHistory), null, 2);
+          } catch (e) {
+            // If parsing fails, return as is
+            return patient.medicalHistory;
+          }
+        }
+        return patient.medicalHistory;
+      }
+      
+      // If it's already an object, stringify it
+      if (typeof patient.medicalHistory === 'object') {
+        return JSON.stringify(patient.medicalHistory, null, 2);
+      }
+      
+      return String(patient.medicalHistory);
+    })(),
+    
+    // Handle allergies in various formats
+    allergies: (() => {
+      if (!patient.allergies) return 'No known allergies';
+      
+      // If it's a JSON string, parse and format it
+      if (typeof patient.allergies === 'string') {
+        if (patient.allergies.startsWith('[')) {
+          try {
+            const parsed = JSON.parse(patient.allergies);
+            return Array.isArray(parsed) ? parsed.join(', ') : patient.allergies;
+          } catch (e) {
+            // If parsing fails, return as is
+            return patient.allergies;
+          }
+        }
+        return patient.allergies;
+      }
+      
+      // If it's already an array, join with commas
+      if (Array.isArray(patient.allergies)) {
+        return (patient.allergies as string[]).join(', ');
+      }
+      
+      return String(patient.allergies);
+    })()
   };
 
   const navigateToProfile = () => {

@@ -54,14 +54,19 @@ export default function PatientsPage() {
   const [selectedPatient, setSelectedPatient] = useState<PatientWithUser | null>(null);
   const [_, navigate] = useLocation();
 
-  const { data: patientsData, isLoading, isError } = useQuery<any>({
+  // Simplify the query to avoid type errors
+  const { 
+    data: patientsData, 
+    isLoading, 
+    isError, 
+    error 
+  } = useQuery({
     queryKey: ["/api/patients"],
     refetchOnWindowFocus: false,
-    retry: 1,
+    retry: 2
   });
   
   // Process the patient data to ensure it's properly formatted
-  // Handle both array response and object response formats
   let patients: PatientWithUser[] = [];
   
   if (patientsData) {
@@ -69,32 +74,40 @@ export default function PatientsPage() {
       // If data is already an array, use it directly
       patients = patientsData;
     } else if (typeof patientsData === 'object') {
+      // Cast to any to handle various potential response formats
+      const data = patientsData as any;
+      
       // If data is an object with items property (paginated response)
-      if (Array.isArray(patientsData.items)) {
-        patients = patientsData.items;
+      if (data.items && Array.isArray(data.items)) {
+        patients = data.items;
       } else {
-        // If it's just a JSON object not in the expected format,
-        // try to convert it to an array of patients
         try {
-          // Attempt to process raw JSON object to extract patients
-          if (patientsData.patients && Array.isArray(patientsData.patients)) {
-            patients = patientsData.patients;
+          // Handle different response formats
+          if (data.patients && Array.isArray(data.patients)) {
+            patients = data.patients;
           } else {
-            // As a last resort, try to convert object properties to an array
-            patients = Object.values(patientsData).filter(
+            // Convert object properties to an array if needed
+            const potentialPatients = Object.values(data).filter(
               (item: any) => item && typeof item === 'object' && 'id' in item
             ) as PatientWithUser[];
+            
+            if (potentialPatients.length > 0) {
+              patients = potentialPatients;
+            }
           }
-        } catch (error) {
-          console.error("Error processing patient data:", error);
+        } catch (processError) {
+          console.error("Error processing patient data:", processError);
         }
       }
     }
   }
   
-  // Format patients to ensure they have user data
+  // Format patients to ensure they have valid user data
   const formattedPatients = patients.map(patient => {
-    // If patient doesn't have a user property or it's incomplete, create a placeholder
+    // Ensure patient has required fields
+    if (!patient) return null;
+    
+    // If patient doesn't have a user property or it's incomplete, create a structured placeholder
     if (!patient.user || !patient.user.firstName) {
       return {
         ...patient,
@@ -114,11 +127,17 @@ export default function PatientsPage() {
       };
     }
     return patient;
-  });
+  }).filter(Boolean) as PatientWithUser[]; // Filter out null patients
   
-  // For debugging
-  console.log("Original patient data received:", patientsData);
-  console.log("Processed patient data:", formattedPatients);
+  // More detailed debugging
+  if (isError || !patientsData || formattedPatients.length === 0) {
+    console.error("Patient data issue:", {
+      hasData: !!patientsData,
+      isArray: patientsData ? Array.isArray(patientsData) : false,
+      patientsCount: formattedPatients.length,
+      originalData: patientsData
+    });
+  }
 
   // Get today's appointments count (mock data for now)
   const todayAppointments = 5;
