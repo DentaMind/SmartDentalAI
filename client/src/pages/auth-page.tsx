@@ -29,6 +29,9 @@ type UserRegistrationData = {
   insuranceNumber?: string;
   specialization?: string;
   licenseNumber?: string;
+  // Promotion code for subscription discount
+  promoCode?: string;
+  
   // Additional fields for provider payment
   cardName?: string;
   cardNumber?: string;
