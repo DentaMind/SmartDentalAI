@@ -397,7 +397,7 @@ export default function AssistantTab() {
               <div className="flex justify-between items-center">
                 <div>
                   <span className="font-medium">OSHA Compliance</span>
-                  <p className="text-sm text-gray-600">Score: {quizResults["OSHA Compliance & Workplace Safety"]}%</p>
+                  <p className="text-sm text-gray-600">Score: {quizResults["OSHA Compliance & Workplace Safety"] || 0}%</p>
                 </div>
                 <Button 
                   size="sm" 
@@ -412,7 +412,7 @@ export default function AssistantTab() {
               <div className="flex justify-between items-center">
                 <div>
                   <span className="font-medium">ADA Compliance</span>
-                  <p className="text-sm text-gray-600">Score: {quizResults["ADA Patient Rights & Accessibility"]}%</p>
+                  <p className="text-sm text-gray-600">Score: {quizResults["ADA Patient Rights & Accessibility"] || 0}%</p>
                 </div>
                 <Button 
                   size="sm" 
