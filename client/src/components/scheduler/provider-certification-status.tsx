@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 
 interface ProviderCertificationStatusProps {
   userId: number;
@@ -25,7 +25,7 @@ export const ProviderCertificationStatus: React.FC<ProviderCertificationStatusPr
   role,
   compact = false
 }) => {
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
   const [showAllCertifications, setShowAllCertifications] = useState(false);
   
   // Fetch provider's certifications

@@ -100,6 +100,7 @@ function Router() {
         <ProtectedRoute path="/labs-supplies" component={LabsSuppliesPage} />
         <ProtectedRoute path="/assistant-training" component={AssistantTrainingPage} />
         <ProtectedRoute path="/training-dashboard" component={TrainingDashboardPage} />
+        <ProtectedRoute path="/scheduling-with-certifications" component={React.lazy(() => import('./pages/scheduling-with-certifications'))} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
