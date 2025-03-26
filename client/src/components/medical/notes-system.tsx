@@ -12,6 +12,15 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
   Card,
   CardContent,
   CardDescription,
@@ -54,15 +63,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+
 import { Pencil, Check, FileText, Clock, AlertCircle, Search, Mic, Download, Sparkles } from 'lucide-react';
 import { AiTreatmentNoteGenerator } from './ai-treatment-note-generator';
 import { VoiceAssistant } from '@/components/advanced/voice-assistant/voice-assistant';
@@ -271,17 +272,28 @@ export function NotesSystem({
     });
   };
 
-  // Handle voice dictation
+  // State for voice assistant dialog
+  const [voiceAssistantOpen, setVoiceAssistantOpen] = useState(false);
+  
+  // Handle voice dictation using advanced voice assistant
   const startVoiceDictation = () => {
+    setVoiceAssistantOpen(true);
     setIsRecording(true);
-    setShowVoiceTranscript(true);
-    
-    // Simulate voice dictation - in a real implementation, this would use the Web Speech API
-    setTimeout(() => {
-      const transcript = "Patient presented with symptoms of tooth sensitivity in the upper right quadrant. Clinical examination revealed deep occlusal caries on tooth 16. Advised composite restoration and provided oral hygiene instructions.";
+  };
+
+  // Handle transcript from voice assistant
+  const handleVoiceAssistantTranscript = (transcript: string) => {
+    if (transcript) {
       setVoiceTranscript(transcript);
+      setShowVoiceTranscript(true);
       setIsRecording(false);
-    }, 2000);
+    }
+  };
+
+  // Close voice assistant dialog
+  const closeVoiceAssistant = () => {
+    setVoiceAssistantOpen(false);
+    setIsRecording(false);
   };
 
   // Add voice transcript to note content
@@ -666,6 +678,47 @@ export function NotesSystem({
           </Card>
         </div>
       </Tabs>
+      
+      {/* Voice Assistant Dialog */}
+      <Dialog open={voiceAssistantOpen} onOpenChange={setVoiceAssistantOpen}>
+        <DialogContent className="sm:max-w-[650px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mic className="h-5 w-5 text-primary" />
+              Voice Assistant
+            </DialogTitle>
+            <DialogDescription>
+              Speak clearly and the AI will transcribe your notes in real-time.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            {/* Voice Assistant Component */}
+            <VoiceAssistant 
+              onTranscriptReady={handleVoiceAssistantTranscript}
+              onClose={closeVoiceAssistant}
+              patientId={patientId}
+              noteType={form.getValues('category')}
+              className="min-h-[300px]"
+            />
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={closeVoiceAssistant}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                closeVoiceAssistant();
+              }}
+              className="gap-1"
+            >
+              <Sparkles className="h-4 w-4" /> 
+              Add to Note
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
