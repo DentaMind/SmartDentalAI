@@ -1,4 +1,3 @@
-import { Patient } from "@shared/schema";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import {
@@ -18,23 +17,33 @@ import { Button } from "@/components/ui/button";
 import { ArrowUpRight } from "lucide-react";
 import { SymptomPredictor } from "@/components/ai/symptom-predictor";
 
-// Define a simplified user type compatible with what comes from the server
-type UserInfo = {
+// Patient type that matches what's used in patients-page.tsx
+type Patient = {
   id: number;
-  username: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber?: string | null;
-  dateOfBirth?: string | null;
-  role: string;
-  language?: string;
-  insuranceProvider?: string | null;
-  insuranceNumber?: string | null;
+  userId: number;
+  user: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string | null;
+    dateOfBirth: string | null;
+    insuranceProvider?: string | null;
+    insuranceNumber?: string | null;
+    role: string;
+    language?: string;
+  };
+  medicalHistory?: string;
+  allergies?: string | string[];
+  currentMedications?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  emergencyContactRelationship?: string;
+  formattedAllergies?: string; // Added by our formatting process
 };
 
 interface PatientDetailsProps {
-  patient: Patient & { user: UserInfo };
+  patient: Patient;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -43,64 +52,69 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
 
-  // Process the patient data to handle all potential formats
-  const processedPatient = {
-    ...patient,
-    // Handle medical history data in various formats
-    medicalHistory: (() => {
-      if (!patient.medicalHistory) return 'No medical history recorded';
-      
-      // If it's a JSON string, parse and pretty print it
-      if (typeof patient.medicalHistory === 'string') {
-        if (patient.medicalHistory.startsWith('{') || patient.medicalHistory.startsWith('[')) {
-          try {
-            return JSON.stringify(JSON.parse(patient.medicalHistory), null, 2);
-          } catch (e) {
-            // If parsing fails, return as is
-            return patient.medicalHistory;
-          }
-        }
-        return patient.medicalHistory;
-      }
-      
-      // If it's already an object, stringify it
-      if (typeof patient.medicalHistory === 'object') {
-        return JSON.stringify(patient.medicalHistory, null, 2);
-      }
-      
-      return String(patient.medicalHistory);
-    })(),
+  // Format data if not already formatted by the parent component
+  const allergiesDisplay = patient.formattedAllergies || ((): string => {
+    if (!patient.allergies) return 'No known allergies';
     
-    // Handle allergies in various formats
-    allergies: (() => {
-      if (!patient.allergies) return 'No known allergies';
-      
-      // If it's a JSON string, parse and format it
-      if (typeof patient.allergies === 'string') {
-        if (patient.allergies.startsWith('[')) {
-          try {
-            const parsed = JSON.parse(patient.allergies);
-            return Array.isArray(parsed) ? parsed.join(', ') : patient.allergies;
-          } catch (e) {
-            // If parsing fails, return as is
-            return patient.allergies;
-          }
+    if (typeof patient.allergies === 'string') {
+      if (patient.allergies.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(patient.allergies);
+          return Array.isArray(parsed) ? parsed.join(', ') : patient.allergies;
+        } catch (e) {
+          return patient.allergies;
         }
-        return patient.allergies;
       }
-      
-      // If it's already an array, join with commas
-      if (Array.isArray(patient.allergies)) {
-        return (patient.allergies as string[]).join(', ');
+      return patient.allergies;
+    }
+    
+    if (Array.isArray(patient.allergies)) {
+      return patient.allergies.join(', ');
+    }
+    
+    return String(patient.allergies);
+  })();
+
+  // Format medical history
+  const medicalHistoryDisplay = (() => {
+    if (!patient.medicalHistory) return 'No medical history recorded';
+    
+    if (typeof patient.medicalHistory === 'string') {
+      if (patient.medicalHistory.startsWith('{') || patient.medicalHistory.startsWith('[')) {
+        try {
+          return JSON.stringify(JSON.parse(patient.medicalHistory), null, 2);
+        } catch (e) {
+          return patient.medicalHistory;
+        }
       }
-      
-      return String(patient.allergies);
-    })()
-  };
+      return patient.medicalHistory;
+    }
+    
+    if (typeof patient.medicalHistory === 'object') {
+      return JSON.stringify(patient.medicalHistory, null, 2);
+    }
+    
+    return String(patient.medicalHistory);
+  })();
 
   const navigateToProfile = () => {
     onClose();
     setLocation(`/patients/${patient.id}`);
+  };
+
+  // Format emergency contact
+  const formatEmergencyContact = () => {
+    if (!patient.emergencyContactName) return 'Not provided';
+    
+    let contact = patient.emergencyContactName;
+    if (patient.emergencyContactPhone) {
+      contact += ` (${patient.emergencyContactPhone})`;
+    }
+    if (patient.emergencyContactRelationship) {
+      contact += ` - ${patient.emergencyContactRelationship}`;
+    }
+    
+    return contact;
   };
 
   return (
@@ -109,7 +123,7 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
         <DialogHeader className="sticky top-0 bg-background z-10 pb-4 mb-4 border-b">
           <div className="flex justify-between items-center">
             <DialogTitle className="text-2xl">
-              {`${patient.user.firstName} ${patient.user.lastName}`}
+              {patient.user?.firstName || ''} {patient.user?.lastName || ''}
             </DialogTitle>
             <Button 
               variant="outline" 
@@ -130,19 +144,19 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
             <CardContent className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-gray-500">{t("patient.dob")}</p>
-                <p className="mt-1">{patient.user.dateOfBirth}</p>
+                <p className="mt-1">{patient.user?.dateOfBirth || 'Not provided'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">{t("patient.contact")}</p>
-                <p className="mt-1">{patient.user.phoneNumber || patient.user.email}</p>
+                <p className="mt-1">{patient.user?.phoneNumber || patient.user?.email || 'Not provided'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Insurance Provider</p>
-                <p className="mt-1">{patient.user.insuranceProvider || 'Not provided'}</p>
+                <p className="mt-1">{patient.user?.insuranceProvider || 'Not provided'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Insurance Number</p>
-                <p className="mt-1">{patient.user.insuranceNumber || 'Not provided'}</p>
+                <p className="mt-1">{patient.user?.insuranceNumber || 'Not provided'}</p>
               </div>
             </CardContent>
           </Card>
@@ -158,7 +172,7 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
                   {t("patient.medicalHistory")}
                 </p>
                 <p className="mt-1 whitespace-pre-wrap">
-                  {processedPatient.medicalHistory || t("common.none")}
+                  {medicalHistoryDisplay}
                 </p>
               </div>
               <div>
@@ -166,7 +180,7 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
                   {t("patient.allergies")}
                 </p>
                 <p className="mt-1 whitespace-pre-wrap">
-                  {processedPatient.allergies || t("common.none")}
+                  {allergiesDisplay}
                 </p>
               </div>
               <div>
@@ -174,9 +188,19 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
                   Emergency Contact
                 </p>
                 <p className="mt-1 whitespace-pre-wrap">
-                  {patient.emergencyContactName || t("common.none")}
+                  {formatEmergencyContact()}
                 </p>
               </div>
+              {patient.currentMedications && (
+                <div>
+                  <p className="text-sm font-medium text-gray-500">
+                    Current Medications
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap">
+                    {patient.currentMedications}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -186,7 +210,7 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
               <CardDescription>{t("ai.enterSymptoms")}</CardDescription>
             </CardHeader>
             <CardContent>
-              <SymptomPredictor patientHistory={processedPatient.medicalHistory || undefined} />
+              <SymptomPredictor patientHistory={medicalHistoryDisplay} />
             </CardContent>
           </Card>
         </div>

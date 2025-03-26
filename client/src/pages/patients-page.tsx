@@ -40,6 +40,7 @@ type Patient = {
   emergencyContactName?: string;
   emergencyContactPhone?: string;
   emergencyContactRelationship?: string;
+  formattedAllergies?: string; // Add this for our UI display
 };
 
 export default function PatientsPage() {
@@ -74,7 +75,7 @@ export default function PatientsPage() {
           insuranceProvider: null,
           insuranceNumber: null,
         }
-      };
+      } as Patient;
     }
     
     // Format allergies if they're in JSON string format
@@ -98,7 +99,7 @@ export default function PatientsPage() {
     return {
       ...patient,
       formattedAllergies: allergiesDisplay
-    };
+    } as Patient & { formattedAllergies: string };
   });
 
   // Today's stats (placeholders for now)
@@ -248,7 +249,19 @@ export default function PatientsPage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Allergies:</span>
-                        <span className="truncate max-w-[150px]">{patient.formattedAllergies}</span>
+                        <span className="truncate max-w-[150px]">
+                          {patient.formattedAllergies || (
+                            patient.allergies ? 
+                              (typeof patient.allergies === 'string' ? 
+                                patient.allergies : 
+                                (Array.isArray(patient.allergies) ? 
+                                  patient.allergies.join(', ') : 
+                                  'None'
+                                )
+                              ) : 
+                              'None'
+                          )}
+                        </span>
                       </div>
                     </div>
                     <Button
