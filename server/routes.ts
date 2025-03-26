@@ -230,6 +230,7 @@ router.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res
 router.get("/patients", requireAuth, async (req, res) => {
   try {
     console.log("Getting all patients...");
+    console.log("Authenticated user:", req.user);
     const patients = await storage.getAllPatients();
     console.log("Patient count:", patients.length);
     
@@ -276,6 +277,47 @@ router.get("/patients", requireAuth, async (req, res) => {
   } catch (error) {
     console.error("Error getting all patients:", error);
     res.status(500).json({ message: "Failed to get patients" });
+  }
+});
+
+// Debug endpoint to check patient data format
+router.get("/debug/patients-format", async (req, res) => {
+  try {
+    console.log("Checking patients format...");
+    const patients = await storage.getAllPatients();
+    console.log("Debug patient count:", patients.length);
+    
+    // Log the first patient for debugging
+    if (patients.length > 0) {
+      console.log("First patient sample:", JSON.stringify(patients[0], null, 2));
+    }
+    
+    const formattedPatients = patients.map(patient => {
+      return {
+        id: patient.id,
+        userId: patient.userId,
+        firstName: patient.user?.firstName || null,
+        lastName: patient.user?.lastName || null,
+        email: patient.user?.email || null,
+        phoneNumber: patient.user?.phoneNumber || null,
+        allergies: patient.allergies || null,
+        medicalHistory: typeof patient.medicalHistory === 'string' ? 
+          patient.medicalHistory.substring(0, 50) + '...' : null
+      };
+    });
+    
+    res.json({
+      patientCount: patients.length,
+      samplePatients: formattedPatients.slice(0, 3),
+      patientStructure: patients.length > 0 ? Object.keys(patients[0]) : [],
+      patientUserStructure: patients.length > 0 && patients[0].user ? Object.keys(patients[0].user) : []
+    });
+  } catch (error) {
+    console.error("Error in debug endpoint:", error);
+    res.status(500).json({ 
+      message: "Error checking patient format",
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
   }
 });
 
