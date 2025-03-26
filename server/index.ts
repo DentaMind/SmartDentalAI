@@ -81,6 +81,87 @@ const startServer = async () => {
         console.log('Dr. Abdin:', seedData.drAbdin);
         console.log('Mary RDH:', seedData.maryRdh);
         console.log('Patients:', seedData.patients);
+        
+        // Now initialize the in-memory storage with data from the database
+        try {
+          console.log('Loading users from database into memory storage...');
+          
+          // Connect to database
+          const { Pool } = await import('pg');
+          const pool = new Pool({
+            connectionString: process.env.DATABASE_URL,
+          });
+          
+          // Get all users
+          console.log('Fetching users from database...');
+          const usersResult = await pool.query('SELECT * FROM users');
+          console.log(`Found ${usersResult.rows.length} users in database`);
+          
+          // Initialize users in storage
+          const { storage } = await import('./storage');
+          for (const dbUser of usersResult.rows) {
+            // Convert database column names to camelCase for the User object
+            const user = {
+              id: dbUser.id,
+              username: dbUser.username,
+              password: dbUser.password,
+              email: dbUser.email || '',
+              firstName: dbUser.first_name || '',
+              lastName: dbUser.last_name || '',
+              role: dbUser.role || 'patient',
+              language: dbUser.language || 'en',
+              phoneNumber: dbUser.phone_number || null,
+              dateOfBirth: dbUser.date_of_birth || null,
+              insuranceProvider: dbUser.insurance_provider || null,
+              insuranceNumber: dbUser.insurance_number || null,
+              specialization: dbUser.specialization || null,
+              licenseNumber: dbUser.license_number || null,
+              officeName: dbUser.office_name || null,
+              officeEmail: dbUser.office_email || null,
+              metadata: dbUser.metadata || null
+            };
+            
+            // Add the user to storage
+            await storage.initializeUserFromDb(user);
+            console.log(`Loaded user ${user.username} (ID: ${user.id}) into memory storage`);
+          }
+          
+          // Get all patients
+          console.log('Fetching patients from database...');
+          const patientsResult = await pool.query('SELECT * FROM patients');
+          console.log(`Found ${patientsResult.rows.length} patients in database`);
+          
+          // Initialize patients in storage
+          for (const dbPatient of patientsResult.rows) {
+            // Convert database column names to camelCase for the Patient object
+            const patient = {
+              id: dbPatient.id,
+              userId: dbPatient.user_id,
+              // Include all relevant fields from the database schema
+              homeAddress: dbPatient.home_address || null,
+              emergencyContactName: dbPatient.emergency_contact_name || null,
+              emergencyContactPhone: dbPatient.emergency_contact_phone || null,
+              emergencyContactRelationship: dbPatient.emergency_contact_relationship || null,
+              insuranceProvider: dbPatient.insurance_provider || null,
+              insuranceNumber: dbPatient.insurance_number || null,
+              allergies: dbPatient.allergies || null,
+              currentMedications: dbPatient.current_medications || null,
+              medicalHistory: dbPatient.medical_history || null,
+              // Add any other properties from the patients table
+            };
+            
+            // Add the patient to storage
+            await storage.initializePatientFromDb(patient);
+            console.log(`Loaded patient ID: ${patient.id} (User ID: ${patient.userId}) into memory storage`);
+          }
+          
+          await pool.end();
+          console.log('Successfully loaded database data into memory storage');
+        } catch (loadError) {
+          console.error('Failed to load database data into memory storage:', loadError);
+          console.error('Full error details:', loadError instanceof Error ? loadError.stack : loadError);
+          console.warn('Continuing with empty memory storage');
+        }
       } catch (error) {
         console.error('Failed to seed database:', error);
         console.error('Full error details:', error instanceof Error ? error.stack : error);

@@ -81,6 +81,7 @@ export class MemStorage implements IStorage {
   private insuranceVerifications: Map<number, InsuranceVerification>;
   sessionStore: session.Store;
   currentId: number;
+  isInitialized: boolean;
 
   constructor() {
     this.users = new Map();
@@ -94,9 +95,30 @@ export class MemStorage implements IStorage {
     this.insuranceClaims = new Map();
     this.insuranceVerifications = new Map();
     this.currentId = 1;
+    this.isInitialized = false;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
+  }
+  
+  // Initialize user from database
+  async initializeUserFromDb(user: User): Promise<void> {
+    console.log(`Initializing user from DB: ${user.username} (ID: ${user.id})`);
+    // Update the currentId if this id is larger
+    if (user.id >= this.currentId) {
+      this.currentId = user.id + 1;
+    }
+    this.users.set(user.id, user);
+  }
+  
+  // Initialize patient from database
+  async initializePatientFromDb(patient: Patient): Promise<void> {
+    console.log(`Initializing patient from DB: ID ${patient.id}`);
+    // Update the currentId if this id is larger
+    if (patient.id >= this.currentId) {
+      this.currentId = patient.id + 1;
+    }
+    this.patients.set(patient.id, patient);
   }
 
   async getUser(id: number): Promise<User | undefined> {
