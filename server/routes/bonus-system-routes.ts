@@ -1,405 +1,621 @@
-import express from "express";
-import { db } from "../db";
-import {
-  bonusGoals,
-  bonusGoalTiers,
-  bonusAchievements,
-  bonusNotifications,
-  insertBonusGoalSchema,
-  insertBonusGoalTierSchema,
-  insertBonusAchievementSchema,
-  insertBonusNotificationSchema,
-  financialTransactions
-} from "../../shared/schema";
-import { eq, and, gte, lte, desc, sql, sum } from "drizzle-orm";
-import { ZodError } from "zod";
+import express from 'express';
+import { db } from '../db';
+import { bonusGoals, bonusGoalTiers, bonusAchievements, bonusNotifications } from '../../shared/schema';
+import { eq, and, gte, lte, desc } from 'drizzle-orm';
 
 export function setupBonusSystemRoutes(router: express.Router) {
   // Get all bonus goals
-  router.get("/bonus/goals", async (req, res) => {
+  router.get('/api/bonus/goals', async (req, res) => {
     try {
-      const goals = await db.select().from(bonusGoals).orderBy(desc(bonusGoals.createdAt));
+      const goals = await db.query.bonusGoals.findMany({
+        with: {
+          tiers: true
+        },
+        orderBy: [
+          desc(bonusGoals.isActive),
+          desc(bonusGoals.createdAt)
+        ]
+      });
+      
       res.json(goals);
     } catch (error) {
-      console.error("Error fetching bonus goals:", error);
-      res.status(500).json({ error: "Failed to fetch bonus goals" });
+      console.error('Error fetching bonus goals:', error);
+      res.status(500).json({ error: 'Failed to fetch bonus goals' });
     }
   });
-
-  // Get single bonus goal with its tiers
-  router.get("/bonus/goals/:id", async (req, res) => {
+  
+  // Get a specific bonus goal
+  router.get('/api/bonus/goals/:id', async (req, res) => {
+    const { id } = req.params;
+    
     try {
-      const goalId = parseInt(req.params.id);
-      const goal = await db.select().from(bonusGoals).where(eq(bonusGoals.id, goalId)).limit(1);
+      const goal = await db.query.bonusGoals.findFirst({
+        where: eq(bonusGoals.id, parseInt(id)),
+        with: {
+          tiers: true
+        }
+      });
       
-      if (!goal.length) {
-        return res.status(404).json({ error: "Bonus goal not found" });
+      if (!goal) {
+        return res.status(404).json({ error: 'Bonus goal not found' });
       }
-
-      const tiers = await db.select().from(bonusGoalTiers).where(eq(bonusGoalTiers.goalId, goalId))
-        .orderBy(bonusGoalTiers.tierLevel);
-
+      
+      res.json(goal);
+    } catch (error) {
+      console.error(`Error fetching bonus goal ${id}:`, error);
+      res.status(500).json({ error: 'Failed to fetch bonus goal' });
+    }
+  });
+  
+  // Create a new bonus goal
+  router.post('/api/bonus/goals', async (req, res) => {
+    const { 
+      name, 
+      description, 
+      targetAmount,
+      bonusAmount,
+      isActive,
+      goalType,
+      timeframe,
+      roleId,
+      userId,
+      tiers
+    } = req.body;
+    
+    try {
+      // Get the current user ID (creator)
+      const createdBy = req.session.user?.id || 1; // Default to 1 if not authenticated
+      
+      // Create the goal
+      const [newGoal] = await db.insert(bonusGoals).values({
+        name,
+        description,
+        targetAmount,
+        bonusAmount,
+        isActive,
+        goalType,
+        timeframe,
+        roleId: roleId || null,
+        userId: userId || null,
+        createdBy,
+        createdAt: new Date()
+      }).returning();
+      
+      // If tiers are provided, create them
+      if (tiers && tiers.length > 0) {
+        const tierValues = tiers.map((tier: any) => ({
+          goalId: newGoal.id,
+          targetAmount: tier.targetAmount,
+          bonusAmount: tier.bonusAmount,
+          description: tier.description
+        }));
+        
+        await db.insert(bonusGoalTiers).values(tierValues);
+      }
+      
+      // Get the complete goal with tiers
+      const completeGoal = await db.query.bonusGoals.findFirst({
+        where: eq(bonusGoals.id, newGoal.id),
+        with: {
+          tiers: true
+        }
+      });
+      
+      // Create notification for affected users
+      let notificationTargets: number[] = [];
+      
+      if (goalType === 'practice') {
+        // Notify all users
+        const users = await db.query.users.findMany({
+          columns: {
+            id: true
+          }
+        });
+        notificationTargets = users.map(user => user.id);
+      } else if (goalType === 'role' && roleId) {
+        // Notify users with this role
+        const users = await db.query.users.findMany({
+          where: eq(users.role, roleId.toString()),
+          columns: {
+            id: true
+          }
+        });
+        notificationTargets = users.map(user => user.id);
+      } else if (goalType === 'individual' && userId) {
+        // Notify only this user
+        notificationTargets = [userId];
+      }
+      
+      // Create notifications
+      if (notificationTargets.length > 0) {
+        const notifications = notificationTargets.map(userId => ({
+          userId,
+          goalId: newGoal.id,
+          goalName: name,
+          message: `A new ${timeframe} bonus goal has been created: ${name}`,
+          createdAt: new Date(),
+          isRead: false,
+          notificationType: 'goal_created' as 'goal_created'
+        }));
+        
+        await db.insert(bonusNotifications).values(notifications);
+      }
+      
+      res.status(201).json(completeGoal);
+    } catch (error) {
+      console.error('Error creating bonus goal:', error);
+      res.status(500).json({ error: 'Failed to create bonus goal' });
+    }
+  });
+  
+  // Update a bonus goal
+  router.patch('/api/bonus/goals/:id', async (req, res) => {
+    const { id } = req.params;
+    const {
+      name, 
+      description, 
+      targetAmount,
+      bonusAmount,
+      isActive,
+      goalType,
+      timeframe,
+      roleId,
+      userId,
+      tiers
+    } = req.body;
+    
+    try {
+      // Update the goal
+      await db.update(bonusGoals).set({
+        name,
+        description,
+        targetAmount,
+        bonusAmount,
+        isActive,
+        goalType,
+        timeframe,
+        roleId: roleId || null,
+        userId: userId || null,
+        updatedAt: new Date()
+      }).where(eq(bonusGoals.id, parseInt(id)));
+      
+      // If tiers are provided, update them
+      if (tiers && tiers.length > 0) {
+        // Delete existing tiers
+        await db.delete(bonusGoalTiers).where(eq(bonusGoalTiers.goalId, parseInt(id)));
+        
+        // Create new tiers
+        const tierValues = tiers.map((tier: any) => ({
+          goalId: parseInt(id),
+          targetAmount: tier.targetAmount,
+          bonusAmount: tier.bonusAmount,
+          description: tier.description
+        }));
+        
+        await db.insert(bonusGoalTiers).values(tierValues);
+      }
+      
+      // Get the updated goal
+      const updatedGoal = await db.query.bonusGoals.findFirst({
+        where: eq(bonusGoals.id, parseInt(id)),
+        with: {
+          tiers: true
+        }
+      });
+      
+      if (!updatedGoal) {
+        return res.status(404).json({ error: 'Bonus goal not found' });
+      }
+      
+      // Create notification for affected users about the update
+      let notificationTargets: number[] = [];
+      
+      if (goalType === 'practice') {
+        // Notify all users
+        const users = await db.query.users.findMany({
+          columns: {
+            id: true
+          }
+        });
+        notificationTargets = users.map(user => user.id);
+      } else if (goalType === 'role' && roleId) {
+        // Notify users with this role
+        const users = await db.query.users.findMany({
+          where: eq(users.role, roleId.toString()),
+          columns: {
+            id: true
+          }
+        });
+        notificationTargets = users.map(user => user.id);
+      } else if (goalType === 'individual' && userId) {
+        // Notify only this user
+        notificationTargets = [userId];
+      }
+      
+      // Create notifications
+      if (notificationTargets.length > 0) {
+        const notifications = notificationTargets.map(userId => ({
+          userId,
+          goalId: parseInt(id),
+          goalName: name,
+          message: `The bonus goal "${name}" has been updated`,
+          createdAt: new Date(),
+          isRead: false,
+          notificationType: 'goal_updated' as 'goal_updated'
+        }));
+        
+        await db.insert(bonusNotifications).values(notifications);
+      }
+      
+      res.json(updatedGoal);
+    } catch (error) {
+      console.error(`Error updating bonus goal ${id}:`, error);
+      res.status(500).json({ error: 'Failed to update bonus goal' });
+    }
+  });
+  
+  // Delete a bonus goal
+  router.delete('/api/bonus/goals/:id', async (req, res) => {
+    const { id } = req.params;
+    
+    try {
+      // Delete associated tiers first
+      await db.delete(bonusGoalTiers).where(eq(bonusGoalTiers.goalId, parseInt(id)));
+      
+      // Delete notifications related to this goal
+      await db.delete(bonusNotifications).where(eq(bonusNotifications.goalId, parseInt(id)));
+      
+      // Delete the goal
+      const result = await db.delete(bonusGoals).where(eq(bonusGoals.id, parseInt(id))).returning();
+      
+      if (result.length === 0) {
+        return res.status(404).json({ error: 'Bonus goal not found' });
+      }
+      
+      res.json({ message: 'Bonus goal deleted successfully' });
+    } catch (error) {
+      console.error(`Error deleting bonus goal ${id}:`, error);
+      res.status(500).json({ error: 'Failed to delete bonus goal' });
+    }
+  });
+  
+  // Get production totals for a specific timeframe
+  router.get('/api/bonus/production-totals', async (req, res) => {
+    const { startDate, endDate, timeframe = 'custom' } = req.query as { 
+      startDate?: string; 
+      endDate?: string; 
+      timeframe?: string;
+    };
+    
+    try {
+      // Validate date parameters
+      if (!startDate || !endDate) {
+        return res.status(400).json({ error: 'Start date and end date are required' });
+      }
+      
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      // Query financial transactions for the period
+      const transactions = await db.query.financialTransactions.findMany({
+        where: and(
+          gte(financialTransactions.transactionDate, start),
+          lte(financialTransactions.transactionDate, end)
+        )
+      });
+      
+      // Calculate total production
+      const totalProduction = transactions.reduce((sum, transaction) => {
+        // Only count production related transactions (filter out expenses, refunds, etc.)
+        if (['payment', 'insurance_payment', 'service_charge'].includes(transaction.transactionType)) {
+          return sum + transaction.amount;
+        }
+        return sum;
+      }, 0);
+      
+      // Get staff count for per-staff calculations
+      const staffCount = await db.query.users.findMany({
+        where: and(
+          eq(users.isActive, true),
+          eq(users.role, 'staff')
+        )
+      }).then(staff => staff.length);
+      
+      // Calculate average per staff
+      const averagePerStaff = staffCount > 0 ? Math.round(totalProduction / staffCount) : 0;
+      
       res.json({
-        ...goal[0],
-        tiers
+        totalProduction,
+        startDate: start.toISOString(),
+        endDate: end.toISOString(),
+        timeframe,
+        staffCount,
+        averagePerStaff
       });
     } catch (error) {
-      console.error("Error fetching bonus goal:", error);
-      res.status(500).json({ error: "Failed to fetch bonus goal" });
+      console.error('Error calculating production totals:', error);
+      res.status(500).json({ error: 'Failed to calculate production totals' });
     }
   });
-
-  // Create new bonus goal
-  router.post("/bonus/goals", async (req, res) => {
+  
+  // Check eligibility for a bonus
+  router.post('/api/bonus/check-eligibility', async (req, res) => {
+    const { goalId, startDate, endDate } = req.body;
+    
     try {
-      const validatedData = insertBonusGoalSchema.parse(req.body);
-      const result = await db.insert(bonusGoals).values(validatedData).returning();
+      // Get the goal
+      const goal = await db.query.bonusGoals.findFirst({
+        where: eq(bonusGoals.id, goalId),
+        with: {
+          tiers: true
+        }
+      });
       
-      // If there are tiers to add
-      if (req.body.tiers && Array.isArray(req.body.tiers)) {
-        const tierPromises = req.body.tiers.map((tier: any) => {
-          const tierData = {
-            ...tier,
-            goalId: result[0].id
-          };
-          return db.insert(bonusGoalTiers).values(tierData);
+      if (!goal) {
+        return res.status(404).json({ error: 'Bonus goal not found' });
+      }
+      
+      // Get production totals for the period
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      // Query financial transactions for the period
+      const transactions = await db.query.financialTransactions.findMany({
+        where: and(
+          gte(financialTransactions.transactionDate, start),
+          lte(financialTransactions.transactionDate, end)
+        )
+      });
+      
+      // Calculate total production
+      const production = transactions.reduce((sum, transaction) => {
+        // Only count production related transactions
+        if (['payment', 'insurance_payment', 'service_charge'].includes(transaction.transactionType)) {
+          return sum + transaction.amount;
+        }
+        return sum;
+      }, 0);
+      
+      // Determine the highest tier achieved (if using tiers)
+      let achieved = false;
+      let bonusAmount = 0;
+      let targetAmount = goal.targetAmount;
+      
+      if (goal.tiers && goal.tiers.length > 0) {
+        // Sort tiers by target amount in descending order
+        const sortedTiers = [...goal.tiers].sort((a, b) => b.targetAmount - a.targetAmount);
+        
+        // Find the highest tier achieved
+        for (const tier of sortedTiers) {
+          if (production >= tier.targetAmount) {
+            achieved = true;
+            bonusAmount = tier.bonusAmount;
+            targetAmount = tier.targetAmount;
+            break;
+          }
+        }
+      } else {
+        // Using single goal threshold
+        achieved = production >= goal.targetAmount;
+        bonusAmount = goal.bonusAmount;
+      }
+      
+      // Calculate shortfall if goal not achieved
+      const shortfall = achieved ? 0 : targetAmount - production;
+      
+      // If achieved and not already recorded, create an achievement record
+      if (achieved) {
+        // Check if this achievement has already been recorded
+        const existingAchievement = await db.query.bonusAchievements.findFirst({
+          where: and(
+            eq(bonusAchievements.goalId, goalId),
+            gte(bonusAchievements.achievedAt, start),
+            lte(bonusAchievements.achievedAt, end)
+          )
         });
         
-        await Promise.all(tierPromises);
-      }
-      
-      res.status(201).json(result[0]);
-    } catch (error) {
-      if (error instanceof ZodError) {
-        return res.status(400).json({ error: error.errors });
-      }
-      console.error("Error creating bonus goal:", error);
-      res.status(500).json({ error: "Failed to create bonus goal" });
-    }
-  });
-
-  // Update bonus goal
-  router.put("/bonus/goals/:id", async (req, res) => {
-    try {
-      const goalId = parseInt(req.params.id);
-      const validatedData = insertBonusGoalSchema.partial().parse(req.body);
-      
-      const result = await db
-        .update(bonusGoals)
-        .set({
-          ...validatedData,
-          updatedAt: new Date()
-        })
-        .where(eq(bonusGoals.id, goalId))
-        .returning();
-      
-      if (!result.length) {
-        return res.status(404).json({ error: "Bonus goal not found" });
-      }
-      
-      res.json(result[0]);
-    } catch (error) {
-      if (error instanceof ZodError) {
-        return res.status(400).json({ error: error.errors });
-      }
-      console.error("Error updating bonus goal:", error);
-      res.status(500).json({ error: "Failed to update bonus goal" });
-    }
-  });
-
-  // Add tier to goal
-  router.post("/bonus/goals/:id/tiers", async (req, res) => {
-    try {
-      const goalId = parseInt(req.params.id);
-      const validatedData = insertBonusGoalTierSchema.parse({
-        ...req.body,
-        goalId
-      });
-      
-      const result = await db
-        .insert(bonusGoalTiers)
-        .values(validatedData)
-        .returning();
-      
-      res.status(201).json(result[0]);
-    } catch (error) {
-      if (error instanceof ZodError) {
-        return res.status(400).json({ error: error.errors });
-      }
-      console.error("Error adding tier:", error);
-      res.status(500).json({ error: "Failed to add tier" });
-    }
-  });
-
-  // Get all achievements
-  router.get("/bonus/achievements", async (req, res) => {
-    try {
-      const achievements = await db
-        .select()
-        .from(bonusAchievements)
-        .orderBy(desc(bonusAchievements.achievedDate));
-      
-      res.json(achievements);
-    } catch (error) {
-      console.error("Error fetching achievements:", error);
-      res.status(500).json({ error: "Failed to fetch achievements" });
-    }
-  });
-
-  // Get achievements by user
-  router.get("/bonus/achievements/user/:userId", async (req, res) => {
-    try {
-      const userId = parseInt(req.params.userId);
-      const achievements = await db
-        .select()
-        .from(bonusAchievements)
-        .where(eq(bonusAchievements.userId, userId))
-        .orderBy(desc(bonusAchievements.achievedDate));
-      
-      res.json(achievements);
-    } catch (error) {
-      console.error("Error fetching user achievements:", error);
-      res.status(500).json({ error: "Failed to fetch user achievements" });
-    }
-  });
-
-  // Calculate production totals for a specified timeframe
-  router.get("/bonus/production-totals", async (req, res) => {
-    try {
-      const { startDate, endDate, timeframe } = req.query;
-      
-      if (!startDate || !endDate) {
-        return res.status(400).json({ error: "Start date and end date are required" });
-      }
-
-      const start = new Date(startDate as string);
-      const end = new Date(endDate as string);
-      
-      // Get all financial transactions within the date range
-      const result = await db
-        .select({
-          totalAmount: sql<number>`sum(${financialTransactions.amount})`,
-        })
-        .from(financialTransactions)
-        .where(
-          and(
-            gte(financialTransactions.date, start),
-            lte(financialTransactions.date, end),
-            eq(financialTransactions.status, "completed")
-          )
-        );
-      
-      // Get staff count
-      const staffCount = 0; // TODO: Implement staff count query
-      
-      res.json({
-        startDate: start,
-        endDate: end,
-        timeframe: timeframe || "custom",
-        totalProduction: result[0]?.totalAmount || 0,
-        staffCount,
-        averagePerStaff: staffCount ? (result[0]?.totalAmount || 0) / staffCount : 0
-      });
-    } catch (error) {
-      console.error("Error calculating production totals:", error);
-      res.status(500).json({ error: "Failed to calculate production totals" });
-    }
-  });
-
-  // Check for achievement eligibility
-  router.post("/bonus/check-eligibility", async (req, res) => {
-    try {
-      const { goalId, startDate, endDate } = req.body;
-      
-      if (!goalId || !startDate || !endDate) {
-        return res.status(400).json({ error: "Goal ID, start date and end date are required" });
-      }
-
-      // Get the goal details
-      const goal = await db
-        .select()
-        .from(bonusGoals)
-        .where(eq(bonusGoals.id, parseInt(goalId)))
-        .limit(1);
-      
-      if (!goal.length) {
-        return res.status(404).json({ error: "Bonus goal not found" });
-      }
-
-      // Get the tiers for this goal
-      const tiers = await db
-        .select()
-        .from(bonusGoalTiers)
-        .where(eq(bonusGoalTiers.goalId, parseInt(goalId)))
-        .orderBy(bonusGoalTiers.targetAmount);
-
-      // Calculate production during this period
-      const productionResult = await db
-        .select({
-          totalAmount: sql<number>`sum(${financialTransactions.amount})`,
-        })
-        .from(financialTransactions)
-        .where(
-          and(
-            gte(financialTransactions.date, new Date(startDate)),
-            lte(financialTransactions.date, new Date(endDate)),
-            eq(financialTransactions.status, "completed")
-          )
-        );
-      
-      const production = productionResult[0]?.totalAmount || 0;
-      
-      // Find the highest tier achieved
-      let achievedTier = null;
-      let achievedAmount = 0;
-      
-      // Check tiers from highest to lowest for better bonus calculation
-      const sortedTiers = [...tiers].sort((a, b) => b.targetAmount - a.targetAmount);
-      
-      for (const tier of sortedTiers) {
-        if (production >= tier.targetAmount) {
-          achievedTier = tier;
-          achievedAmount = tier.bonusAmount;
-          break;
+        if (!existingAchievement) {
+          // Get user ID from session or use a default for testing
+          const userId = req.session.user?.id || 1;
+          
+          // Create achievement record
+          const [achievement] = await db.insert(bonusAchievements).values({
+            goalId,
+            userId,
+            amount: bonusAmount,
+            achievedAt: new Date(),
+            targetAmount,
+            actualAmount: production,
+            isPaid: false
+          }).returning();
+          
+          // Create notification
+          await db.insert(bonusNotifications).values({
+            userId,
+            goalId,
+            goalName: goal.name,
+            message: `You've achieved the "${goal.name}" bonus goal!`,
+            createdAt: new Date(),
+            isRead: false,
+            notificationType: 'achievement',
+            bonusAmount
+          });
         }
       }
       
-      // If no tier achieved but we reached base goal amount
-      if (!achievedTier && production >= goal[0].targetAmount) {
-        achievedAmount = goal[0].bonusAmount;
-      }
-      
       res.json({
-        goalId,
+        achieved,
         production,
-        startDate,
-        endDate,
-        targetAmount: goal[0].targetAmount,
-        achieved: production >= goal[0].targetAmount,
-        achievedTier: achievedTier ? {
-          id: achievedTier.id,
-          level: achievedTier.tierLevel,
-          amount: achievedTier.bonusAmount
-        } : null,
-        bonusAmount: achievedAmount,
-        shortfall: production < goal[0].targetAmount ? goal[0].targetAmount - production : 0
+        targetAmount,
+        bonusAmount,
+        shortfall,
+        goalName: goal.name
       });
     } catch (error) {
-      console.error("Error checking eligibility:", error);
-      res.status(500).json({ error: "Failed to check bonus eligibility" });
+      console.error('Error checking bonus eligibility:', error);
+      res.status(500).json({ error: 'Failed to check bonus eligibility' });
     }
   });
-
-  // Record an achievement
-  router.post("/bonus/achievements", async (req, res) => {
+  
+  // Get bonus achievements
+  router.get('/api/bonus/achievements', async (req, res) => {
+    const { startDate, endDate, timeframe, isPaid, userId } = req.query as {
+      startDate?: string;
+      endDate?: string;
+      timeframe?: string;
+      isPaid?: string;
+      userId?: string;
+    };
+    
     try {
-      const validatedData = insertBonusAchievementSchema.parse(req.body);
-      const result = await db.insert(bonusAchievements).values(validatedData).returning();
+      // Build the query conditions
+      let conditions = [];
       
-      // Create notification for the achievement
-      await db.insert(bonusNotifications).values({
-        goalId: validatedData.goalId,
-        userId: validatedData.userId,
-        achievementId: result[0].id,
-        notificationType: "achieved",
-        message: `Congratulations! You've earned a bonus of $${validatedData.bonusAmount / 100} for reaching a production goal.`,
-        isRead: false,
-        createdAt: new Date()
+      if (startDate && endDate) {
+        conditions.push(
+          gte(bonusAchievements.achievedAt, new Date(startDate)),
+          lte(bonusAchievements.achievedAt, new Date(endDate))
+        );
+      }
+      
+      if (timeframe && timeframe !== 'all') {
+        // Join with goals to filter by timeframe
+        // This is a simplified approach - in a real app you'd need to join with the goals table
+      }
+      
+      if (isPaid && isPaid !== 'all') {
+        conditions.push(eq(bonusAchievements.isPaid, isPaid === 'true'));
+      }
+      
+      if (userId && userId !== 'all') {
+        conditions.push(eq(bonusAchievements.userId, parseInt(userId)));
+      }
+      
+      // Execute the query
+      const achievements = await db.query.bonusAchievements.findMany({
+        where: conditions.length > 0 ? and(...conditions) : undefined,
+        orderBy: [desc(bonusAchievements.achievedAt)],
+        with: {
+          goal: true,
+          user: true
+        }
       });
       
-      res.status(201).json(result[0]);
+      // Format the response
+      const formattedAchievements = achievements.map(achievement => ({
+        id: achievement.id,
+        goalId: achievement.goalId,
+        userId: achievement.userId,
+        userName: `${achievement.user.firstName} ${achievement.user.lastName}`,
+        userRole: achievement.user.role,
+        amount: achievement.amount,
+        achievedAt: achievement.achievedAt.toISOString(),
+        goalName: achievement.goal.name,
+        targetAmount: achievement.targetAmount,
+        actualAmount: achievement.actualAmount,
+        isPaid: achievement.isPaid,
+        paidAt: achievement.paidAt ? achievement.paidAt.toISOString() : null,
+        timeframe: achievement.goal.timeframe
+      }));
+      
+      res.json(formattedAchievements);
     } catch (error) {
-      if (error instanceof ZodError) {
-        return res.status(400).json({ error: error.errors });
-      }
-      console.error("Error recording achievement:", error);
-      res.status(500).json({ error: "Failed to record achievement" });
+      console.error('Error fetching bonus achievements:', error);
+      res.status(500).json({ error: 'Failed to fetch bonus achievements' });
     }
   });
-
-  // Mark bonus as paid
-  router.put("/bonus/achievements/:id/paid", async (req, res) => {
-    try {
-      const achievementId = parseInt(req.params.id);
-      const { approvedBy, notes } = req.body;
-      
-      if (!approvedBy) {
-        return res.status(400).json({ error: "Approver ID is required" });
-      }
-      
-      const result = await db
-        .update(bonusAchievements)
-        .set({
-          isPaid: true,
-          paidDate: new Date(),
-          approvedBy,
-          approvedDate: new Date(),
-          notes: notes || null,
-          updatedAt: new Date()
-        })
-        .where(eq(bonusAchievements.id, achievementId))
-        .returning();
-      
-      if (!result.length) {
-        return res.status(404).json({ error: "Achievement not found" });
-      }
-      
-      // Create payment notification
-      await db.insert(bonusNotifications).values({
-        goalId: result[0].goalId,
-        userId: result[0].userId,
-        achievementId: achievementId,
-        notificationType: "payment_processed",
-        message: `Your bonus payment of $${result[0].bonusAmount / 100} has been processed.`,
-        isRead: false,
-        createdAt: new Date()
-      });
-      
-      res.json(result[0]);
-    } catch (error) {
-      console.error("Error marking achievement as paid:", error);
-      res.status(500).json({ error: "Failed to mark achievement as paid" });
-    }
-  });
-
+  
   // Get notifications for a user
-  router.get("/bonus/notifications/user/:userId", async (req, res) => {
+  router.get('/api/bonus/notifications/user/:userId', async (req, res) => {
+    const { userId } = req.params;
+    const { type } = req.query as { type?: string };
+    
     try {
-      const userId = parseInt(req.params.userId);
-      const notifications = await db
-        .select()
-        .from(bonusNotifications)
-        .where(eq(bonusNotifications.userId, userId))
-        .orderBy(desc(bonusNotifications.createdAt));
+      // Build the query conditions
+      let conditions = [eq(bonusNotifications.userId, parseInt(userId))];
+      
+      if (type && type !== 'all') {
+        if (type === 'unread') {
+          conditions.push(eq(bonusNotifications.isRead, false));
+        } else {
+          conditions.push(eq(bonusNotifications.notificationType, type as any));
+        }
+      }
+      
+      // Execute the query
+      const notifications = await db.query.bonusNotifications.findMany({
+        where: and(...conditions),
+        orderBy: [
+          desc(bonusNotifications.isRead), 
+          desc(bonusNotifications.createdAt)
+        ],
+        limit: 50 // Limit to the most recent 50 notifications
+      });
       
       res.json(notifications);
     } catch (error) {
-      console.error("Error fetching notifications:", error);
-      res.status(500).json({ error: "Failed to fetch notifications" });
+      console.error(`Error fetching notifications for user ${userId}:`, error);
+      res.status(500).json({ error: 'Failed to fetch notifications' });
     }
   });
-
-  // Mark notification as read
-  router.put("/bonus/notifications/:id/read", async (req, res) => {
+  
+  // Mark a notification as read
+  router.patch('/api/bonus/notifications/:id/read', async (req, res) => {
+    const { id } = req.params;
+    
     try {
-      const notificationId = parseInt(req.params.id);
-      
-      const result = await db
-        .update(bonusNotifications)
+      const result = await db.update(bonusNotifications)
         .set({ isRead: true })
-        .where(eq(bonusNotifications.id, notificationId))
+        .where(eq(bonusNotifications.id, parseInt(id)))
         .returning();
       
-      if (!result.length) {
-        return res.status(404).json({ error: "Notification not found" });
+      if (result.length === 0) {
+        return res.status(404).json({ error: 'Notification not found' });
       }
       
       res.json(result[0]);
     } catch (error) {
-      console.error("Error marking notification as read:", error);
-      res.status(500).json({ error: "Failed to mark notification as read" });
+      console.error(`Error marking notification ${id} as read:`, error);
+      res.status(500).json({ error: 'Failed to mark notification as read' });
     }
   });
-
-  return router;
+  
+  // Mark all notifications for a user as read
+  router.patch('/api/bonus/notifications/user/:userId/read-all', async (req, res) => {
+    const { userId } = req.params;
+    
+    try {
+      await db.update(bonusNotifications)
+        .set({ isRead: true })
+        .where(and(
+          eq(bonusNotifications.userId, parseInt(userId)),
+          eq(bonusNotifications.isRead, false)
+        ));
+      
+      res.json({ message: 'All notifications marked as read' });
+    } catch (error) {
+      console.error(`Error marking all notifications as read for user ${userId}:`, error);
+      res.status(500).json({ error: 'Failed to mark notifications as read' });
+    }
+  });
+  
+  // Delete a notification
+  router.delete('/api/bonus/notifications/:id', async (req, res) => {
+    const { id } = req.params;
+    
+    try {
+      const result = await db.delete(bonusNotifications)
+        .where(eq(bonusNotifications.id, parseInt(id)))
+        .returning();
+      
+      if (result.length === 0) {
+        return res.status(404).json({ error: 'Notification not found' });
+      }
+      
+      res.json({ message: 'Notification deleted successfully' });
+    } catch (error) {
+      console.error(`Error deleting notification ${id}:`, error);
+      res.status(500).json({ error: 'Failed to delete notification' });
+    }
+  });
 }

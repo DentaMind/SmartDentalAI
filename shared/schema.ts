@@ -1250,6 +1250,27 @@ export type UserCertification = typeof userCertifications.$inferSelect;
 export type InsertTrainingModule = z.infer<typeof insertTrainingModuleSchema>;
 export type InsertUserCertification = z.infer<typeof insertUserCertificationSchema>;
 
+// Add the enums for bonus system
+export const BonusGoalTypeEnum = z.enum(['practice', 'role', 'individual']);
+export const BonusTimeframeEnum = z.enum(['daily', 'weekly', 'monthly', 'quarterly', 'annual']);
+export const BonusNotificationTypeEnum = z.enum(['achievement', 'payment', 'goal_created', 'goal_updated', 'system']);
+
+// Create insert schemas for the existing bonus tables
+export const insertBonusGoalSchema = createInsertSchema(bonusGoals);
+export const insertBonusGoalTierSchema = createInsertSchema(bonusGoalTiers);
+export const insertBonusAchievementSchema = createInsertSchema(bonusAchievements);
+export const insertBonusNotificationSchema = createInsertSchema(bonusNotifications);
+
+// Export types for bonus system
+export type BonusGoal = typeof bonusGoals.$inferSelect;
+export type BonusGoalTier = typeof bonusGoalTiers.$inferSelect;
+export type BonusAchievement = typeof bonusAchievements.$inferSelect;
+export type BonusNotification = typeof bonusNotifications.$inferSelect;
+export type InsertBonusGoal = z.infer<typeof insertBonusGoalSchema>;
+export type InsertBonusGoalTier = z.infer<typeof insertBonusGoalTierSchema>;
+export type InsertBonusAchievement = z.infer<typeof insertBonusAchievementSchema>;
+export type InsertBonusNotification = z.infer<typeof insertBonusNotificationSchema>;
+
 // Insert schemas for labs, supplies and orthodontics
 export const insertLabCaseSchema = createInsertSchema(labCases);
 export const insertSupplyItemSchema = createInsertSchema(supplyItems);
@@ -1258,9 +1279,3 @@ export const insertSupplyReceiptSchema = createInsertSchema(supplyReceipts);
 export const insertVendorProfileSchema = createInsertSchema(vendorProfiles);
 export const insertOrthodonticCaseSchema = createInsertSchema(orthodonticCases);
 export const insertOrthodonticTelehealthSessionSchema = createInsertSchema(orthodonticTelehealthSessions);
-
-// Bonus System insert schemas
-export const insertBonusGoalSchema = createInsertSchema(bonusGoals);
-export const insertBonusGoalTierSchema = createInsertSchema(bonusGoalTiers);
-export const insertBonusAchievementSchema = createInsertSchema(bonusAchievements);
-export const insertBonusNotificationSchema = createInsertSchema(bonusNotifications);
