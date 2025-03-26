@@ -33,6 +33,8 @@ import FormPage from "@/pages/form-page";
 import FormSubmittedPage from "@/pages/form-submitted-page";
 import LabsSuppliesPage from "@/pages/labs-supplies-page";
 import DebugAuthPage from "@/pages/debug-auth";
+import AssistantTrainingPage from "@/pages/assistant-training-page";
+import TrainingDashboardPage from "@/pages/training-dashboard-page";
 
 // Lazy-loaded components
 const AIHub = lazy(() => import('./pages/ai-hub'));
@@ -96,6 +98,8 @@ function Router() {
         <ProtectedRoute path="/xray-fmx/:patientId" component={XRayFMXWrapper} />
         <ProtectedRoute path="/xray-comparison-test" component={XRayComparisonTestWrapper} />
         <ProtectedRoute path="/labs-supplies" component={LabsSuppliesPage} />
+        <ProtectedRoute path="/assistant-training" component={AssistantTrainingPage} />
+        <ProtectedRoute path="/training-dashboard" component={TrainingDashboardPage} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
