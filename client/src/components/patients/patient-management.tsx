@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { ImprovedAddPatientForm } from "./improved-add-patient-form";
+import { useQuery } from "@tanstack/react-query";
 
 export function PatientManagement() {
   const { patients, loading } = usePatient();

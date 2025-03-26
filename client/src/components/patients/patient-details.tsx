@@ -43,6 +43,17 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
 
+  // Process the patient data to handle potential raw JSON strings
+  const processedPatient = {
+    ...patient,
+    medicalHistory: typeof patient.medicalHistory === 'string' && patient.medicalHistory.startsWith('{') 
+      ? JSON.stringify(JSON.parse(patient.medicalHistory), null, 2) 
+      : patient.medicalHistory,
+    allergies: typeof patient.allergies === 'string' && patient.allergies.startsWith('[') 
+      ? JSON.stringify(JSON.parse(patient.allergies), null, 2)
+      : patient.allergies
+  };
+
   const navigateToProfile = () => {
     onClose();
     setLocation(`/patients/${patient.id}`);
@@ -103,7 +114,7 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
                   {t("patient.medicalHistory")}
                 </p>
                 <p className="mt-1 whitespace-pre-wrap">
-                  {patient.medicalHistory || t("common.none")}
+                  {processedPatient.medicalHistory || t("common.none")}
                 </p>
               </div>
               <div>
@@ -111,7 +122,7 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
                   {t("patient.allergies")}
                 </p>
                 <p className="mt-1 whitespace-pre-wrap">
-                  {patient.allergies || t("common.none")}
+                  {processedPatient.allergies || t("common.none")}
                 </p>
               </div>
               <div>
@@ -131,7 +142,7 @@ export function PatientDetails({ patient, isOpen, onClose }: PatientDetailsProps
               <CardDescription>{t("ai.enterSymptoms")}</CardDescription>
             </CardHeader>
             <CardContent>
-              <SymptomPredictor patientHistory={patient.medicalHistory || undefined} />
+              <SymptomPredictor patientHistory={processedPatient.medicalHistory || undefined} />
             </CardContent>
           </Card>
         </div>

@@ -54,11 +54,17 @@ export default function PatientsPage() {
   const [selectedPatient, setSelectedPatient] = useState<PatientWithUser | null>(null);
   const [_, navigate] = useLocation();
 
-  const { data: patients, isLoading, isError } = useQuery<PatientWithUser[]>({
+  const { data: patientsData, isLoading, isError } = useQuery<PatientWithUser[]>({
     queryKey: ["/api/patients"],
     refetchOnWindowFocus: false,
     retry: 1,
   });
+  
+  // Process the patient data to ensure it's properly formatted
+  const patients = Array.isArray(patientsData) ? patientsData : [];
+  
+  // For debugging
+  console.log("Patient data received:", patients);
 
   // Get today's appointments count (mock data for now)
   const todayAppointments = 5;
