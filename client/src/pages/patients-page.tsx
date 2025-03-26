@@ -1,18 +1,12 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Patient } from "@shared/schema";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LoadingAnimation } from "@/components/ui/loading-animation";
 import { Plus, Eye, UserRound, Calendar, AlertCircle, ExternalLink, ArrowUpRight } from "lucide-react";
 import {
   Dialog,
@@ -23,123 +17,91 @@ import {
 } from "@/components/ui/dialog";
 import { AddPatientForm } from "@/components/patients/add-patient-form";
 import { PatientDetails } from "@/components/patients/patient-details";
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LoadingAnimation } from "@/components/ui/loading-animation";
 
-// Define a simplified user type compatible with what comes from the server
-type UserInfo = {
+// Define a type for patients that matches the server response
+type Patient = {
   id: number;
-  username: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber?: string | null;
-  dateOfBirth?: string | null;
-  role: string;
-  language?: string;
-  insuranceProvider?: string | null;
-  insuranceNumber?: string | null;
-};
-
-// Extended type to include user information
-type PatientWithUser = Patient & {
-  user: UserInfo;
+  userId: number;
+  user: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string | null;
+    dateOfBirth: string | null;
+    insuranceProvider?: string | null;
+    insuranceNumber?: string | null;
+    role: string;
+    language?: string;
+  };
+  medicalHistory?: string;
+  allergies?: string | string[];
+  currentMedications?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  emergencyContactRelationship?: string;
 };
 
 export default function PatientsPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<PatientWithUser | null>(null);
   const [_, navigate] = useLocation();
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
-  // Simplify the query to avoid type errors
-  const { 
-    data: patientsData, 
-    isLoading, 
-    isError, 
-    error 
-  } = useQuery({
+  // Fetch patients data
+  const { data: patients, isLoading, isError } = useQuery<Patient[]>({
     queryKey: ["/api/patients"],
     refetchOnWindowFocus: false,
-    retry: 2
+    retry: 2,
   });
-  
-  // Process the patient data to ensure it's properly formatted
-  let patients: PatientWithUser[] = [];
-  
-  if (patientsData) {
-    if (Array.isArray(patientsData)) {
-      // If data is already an array, use it directly
-      patients = patientsData;
-    } else if (typeof patientsData === 'object') {
-      // Cast to any to handle various potential response formats
-      const data = patientsData as any;
-      
-      // If data is an object with items property (paginated response)
-      if (data.items && Array.isArray(data.items)) {
-        patients = data.items;
-      } else {
-        try {
-          // Handle different response formats
-          if (data.patients && Array.isArray(data.patients)) {
-            patients = data.patients;
-          } else {
-            // Convert object properties to an array if needed
-            const potentialPatients = Object.values(data).filter(
-              (item: any) => item && typeof item === 'object' && 'id' in item
-            ) as PatientWithUser[];
-            
-            if (potentialPatients.length > 0) {
-              patients = potentialPatients;
-            }
-          }
-        } catch (processError) {
-          console.error("Error processing patient data:", processError);
-        }
-      }
-    }
-  }
-  
-  // Format patients to ensure they have valid user data
-  const formattedPatients = patients.map(patient => {
-    // Ensure patient has required fields
-    if (!patient) return null;
-    
-    // If patient doesn't have a user property or it's incomplete, create a structured placeholder
-    if (!patient.user || !patient.user.firstName) {
+
+  // Process patients to ensure they have the right format
+  const formattedPatients = (patients || []).map(patient => {
+    // Handle case where patient.user might be missing or incomplete
+    if (!patient.user) {
       return {
         ...patient,
         user: {
           id: patient.userId || 0,
-          username: "",
-          firstName: patient.firstName || "",
-          lastName: patient.lastName || "",
-          email: patient.email || "",
-          phoneNumber: patient.phoneNumber || null,
-          dateOfBirth: patient.dateOfBirth || null,
+          firstName: "",
+          lastName: "",
+          email: "",
+          phoneNumber: null,
+          dateOfBirth: null,
           role: "patient",
           language: "en",
-          insuranceProvider: patient.insuranceProvider || null,
-          insuranceNumber: patient.insuranceNumber || null,
+          insuranceProvider: null,
+          insuranceNumber: null,
         }
       };
     }
-    return patient;
-  }).filter(Boolean) as PatientWithUser[]; // Filter out null patients
-  
-  // More detailed debugging
-  if (isError || !patientsData || formattedPatients.length === 0) {
-    console.error("Patient data issue:", {
-      hasData: !!patientsData,
-      isArray: patientsData ? Array.isArray(patientsData) : false,
-      patientsCount: formattedPatients.length,
-      originalData: patientsData
-    });
-  }
+    
+    // Format allergies if they're in JSON string format
+    let allergiesDisplay = "None";
+    if (patient.allergies) {
+      if (typeof patient.allergies === 'string' && patient.allergies.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(patient.allergies);
+          allergiesDisplay = Array.isArray(parsed) ? parsed.join(', ') : patient.allergies;
+        } catch (e) {
+          allergiesDisplay = patient.allergies;
+        }
+      } else if (Array.isArray(patient.allergies)) {
+        allergiesDisplay = patient.allergies.join(', ');
+      } else {
+        allergiesDisplay = String(patient.allergies);
+      }
+    }
+    
+    // Return processed patient with formatted fields
+    return {
+      ...patient,
+      formattedAllergies: allergiesDisplay
+    };
+  });
 
-  // Get today's appointments count (mock data for now)
+  // Today's stats (placeholders for now)
   const todayAppointments = 5;
   const urgentCases = 2;
 
@@ -230,84 +192,79 @@ export default function PatientsPage() {
             </Dialog>
           </div>
 
-          {/* Patient Table */}
-          <div className="bg-card rounded-lg border shadow-sm">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center h-32 gap-4">
-                <LoadingAnimation />
-                <p className="text-gray-600">Loading patient data...</p>
-              </div>
-            ) : isError ? (
-              <div className="flex flex-col items-center justify-center h-32 gap-4">
-                <AlertCircle className="h-8 w-8 text-red-500" />
-                <p className="text-gray-600">Error loading patients data. Please try again.</p>
-                <Button 
-                  variant="outline" 
-                  onClick={() => window.location.reload()}
-                  className="gap-2"
-                >
-                  <ArrowUpRight className="h-4 w-4" />
-                  Refresh Page
-                </Button>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("patient.name")}</TableHead>
-                    <TableHead>{t("patient.dob")}</TableHead>
-                    <TableHead>{t("patient.contact")}</TableHead>
-                    <TableHead>{t("patient.medicalHistory")}</TableHead>
-                    <TableHead className="w-[100px]">{t("common.actions")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {Array.isArray(formattedPatients) && formattedPatients.length > 0 ? (
-                    formattedPatients.map((patient) => (
-                      <TableRow key={patient.id} className="cursor-pointer hover:bg-muted/50">
-                        <TableCell className="font-medium">
-                          {patient.user && `${patient.user.firstName || ''} ${patient.user.lastName || ''}`}
-                        </TableCell>
-                        <TableCell>{patient.user?.dateOfBirth || 'N/A'}</TableCell>
-                        <TableCell>{patient.user?.phoneNumber || patient.user?.email || 'N/A'}</TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {patient.medicalHistory || 'No medical history recorded'}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => setSelectedPatient(patient)}
-                              className="gap-2"
-                            >
-                              <Eye className="h-4 w-4" />
-                              {t("common.view")}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigate(`/patients/${patient.id}`)}
-                              className="gap-2"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                              Profile
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center">
-                        {t("patient.noPatients")}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            )}
-          </div>
+          {/* Patient Cards */}
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center h-32 gap-4">
+              <LoadingAnimation />
+              <p className="text-gray-600">Loading patient data...</p>
+            </div>
+          ) : isError ? (
+            <div className="flex flex-col items-center justify-center h-32 gap-4">
+              <AlertCircle className="h-8 w-8 text-red-500" />
+              <p className="text-gray-600">Error loading patients data. Please try again.</p>
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.reload()}
+                className="gap-2"
+              >
+                <ArrowUpRight className="h-4 w-4" />
+                Refresh Page
+              </Button>
+            </div>
+          ) : formattedPatients.length === 0 ? (
+            <div className="bg-card rounded-lg border shadow-sm p-8 text-center">
+              <p className="text-lg text-muted-foreground">No patients found.</p>
+              <p className="mt-2 text-sm text-muted-foreground">Click the "Add Patient" button to create your first patient record.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {formattedPatients.map((patient) => (
+                <Card key={patient.id} className="hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex justify-between items-center">
+                      <span>
+                        {patient.user?.firstName || ''} {patient.user?.lastName || ''}
+                      </span>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedPatient(patient)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-2">
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Date of Birth:</span>
+                        <span>{patient.user?.dateOfBirth || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Contact:</span>
+                        <span className="truncate max-w-[150px]">{patient.user?.phoneNumber || patient.user?.email || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Allergies:</span>
+                        <span className="truncate max-w-[150px]">{patient.formattedAllergies}</span>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/patients/${patient.id}`)}
+                      className="w-full mt-4 gap-2"
+                    >
+                      <span>View Full Profile</span>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
 
         {selectedPatient && (
