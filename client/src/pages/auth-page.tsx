@@ -378,7 +378,11 @@ export default function AuthPage() {
                   src={dentaMindLogo} 
                   alt="DentaMind Logo" 
                   className="h-64 w-auto drop-shadow-[0_0_20px_rgba(40,199,111,0.6)] relative z-10 animate-pulse-subtle"
-                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.25)', borderRadius: '50%', padding: '8px' }}
+                  style={{ 
+                    background: 'linear-gradient(to right, rgba(236, 253, 245, 0.8), rgba(240, 255, 244, 0.9))', 
+                    borderRadius: '50%', 
+                    padding: '10px' 
+                  }}
                 />
               </div>
             </div>
