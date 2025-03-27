@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Redirect } from "wouter";
-import dentaMindLogo from "../assets/dentamind-logo.png";
+import dentaMindLogo from "../assets/dentamind-logo-new.jpg";
 
 // Define a simple login schema
 const loginSchema = z.object({
@@ -104,7 +104,7 @@ export default function SimpleAuthPage() {
           <img 
             src={dentaMindLogo} 
             alt="DentaMind Logo" 
-            className="h-20 w-20 mb-4"
+            className="h-20 w-20 mb-4 rounded-full"
           />
           <h1 className="text-2xl font-bold text-gray-800">DentaMind</h1>
           <p className="text-gray-600 mt-1">AI-Powered Dental Excellence</p>

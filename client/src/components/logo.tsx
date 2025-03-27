@@ -1,5 +1,5 @@
 import React from "react";
-import dentaMindLogo from "../assets/dentamind-logo-tooth-hq.png"; // Use the high-quality logo
+import dentaMindLogo from "../assets/dentamind-logo-new.jpg"; // Use the new logo
 
 interface LogoProps {
   className?: string;
@@ -19,7 +19,7 @@ export function DentaMindLogo({ className = "", size = "md", showText = true }: 
       <img 
         src={dentaMindLogo} 
         alt="DentaMind Logo" 
-        className={`${sizeMap[size]} object-contain animate-pulse-subtle`}
+        className={`${sizeMap[size]} object-contain animate-pulse-subtle rounded-full`}
       />
       {showText && (
         <div className="ml-3">
