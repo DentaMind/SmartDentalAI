@@ -1,251 +1,285 @@
 import React, { useState } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, AlertTriangle, Info } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Slider } from "@/components/ui/slider";
+import { CheckCircle, AlertCircle, HelpCircle, Edit, ThumbsUp, ThumbsDown, RefreshCw } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from '@/lib/api';
 
-interface DiagnosisOption {
-  label: string;
+interface Diagnosis {
+  id: string;
+  condition: string;
   confidence: number;
-}
-
-interface DiagnosisData {
   explanation: string;
-  options: DiagnosisOption[];
-  needsMoreInfo: boolean;
-  followUpQuestion: string | null;
+  suggestedTreatments?: string[];
+  aiSource?: string;
+  createdAt: string;
+  status?: 'pending' | 'approved' | 'rejected' | 'modified';
 }
 
 interface DiagnosisFeedbackUIProps {
-  diagnosisData: DiagnosisData;
-  onSubmitFeedback: (feedback: DiagnosisFeedback) => void;
+  diagnosis: Diagnosis;
+  patientId: number;
+  onFeedbackSubmitted?: (updatedDiagnosis: Diagnosis) => void;
 }
 
-interface DiagnosisFeedback {
-  selectedDiagnosis: string | null;
-  correctDiagnosis: string | null;
-  additionalInformation: string;
-  isAccurate: boolean;
-}
-
-/**
- * DiagnosisFeedbackUI - Component for providers to view AI diagnosis suggestions
- * and provide feedback to improve the AI system
- */
 const DiagnosisFeedbackUI: React.FC<DiagnosisFeedbackUIProps> = ({ 
-  diagnosisData, 
-  onSubmitFeedback 
+  diagnosis, 
+  patientId,
+  onFeedbackSubmitted
 }) => {
-  const [selectedDiagnosis, setSelectedDiagnosis] = useState<string | null>(null);
-  const [isAccurate, setIsAccurate] = useState<boolean | null>(null);
-  const [correctDiagnosis, setCorrectDiagnosis] = useState<string>('');
-  const [additionalInfo, setAdditionalInfo] = useState<string>('');
-  const [showFeedbackForm, setShowFeedbackForm] = useState<boolean>(false);
-  
-  const handleSubmitFeedback = () => {
-    onSubmitFeedback({
-      selectedDiagnosis: selectedDiagnosis,
-      correctDiagnosis: isAccurate === false ? correctDiagnosis : null,
-      additionalInformation: additionalInfo,
-      isAccurate: isAccurate === true
-    });
+  const [feedbackStatus, setFeedbackStatus] = useState<'pending' | 'approved' | 'rejected' | 'modified'>(
+    diagnosis.status || 'pending'
+  );
+  const [providerNote, setProviderNote] = useState('');
+  const [accuracyRating, setAccuracyRating] = useState(diagnosis.confidence * 100);
+  const [isEditing, setIsEditing] = useState(false);
+  const [modifiedDiagnosis, setModifiedDiagnosis] = useState(diagnosis.condition);
+  const [modifiedExplanation, setModifiedExplanation] = useState(diagnosis.explanation);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const handleFeedbackSubmit = async () => {
+    setIsSubmitting(true);
     
-    // Reset form
-    setShowFeedbackForm(false);
+    try {
+      const payload = {
+        diagnosisId: diagnosis.id,
+        patientId,
+        status: feedbackStatus,
+        providerNote,
+        accuracyRating: accuracyRating / 100,
+        modifiedDiagnosis: feedbackStatus === 'modified' ? modifiedDiagnosis : undefined,
+        modifiedExplanation: feedbackStatus === 'modified' ? modifiedExplanation : undefined
+      };
+      
+      const response = await apiRequest('/api/diagnosis-feedback', {
+        method: 'POST',
+        data: payload
+      });
+      
+      toast({
+        title: "Feedback submitted",
+        description: "Thank you for improving our AI system.",
+        variant: "success"
+      });
+      
+      if (onFeedbackSubmitted) {
+        onFeedbackSubmitted({
+          ...diagnosis,
+          status: feedbackStatus,
+          condition: feedbackStatus === 'modified' ? modifiedDiagnosis : diagnosis.condition,
+          explanation: feedbackStatus === 'modified' ? modifiedExplanation : diagnosis.explanation,
+          confidence: accuracyRating / 100
+        });
+      }
+    } catch (error) {
+      console.error('Error submitting diagnosis feedback:', error);
+      toast({
+        title: "Error submitting feedback",
+        description: "Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-  
+
+  const getStatusIcon = () => {
+    switch (feedbackStatus) {
+      case 'approved':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'rejected':
+        return <AlertCircle className="h-5 w-5 text-destructive" />;
+      case 'modified':
+        return <Edit className="h-5 w-5 text-amber-500" />;
+      default:
+        return <HelpCircle className="h-5 w-5 text-muted-foreground" />;
+    }
+  };
+
+  const getConfidenceLabel = (confidence: number) => {
+    if (confidence >= 0.85) return "High";
+    if (confidence >= 0.7) return "Moderate";
+    return "Low";
+  };
+
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 85) return "bg-green-100 text-green-800 border-green-200";
-    if (confidence >= 50) return "bg-amber-100 text-amber-800 border-amber-200";
-    return "bg-red-100 text-red-800 border-red-200";
+    if (confidence >= 0.85) return "text-green-600";
+    if (confidence >= 0.7) return "text-amber-600";
+    return "text-red-600";
   };
-  
-  const getConfidenceIcon = (confidence: number) => {
-    if (confidence >= 85) return <CheckCircle className="h-3.5 w-3.5" />;
-    if (confidence >= 50) return <Info className="h-3.5 w-3.5" />;
-    return <AlertTriangle className="h-3.5 w-3.5" />;
-  };
-  
+
   return (
-    <div className="space-y-4">
-      {diagnosisData.needsMoreInfo ? (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
-              <div>
-                <h3 className="font-medium text-amber-800">Insufficient Information</h3>
-                <p className="text-sm text-amber-700 mt-1">
-                  The AI needs more clinical information to provide an accurate diagnosis.
-                </p>
-                {diagnosisData.followUpQuestion && (
-                  <div className="mt-3 p-3 bg-white rounded-md border border-amber-200">
-                    <p className="text-sm font-medium text-amber-800">Follow-up question:</p>
-                    <p className="text-sm">{diagnosisData.followUpQuestion}</p>
-                    <Textarea
-                      className="mt-2"
-                      placeholder="Provide the requested information..."
-                      value={additionalInfo}
-                      onChange={(e) => setAdditionalInfo(e.target.value)}
-                    />
-                    <Button size="sm" className="mt-2" onClick={() => onSubmitFeedback({
-                      selectedDiagnosis: null,
-                      correctDiagnosis: null,
-                      additionalInformation: additionalInfo,
-                      isAccurate: false
-                    })}>
-                      Submit Additional Information
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          <div className="space-y-3">
-            <div className="mb-3">
-              <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                AI Diagnostic Suggestions
-              </h3>
-              <div className="space-y-2">
-                {diagnosisData.options.map((option, index) => (
-                  <div 
-                    key={index}
-                    className={cn(
-                      "flex items-center justify-between p-2.5 border rounded-md cursor-pointer transition-colors",
-                      selectedDiagnosis === option.label 
-                        ? "border-primary bg-primary/5" 
-                        : "hover:bg-muted/50"
-                    )}
-                    onClick={() => setSelectedDiagnosis(option.label)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className={cn(
-                          "w-4 h-4 rounded-full flex items-center justify-center",
-                          selectedDiagnosis === option.label 
-                            ? "bg-primary" 
-                            : "border border-gray-300"
-                        )}
-                      >
-                        {selectedDiagnosis === option.label && (
-                          <div className="w-2 h-2 rounded-full bg-white" />
-                        )}
-                      </div>
-                      <span className={cn(
-                        "text-sm",
-                        selectedDiagnosis === option.label ? "font-medium" : ""
-                      )}>
-                        {option.label}
-                      </span>
-                    </div>
-                    <Badge 
-                      variant="outline"
-                      className={cn(
-                        "ml-auto flex items-center gap-1.5",
-                        getConfidenceColor(option.confidence)
-                      )}
-                    >
-                      {getConfidenceIcon(option.confidence)}
-                      <span>{option.confidence}% Confidence</span>
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
+    <Card className="mb-4 border-l-4" style={{ 
+      borderLeftColor: feedbackStatus === 'approved' ? '#10b981' : 
+                        feedbackStatus === 'rejected' ? '#ef4444' : 
+                        feedbackStatus === 'modified' ? '#f59e0b' : '#94a3b8' 
+    }}>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="text-lg flex items-center gap-2">
+              {getStatusIcon()}
+              {feedbackStatus === 'modified' ? modifiedDiagnosis : diagnosis.condition}
+            </CardTitle>
+            <CardDescription>
+              {new Date(diagnosis.createdAt).toLocaleDateString()} · AI Confidence: 
+              <span className={`ml-1 font-medium ${getConfidenceColor(diagnosis.confidence)}`}>
+                {getConfidenceLabel(diagnosis.confidence)} ({Math.round(diagnosis.confidence * 100)}%)
+              </span>
+            </CardDescription>
+          </div>
+          <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+            Source: {diagnosis.aiSource || 'General AI'}
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent>
+        {isEditing && feedbackStatus === 'modified' ? (
+          <div className="space-y-4">
             <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                Diagnostic Explanation
-              </h3>
-              <div className="p-3 bg-muted rounded-md text-sm">
-                {diagnosisData.explanation}
-              </div>
+              <Label htmlFor="modified-diagnosis">Modified Diagnosis</Label>
+              <Textarea 
+                id="modified-diagnosis"
+                value={modifiedDiagnosis} 
+                onChange={(e) => setModifiedDiagnosis(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="modified-explanation">Modified Explanation</Label>
+              <Textarea 
+                id="modified-explanation"
+                value={modifiedExplanation} 
+                onChange={(e) => setModifiedExplanation(e.target.value)}
+                className="mt-1 min-h-[100px]"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="text-sm">
+            <div className="bg-muted/50 p-3 rounded-md">
+              {feedbackStatus === 'modified' ? modifiedExplanation : diagnosis.explanation}
             </div>
             
-            <div className="pt-2 flex justify-between items-center">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowFeedbackForm(!showFeedbackForm)}
-              >
-                {showFeedbackForm ? "Hide Feedback Form" : "Provide Feedback"}
-              </Button>
-              
-              {selectedDiagnosis && (
-                <Button size="sm" className="ml-auto">
-                  Confirm Diagnosis
-                </Button>
-              )}
-            </div>
-            
-            {showFeedbackForm && (
-              <div className="pt-3 space-y-4 border-t mt-3">
-                <h3 className="text-sm font-medium">Provider Feedback</h3>
-                
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm font-medium mb-2">Is the primary AI diagnosis accurate?</p>
-                    <RadioGroup
-                      value={isAccurate === null ? undefined : isAccurate ? "yes" : "no"}
-                      onValueChange={(value) => setIsAccurate(value === "yes")}
-                      className="flex gap-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="yes" id="accurate-yes" />
-                        <Label htmlFor="accurate-yes">Yes</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="no" id="accurate-no" />
-                        <Label htmlFor="accurate-no">No</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-                  
-                  {isAccurate === false && (
-                    <div>
-                      <Label htmlFor="correct-diagnosis" className="text-sm">
-                        What is the correct diagnosis?
-                      </Label>
-                      <Textarea
-                        id="correct-diagnosis"
-                        placeholder="Enter the correct diagnosis..."
-                        value={correctDiagnosis}
-                        onChange={(e) => setCorrectDiagnosis(e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                  )}
-                  
-                  <div>
-                    <Label htmlFor="additional-info" className="text-sm">
-                      Additional Information or Comments
-                    </Label>
-                    <Textarea
-                      id="additional-info"
-                      placeholder="Provide any additional information that could help improve the AI diagnosis..."
-                      value={additionalInfo}
-                      onChange={(e) => setAdditionalInfo(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <Button onClick={handleSubmitFeedback}>
-                    Submit Feedback
-                  </Button>
-                </div>
+            {diagnosis.suggestedTreatments && diagnosis.suggestedTreatments.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-medium mb-2">Suggested Treatments:</h4>
+                <ul className="list-disc list-inside">
+                  {diagnosis.suggestedTreatments.map((treatment, idx) => (
+                    <li key={idx} className="text-sm">{treatment}</li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>
-        </>
-      )}
-    </div>
+        )}
+
+        <div className="mt-4 border-t pt-4">
+          <h4 className="font-medium mb-2">Provider Feedback</h4>
+          
+          <RadioGroup 
+            value={feedbackStatus} 
+            onValueChange={(value) => {
+              setFeedbackStatus(value as 'pending' | 'approved' | 'rejected' | 'modified');
+              if (value === 'modified') setIsEditing(true);
+            }}
+            className="flex flex-col space-y-1 mb-4"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="approved" id="approved" />
+              <Label htmlFor="approved" className="flex items-center">
+                <ThumbsUp className="h-4 w-4 mr-2 text-green-500" />
+                Correct diagnosis
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="modified" id="modified" />
+              <Label htmlFor="modified" className="flex items-center">
+                <Edit className="h-4 w-4 mr-2 text-amber-500" />
+                Partially correct (needs modification)
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="rejected" id="rejected" />
+              <Label htmlFor="rejected" className="flex items-center">
+                <ThumbsDown className="h-4 w-4 mr-2 text-destructive" />
+                Incorrect diagnosis
+              </Label>
+            </div>
+          </RadioGroup>
+
+          <div className="space-y-4">
+            {feedbackStatus === 'modified' && !isEditing && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsEditing(true)}
+                className="flex items-center gap-1"
+              >
+                <Edit className="h-4 w-4" /> Edit Modified Diagnosis
+              </Button>
+            )}
+
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <Label htmlFor="accuracyRating">AI Accuracy Rating</Label>
+                <span className="text-sm text-muted-foreground">{Math.round(accuracyRating)}%</span>
+              </div>
+              <Slider
+                id="accuracyRating"
+                value={[accuracyRating]}
+                onValueChange={(values) => setAccuracyRating(values[0])}
+                max={100}
+                step={5}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="provider-note">Additional Notes (optional)</Label>
+              <Textarea 
+                id="provider-note"
+                placeholder="Add any additional context or corrections..."
+                value={providerNote}
+                onChange={(e) => setProviderNote(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+        </div>
+      </CardContent>
+
+      <CardFooter className="border-t pt-4 flex justify-between">
+        <div className="text-xs text-muted-foreground">
+          Your feedback helps improve our AI system for all patients
+        </div>
+        <div className="flex gap-2">
+          {feedbackStatus !== 'pending' && (
+            <Button variant="outline" size="sm" onClick={() => {
+              setFeedbackStatus('pending');
+              setIsEditing(false);
+              setModifiedDiagnosis(diagnosis.condition);
+              setModifiedExplanation(diagnosis.explanation);
+              setProviderNote('');
+              setAccuracyRating(diagnosis.confidence * 100);
+            }}>
+              <RefreshCw className="h-4 w-4 mr-1" /> Reset
+            </Button>
+          )}
+          <Button 
+            onClick={handleFeedbackSubmit} 
+            disabled={isSubmitting || feedbackStatus === 'pending'}
+          >
+            {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+          </Button>
+        </div>
+      </CardFooter>
+    </Card>
   );
 };
 

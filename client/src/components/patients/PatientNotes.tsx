@@ -65,8 +65,10 @@ export function PatientNotes({ patientId, patientName }: PatientNotesProps) {
         <Tabs value={activeTab} className="mt-6">
           <TabsContent value="view" className="mt-0">
             <PatientNotesList 
-              patientId={patientId} 
-              userRole={user?.role} 
+              patientId={patientId}
+              patientName={patientName}
+              currentUserId={user?.id || 0}
+              userRole={user?.role || 'guest'} 
               key={`notes-list-${refreshTrigger}`} // Force refresh when needed
             />
           </TabsContent>

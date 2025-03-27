@@ -564,7 +564,13 @@ export const PatientNotesList: React.FC<PatientNotesListProps> = ({
       </Card>
       
       {/* Add AutoNotesManager component */}
-      <AutoNotesManager patientId={patientId} />
+      <AutoNotesManager 
+        patientId={patientId} 
+        providerId={currentUserId}
+        onNotePosted={() => {
+          queryClient.invalidateQueries({ queryKey: ['patient-notes', patientId] });
+        }}
+      />
       
       {/* View Note Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
