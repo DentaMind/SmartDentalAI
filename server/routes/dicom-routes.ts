@@ -1,275 +1,184 @@
 /**
- * DICOM handling routes for DentaMind
+ * DentaMind DICOM and X-ray Analysis Routes
  * 
- * These routes handle DICOM file uploads, processing, and integration with the X-ray system
+ * This file contains routes for handling DICOM files and X-ray image analysis.
+ * It interfaces with the AI service integration for analysis using the X-ray AI model.
  */
 
 import express from 'express';
-import multer from 'multer';
-import { requireAuth, requireRole } from '../middleware/auth';
-import { dicomService } from '../services/dicom-service';
+import { requireAuth } from '../middleware/auth';
 import { storage } from '../storage';
+import { aiService } from '../services/ai-service-integration';
+import { PatientMedicalHistory } from '@shared/schema';
+import path from 'path';
+import fs from 'fs';
 
-const router = express.Router();
-
-// Configure multer for DICOM file uploads
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB max file size for DICOM files
-  },
-  fileFilter: (req, file, cb) => {
-    // Accept DICOM files and common image formats (for compatibility with non-DICOM systems)
-    if (
-      file.mimetype === 'application/dicom' ||
-      file.originalname.endsWith('.dcm') ||
-      file.originalname.endsWith('.DCM') ||
-      file.mimetype.startsWith('image/')
-    ) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only DICOM files and images are allowed'));
-    }
-  },
-});
-
-/**
- * Upload a DICOM file
- * POST /api/dicom/upload
- * Requires authentication and doctor/staff role
- */
-router.post(
-  '/upload',
-  requireAuth,
-  requireRole(['doctor', 'staff']),
-  upload.single('dicomFile'),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: 'No DICOM file provided',
-        });
+// Helper function to extract patient medical history
+async function getPatientMedicalHistory(patientId: number): Promise<PatientMedicalHistory | undefined> {
+  try {
+    const patient = await storage.getPatient(patientId);
+    if (!patient) return undefined;
+    
+    // Extract medical history from patient record
+    const medicalHistory: PatientMedicalHistory = {};
+    
+    // Parse JSON fields if stored as strings
+    if (patient.allergies) {
+      try {
+        medicalHistory.allergies = JSON.parse(patient.allergies);
+      } catch {
+        // If not valid JSON, treat as comma-separated string
+        medicalHistory.allergies = patient.allergies.split(',').map(a => a.trim());
       }
-
-      const patientId = parseInt(req.body.patientId);
-      const doctorId = parseInt(req.body.doctorId);
-      
-      if (isNaN(patientId) || isNaN(doctorId)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid patient ID or doctor ID',
-        });
-      }
-
-      // Process the DICOM file
-      const { metadata, filePath } = await dicomService.processDicomFile(
-        req.file.buffer
-      );
-
-      // Prepare the X-ray record for storage
-      const xrayData = await dicomService.prepareDicomForStorage(
-        filePath,
-        metadata,
-        patientId,
-        doctorId
-      );
-
-      // Store in the database
-      const xray = await storage.createXray(xrayData);
-
-      res.status(200).json({
-        success: true,
-        message: 'DICOM file processed successfully',
-        xray,
-      });
-    } catch (error) {
-      console.error('Error uploading DICOM file:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to process DICOM file',
-        error: error.message,
-      });
     }
+    
+    if (patient.medicalHistory) {
+      try {
+        const parsedHistory = JSON.parse(patient.medicalHistory);
+        // Merge parsed data into medicalHistory
+        Object.assign(medicalHistory, parsedHistory);
+      } catch {
+        // If not valid JSON, do nothing
+      }
+    }
+    
+    // Add other relevant medical fields
+    if (patient.hypertension) medicalHistory.systemicConditions = [...(medicalHistory.systemicConditions || []), 'Hypertension'];
+    if (patient.diabetes) medicalHistory.systemicConditions = [...(medicalHistory.systemicConditions || []), 'Diabetes'];
+    if (patient.heartDisease) medicalHistory.systemicConditions = [...(medicalHistory.systemicConditions || []), 'Heart Disease'];
+    
+    return medicalHistory;
+  } catch (error) {
+    console.error('Error fetching patient medical history:', error);
+    return undefined;
   }
-);
+}
 
-/**
- * Analyze a DICOM X-ray with AI
- * POST /api/dicom/analyze/:xrayId
- * Requires authentication and doctor role
- */
-router.post(
-  '/analyze/:xrayId',
-  requireAuth,
-  requireRole(['doctor']),
-  async (req, res) => {
+export function setupDICOMRoutes(router: express.Router) {
+  // Analyze an X-ray image
+  router.post('/dicom/analyze/:xrayId', requireAuth, async (req, res) => {
     try {
-      const xrayId = parseInt(req.params.xrayId);
+      const { xrayId } = req.params;
+      const { patientId, previousXRayId } = req.body;
       
-      if (isNaN(xrayId)) {
+      if (!xrayId || !patientId) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid X-ray ID',
+          message: 'X-ray ID and patient ID are required'
         });
       }
-
-      // Get the X-ray from the database
-      const xray = await storage.getXray(xrayId);
       
+      // Get X-ray data
+      const xray = await storage.getXray(parseInt(xrayId));
       if (!xray) {
         return res.status(404).json({
           success: false,
-          message: 'X-ray not found',
+          message: 'X-ray not found'
         });
       }
-
-      // Get previous X-ray ID if provided
-      const previousXRayId = req.body?.previousXRayId ? parseInt(req.body.previousXRayId) : undefined;
-      let previousXRay;
       
-      // Find previous X-ray if ID is provided
-      if (previousXRayId && !isNaN(previousXRayId)) {
-        previousXRay = await storage.getXray(previousXRayId);
+      // Get previous X-ray if specified
+      let previousXRay;
+      if (previousXRayId) {
+        previousXRay = await storage.getXray(parseInt(previousXRayId));
       }
       
-      // Perform AI analysis
-      const analysisResults = await dicomService.analyzeXRayWithAI(
-        xray.imageUrl, // This would be the path to the DICOM file in production
-        xray.patientId,
-        previousXRay?.imageUrl  // Add the previous X-ray URL if available
+      // Get patient medical history
+      const medicalHistory = await getPatientMedicalHistory(parseInt(patientId));
+      
+      // Process the X-ray with AI
+      const analysis = await aiService.analyzeXRay(
+        xray.imageUrl || '', 
+        // Use the type field for the X-ray position/type
+        xray.type || 'unknown',
+        medicalHistory,
+        previousXRay?.imageUrl
       );
-
-      // Update the X-ray record with AI analysis
-      const updatedXray = await storage.updateXray(xrayId, {
-        aiAnalysis: analysisResults.aiAnalysis,
-        analysisDate: new Date(analysisResults.analysisDate),
-        pathologyDetected: analysisResults.pathologyDetected,
+      
+      // Store analysis results
+      await storage.updateXray(parseInt(xrayId), {
+        aiAnalysis: analysis,
+        analysisDate: new Date(),
+        pathologyDetected: analysis.findings ? analysis.findings.length > 0 : false
       });
-
-      res.status(200).json({
+      
+      return res.json({
         success: true,
-        message: 'X-ray analyzed successfully',
-        analysis: analysisResults,
-        xray: updatedXray,
+        message: 'X-ray analysis completed',
+        analysis,
+        xray
       });
     } catch (error) {
       console.error('Error analyzing X-ray:', error);
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
-        message: 'Failed to analyze X-ray',
-        error: error.message,
+        message: error instanceof Error ? error.message : 'Failed to analyze X-ray'
       });
     }
-  }
-);
+  });
 
-/**
- * Compare two X-rays
- * POST /api/dicom/compare
- * Requires authentication and doctor role
- */
-router.post(
-  '/compare',
-  requireAuth,
-  requireRole(['doctor']),
-  async (req, res) => {
+  // Get all X-rays for a patient
+  router.get('/dicom/patient/:patientId', requireAuth, async (req, res) => {
     try {
-      const { xrayId1, xrayId2 } = req.body;
+      const { patientId } = req.params;
       
-      if (!xrayId1 || !xrayId2) {
+      if (!patientId) {
         return res.status(400).json({
           success: false,
-          message: 'Both X-ray IDs are required',
+          message: 'Patient ID is required'
         });
       }
-
-      // Get both X-rays from the database
-      const xray1 = await storage.getXray(parseInt(xrayId1));
-      const xray2 = await storage.getXray(parseInt(xrayId2));
       
-      if (!xray1 || !xray2) {
-        return res.status(404).json({
-          success: false,
-          message: 'One or both X-rays not found',
-        });
-      }
-
-      // Compare the X-rays
-      const comparisonResults = await dicomService.compareDicomXRays(
-        xray1.imageUrl,
-        xray2.imageUrl
-      );
-
-      // Update the newer X-ray with comparison results
-      const newerXray = new Date(xray1.date) > new Date(xray2.date) ? xray1 : xray2;
-      const updatedXray = await storage.updateXray(newerXray.id, {
-        comparisonResult: comparisonResults,
-      });
-
-      res.status(200).json({
+      const xrays = await storage.getPatientXrays(parseInt(patientId));
+      
+      return res.json({
         success: true,
-        message: 'X-rays compared successfully',
-        comparison: comparisonResults,
-        xray: updatedXray,
+        xrays
       });
     } catch (error) {
-      console.error('Error comparing X-rays:', error);
-      res.status(500).json({
+      console.error('Error fetching patient X-rays:', error);
+      return res.status(500).json({
         success: false,
-        message: 'Failed to compare X-rays',
-        error: error.message,
+        message: 'Failed to fetch patient X-rays'
       });
     }
-  }
-);
+  });
 
-/**
- * Export anonymized DICOM (for HIPAA compliance when sharing)
- * GET /api/dicom/export/:xrayId
- * Requires authentication and doctor role
- */
-router.get(
-  '/export/:xrayId',
-  requireAuth,
-  requireRole(['doctor']),
-  async (req, res) => {
+  // Get a specific X-ray by ID
+  router.get('/dicom/:xrayId', requireAuth, async (req, res) => {
     try {
-      const xrayId = parseInt(req.params.xrayId);
+      const { xrayId } = req.params;
       
-      if (isNaN(xrayId)) {
+      if (!xrayId) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid X-ray ID',
+          message: 'X-ray ID is required'
         });
       }
-
-      // Get the X-ray from the database
-      const xray = await storage.getXray(xrayId);
+      
+      const xray = await storage.getXray(parseInt(xrayId));
       
       if (!xray) {
         return res.status(404).json({
           success: false,
-          message: 'X-ray not found',
+          message: 'X-ray not found'
         });
       }
-
-      // Here we would actually anonymize the DICOM file
-      // For now, we just send the image URL
-      res.status(200).json({
+      
+      return res.json({
         success: true,
-        message: 'X-ray exported successfully',
-        imageUrl: xray.imageUrl,
+        xray
       });
     } catch (error) {
-      console.error('Error exporting X-ray:', error);
-      res.status(500).json({
+      console.error('Error fetching X-ray:', error);
+      return res.status(500).json({
         success: false,
-        message: 'Failed to export X-ray',
-        error: error.message,
+        message: 'Failed to fetch X-ray'
       });
     }
-  }
-);
+  });
+}
 
-export default router;
+export {
+  setupDICOMRoutes
+};

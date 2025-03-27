@@ -20,6 +20,8 @@ import { setupEmailAIRoutes } from './routes/email-ai-routes';
 import { setupEmailReaderRoutes } from './routes/email-reader-routes-fixed';
 import { setupEmailSchedulerRoutes } from './routes/email-scheduler-routes';
 import { setupVoiceAssistantRoutes } from './routes/voice-assistant-routes';
+import { setupAIRoutes } from './routes/ai-routes';
+import { setupDICOMRoutes } from './routes/dicom-routes';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -180,6 +182,17 @@ app.use("/api", trainingNotesRouter);
 app.use("/api", setupEmailAIRoutes(express.Router()));
 app.use("/api", setupEmailReaderRoutes(express.Router()));
 app.use("/api", setupEmailSchedulerRoutes(express.Router(), storage));
+
+// Setup AI routes
+const aiRouter = express.Router();
+setupAIRoutes(aiRouter);
+app.use("/api", aiRouter);
+
+// Setup DICOM routes
+const dicomRouter = express.Router();
+setupDICOMRoutes(dicomRouter);
+app.use("/api", dicomRouter);
+
 // Setup voice assistant routes
 setupVoiceAssistantRoutes(app);
 
