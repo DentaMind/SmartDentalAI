@@ -33,6 +33,106 @@ app.use(express.json());
 // Setup authentication on the router
 setupAuth(router);
 
+// Mount /api prefix routes to match the client-side API calls
+router.get('/api/patients', requireAuth, async (req, res) => {
+  // Route to use the same handler as the /patients route
+  console.log("API Patients route accessed, forwarding to main patients handler");
+  try {
+    const patients = await storage.getAllPatients();
+    console.log(`API patients route - Retrieved ${patients.length} patients`);
+    
+    // Use the same formatting logic as the /patients route
+    const formattedPatients = patients.map(patient => {
+      try {
+        // Ensure user property exists and has the right shape
+        if (!patient.user) {
+          // Create a minimal user object with required fields
+          patient.user = {
+            id: patient.userId,
+            username: "patient",
+            firstName: "Unknown", 
+            lastName: "Patient",
+            email: "unknown@example.com",
+            role: "patient",
+            language: "en",
+            phoneNumber: null,
+            dateOfBirth: null,
+            insuranceProvider: null,
+            insuranceNumber: null
+          };
+        } else {
+          // Extract only the properties needed by the frontend
+          const simplifiedUser = {
+            id: patient.user.id,
+            username: patient.user.username,
+            firstName: patient.user.firstName,
+            lastName: patient.user.lastName,
+            email: patient.user.email,
+            role: patient.user.role,
+            language: patient.user.language,
+            phoneNumber: patient.user.phoneNumber,
+            dateOfBirth: patient.user.dateOfBirth,
+            insuranceProvider: patient.user.insuranceProvider,
+            insuranceNumber: patient.user.insuranceNumber
+          };
+          patient.user = simplifiedUser;
+        }
+        
+        // Safe handling of JSON string fields
+        if (patient.allergies && typeof patient.allergies === 'string') {
+          try {
+            patient.allergies = JSON.parse(patient.allergies);
+          } catch (e) {
+            console.warn(`Failed to parse allergies for patient ${patient.id}:`, e);
+          }
+        }
+        
+        if (patient.medicalHistory && typeof patient.medicalHistory === 'string') {
+          try {
+            patient.medicalHistory = JSON.parse(patient.medicalHistory);
+          } catch (e) {
+            console.warn(`Failed to parse medicalHistory for patient ${patient.id}:`, e);
+          }
+        }
+        
+        if (patient.currentMedications && typeof patient.currentMedications === 'string') {
+          try {
+            patient.currentMedications = JSON.parse(patient.currentMedications);
+          } catch (e) {
+            console.warn(`Failed to parse currentMedications for patient ${patient.id}:`, e);
+          }
+        }
+        
+        return patient;
+      } catch (patientError) {
+        console.error(`Error processing patient ${patient.id}:`, patientError);
+        return {
+          id: patient.id,
+          userId: patient.userId,
+          user: patient.user || {
+            id: patient.userId,
+            username: "patient",
+            firstName: "Data Error", 
+            lastName: "Please Report",
+            email: "",
+            role: "patient",
+            language: "en"
+          },
+          allergies: [],
+          medicalHistory: {},
+          currentMedications: []
+        };
+      }
+    });
+    
+    console.log("API patients route - Returning formatted patients data");
+    res.json(formattedPatients);
+  } catch (error) {
+    console.error("Error getting all patients in API route:", error);
+    res.status(500).json({ message: "Failed to get patients", error: error instanceof Error ? error.message : "Unknown error" });
+  }
+});
+
 // Patient routes
 router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   try {
