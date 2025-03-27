@@ -83,6 +83,7 @@ export function Sidebar() {
         highlight: true 
       },
       { name: "Patients", href: "/patients", icon: Users },
+      { name: "Patient Directory", href: "/patient-list", icon: Users, highlight: true },
       { name: "Clinical Tools", href: "/dental-ai-hub", icon: Stethoscope },
       { name: "Email Hub", href: "/email", icon: Mail, highlight: true },
       { name: "Staff Management", href: "/time-clock", icon: Clock },
@@ -115,6 +116,7 @@ export function Sidebar() {
         highlight: true 
       },
       { name: "Patients", href: "/patients", icon: Users },
+      { name: "Patient Directory", href: "/patient-list", icon: Users, highlight: true },
       { name: "Time Management", href: "/time-clock", icon: Clock },
       { name: "Clinical Tools", href: "/dental-ai-hub", icon: Stethoscope },
       { name: "Email Hub", href: "/email", icon: Mail, highlight: true },
@@ -149,6 +151,7 @@ export function Sidebar() {
     const adminItems: NavigationItem[] = [
       { name: "Schedule", href: "/appointments", icon: Calendar },
       { name: "Patients", href: "/patients", icon: Users },
+      { name: "Patient Directory", href: "/patient-list", icon: Users, highlight: true },
       { name: "AI Hub", href: "/ai-hub", icon: CircuitToothIcon, highlight: true },
       { name: "Staff Management", href: "/time-clock", icon: Clock },
       { name: "Email Hub", href: "/email", icon: Mail, highlight: true },

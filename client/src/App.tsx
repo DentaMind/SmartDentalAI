@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
 import PatientsPage from "@/pages/patients-page";
+import PatientListPage from "@/pages/patient-list-page";
 import AppointmentsPage from "@/pages/appointments-page";
 import TreatmentPlansPage from "@/pages/treatment-plans-page";
 import AIDiagnosticsPage from "@/pages/ai-diagnostics";
@@ -74,6 +75,7 @@ function Router() {
         <ProtectedRoute path="/" component={AppointmentsPage} />
         <ProtectedRoute path="/dashboard" component={AppointmentsPage} />
         <ProtectedRoute path="/patients" component={PatientsPage} />
+        <ProtectedRoute path="/patient-list" component={PatientListPage} />
         <ProtectedRoute path="/patients/:id" component={PatientProfilePage} />
         <ProtectedRoute path="/appointments" component={AppointmentsPage} />
         <ProtectedRoute path="/treatment-plans" component={TreatmentPlansPage} />
