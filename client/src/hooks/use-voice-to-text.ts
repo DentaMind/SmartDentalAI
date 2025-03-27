@@ -1,147 +1,136 @@
 import { useState, useEffect, useCallback } from 'react';
 
 interface VoiceToTextOptions {
+  language?: string;
   continuous?: boolean;
   interimResults?: boolean;
-  language?: string;
-  autoStart?: boolean;
+  onResult?: (text: string) => void;
 }
 
-interface VoiceToTextReturn {
-  text: string;
+interface VoiceToTextResult {
+  transcript: string;
   isListening: boolean;
   startListening: () => void;
   stopListening: () => void;
-  resetText: () => void;
-  hasRecognitionSupport: boolean;
-  error: string | null;
+  resetTranscript: () => void;
+  error?: Error;
+  supported: boolean;
 }
 
-export const useVoiceToText = (options: VoiceToTextOptions = {}): VoiceToTextReturn => {
-  const [text, setText] = useState<string>('');
-  const [isListening, setIsListening] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+export function useVoiceToText({
+  language = 'en-US',
+  continuous = true,
+  interimResults = true,
+  onResult,
+}: VoiceToTextOptions = {}): VoiceToTextResult {
+  const [transcript, setTranscript] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [error, setError] = useState<Error | undefined>();
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-  const [hasRecognitionSupport, setHasRecognitionSupport] = useState<boolean>(false);
+  const [supported, setSupported] = useState(false);
 
-  const {
-    continuous = false,
-    interimResults = false,
-    language = 'en-US',
-    autoStart = false
-  } = options;
-
-  // Initialize speech recognition on component mount
+  // Initialize speech recognition
   useEffect(() => {
-    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognitionInstance = new SpeechRecognition();
-      
-      recognitionInstance.continuous = continuous;
-      recognitionInstance.interimResults = interimResults;
-      recognitionInstance.lang = language;
-      
-      setRecognition(recognitionInstance);
-      setHasRecognitionSupport(true);
-      
-      if (autoStart) {
-        startListeningFn(recognitionInstance);
-      }
-    } else {
-      setHasRecognitionSupport(false);
-      setError('Your browser does not support speech recognition.');
+    if (typeof window === 'undefined') return;
+
+    // Check browser support
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      setSupported(false);
+      setError(new Error('Speech recognition not supported in this browser'));
+      return;
     }
 
-    // Cleanup function to stop recognition on unmount
-    return () => {
-      if (recognition) {
-        recognition.stop();
+    setSupported(true);
+    const recognitionInstance = new SpeechRecognition();
+    
+    // Configure recognition
+    recognitionInstance.continuous = continuous;
+    recognitionInstance.interimResults = interimResults;
+    recognitionInstance.lang = language;
+    
+    // Set up recognition event handlers
+    recognitionInstance.onresult = (event) => {
+      const currentTranscript = Array.from(event.results)
+        .map(result => result[0])
+        .map(result => result.transcript)
+        .join(' ');
+      
+      setTranscript(currentTranscript);
+      
+      if (onResult) {
+        onResult(currentTranscript);
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    
+    recognitionInstance.onerror = (event) => {
+      setError(new Error(`Speech recognition error: ${event.error}`));
+      setIsListening(false);
+    };
+    
+    recognitionInstance.onend = () => {
+      setIsListening(false);
+    };
+    
+    setRecognition(recognitionInstance);
+    
+    // Cleanup on unmount
+    return () => {
+      if (recognitionInstance) {
+        recognitionInstance.onresult = null;
+        recognitionInstance.onerror = null;
+        recognitionInstance.onend = null;
+        
+        if (isListening) {
+          recognitionInstance.abort();
+        }
+      }
+    };
+  }, [continuous, interimResults, language, onResult]);
 
-  // Function to start listening
-  const startListeningFn = useCallback((recognitionInstance: SpeechRecognition | null = recognition) => {
-    if (!recognitionInstance) return;
+  // Start listening
+  const startListening = useCallback(() => {
+    if (!recognition) return;
     
     try {
-      recognitionInstance.start();
+      recognition.start();
       setIsListening(true);
-      setError(null);
+      setError(undefined);
     } catch (err) {
-      setError(`Error starting speech recognition: ${err instanceof Error ? err.message : String(err)}`);
-      setIsListening(false);
+      setError(err instanceof Error ? err : new Error('Unknown error starting speech recognition'));
     }
   }, [recognition]);
 
-  // Function to stop listening
-  const stopListeningFn = useCallback(() => {
+  // Stop listening
+  const stopListening = useCallback(() => {
     if (!recognition) return;
     
     try {
       recognition.stop();
       setIsListening(false);
     } catch (err) {
-      setError(`Error stopping speech recognition: ${err instanceof Error ? err.message : String(err)}`);
+      setError(err instanceof Error ? err : new Error('Unknown error stopping speech recognition'));
     }
   }, [recognition]);
 
-  // Reset the transcribed text
-  const resetText = useCallback(() => {
-    setText('');
+  // Reset transcript
+  const resetTranscript = useCallback(() => {
+    setTranscript('');
   }, []);
 
-  // Set up event listeners for the recognition instance
-  useEffect(() => {
-    if (!recognition) return;
-
-    const handleResult = (event: SpeechRecognitionEvent) => {
-      const transcript = Array.from(event.results)
-        .map(result => result[0])
-        .map(result => result.transcript)
-        .join(' ');
-      
-      setText(transcript);
-    };
-
-    const handleEnd = () => {
-      setIsListening(false);
-      
-      // If continuous is true, restart recognition when it ends
-      if (continuous && recognition) {
-        startListeningFn();
-      }
-    };
-
-    const handleError = (event: SpeechRecognitionErrorEvent) => {
-      setError(`Speech recognition error: ${event.error}`);
-      setIsListening(false);
-    };
-
-    recognition.addEventListener('result', handleResult);
-    recognition.addEventListener('end', handleEnd);
-    recognition.addEventListener('error', handleError);
-
-    return () => {
-      recognition.removeEventListener('result', handleResult);
-      recognition.removeEventListener('end', handleEnd);
-      recognition.removeEventListener('error', handleError);
-    };
-  }, [recognition, continuous, startListeningFn]);
-
   return {
-    text,
+    transcript,
     isListening,
-    startListening: startListeningFn,
-    stopListening: stopListeningFn,
-    resetText,
-    hasRecognitionSupport,
-    error
+    startListening,
+    stopListening,
+    resetTranscript,
+    error,
+    supported,
   };
-};
+}
 
-// Type declarations for SpeechRecognition API
+// Add TypeScript declarations for the Web Speech API
 declare global {
   interface Window {
     SpeechRecognition: typeof SpeechRecognition;
