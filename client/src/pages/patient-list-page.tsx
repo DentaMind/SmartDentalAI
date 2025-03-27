@@ -53,10 +53,10 @@ interface Patient {
   email: string | null;
   phoneNumber: string | null;
   dateOfBirth: string | null;
-  allergies: string | null;
-  medicalHistory: string | null;
+  allergies: string | string[] | null;
+  medicalHistory: string | Record<string, any> | null;
   insuranceProvider: string | null;
-  user: PatientUser;
+  user?: PatientUser;
 }
 
 // Define the type for processed patients
@@ -72,6 +72,18 @@ interface ProcessedPatient {
   medicalHistory: any;
 }
 
+// Generic safe parsing function
+const safeParse = (data: unknown): any => {
+  if (typeof data === 'string') {
+    try {
+      return JSON.parse(data);
+    } catch {
+      return data;
+    }
+  }
+  return data;
+};
+
 const PatientListPage: React.FC = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -85,7 +97,13 @@ const PatientListPage: React.FC = () => {
   } = useQuery<Patient[]>({
     queryKey: ["/api/patients"],
     retry: 3,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    onSuccess: (data) => {
+      console.log("✅ Patients loaded successfully:", data?.length || 0, "patients");
+    },
+    onError: (err) => {
+      console.error("❌ Failed to load patients:", err);
+    }
   });
   
   // Force another fetch attempt after component mounts
@@ -146,11 +164,22 @@ const PatientListPage: React.FC = () => {
           } 
           // If it's a string that looks like JSON, parse it
           else if (typeof patient.allergies === 'string') {
-            if (patient.allergies.trim().startsWith('[')) {
-              allergiesArray = JSON.parse(patient.allergies);
-            } else {
-              // Could be a comma-separated string
-              allergiesArray = patient.allergies.split(',').map((a: string) => a.trim());
+            // First try to parse as JSON
+            try {
+              const parsed = JSON.parse(patient.allergies);
+              if (Array.isArray(parsed)) {
+                allergiesArray = parsed;
+              } else {
+                // If it parsed but isn't an array, use as single item
+                allergiesArray = [String(parsed)];
+              }
+            } catch {
+              // If it's not valid JSON, treat as comma-separated or single value
+              if (patient.allergies.includes(',')) {
+                allergiesArray = patient.allergies.split(',').map((a: string) => a.trim());
+              } else {
+                allergiesArray = [patient.allergies];
+              }
             }
           }
         }
@@ -170,9 +199,17 @@ const PatientListPage: React.FC = () => {
           if (typeof patient.medicalHistory === 'object' && patient.medicalHistory !== null) {
             medicalHistoryObj = patient.medicalHistory;
           } 
-          // If it's a string that looks like JSON, parse it
-          else if (typeof patient.medicalHistory === 'string' && patient.medicalHistory.trim().startsWith('{')) {
-            medicalHistoryObj = JSON.parse(patient.medicalHistory);
+          // If it's a string that might be JSON, try to parse it
+          else if (typeof patient.medicalHistory === 'string') {
+            try {
+              const parsed = JSON.parse(patient.medicalHistory);
+              if (parsed && typeof parsed === 'object') {
+                medicalHistoryObj = parsed;
+              }
+            } catch {
+              // If it's not valid JSON, store as is
+              medicalHistoryObj = { description: patient.medicalHistory };
+            }
           }
         }
       } catch (e) {

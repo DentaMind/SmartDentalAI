@@ -1,0 +1,113 @@
+Great — here’s the full **fixed `patient-list-page.tsx`** file with:
+
+- ✅ Defensive JSON parsing (`safeParse`)
+- ✅ Logging to debug patient data
+- ✅ Empty state fallback
+- ✅ Better error handling for the query
+
+You can replace the current file **entirely** with this:
+
+---
+
+### ✅ `client/src/pages/patient-list-page.tsx`
+
+```tsx
+import { useQuery } from '@tanstack/react-query';
+import React from 'react';
+import { fetchPatients } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+
+const safeParse = (data: unknown) => {
+  if (typeof data === 'string') {
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
+  }
+  return data;
+};
+
+const PatientListPage: React.FC = () => {
+  const {
+    data: patients,
+    error,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ['patients'],
+    queryFn: fetchPatients,
+    onSuccess: (data) => {
+      console.log('✅ Loaded patients:', data);
+    },
+    onError: (err) => {
+      console.error('❌ Failed to load patients:', err);
+    },
+  });
+
+  if (isLoading) {
+    return <div>Loading patients...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="text-red-500">
+        Failed to load patients. <Button onClick={() => refetch()}>Try Again</Button>
+      </div>
+    );
+  }
+
+  if (!patients || patients.length === 0) {
+    return <div>No patients found. Please add one.</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {patients.map((patient: any) => {
+        const allergies = safeParse(patient.allergies);
+        const history = safeParse(patient.medicalHistory);
+
+        return (
+          <div
+            key={patient.id}
+            className="border rounded-xl p-4 shadow-sm bg-white"
+          >
+            <div className="font-semibold text-lg">
+              {patient.firstName} {patient.lastName}
+            </div>
+            <div className="text-sm text-gray-600">
+              DOB: {patient.dateOfBirth || 'N/A'}
+            </div>
+            <div className="text-sm text-gray-700 mt-1">
+              Allergies:{' '}
+              {Array.isArray(allergies)
+                ? allergies.join(', ')
+                : allergies || 'None'}
+            </div>
+            <div className="text-sm text-gray-700 mt-1">
+              Medical History:{' '}
+              {history ? 'Available' : 'Not provided'}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+export default PatientListPage;
+```
+
+---
+
+### After saving the file:
+1. 🔁 **Restart the dev server**
+2. 🔐 Log in as `dentist / password`
+3. 🔍 Open the browser **Console** (`Cmd+Option+J` on Mac) to inspect `console.log("✅ Loaded patients")`
+4. ✅ You should now see either:
+   - Full list of patients with valid chart data  
+   - Or a meaningful message if no patients exist
+
+---
+
+Want me to also re-run the **test patient script** with full AI data + chart integration again?
