@@ -80,10 +80,24 @@ const PatientListPage: React.FC = () => {
   const {
     data: patients,
     error,
-    isLoading: loading
+    isLoading: loading,
+    refetch
   } = useQuery<Patient[]>({
     queryKey: ["/api/patients"],
+    retry: 3,
+    refetchOnWindowFocus: false
   });
+  
+  // Force another fetch attempt after component mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!patients) {
+        console.log("No patients data found, attempting refetch...");
+        refetch().catch(e => console.error("Refetch error:", e));
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [patients, refetch]);
   
   // Show error toast if fetch fails
   useEffect(() => {
@@ -136,7 +150,7 @@ const PatientListPage: React.FC = () => {
               allergiesArray = JSON.parse(patient.allergies);
             } else {
               // Could be a comma-separated string
-              allergiesArray = patient.allergies.split(',').map(a => a.trim());
+              allergiesArray = patient.allergies.split(',').map((a: string) => a.trim());
             }
           }
         }
