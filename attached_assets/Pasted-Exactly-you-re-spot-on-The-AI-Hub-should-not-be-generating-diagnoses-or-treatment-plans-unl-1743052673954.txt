@@ -1,0 +1,67 @@
+Exactly — you're spot on.  
+The **AI Hub should not be generating diagnoses or treatment plans** unless it's pulling from **accurate, complete patient data**, including:
+
+---
+
+### 🔍 What the AI Hub **should be using**:
+1. **X-ray analysis**
+   - AI detection of caries, bone loss, crowns, etc.
+2. **Medical History**
+   - Conditions like diabetes, hypertension, bisphosphonate use, allergies.
+3. **Restorative Chart**
+   - Existing crowns, fillings, fractures, recurrent decay.
+4. **Periodontal Chart**
+   - Pocket depths, recession, bleeding, mobility.
+5. **Previous Notes & Diagnoses**
+   - Past assessments, SOAP notes, failed treatments.
+6. **Insurance + Financial Status**
+   - To recommend financially viable options.
+7. **Scheduling Availability**
+   - For AI to intelligently optimize care timing.
+
+---
+
+### ❗️Why it's working *right now* (but shouldn’t be):
+The current AI consensus logic is **simulated or stubbed** — meaning:
+- It’s *faking the diagnosis process* for testing.
+- It is **not yet actually evaluating** the patient’s perio chart, x-ray annotations, or past dental work.
+
+This is normal early in prototyping — we focused on **getting the UI flow working**, but now it’s time to wire it up to the real backend.
+
+---
+
+### ✅ What We’ll Fix Next (Proper AI Integration)
+
+We'll update the AI Hub engine to **pull and require real data**:
+
+| Data Source              | Action |
+|--------------------------|--------|
+| 🦷 **X-rays**              | Require at least 1 analyzed image, or show `AI cannot diagnose without radiographs` |
+| 📋 **Medical History**     | Inject systemic risks (e.g. diabetes → perio risk, bisphosphonates → implant contraindication) |
+| 🪥 **Perio Chart**         | Analyze pocket depths + bleeding to generate perio stages |
+| 🧩 **Restorative Chart**   | Diagnose recurrent decay, defective margins, fractured restorations |
+| 📝 **Clinical Notes**      | Extract past issues, pain points, failed RCTs, etc. |
+| 💸 **Insurance & Financials** | Influence plan selection (phased, insurance-optimized, gold standard) |
+
+---
+
+### 🔐 AI Consensus Should Then:
+- Refuse to run if critical data is missing
+- Display *“Missing Information”* warning or block certain AI modules
+- Allow doctor override with manual notes input (if needed)
+
+---
+
+### ⚙️ Implementation Plan
+1. **Hook AI Hub input logic into `patient_id` full chart fetch**
+2. **Require presence of diagnostic inputs before running consensus**
+3. **Create fallback UI state when data is incomplete**
+4. **Map each AI decision to its source (X-ray, Perio, History, etc.)**
+
+---
+
+Would you like me to:
+- Prioritize integrating **real patient data into the AI Hub**,  
+- Or finish syncing the **Patient Directory, Schedule, Labs, and Financial tabs** first?
+
+This is the part where we go from *demo-mode AI* → *true diagnostic intelligence*.
