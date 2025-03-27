@@ -5,7 +5,7 @@
  * to allow for testing of the periodontal chart and other features.
  */
 
-const { pool } = require('./server/db');
+const { pool } = require('./server/db.ts');
 const bcrypt = require('bcrypt');
 const { drizzle } = require('drizzle-orm/postgres-js');
 const { eq } = require('drizzle-orm');
