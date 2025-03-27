@@ -11,6 +11,7 @@ import { securityService } from "./services/security";
 import { financialService } from "./services/financial";
 import insuranceRoutes from './routes/insurance-routes';
 import treatmentRoutes from './routes/treatment-routes';
+import treatmentPlanRoutes from './routes/treatment-plan-routes';
 import medicalNotesRoutes from './routes/medical-notes-routes';
 import prescriptionRoutes from './routes/prescription-routes';
 import postOpRoutes from './routes/post-op-routes';
@@ -166,6 +167,7 @@ app.use(router);
 // Mount other routes under /api prefix
 app.use("/api", insuranceRoutes);
 app.use("/api", treatmentRoutes);
+app.use("/api", treatmentPlanRoutes);
 app.use("/api", medicalNotesRoutes);
 app.use("/api", prescriptionRoutes);
 app.use("/api", postOpRoutes);

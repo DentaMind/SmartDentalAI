@@ -288,6 +288,27 @@ export const appointments = pgTable("appointments", {
   insuranceVerified: boolean("insurance_verified").default(false),
 });
 
+// AI-generated diagnoses table
+export const diagnoses = pgTable("diagnoses", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  condition: text("condition").notNull(),
+  confidence: real("confidence").notNull().default(0),
+  explanation: text("explanation").notNull(),
+  suggestedTreatments: jsonb("suggested_treatments"),
+  aiSource: text("ai_source"),
+  status: text("status", { enum: ["pending", "approved", "rejected", "modified"] }).notNull().default("pending"),
+  providerNote: text("provider_note"),
+  accuracyRating: integer("accuracy_rating"),
+  modifiedDiagnosis: text("modified_diagnosis"),
+  modifiedExplanation: text("modified_explanation"),
+  createdAt: timestamp("created_at").defaultNow(),
+  approvedAt: timestamp("approved_at"),
+  approvedBy: integer("approved_by"),
+  updatedAt: timestamp("updated_at"),
+});
+
+// Enhanced treatment plans table with AI integration
 export const treatmentPlans = pgTable("treatment_plans", {
   id: serial("id").primaryKey(),
   patientId: integer("patient_id").notNull(),
@@ -314,6 +335,18 @@ export const treatmentPlans = pgTable("treatment_plans", {
   notes: text("notes"),
   aiRecommendations: jsonb("ai_recommendations"), // AI-generated recommendations
   lastUpdatedBy: integer("last_updated_by"),
+  
+  // Fields for treatment plan review system
+  aiDraft: text("ai_draft"), // Original AI-generated plan as JSON string
+  title: text("title"), // Descriptive title of the plan
+  reasoning: text("reasoning"), // Explanation of the treatment plan
+  confidence: real("confidence"), // AI confidence in the plan
+  totalCost: integer("total_cost"), // Total cost of the plan
+  approvedPlan: text("approved_plan"), // Modified and approved plan as JSON string
+  approvedBy: integer("approved_by"), // ID of the provider who approved the plan
+  approvedAt: timestamp("approved_at"), // When the plan was approved
+  createdBy: integer("created_by"), // ID of the provider who created the plan
+  updatedAt: timestamp("updated_at"), // When the plan was last updated
 });
 
 export const xrays = pgTable("xrays", {
@@ -641,6 +674,7 @@ export const insertUserSchema = createInsertSchema(users).extend({
 
 export const insertPatientSchema = createInsertSchema(patients);
 export const insertAppointmentSchema = createInsertSchema(appointments);
+export const insertDiagnosisSchema = createInsertSchema(diagnoses);
 export const insertTreatmentPlanSchema = createInsertSchema(treatmentPlans);
 export const insertMedicalNoteSchema = createInsertSchema(medicalNotes);
 export const insertXraySchema = createInsertSchema(xrays);
@@ -808,6 +842,8 @@ export type Patient = typeof patients.$inferSelect;
 export type InsertPatient = z.infer<typeof insertPatientSchema>;
 export type Appointment = typeof appointments.$inferSelect;
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
+export type Diagnosis = typeof diagnoses.$inferSelect;
+export type InsertDiagnosis = z.infer<typeof insertDiagnosisSchema>;
 export type TreatmentPlan = typeof treatmentPlans.$inferSelect;
 export type InsertTreatmentPlan = z.infer<typeof insertTreatmentPlanSchema>;
 export type MedicalNote = typeof medicalNotes.$inferSelect;

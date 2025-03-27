@@ -16,7 +16,7 @@ import PatientNotes from "@/components/patients/notes/PatientNotesList";
 import PerioChart from "@/components/perio/perio-chart";
 import { RestorativeChart } from "@/components/dental/restorative-chart";
 import { PatientXrays } from "@/components/patients/patient-xrays";
-import { PatientDiagnosisTreatmentHub } from "@/components/patients/PatientDiagnosisTreatmentHub";
+import PatientDiagnosisTreatmentHub from "@/components/patients/PatientDiagnosisTreatmentHub";
 
 // Define the full patient type including user data
 type PatientWithUser = Patient & {
@@ -336,7 +336,10 @@ export default function PatientProfilePage() {
                   <CardTitle>AI Diagnosis & Treatment Plans</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <PatientDiagnosisTreatmentHub patientId={patientId} />
+                  <PatientDiagnosisTreatmentHub 
+                    patientId={patientId} 
+                    patientName={`${patient.user?.firstName || ''} ${patient.user?.lastName || ''}`}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>

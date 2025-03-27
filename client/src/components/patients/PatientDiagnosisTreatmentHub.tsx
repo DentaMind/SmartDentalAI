@@ -1,196 +1,361 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Spinner } from '@/components/ui/spinner';
-import DiagnosisFeedbackUI from '@/components/diagnosis/DiagnosisFeedbackUI';
-import { TreatmentPlanIntelligence } from '@/components/treatment/TreatmentPlanIntelligence';
-import { AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
-import { runDiagnosisEngine, submitDoctorFeedback } from '@/lib/diagnostic-ai-feedback';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import DiagnosisFeedbackUI from "@/components/diagnosis/DiagnosisFeedbackUI";
+import AdvancedTreatmentPlan from "@/components/treatment/AdvancedTreatmentPlan";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from '@/lib/api';
+import { BrainCircuit, FileText, RefreshCw, AlertCircle, Lightbulb } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface PatientDiagnosisTreatmentHubProps {
-  patientId: string;
-  providerName: string;
-  onDiagnosisCompleted?: (diagnosis: any) => void;
+interface Diagnosis {
+  id: string;
+  condition: string;
+  confidence: number;
+  explanation: string;
+  suggestedTreatments?: string[];
+  aiSource?: string;
+  createdAt: string;
+  status?: 'pending' | 'approved' | 'rejected' | 'modified';
 }
 
-export function PatientDiagnosisTreatmentHub({
-  patientId,
-  providerName,
-  onDiagnosisCompleted
-}: PatientDiagnosisTreatmentHubProps) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('diagnosis');
-  const [diagnosisData, setDiagnosisData] = useState<any>(null);
-  const [diagnosisFeedbackSubmitted, setDiagnosisFeedbackSubmitted] = useState(false);
+interface TreatmentPlan {
+  id: string;
+  patientId: string;
+  title: string;
+  diagnosis: string;
+  procedures: any[];
+  reasoning: string;
+  confidence: number;
+  totalCost: number;
+  status: 'draft' | 'approved' | 'rejected' | 'modified';
+  aiDraft: string;
+  approvedPlan?: string;
+  providerNote?: string;
+  createdAt: string;
+  approvedAt?: string;
+  approvedBy?: string;
+}
 
-  // Run diagnosis when component mounts
+interface PatientDiagnosisTreatmentHubProps {
+  patientId: number;
+  patientName?: string;
+}
+
+const PatientDiagnosisTreatmentHub: React.FC<PatientDiagnosisTreatmentHubProps> = ({ 
+  patientId,
+  patientName
+}) => {
+  const [activeTab, setActiveTab] = useState('diagnoses');
+  const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
+  const [treatmentPlans, setTreatmentPlans] = useState<TreatmentPlan[]>([]);
+  const [isLoadingDiagnoses, setIsLoadingDiagnoses] = useState(true);
+  const [isLoadingPlans, setIsLoadingPlans] = useState(true);
+  const { toast } = useToast();
+
   useEffect(() => {
-    if (patientId) {
-      runDiagnosis();
-    }
+    fetchDiagnoses();
+    fetchTreatmentPlans();
   }, [patientId]);
 
-  const runDiagnosis = async () => {
-    setLoading(true);
-    setError(null);
-    setDiagnosisFeedbackSubmitted(false);
-
+  const fetchDiagnoses = async () => {
+    setIsLoadingDiagnoses(true);
     try {
-      // In a real app, this would be an API call to the diagnosis engine
-      const result = await runDiagnosisEngine(patientId);
+      const response = await apiRequest(`/api/diagnoses/${patientId}`, {
+        method: 'GET'
+      });
       
-      setDiagnosisData(result);
-      
-      if (onDiagnosisCompleted) {
-        onDiagnosisCompleted(result);
+      if (response && Array.isArray(response)) {
+        setDiagnoses(response);
+      } else {
+        setDiagnoses([]);
       }
-    } catch (err) {
-      console.error('Error running diagnosis:', err);
-      setError('Failed to generate diagnosis. Please try again.');
+    } catch (error) {
+      console.error('Error fetching diagnoses:', error);
+      toast({
+        title: "Failed to load diagnoses",
+        description: "There was an error loading the diagnoses. Please try again.",
+        variant: "destructive"
+      });
+      setDiagnoses([]);
     } finally {
-      setLoading(false);
+      setIsLoadingDiagnoses(false);
     }
   };
 
-  const handleDiagnosisFeedback = async (feedback: { confirmedDiagnosis: string; feedback: string }) => {
-    setLoading(true);
-    
+  const fetchTreatmentPlans = async () => {
+    setIsLoadingPlans(true);
     try {
-      await submitDoctorFeedback(
-        patientId,
-        feedback.confirmedDiagnosis,
-        true, // wasCorrect - this could be dynamic based on user input
-        feedback.feedback
-      );
+      const response = await apiRequest(`/api/treatment-plans/${patientId}`, {
+        method: 'GET'
+      });
       
-      setDiagnosisFeedbackSubmitted(true);
-      
-      // Automatically switch to treatment plan tab after feedback is submitted
-      setActiveTab('treatment');
-    } catch (err) {
-      console.error('Error submitting diagnosis feedback:', err);
-      setError('Failed to submit feedback. Please try again.');
+      if (response && Array.isArray(response)) {
+        setTreatmentPlans(response);
+      } else {
+        setTreatmentPlans([]);
+      }
+    } catch (error) {
+      console.error('Error fetching treatment plans:', error);
+      toast({
+        title: "Failed to load treatment plans",
+        description: "There was an error loading the treatment plans. Please try again.",
+        variant: "destructive"
+      });
+      setTreatmentPlans([]);
     } finally {
-      setLoading(false);
+      setIsLoadingPlans(false);
     }
   };
 
-  // Prepare diagnosis options for the feedback UI
-  const prepareDiagnosisOptions = () => {
-    if (!diagnosisData) return [];
-    
-    const options = [
-      {
-        label: diagnosisData.primaryDiagnosis,
-        confidence: 95 // Primary diagnosis gets high confidence
-      }
-    ];
-    
-    // Add differential diagnoses if available
-    if (diagnosisData.differentials && diagnosisData.differentials.length > 0) {
-      diagnosisData.differentials.forEach((diff: any) => {
-        options.push({
-          label: diff.diagnosis,
-          confidence: diff.confidence
+  const handleGenerateDiagnosis = async () => {
+    try {
+      toast({
+        title: "Generating AI diagnosis",
+        description: "Please wait while we analyze the patient data...",
+      });
+      
+      const diagnosis = await apiRequest('/api/diagnoses/generate', {
+        method: 'POST',
+        data: {
+          patientId,
+          includeNotes: true,
+          includeXrays: true,
+          includeCharts: true
+        }
+      });
+      
+      if (diagnosis) {
+        setDiagnoses(prev => [diagnosis, ...prev]);
+        toast({
+          title: "AI diagnosis generated",
+          description: "A new diagnosis has been created based on patient data.",
+          variant: "default"
         });
+      }
+    } catch (error) {
+      console.error('Error generating diagnosis:', error);
+      toast({
+        title: "Failed to generate diagnosis",
+        description: "There was an error generating the AI diagnosis. Please try again.",
+        variant: "destructive"
       });
     }
-    
-    return options;
+  };
+
+  const handleFeedbackSubmitted = (updatedDiagnosis: Diagnosis) => {
+    setDiagnoses(prev => 
+      prev.map(d => d.id === updatedDiagnosis.id ? updatedDiagnosis : d)
+    );
+  };
+
+  const renderDiagnosesTab = () => {
+    if (isLoadingDiagnoses) {
+      return (
+        <div className="space-y-4">
+          {[1, 2].map(i => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-6 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-24 w-full mb-2" />
+                <Skeleton className="h-4 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      );
+    }
+
+    if (diagnoses.length === 0) {
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Lightbulb className="mr-2 h-5 w-5" />
+              No AI Diagnoses Yet
+            </CardTitle>
+            <CardDescription>
+              Generate an AI diagnosis based on this patient's clinical data
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              The AI will analyze the patient's notes, X-rays, and chart data to provide diagnostic suggestions.
+              These suggestions are for reference only and require professional review.
+            </p>
+            <Button onClick={handleGenerateDiagnosis}>
+              <BrainCircuit className="mr-2 h-4 w-4" />
+              Generate AI Diagnosis
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium">AI Diagnostic Suggestions</h3>
+          <Button size="sm" onClick={handleGenerateDiagnosis}>
+            <BrainCircuit className="mr-2 h-4 w-4" /> Generate New Diagnosis
+          </Button>
+        </div>
+        
+        <div className="space-y-6">
+          {diagnoses.map(diagnosis => (
+            <DiagnosisFeedbackUI 
+              key={diagnosis.id} 
+              diagnosis={diagnosis} 
+              patientId={patientId}
+              onFeedbackSubmitted={handleFeedbackSubmitted}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderTreatmentPlansTab = () => {
+    if (isLoadingPlans) {
+      return (
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-3/4 mb-4" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      );
+    }
+
+    if (treatmentPlans.length === 0) {
+      return (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">AI Treatment Planning</h3>
+          </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <FileText className="mr-2 h-5 w-5" />
+                No Treatment Plans Yet
+              </CardTitle>
+              <CardDescription>
+                Create a new AI-powered treatment plan for this patient
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                A new AI treatment plan will be generated based on approved diagnoses, patient X-rays, and chart data.
+              </p>
+            </CardContent>
+          </Card>
+          
+          <AdvancedTreatmentPlan 
+            patientId={patientId.toString()} 
+            onSave={(plan) => {
+              setTreatmentPlans(prev => [plan, ...prev]);
+            }}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium">Treatment Plans</h3>
+          <Button 
+            size="sm" 
+            onClick={() => {
+              setTreatmentPlans([]);
+              setIsLoadingPlans(true);
+              setTimeout(() => {
+                fetchTreatmentPlans();
+              }, 100);
+            }}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" /> Refresh Plans
+          </Button>
+        </div>
+        
+        {treatmentPlans.map((plan, index) => (
+          <AdvancedTreatmentPlan 
+            key={plan.id} 
+            patientId={patientId.toString()}
+            initialPlan={plan}
+            readOnly={index !== 0 || plan.status === 'approved'}
+            onSave={(updatedPlan) => {
+              setTreatmentPlans(prev => 
+                prev.map(p => p.id === updatedPlan.id ? updatedPlan : p)
+              );
+            }}
+          />
+        ))}
+      </div>
+    );
   };
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>AI Diagnosis & Treatment Hub</CardTitle>
-          <CardDescription>
-            Review AI-generated diagnoses and treatment plans, and provide feedback to improve future recommendations.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-4">
-              <TabsTrigger value="diagnosis">Diagnosis</TabsTrigger>
-              <TabsTrigger value="treatment">Treatment Plan</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="diagnosis">
-              {loading ? (
-                <div className="flex justify-center items-center py-12">
-                  <Spinner size="lg" />
-                  <span className="ml-2">Analyzing patient data...</span>
-                </div>
-              ) : error ? (
-                <div className="p-4 bg-red-50 text-red-800 rounded-md flex items-start gap-2 mb-4">
-                  <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-medium">Error generating diagnosis</p>
-                    <p className="text-sm">{error}</p>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="mt-2"
-                      onClick={runDiagnosis}
-                    >
-                      <RefreshCw className="h-4 w-4 mr-1" />
-                      Try Again
-                    </Button>
-                  </div>
-                </div>
-              ) : diagnosisFeedbackSubmitted ? (
-                <div className="p-4 bg-green-50 text-green-800 rounded-md flex items-start gap-2">
-                  <CheckCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-medium">Feedback submitted successfully</p>
-                    <p className="text-sm">Thank you for your feedback. This helps improve our AI systems.</p>
-                    <Button 
-                      onClick={() => setActiveTab('treatment')}
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                    >
-                      View Treatment Plan
-                    </Button>
-                  </div>
-                </div>
-              ) : diagnosisData ? (
-                <DiagnosisFeedbackUI 
-                  diagnosisData={{
-                    explanation: diagnosisData.explanation,
-                    options: prepareDiagnosisOptions(),
-                    needsMoreInfo: diagnosisData.requiresMoreInfo,
-                    followUpQuestion: diagnosisData.requiresMoreInfo && diagnosisData.questions && diagnosisData.questions.length > 0 
-                      ? diagnosisData.questions[0] 
-                      : null
-                  }}
-                  onSubmitFeedback={handleDiagnosisFeedback}
-                />
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground mb-4">No diagnosis data available.</p>
-                  <Button onClick={runDiagnosis}>
-                    Generate Diagnosis
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="treatment">
-              <TreatmentPlanIntelligence
-                patientId={patientId}
-                providerName={providerName}
-                diagnosisData={diagnosisData}
-                onRefreshDiagnosisRequest={runDiagnosis}
-              />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <BrainCircuit className="mr-2 h-5 w-5" />
+          AI Diagnosis & Treatment Hub
+          {patientName && <span className="ml-2 text-muted-foreground">({patientName})</span>}
+        </CardTitle>
+        <CardDescription>
+          Review AI-generated diagnoses and treatment plans with clinical decision support
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="diagnoses">Diagnoses</TabsTrigger>
+            <TabsTrigger value="treatment-plans">Treatment Plans</TabsTrigger>
+            <TabsTrigger value="ai-analytics">AI Analytics</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="diagnoses" className="space-y-4">
+            {renderDiagnosesTab()}
+          </TabsContent>
+          
+          <TabsContent value="treatment-plans" className="space-y-4">
+            {renderTreatmentPlansTab()}
+          </TabsContent>
+          
+          <TabsContent value="ai-analytics" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <AlertCircle className="mr-2 h-5 w-5" />
+                  AI Performance Analytics
+                </CardTitle>
+                <CardDescription>
+                  Diagnostic accuracy metrics and AI learning progress
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  This feature will provide analytics on AI performance, accuracy improvements over time, and provider feedback integration. Coming soon!
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+
+      <CardFooter className="border-t pt-4 text-xs text-muted-foreground">
+        <div>
+          AI recommendations are provided for clinical decision support only. All diagnoses and treatments must be reviewed and approved by a licensed provider.
+        </div>
+      </CardFooter>
+    </Card>
   );
-}
+};
 
 export default PatientDiagnosisTreatmentHub;
