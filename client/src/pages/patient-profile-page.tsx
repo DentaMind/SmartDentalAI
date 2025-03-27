@@ -3,6 +3,7 @@ import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Patient, User } from "@shared/schema";
 import { Sidebar } from "@/components/layout/sidebar";
+import XrayAnalysisViewer from "@/components/xray/XrayAnalysisViewer";
 import { useTranslation } from "react-i18next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -499,37 +500,16 @@ export default function PatientProfilePage() {
                         <CardContent>
                           <div className="space-y-6">
                             {/* AI X-ray Analysis Section */}
-                            <div className="mb-6 border rounded-lg p-4 bg-card">
+                            <div className="mb-6">
                               <h3 className="text-lg font-medium mb-4">AI X-ray Analysis</h3>
-                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <div className="space-y-4">
-                                  <div className="aspect-video bg-muted rounded-md relative overflow-hidden flex items-center justify-center">
-                                    {/* Placeholder for X-ray image */}
-                                    <p className="text-muted-foreground">No x-ray selected</p>
-                                  </div>
-                                  <div className="flex flex-wrap gap-2">
-                                    <Button variant="outline" size="sm">Upload New X-ray</Button>
-                                    <Button variant="outline" size="sm">Capture from Sensor</Button>
-                                    <Button variant="outline" size="sm">Import from PACS</Button>
-                                  </div>
-                                </div>
-                                <div className="space-y-4">
-                                  <div className="p-4 border rounded-md bg-background">
-                                    <h4 className="font-medium text-sm mb-2">AI Diagnostic Findings</h4>
-                                    <div className="space-y-2">
-                                      <p className="text-sm text-muted-foreground">Select an x-ray image to analyze or upload a new one.</p>
-                                    </div>
-                                  </div>
-                                  <div className="p-4 border rounded-md bg-background">
-                                    <h4 className="font-medium text-sm mb-2">AI Recommendations</h4>
-                                    <div className="space-y-2">
-                                      <p className="text-sm text-muted-foreground">AI will provide treatment recommendations based on x-ray analysis.</p>
-                                    </div>
-                                  </div>
-                                  <Button className="w-full">
-                                    Analyze with AI
-                                  </Button>
-                                </div>
+                              
+                              {/* Enhanced AI X-ray Analysis Viewer */}
+                              <XrayAnalysisViewer patientId={patientId} />
+                              
+                              <div className="flex flex-wrap gap-2 mt-4">
+                                <Button variant="outline" size="sm">Upload New X-ray</Button>
+                                <Button variant="outline" size="sm">Capture from Sensor</Button>
+                                <Button variant="outline" size="sm">Import from PACS</Button>
                               </div>
                             </div>
                             

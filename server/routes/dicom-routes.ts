@@ -179,6 +179,4 @@ export function setupDICOMRoutes(router: express.Router) {
   });
 }
 
-export {
-  setupDICOMRoutes
-};
+// Export is already defined above

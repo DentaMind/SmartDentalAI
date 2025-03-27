@@ -9,6 +9,7 @@
 import express from 'express';
 import { aiService } from '../services/ai-service-integration';
 import { requireAuth, requireRole } from '../middleware/auth';
+import { storage } from '../storage';
 
 export function setupAIRoutes(router: express.Router) {
   // AI Services Status
@@ -24,6 +25,74 @@ export function setupAIRoutes(router: express.Router) {
       return res.status(500).json({
         success: false,
         message: 'Failed to fetch AI service status'
+      });
+    }
+  });
+  
+  // Get latest AI X-ray analysis for a patient
+  router.get('/ai/xray/:patientId', requireAuth, async (req, res) => {
+    try {
+      const { patientId } = req.params;
+      
+      if (!patientId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Patient ID is required'
+        });
+      }
+      
+      // Get the patient's most recent X-ray with analysis
+      const xrays = await storage.getPatientXrays(parseInt(patientId));
+      
+      // Find the most recent X-ray with AI analysis
+      const analyzedXrays = xrays.filter(xray => xray.aiAnalysis && xray.analysisDate)
+        .sort((a, b) => {
+          const dateA = a.analysisDate ? new Date(a.analysisDate).getTime() : 0;
+          const dateB = b.analysisDate ? new Date(b.analysisDate).getTime() : 0;
+          return dateB - dateA; // Sort descending (most recent first)
+        });
+      
+      if (analyzedXrays.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'No analyzed X-rays found for this patient'
+        });
+      }
+      
+      const latestXray = analyzedXrays[0];
+      
+      // Format the findings in a way the frontend component expects
+      let analysis = null;
+      try {
+        analysis = typeof latestXray.aiAnalysis === 'string' 
+          ? JSON.parse(latestXray.aiAnalysis)
+          : latestXray.aiAnalysis;
+      } catch (parseError) {
+        console.error('Error parsing X-ray analysis JSON:', parseError);
+        return res.status(500).json({
+          success: false,
+          message: 'Error parsing X-ray analysis data'
+        });
+      }
+      
+      // Return formatted analysis
+      return res.json({
+        success: true,
+        imageUrl: latestXray.imageUrl,
+        findings: analysis.findings.map((finding: any) => ({
+          tooth: finding.toothNumber || 0,
+          finding: finding.description || finding.condition || finding,
+          confidence: finding.confidence || 0.85 // Default confidence if not provided
+        })),
+        analysisDate: latestXray.analysisDate,
+        xrayId: latestXray.id,
+        xrayType: latestXray.type
+      });
+    } catch (error) {
+      console.error('Error fetching X-ray analysis:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch X-ray analysis'
       });
     }
   });
