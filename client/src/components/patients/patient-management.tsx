@@ -18,12 +18,63 @@ export function PatientManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddPatientOpen, setIsAddPatientOpen] = useState(false);
 
+  // Process patient data to ensure correct structure
+  const processedPatients = patients?.map(patient => {
+    // Use user data if patient data is null
+    const firstName = patient.firstName || (patient.user?.firstName || "Unknown");
+    const lastName = patient.lastName || (patient.user?.lastName || "Patient");
+    const email = patient.email || (patient.user?.email || "");
+    const phoneNumber = patient.phoneNumber || (patient.user?.phoneNumber || "");
+    
+    // Parse allergies if they're stored as a JSON string
+    let allergies = [];
+    if (patient.allergies) {
+      try {
+        if (typeof patient.allergies === 'string' && patient.allergies.startsWith('[')) {
+          allergies = JSON.parse(patient.allergies);
+        } else if (typeof patient.allergies === 'string') {
+          allergies = patient.allergies.split(',').map(a => a.trim());
+        } else if (Array.isArray(patient.allergies)) {
+          allergies = patient.allergies;
+        }
+      } catch (e) {
+        console.error("Error parsing allergies for patient:", patient.id, e);
+        allergies = [];
+      }
+    }
+    
+    // Parse medical history if stored as JSON string
+    let medicalHistory = {};
+    if (patient.medicalHistory) {
+      try {
+        if (typeof patient.medicalHistory === 'string') {
+          medicalHistory = JSON.parse(patient.medicalHistory);
+        } else if (typeof patient.medicalHistory === 'object') {
+          medicalHistory = patient.medicalHistory;
+        }
+      } catch (e) {
+        console.error("Error parsing medical history for patient:", patient.id, e);
+        medicalHistory = {};
+      }
+    }
+    
+    return {
+      ...patient,
+      firstName,
+      lastName,
+      email,
+      phoneNumber,
+      allergies,
+      medicalHistory
+    };
+  }) || [];
+  
   // Filter patients based on search term
-  const filteredPatients = patients?.filter(patient => {
+  const filteredPatients = processedPatients.filter(patient => {
     const fullName = `${patient.firstName} ${patient.lastName}`.toLowerCase();
     return fullName.includes(searchTerm.toLowerCase()) || 
-           patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           patient.phoneNumber.includes(searchTerm);
+           (patient.email && patient.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+           (patient.phoneNumber && patient.phoneNumber.includes(searchTerm));
   });
 
   const columns = [
