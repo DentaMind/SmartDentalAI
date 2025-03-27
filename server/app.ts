@@ -16,6 +16,7 @@ import medicalNotesRoutes from './routes/medical-notes-routes';
 import prescriptionRoutes from './routes/prescription-routes';
 import postOpRoutes from './routes/post-op-routes';
 import diagnosisRoutes from './routes/diagnosis-routes';
+import perioChartRoutes from './routes/perio-chart-routes';
 import { setupCertificationRoutes } from './routes/certification-routes';
 import { setupTrainingNotesRoutes } from './routes/training-notes-routes';
 import { setupEmailAIRoutes } from './routes/email-ai-routes';
@@ -173,6 +174,7 @@ app.use("/api", medicalNotesRoutes);
 app.use("/api", prescriptionRoutes);
 app.use("/api", postOpRoutes);
 app.use("/api", diagnosisRoutes);
+app.use("/api/perio-charts", perioChartRoutes);
 // Setup certification routes
 const certificationRouter = express.Router();
 setupCertificationRoutes(certificationRouter);

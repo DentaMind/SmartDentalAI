@@ -8,7 +8,9 @@ import {
   Appointment,
   InsertAppointment,
   Diagnosis,
-  InsertDiagnosis
+  InsertDiagnosis,
+  PeriodontalChart,
+  InsertPeriodontalChart
 } from "@shared/schema";
 
 export interface IStorage {
@@ -43,4 +45,11 @@ export interface IStorage {
   getDiagnosisById(id: number): Promise<Diagnosis | undefined>;
   getDiagnosesForPatient(patientId: number): Promise<Diagnosis[]>;
   updateDiagnosis(id: number, updates: Partial<Diagnosis>): Promise<Diagnosis | undefined>;
+  
+  // Periodontal chart management
+  createPeriodontalChart(chart: InsertPeriodontalChart): Promise<PeriodontalChart>;
+  getPeriodontalChart(id: number): Promise<PeriodontalChart | undefined>;
+  getPatientPeriodontalCharts(patientId: number): Promise<PeriodontalChart[]>;
+  updatePeriodontalChart(id: number, updates: Partial<PeriodontalChart>): Promise<PeriodontalChart | undefined>;
+  getLatestPeriodontalChart(patientId: number): Promise<PeriodontalChart | undefined>;
 }

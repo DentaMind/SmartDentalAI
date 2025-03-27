@@ -1,0 +1,68 @@
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Diagnosis } from "@/types/types";
+
+interface DiagnosisFeedbackUIProps {
+  diagnoses: Diagnosis[];
+  onFeedbackSubmit: (selectedId: string, feedback: string) => void;
+  onRequestMoreInfo: () => void;
+}
+
+export default function DiagnosisFeedbackUI({
+  diagnoses,
+  onFeedbackSubmit,
+  onRequestMoreInfo,
+}: DiagnosisFeedbackUIProps) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string>("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = () => {
+    if (selectedId) {
+      onFeedbackSubmit(selectedId, feedback);
+      setSubmitted(true);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold">AI Diagnosis Feedback</h2>
+      {diagnoses.map((diag) => (
+        <Card
+          key={diag.id}
+          className={`cursor-pointer border-2 ${
+            selectedId === diag.id ? "border-green-500" : "border-transparent"
+          }`}
+          onClick={() => setSelectedId(diag.id)}
+        >
+          <CardContent className="space-y-2 p-4">
+            <p className="font-bold">Diagnosis: {diag.title}</p>
+            <p>Reasoning: {diag.reasoning}</p>
+            <p>Confidence: {diag.confidence}%</p>
+          </CardContent>
+        </Card>
+      ))}
+
+      <Textarea
+        placeholder="Optional feedback..."
+        value={feedback}
+        onChange={(e) => setFeedback(e.target.value)}
+      />
+
+      <div className="flex gap-4">
+        <Button onClick={handleSubmit} disabled={!selectedId || submitted}>
+          Submit Feedback
+        </Button>
+        <Button variant="outline" onClick={onRequestMoreInfo}>
+          Request More Info from AI
+        </Button>
+      </div>
+
+      {submitted && (
+        <p className="text-green-600 mt-2">Feedback submitted successfully.</p>
+      )}
+    </div>
+  );
+}

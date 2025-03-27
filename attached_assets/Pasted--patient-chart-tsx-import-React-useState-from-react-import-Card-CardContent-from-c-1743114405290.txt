@@ -1,0 +1,99 @@
+// patient-chart.tsx
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+
+const teethNumbers = [
+  ...Array.from({ length: 16 }, (_, i) => 18 - i), // Upper right to left (1-16)
+  ...Array.from({ length: 16 }, (_, i) => i + 17), // Lower left to right (17-32)
+];
+
+const surfaces = ['M', 'O', 'D', 'B', 'L', 'I'];
+
+const PatientChart = () => {
+  const [restorativeNotes, setRestorativeNotes] = useState<string>('');
+  const [perioProbing, setPerioProbing] = useState<Record<string, string>>({});
+  const [currentTooth, setCurrentTooth] = useState<number>(1);
+
+  const handleVoiceInput = (voiceText: string) => {
+    // Very simple parsing example
+    const match = voiceText.match(/root canal on #(\d{1,2})(.*)/i);
+    if (match) {
+      const tooth = match[1];
+      const extra = match[2].trim();
+      const note = `RCT + ${extra} on #${tooth}\n`;
+      setRestorativeNotes(prev => prev + note);
+    }
+  };
+
+  const handlePerioInput = (values: string[]) => {
+    // Assume values = ["3", "2", "3"] etc. per surface
+    const tooth = teethNumbers[currentTooth - 1];
+    setPerioProbing(prev => ({
+      ...prev,
+      [tooth]: values.join(','),
+    }));
+    if (currentTooth < 32) setCurrentTooth(currentTooth + 1);
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Card>
+        <CardContent>
+          <h2 className="text-xl font-bold mb-2">Restorative Charting</h2>
+          <Textarea
+            value={restorativeNotes}
+            onChange={(e) => setRestorativeNotes(e.target.value)}
+            className="min-h-[150px]"
+          />
+          <Button className="mt-2" onClick={() => handleVoiceInput('root canal on #30 with post and core')}>
+            Simulate Voice Input
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent>
+          <h2 className="text-xl font-bold mb-2">Perio Probing</h2>
+          <p>Tooth #{teethNumbers[currentTooth - 1]}</p>
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            {[0, 1, 2].map((i) => (
+              <input
+                key={i}
+                type="number"
+                placeholder="0"
+                className="p-1 border rounded"
+                onChange={(e) => {
+                  const copy = [...(perioProbing[teethNumbers[currentTooth - 1]]?.split(',') || ["", "", ""])];
+                  copy[i] = e.target.value;
+                  setPerioProbing(prev => ({
+                    ...prev,
+                    [teethNumbers[currentTooth - 1]]: copy.join(',')
+                  }))
+                }}
+              />
+            ))}
+          </div>
+          <Button className="mt-2" onClick={() => handlePerioInput(["3", "2", "3"])}>
+            Next Tooth
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="md:col-span-2">
+        <CardContent>
+          <h2 className="text-xl font-bold mb-2">Clinical Notes</h2>
+          <Textarea
+            readOnly
+            value={`--- RESTORATIVE ---\n${restorativeNotes}\n--- PERIO ---\n` +
+              Object.entries(perioProbing).map(([tooth, values]) => `#${tooth}: ${values}`).join('\n')}
+            className="min-h-[200px]"
+          />
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default PatientChart;

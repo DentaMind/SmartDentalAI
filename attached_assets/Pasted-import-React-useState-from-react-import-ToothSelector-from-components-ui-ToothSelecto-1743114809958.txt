@@ -1,0 +1,69 @@
+import React, { useState } from "react";
+import { ToothSelector } from "@/components/ui/ToothSelector";
+import { Textarea } from "@/components/ui/textarea";
+
+const PROCEDURES = ["Filling", "Crown", "Root Canal", "Post & Core", "Extraction", "Implant"];
+
+interface ToothTreatment {
+  toothNumber: number;
+  procedures: string[];
+}
+
+interface RestorativeChartProps {
+  onUpdateNotes?: (note: string) => void;
+}
+
+const RestorativeChart: React.FC<RestorativeChartProps> = ({ onUpdateNotes }) => {
+  const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
+  const [treatments, setTreatments] = useState<ToothTreatment[]>([]);
+  const [note, setNote] = useState("");
+
+  const toggleProcedure = (procedure: string) => {
+    if (selectedTooth === null) return;
+    const index = treatments.findIndex((t) => t.toothNumber === selectedTooth);
+    const newTreatments = [...treatments];
+
+    if (index !== -1) {
+      const alreadyHas = newTreatments[index].procedures.includes(procedure);
+      if (alreadyHas) {
+        newTreatments[index].procedures = newTreatments[index].procedures.filter(
+          (p) => p !== procedure
+        );
+      } else {
+        newTreatments[index].procedures.push(procedure);
+      }
+    } else {
+      newTreatments.push({ toothNumber: selectedTooth, procedures: [procedure] });
+    }
+    setTreatments(newTreatments);
+
+    const updatedNotes = newTreatments
+      .map((t) => `Tooth #${t.toothNumber}: ${t.procedures.join(", ")}`)
+      .join("\n");
+
+    setNote(updatedNotes);
+    onUpdateNotes?.(updatedNotes);
+  };
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold">Restorative Chart</h2>
+      <ToothSelector selectedTooth={selectedTooth} onSelect={setSelectedTooth} />
+      <div className="grid grid-cols-3 gap-2">
+        {PROCEDURES.map((proc) => (
+          <button
+            key={proc}
+            className="p-2 bg-blue-100 rounded hover:bg-blue-200"
+            onClick={() => toggleProcedure(proc)}
+            disabled={selectedTooth === null}
+          >
+            {proc}
+          </button>
+        ))}
+      </div>
+      <Textarea className="w-full h-32" value={note} readOnly />
+    </div>
+  );
+};
+
+export default RestorativeChart;

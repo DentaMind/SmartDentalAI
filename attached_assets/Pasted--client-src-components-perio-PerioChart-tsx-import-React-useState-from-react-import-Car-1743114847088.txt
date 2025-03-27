@@ -1,0 +1,87 @@
+// client/src/components/perio/PerioChart.tsx
+
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+
+const initialProbingData = Array.from({ length: 32 }, () => ({
+  buccal: ['', '', ''],
+  lingual: ['', '', ''],
+}));
+
+const PerioChart = () => {
+  const [probing, setProbing] = useState(initialProbingData);
+  const [notes, setNotes] = useState('');
+
+  const handleInputChange = (toothIndex: number, surface: 'buccal' | 'lingual', pos: number, value: string) => {
+    const newProbing = [...probing];
+    newProbing[toothIndex][surface][pos] = value;
+    setProbing(newProbing);
+
+    const formatted = `Tooth #${toothIndex + 1}: ${newProbing[toothIndex].buccal.join('-')} B / ${newProbing[toothIndex].lingual.join('-')} L`;
+    const allNotes = newProbing
+      .map((tooth, i) => `#${i + 1}: ${tooth.buccal.join('-')} B / ${tooth.lingual.join('-')} L`)
+      .filter(line => line.includes('B') && line.includes('L'))
+      .join('\n');
+    setNotes(allNotes);
+  };
+
+  return (
+    <Card className="w-full">
+      <CardContent className="p-4">
+        <Tabs defaultValue="chart">
+          <TabsList>
+            <TabsTrigger value="chart">Perio Chart</TabsTrigger>
+            <TabsTrigger value="notes">Generated Notes</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="chart">
+            <div className="grid grid-cols-4 gap-2">
+              {probing.map((tooth, index) => (
+                <div key={index} className="border p-2 rounded">
+                  <Label>Tooth #{index + 1}</Label>
+                  <div className="flex space-x-1">
+                    {['B', 'B', 'B'].map((_, i) => (
+                      <Input
+                        key={i}
+                        placeholder="B"
+                        className="w-10 text-center"
+                        value={tooth.buccal[i]}
+                        onChange={(e) => handleInputChange(index, 'buccal', i, e.target.value)}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex space-x-1 mt-1">
+                    {['L', 'L', 'L'].map((_, i) => (
+                      <Input
+                        key={i}
+                        placeholder="L"
+                        className="w-10 text-center"
+                        value={tooth.lingual[i]}
+                        onChange={(e) => handleInputChange(index, 'lingual', i, e.target.value)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="notes">
+            <Label>Perio Notes</Label>
+            <Textarea
+              className="mt-2 h-64"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default PerioChart;

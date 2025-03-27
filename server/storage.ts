@@ -23,6 +23,8 @@ import {
   InsuranceVerificationStatusEnum,
   Diagnosis,
   InsertDiagnosis,
+  PeriodontalChart,
+  InsertPeriodontalChart,
 } from "@shared/schema";
 import createMemoryStore from "memorystore";
 import session from "express-session";
@@ -82,6 +84,7 @@ export class MemStorage implements IStorage {
   private insuranceClaims: Map<number, InsuranceClaim>;
   private insuranceVerifications: Map<number, InsuranceVerification>;
   private diagnoses: Map<number, Diagnosis>;
+  private periodontalCharts: Map<number, PeriodontalChart>;
   sessionStore: session.Store;
   currentId: number;
   isInitialized: boolean;
@@ -98,6 +101,7 @@ export class MemStorage implements IStorage {
     this.insuranceClaims = new Map();
     this.insuranceVerifications = new Map();
     this.diagnoses = new Map();
+    this.periodontalCharts = new Map();
     this.currentId = 1;
     this.isInitialized = false;
     this.sessionStore = new MemoryStore({
@@ -955,6 +959,66 @@ export class MemStorage implements IStorage {
     
     this.diagnoses.set(id, updatedDiagnosis);
     return updatedDiagnosis;
+  }
+
+  // Periodontal Chart methods
+  async createPeriodontalChart(chart: InsertPeriodontalChart): Promise<PeriodontalChart> {
+    const id = this.currentId++;
+    const newChart: PeriodontalChart = {
+      id,
+      patientId: chart.patientId,
+      doctorId: chart.doctorId,
+      date: chart.date || new Date(),
+      pocketDepths: chart.pocketDepths || {},
+      bleedingPoints: chart.bleedingPoints || {},
+      recession: chart.recession || {},
+      mobility: chart.mobility || {},
+      furcation: chart.furcation || {},
+      plaqueIndices: chart.plaqueIndices || {},
+      calculus: chart.calculus || {},
+      attachmentLoss: chart.attachmentLoss || {},
+      diseaseStatus: chart.diseaseStatus || null,
+      diseaseSeverity: chart.diseaseSeverity || null,
+      notes: chart.notes || null,
+      aiRecommendations: chart.aiRecommendations || null,
+      comparisonWithPrevious: chart.comparisonWithPrevious || null,
+      riskAssessment: chart.riskAssessment || null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.periodontalCharts.set(id, newChart);
+    return newChart;
+  }
+
+  async getPeriodontalChart(id: number): Promise<PeriodontalChart | undefined> {
+    return this.periodontalCharts.get(id);
+  }
+
+  async getPatientPeriodontalCharts(patientId: number): Promise<PeriodontalChart[]> {
+    return Array.from(this.periodontalCharts.values())
+      .filter(chart => chart.patientId === patientId)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Sort by date descending
+  }
+
+  async updatePeriodontalChart(id: number, updates: Partial<PeriodontalChart>): Promise<PeriodontalChart | undefined> {
+    const chart = this.periodontalCharts.get(id);
+    if (!chart) return undefined;
+
+    const updatedChart = {
+      ...chart,
+      ...updates,
+      updatedAt: new Date() // Always update the timestamp
+    };
+
+    this.periodontalCharts.set(id, updatedChart);
+    return updatedChart;
+  }
+
+  async getLatestPeriodontalChart(patientId: number): Promise<PeriodontalChart | undefined> {
+    const charts = await this.getPatientPeriodontalCharts(patientId);
+    if (charts.length === 0) return undefined;
+    return charts[0]; // Already sorted by date descending in getPatientPeriodontalCharts
   }
 }
 
