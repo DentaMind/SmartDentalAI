@@ -98,40 +98,92 @@ const PatientListPage: React.FC = () => {
   }, [patients, error, toast]);
   
   // Process patients to ensure all required fields exist and parse JSON strings
-  const processedPatients: ProcessedPatient[] = patients?.map(patient => {
-    // Parse allergies from JSON string
-    let allergiesArray: string[] = [];
-    try {
-      if (patient.allergies && typeof patient.allergies === 'string' && patient.allergies.startsWith('[')) {
-        allergiesArray = JSON.parse(patient.allergies);
-      }
-    } catch (e) {
-      console.error("Failed to parse allergies:", e);
+  const processedPatients: ProcessedPatient[] = React.useMemo(() => {
+    console.log("Processing patients:", patients);
+    
+    if (!patients || !Array.isArray(patients)) {
+      console.warn("No patients data available or not in array format");
+      return [];
     }
     
-    // Parse medical history from JSON string
-    let medicalHistoryObj = {};
-    try {
-      if (patient.medicalHistory && typeof patient.medicalHistory === 'string' && patient.medicalHistory.startsWith('{')) {
-        medicalHistoryObj = JSON.parse(patient.medicalHistory);
+    return patients.map(patient => {
+      if (!patient) {
+        console.warn("Found null or undefined patient");
+        return {
+          id: -1,
+          firstName: "Data",
+          lastName: "Error",
+          email: "-",
+          phoneNumber: "-",
+          dateOfBirth: null,
+          insuranceProvider: null,
+          allergies: [],
+          medicalHistory: {}
+        };
       }
-    } catch (e) {
-      console.error("Failed to parse medical history:", e);
-    }
-    
-    // Create a clean patient object with all required fields, prioritizing user data
-    return {
-      id: patient.id,
-      firstName: patient.user?.firstName || patient.firstName || "Unknown",
-      lastName: patient.user?.lastName || patient.lastName || "Patient",
-      email: patient.user?.email || patient.email || "-",
-      phoneNumber: patient.user?.phoneNumber || patient.phoneNumber || "-",
-      dateOfBirth: patient.user?.dateOfBirth || patient.dateOfBirth || null,
-      insuranceProvider: patient.user?.insuranceProvider || patient.insuranceProvider || null,
-      allergies: allergiesArray,
-      medicalHistory: medicalHistoryObj
-    };
-  }) || [];
+      
+      // Parse allergies - can be already parsed array or JSON string
+      let allergiesArray: string[] = [];
+      try {
+        if (patient.allergies) {
+          // If it's already an array, use it
+          if (Array.isArray(patient.allergies)) {
+            allergiesArray = patient.allergies;
+          } 
+          // If it's a string that looks like JSON, parse it
+          else if (typeof patient.allergies === 'string') {
+            if (patient.allergies.trim().startsWith('[')) {
+              allergiesArray = JSON.parse(patient.allergies);
+            } else {
+              // Could be a comma-separated string
+              allergiesArray = patient.allergies.split(',').map(a => a.trim());
+            }
+          }
+        }
+      } catch (e) {
+        console.error(`Failed to parse allergies for patient ${patient.id}:`, e);
+        // If string but not JSON, treat as single allergy
+        if (typeof patient.allergies === 'string') {
+          allergiesArray = [patient.allergies];
+        }
+      }
+      
+      // Parse medical history - can be already parsed object or JSON string
+      let medicalHistoryObj = {};
+      try {
+        if (patient.medicalHistory) {
+          // If it's already an object, use it
+          if (typeof patient.medicalHistory === 'object' && patient.medicalHistory !== null) {
+            medicalHistoryObj = patient.medicalHistory;
+          } 
+          // If it's a string that looks like JSON, parse it
+          else if (typeof patient.medicalHistory === 'string' && patient.medicalHistory.trim().startsWith('{')) {
+            medicalHistoryObj = JSON.parse(patient.medicalHistory);
+          }
+        }
+      } catch (e) {
+        console.error(`Failed to parse medicalHistory for patient ${patient.id}:`, e);
+      }
+      
+      console.log(`Processed patient ${patient.id}:`, { 
+        allergies: allergiesArray, 
+        medHistory: Object.keys(medicalHistoryObj)
+      });
+      
+      // Create a clean patient object with all required fields, prioritizing user data
+      return {
+        id: patient.id,
+        firstName: patient.user?.firstName || patient.firstName || "Unknown",
+        lastName: patient.user?.lastName || patient.lastName || "Patient",
+        email: patient.user?.email || patient.email || "-",
+        phoneNumber: patient.user?.phoneNumber || patient.phoneNumber || "-",
+        dateOfBirth: patient.user?.dateOfBirth || patient.dateOfBirth || null,
+        insuranceProvider: patient.user?.insuranceProvider || patient.insuranceProvider || null,
+        allergies: allergiesArray,
+        medicalHistory: medicalHistoryObj
+      };
+    });
+  }, [patients]) || [];
   
   // Filter patients based on search
   const filteredPatients = processedPatients.filter(patient => {
