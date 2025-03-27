@@ -1581,11 +1581,15 @@ setupPatientFormsRoutes(router);
 // Set up bonus system routes
 setupBonusSystemRoutes(router);
 
+// Import patient notes routes
+import patientNotesRoutes from './routes/patient-notes-routes';
+
 // Set up other route modules
 router.use('/scheduler', schedulerRoutes);
 router.use('/translation', translationRoutes);
 router.use('/insurance', insuranceRoutes);
 router.use('/dicom', dicomRoutes);
+router.use('/patients', patientNotesRoutes);
 
 // Setup automatic seeding of test data
 if (process.env.NODE_ENV !== 'production') {

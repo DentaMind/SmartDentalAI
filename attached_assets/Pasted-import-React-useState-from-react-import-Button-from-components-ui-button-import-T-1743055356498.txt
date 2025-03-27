@@ -1,0 +1,79 @@
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useSession } from "next-auth/react";
+import { format } from "date-fns";
+
+export default function AutoNotesManager({ patientId }: { patientId: number }) {
+  const { data: session } = useSession();
+  const [note, setNote] = useState("");
+  const [drafts, setDrafts] = useState<string[]>([]);
+  const [submittedNotes, setSubmittedNotes] = useState<any[]>([]);
+
+  const handleDraftNote = () => {
+    if (note.trim()) {
+      setDrafts((prev) => [...prev, note]);
+      setNote("");
+    }
+  };
+
+  const handlePostNote = (index: number) => {
+    const draft = drafts[index];
+    const provider = session?.user?.name || "Unknown";
+    const date = format(new Date(), "PPPpp");
+
+    const finalNote = {
+      provider,
+      date,
+      content: draft,
+      approved: true,
+    };
+
+    setSubmittedNotes((prev) => [...prev, finalNote]);
+    setDrafts(drafts.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div className="p-4 space-y-4">
+      <h2 className="text-xl font-semibold">AI-Generated and Manual Notes</h2>
+
+      <div className="space-y-2">
+        <Textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Start typing notes or let AI generate them..."
+        />
+        <Button onClick={handleDraftNote}>Save as Draft</Button>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-medium mt-4">Draft Notes</h3>
+        {drafts.length === 0 && <p className="text-gray-500">No drafts saved yet.</p>}
+        {drafts.map((draft, idx) => (
+          <div
+            key={idx}
+            className="p-3 border rounded bg-yellow-50 mt-2 space-y-2"
+          >
+            <p>{draft}</p>
+            <Button variant="outline" onClick={() => handlePostNote(idx)}>
+              Approve & Post
+            </Button>
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <h3 className="text-lg font-medium mt-4">Approved Notes</h3>
+        {submittedNotes.length === 0 && <p className="text-gray-500">No notes posted yet.</p>}
+        {submittedNotes.map((note, idx) => (
+          <div key={idx} className="p-3 border rounded bg-green-50 mt-2">
+            <p className="text-sm text-gray-700">
+              <strong>{note.provider}</strong> | {note.date}
+            </p>
+            <p>{note.content}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
