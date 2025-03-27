@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Plus, Search, UserPlus, MoreVertical, Edit, Trash2, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { fetchPatients } from "@/lib/api";
 
 // Define the types for our patient data
 interface PatientUser {
