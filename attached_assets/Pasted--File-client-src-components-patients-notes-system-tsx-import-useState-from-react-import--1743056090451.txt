@@ -1,0 +1,62 @@
+// File: client/src/components/patients/notes-system.tsx
+
+import { useState } from 'react';
+import { useVoiceToText } from '@/lib/hooks/useVoiceToText';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { useUser } from '@/lib/hooks/useUser';
+import { useTemplateLoader } from '@/lib/hooks/useTemplateLoader';
+import { approveNoteDraft, fetchDraftNote, updateDraftNote } from '@/lib/api/notes';
+
+export function PatientNotes({ patientId, visitId }: { patientId: string; visitId: string }) {
+  const { user } = useUser();
+  const [note, setNote] = useState('');
+  const [isSubmitting, setSubmitting] = useState(false);
+  const { transcript, startRecording, stopRecording, isRecording } = useVoiceToText();
+  const template = useTemplateLoader('comprehensive_exam');
+
+  const loadNote = async () => {
+    const draft = await fetchDraftNote(patientId, visitId);
+    setNote(draft?.text || template);
+  };
+
+  const handleSave = async () => {
+    await updateDraftNote(patientId, visitId, note);
+  };
+
+  const handleApprove = async () => {
+    setSubmitting(true);
+    await approveNoteDraft(patientId, visitId, user.id);
+    setSubmitting(false);
+  };
+
+  const handleVoiceInput = () => {
+    setNote((prev) => prev + '\n' + transcript);
+  };
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold">Draft Patient Note</h2>
+      <Textarea
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        rows={12}
+        className="w-full border border-gray-300 rounded"
+      />
+      <div className="flex gap-2">
+        <Button onClick={handleSave} disabled={isSubmitting}>
+          Save Draft
+        </Button>
+        <Button onClick={handleApprove} disabled={isSubmitting}>
+          Approve and Finalize
+        </Button>
+        <Button onClick={isRecording ? stopRecording : startRecording}>
+          {isRecording ? 'Stop Recording' : 'Start Voice Note'}
+        </Button>
+        <Button onClick={handleVoiceInput} disabled={!transcript}>
+          Insert Transcript
+        </Button>
+      </div>
+    </div>
+  );
+}

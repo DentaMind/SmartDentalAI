@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { FixedEnhancedPerioChart } from "@/components/perio";
+import DiagnosisFeedbackUI from "@/components/diagnosis/DiagnosisFeedbackUI";
 import {
   AlertCircle,
   Calendar,
@@ -330,7 +331,7 @@ export default function PatientProfilePage() {
 
               {/* Tabs for different sections */}
               <Tabs defaultValue="medical-history" className="w-full">
-                <TabsList className="grid grid-cols-8 mb-6 border rounded-lg bg-gray-50 shadow-sm">
+                <TabsList className="grid grid-cols-9 mb-6 border rounded-lg bg-gray-50 shadow-sm">
                   <TabsTrigger value="medical-history" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Medical History</TabsTrigger>
                   <TabsTrigger value="dental-chart" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Dental Chart</TabsTrigger>
                   <TabsTrigger value="perio-chart" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Perio Chart</TabsTrigger>
@@ -338,6 +339,12 @@ export default function PatientProfilePage() {
                   <TabsTrigger value="appointments" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Appointments</TabsTrigger>
                   <TabsTrigger value="treatment-plans" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Treatment Plans</TabsTrigger>
                   <TabsTrigger value="notes" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Clinical Notes</TabsTrigger>
+                  <TabsTrigger value="ai-diagnostic" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                    <div className="flex items-center gap-1">
+                      <Brain className="h-4 w-4" />
+                      <span>AI Hub</span>
+                    </div>
+                  </TabsTrigger>
                   <TabsTrigger value="post-op" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
                     <div className="flex items-center gap-1">
                       <ClipboardCheck className="h-4 w-4" />
@@ -818,6 +825,161 @@ export default function PatientProfilePage() {
                           <p className="mt-4 text-muted-foreground">No medical notes found for this patient.</p>
                         </div>
                       )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                {/* AI Diagnostic & Treatment Hub Tab */}
+                <TabsContent value="ai-diagnostic">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Brain className="h-5 w-5 text-primary" />
+                        AI Diagnosis & Treatment Hub
+                      </CardTitle>
+                      <CardDescription>
+                        Comprehensive AI-assisted diagnosis and treatment planning
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* AI Diagnosis Analysis */}
+                        <Card className="shadow-sm border-primary/20">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-md font-medium flex items-center gap-2">
+                              <Activity className="h-4 w-4 text-primary" />
+                              AI Diagnosis Analysis
+                            </CardTitle>
+                            <CardDescription>
+                              AI-generated diagnostic suggestions based on clinical notes
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-4">
+                              {/* DiagnosisFeedbackUI component */}
+                              <DiagnosisFeedbackUI 
+                                diagnosisData={{
+                                  explanation: "Based on the patient's symptoms of tooth sensitivity to cold, visible decay on the occlusal surface, and the radiographic findings showing radiolucency extending into dentin but not reaching the pulp, the most likely diagnosis is moderate dental caries (tooth decay) affecting tooth #30. The depth of the caries suggests it has progressed beyond the enamel and into the dentin layer, which explains the sensitivity to cold stimuli. There is no evidence of pulpal involvement at this time.",
+                                  options: [
+                                    { label: "Moderate Dental Caries (Tooth #30)", confidence: 92 },
+                                    { label: "Early Pulpitis", confidence: 45 },
+                                    { label: "Cracked Tooth Syndrome", confidence: 28 },
+                                    { label: "Dentinal Hypersensitivity", confidence: 22 }
+                                  ],
+                                  needsMoreInfo: false,
+                                  followUpQuestion: null
+                                }}
+                                onSubmitFeedback={(feedback) => {
+                                  console.log("Diagnosis feedback submitted:", feedback);
+                                  // In a production app, this would send the feedback to the API
+                                }}
+                              />
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        {/* Treatment Plan Suggestions */}
+                        <Card className="shadow-sm border-primary/20">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-md font-medium flex items-center gap-2">
+                              <ClipboardCheck className="h-4 w-4 text-primary" />
+                              Treatment Plan Suggestions
+                            </CardTitle>
+                            <CardDescription>
+                              AI-generated treatment plan based on diagnosis
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-4">
+                              <p className="text-sm text-muted-foreground">
+                                Based on the confirmed diagnosis, the AI has generated the following treatment recommendations:
+                              </p>
+                              
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 rounded-md border p-2">
+                                  <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center text-xs">1</div>
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium">Composite Restoration (Tooth #30)</p>
+                                    <p className="text-xs text-muted-foreground">Remove caries and place composite filling</p>
+                                  </div>
+                                  <div className="text-xs font-medium bg-green-50 text-green-700 px-2 py-1 rounded">
+                                    Confidence: 95%
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-center gap-2 rounded-md border p-2">
+                                  <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center text-xs">2</div>
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium">Fluoride Application</p>
+                                    <p className="text-xs text-muted-foreground">Apply topical fluoride to strengthen surrounding teeth</p>
+                                  </div>
+                                  <div className="text-xs font-medium bg-green-50 text-green-700 px-2 py-1 rounded">
+                                    Confidence: 89%
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-center gap-2 rounded-md border p-2">
+                                  <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center text-xs">3</div>
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium">Oral Hygiene Education</p>
+                                    <p className="text-xs text-muted-foreground">Improve brushing technique and recommend flossing</p>
+                                  </div>
+                                  <div className="text-xs font-medium bg-green-50 text-green-700 px-2 py-1 rounded">
+                                    Confidence: 97%
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="flex justify-end pt-2">
+                                <Button size="sm" className="mr-2" variant="outline">Modify Plan</Button>
+                                <Button size="sm">Approve Plan</Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* AI Analysis Insights */}
+                      <Card className="shadow-sm">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-md font-medium flex items-center gap-2">
+                            <Bot className="h-4 w-4 text-primary" />
+                            AI Diagnostic Reasoning
+                          </CardTitle>
+                          <CardDescription>
+                            Detailed explanation of AI diagnostic process
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="rounded-md bg-muted p-4 text-sm">
+                              <h4 className="font-medium mb-2">Reasoning Process:</h4>
+                              <p className="text-muted-foreground mb-3">
+                                The AI model analyzed the following data points to reach its diagnosis:
+                              </p>
+                              <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                                <li>Patient reported cold sensitivity in the lower right quadrant</li>
+                                <li>Clinical examination revealed visible decay on the occlusal surface of tooth #30</li>
+                                <li>Radiographic findings showed radiolucency extending into dentin but not near the pulp</li>
+                                <li>Positive response to cold testing, but pain subsided quickly after stimulus removal</li>
+                                <li>No pain on percussion or palpation</li>
+                              </ul>
+                              
+                              <h4 className="font-medium mt-4 mb-2">Differential Diagnosis:</h4>
+                              <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
+                                <li><span className="font-medium">Moderate Dental Caries (92% confidence)</span>: Strongly supported by visual evidence, radiographic findings, and symptoms</li>
+                                <li><span className="font-medium">Early Pulpitis (45% confidence)</span>: Less likely as pain subsides quickly after stimulus removal and no spontaneous pain</li>
+                                <li><span className="font-medium">Cracked Tooth Syndrome (28% confidence)</span>: No evidence of crack lines, no pain on biting/release</li>
+                                <li><span className="font-medium">Dentinal Hypersensitivity (22% confidence)</span>: Less likely due to presence of decay</li>
+                              </ol>
+                            </div>
+                            
+                            <div className="flex justify-end">
+                              <Button variant="outline" size="sm">Export Analysis</Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
                     </CardContent>
                   </Card>
                 </TabsContent>

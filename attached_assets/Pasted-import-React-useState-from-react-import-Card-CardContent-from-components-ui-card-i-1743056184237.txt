@@ -1,0 +1,84 @@
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { useAI } from '@/hooks/use-ai';
+
+export default function DiagnosisFeedbackUI({ diagnosisData, onSubmitFeedback }) {
+  const [selectedDiagnosis, setSelectedDiagnosis] = useState(null);
+  const [feedback, setFeedback] = useState('');
+  const [expandedExplanation, setExpandedExplanation] = useState(false);
+
+  const handleConfirm = () => {
+    if (!selectedDiagnosis) return;
+    onSubmitFeedback({
+      confirmedDiagnosis: selectedDiagnosis,
+      feedback,
+    });
+  };
+
+  return (
+    <div className="p-4 space-y-4">
+      <h2 className="text-xl font-bold">AI Diagnosis Explanation</h2>
+
+      <Card>
+        <CardContent>
+          {diagnosisData.explanation && (
+            <div className="text-sm text-gray-700 whitespace-pre-wrap">
+              {expandedExplanation
+                ? diagnosisData.explanation
+                : `${diagnosisData.explanation.slice(0, 300)}...`}
+              <Button
+                className="ml-2 text-xs"
+                variant="link"
+                onClick={() => setExpandedExplanation(!expandedExplanation)}
+              >
+                {expandedExplanation ? 'Show Less' : 'Read More'}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div>
+        <h3 className="text-md font-semibold">Select the Correct Diagnosis</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+          {diagnosisData.options.map((option, idx) => (
+            <Card
+              key={idx}
+              className={`cursor-pointer border-2 ${selectedDiagnosis === option.label ? 'border-green-500' : 'border-transparent'}`}
+              onClick={() => setSelectedDiagnosis(option.label)}
+            >
+              <CardContent className="p-3">
+                <p className="font-medium">{option.label}</p>
+                <p className="text-xs text-muted-foreground">Confidence: {option.confidence}%</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {diagnosisData.needsMoreInfo && (
+        <div>
+          <h4 className="text-sm font-semibold">AI Follow-up Question</h4>
+          <p className="text-sm text-muted-foreground">{diagnosisData.followUpQuestion}</p>
+        </div>
+      )}
+
+      <div>
+        <h4 className="text-sm font-semibold mt-4">Optional Doctor Feedback</h4>
+        <Textarea
+          placeholder="Why did you choose this option or what should the AI learn from this case?"
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+        />
+      </div>
+
+      <div className="flex justify-end pt-4">
+        <Button disabled={!selectedDiagnosis} onClick={handleConfirm}>
+          Submit Feedback
+        </Button>
+      </div>
+    </div>
+  );
+}
