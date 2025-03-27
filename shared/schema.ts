@@ -116,6 +116,27 @@ export const medicalNotes = pgTable("medical_notes", {
   signedAt: timestamp("signed_at"),
 });
 
+// Enhanced patient notes with approval workflow
+export const patientNotes = pgTable("patient_notes", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  providerId: integer("provider_id").notNull(), // The doctor/provider who created or is responsible for the note
+  title: text("title").notNull().default("Clinical Note"),
+  content: text("content").notNull(),
+  procedureCode: text("procedure_code"), // Optional procedure code if tied to a specific procedure
+  approved: boolean("approved").default(false), // Requires provider approval before considered final
+  approvedBy: integer("approved_by"), // ID of provider who approved the note
+  approvedAt: timestamp("approved_at"), 
+  source: text("source", { enum: ["ai", "voice", "manual", "template"] }).default("manual"),
+  templateUsed: text("template_used"), // Which template was used (if applicable)
+  version: integer("version").default(1), // For tracking versions when edited
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  aiPrompt: text("ai_prompt"), // The prompt used to generate AI content (if applicable)
+  attachments: jsonb("attachments"), // Any files or images attached to the note
+  metadata: jsonb("metadata"), // Additional structured data like SOAP elements, etc.
+});
+
 export const patients = pgTable("patients", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -632,6 +653,7 @@ export const insertRestorativeChartSchema = createInsertSchema(restorativeCharts
 export const insertLegalDocumentSchema = createInsertSchema(legalDocuments);
 export const insertComplianceRecordSchema = createInsertSchema(complianceRecords);
 export const insertPrescriptionSchema = createInsertSchema(prescriptions);
+export const insertPatientNoteSchema = createInsertSchema(patientNotes);
 
 // Insert schemas for new tables
 export const insertTimeClockSchema = createInsertSchema(timeClock).extend({

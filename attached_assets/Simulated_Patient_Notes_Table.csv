@@ -1,0 +1,2 @@
+id,patient_id,provider_id,date,procedure,notes,approved,template_used,source,created_at,updated_at
+742ea4ca-ea25-46a5-bf55-91565d33b18a,patient-uuid-example,provider-uuid-example,2025-03-27 05:39:14.086524,Comprehensive Exam,Patient presented with generalized wear. Recommended occlusal guard.,False,comprehensive_exam,AI,2025-03-27 05:39:14.086528,2025-03-27 05:39:14.086529
