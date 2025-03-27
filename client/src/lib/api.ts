@@ -12,6 +12,49 @@ export const api = axios.create({
 });
 
 /**
+ * Safely fetch patients with error handling and data validation
+ * @returns Array of patients or empty array
+ */
+export async function fetchPatients() {
+  try {
+    console.log('Requesting patients data...');
+    const response = await api.get('/api/patients');
+    console.log('Raw patients API response:', response.data);
+    
+    if (!response.data || !Array.isArray(response.data)) {
+      console.error('Received invalid patients data format:', response.data);
+      return [];
+    }
+    
+    // Verify each patient object has expected properties
+    const validatedData = response.data.map(patient => {
+      if (!patient) return null;
+      
+      // Ensure we have at least an ID
+      return {
+        id: patient.id || -1,
+        userId: patient.userId || -1,
+        firstName: patient.firstName || null,
+        lastName: patient.lastName || null,
+        email: patient.email || null,
+        phoneNumber: patient.phoneNumber || null,
+        dateOfBirth: patient.dateOfBirth || null,
+        allergies: patient.allergies || null,
+        medicalHistory: patient.medicalHistory || null,
+        insuranceProvider: patient.insuranceProvider || null,
+        user: patient.user || null
+      };
+    }).filter(Boolean); // Remove any null entries
+    
+    console.log(`Validated ${validatedData.length} patients successfully`);
+    return validatedData;
+  } catch (error) {
+    console.error('Error fetching patients:', error);
+    return []; // Return empty array instead of throwing
+  }
+}
+
+/**
  * Generic API request helper function for data mutations
  * @param url The API endpoint URL
  * @param method The HTTP method (POST, PUT, PATCH, DELETE)

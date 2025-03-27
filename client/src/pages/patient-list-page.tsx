@@ -96,14 +96,9 @@ const PatientListPage: React.FC = () => {
     refetch
   } = useQuery<Patient[]>({
     queryKey: ["/api/patients"],
+    queryFn: fetchPatients,
     retry: 3,
-    refetchOnWindowFocus: false,
-    onSuccess: (data) => {
-      console.log("✅ Patients loaded successfully:", data?.length || 0, "patients");
-    },
-    onError: (err) => {
-      console.error("❌ Failed to load patients:", err);
-    }
+    refetchOnWindowFocus: false
   });
   
   // Force another fetch attempt after component mounts
