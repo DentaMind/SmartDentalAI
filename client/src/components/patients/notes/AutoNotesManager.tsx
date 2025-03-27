@@ -10,15 +10,16 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Microphone, MicOff, Save, Check, Loader2 } from "lucide-react";
+import { Mic, MicOff, Save, Check, Loader2 } from "lucide-react";
 import { useVoiceToText } from "@/hooks/use-voice-to-text";
 import { useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/query-client";
+import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from '@/lib/api';
 
 interface AutoNotesManagerProps {
   patientId: number;
   providerId: number;
+  onNotePosted?: () => void;
 }
 
 type Template = {
@@ -55,7 +56,7 @@ const NOTE_TEMPLATES: Template[] = [
   }
 ];
 
-const AutoNotesManager: React.FC<AutoNotesManagerProps> = ({ patientId, providerId }) => {
+const AutoNotesManager: React.FC<AutoNotesManagerProps> = ({ patientId, providerId, onNotePosted }) => {
   const [noteContent, setNoteContent] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [noteTitle, setNoteTitle] = useState("");
@@ -99,6 +100,11 @@ const AutoNotesManager: React.FC<AutoNotesManagerProps> = ({ patientId, provider
       setNoteContent('');
       setNoteTitle('');
       resetText();
+      
+      // Call the onNotePosted callback if provided
+      if (onNotePosted) {
+        onNotePosted();
+      }
     }
   });
 
@@ -169,7 +175,7 @@ const AutoNotesManager: React.FC<AutoNotesManagerProps> = ({ patientId, provider
               size="sm"
               onClick={handleMicrophoneToggle}
             >
-              {isListening ? <MicOff className="mr-2 h-4 w-4" /> : <Microphone className="mr-2 h-4 w-4" />}
+              {isListening ? <MicOff className="mr-2 h-4 w-4" /> : <Mic className="mr-2 h-4 w-4" />}
               {isListening ? 'Stop Dictation' : 'Start Dictation'}
             </Button>
           )}

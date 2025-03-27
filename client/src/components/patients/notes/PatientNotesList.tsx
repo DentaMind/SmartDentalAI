@@ -60,7 +60,7 @@ interface PatientNotesListProps {
   userRole: string;
 }
 
-const PatientNotesList: React.FC<PatientNotesListProps> = ({ 
+export const PatientNotesList: React.FC<PatientNotesListProps> = ({ 
   patientId,
   patientName = 'Patient',
   currentUserId,

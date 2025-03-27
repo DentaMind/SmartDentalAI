@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { FixedEnhancedPerioChart } from "@/components/perio";
 import DiagnosisFeedbackUI from "@/components/diagnosis/DiagnosisFeedbackUI";
+import { PatientNotes } from "@/components/patients/PatientNotes";
 import {
   AlertCircle,
   Calendar,
@@ -785,48 +786,10 @@ export default function PatientProfilePage() {
 
                 {/* Medical Notes Tab */}
                 <TabsContent value="notes">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-primary" />
-                        Medical Notes
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {medicalNotesLoading ? (
-                        <div className="flex justify-center py-8">
-                          <LoadingAnimation />
-                        </div>
-                      ) : medicalNotes && Array.isArray(medicalNotes) && medicalNotes.length > 0 ? (
-                        <div className="space-y-4">
-                          {medicalNotes.map((note: any) => (
-                            <div key={note.id} className="border rounded-md p-4">
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium">
-                                  {note.createdAt 
-                                    ? new Date(note.createdAt).toLocaleDateString() 
-                                    : 'No date'}
-                                </div>
-                                {note.private && (
-                                  <div className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">
-                                    Private
-                                  </div>
-                                )}
-                              </div>
-                              <div className="mt-3 whitespace-pre-wrap">
-                                {note.content}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
-                          <p className="mt-4 text-muted-foreground">No medical notes found for this patient.</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                  <PatientNotes 
+                    patientId={patientId} 
+                    patientName={`${patient.user.firstName || ''} ${patient.user.lastName || ''}`} 
+                  />
                 </TabsContent>
                 
                 {/* AI Diagnostic & Treatment Hub Tab */}

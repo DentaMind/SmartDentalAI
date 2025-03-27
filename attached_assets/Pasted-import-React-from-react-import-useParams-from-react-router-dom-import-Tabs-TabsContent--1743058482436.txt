@@ -1,0 +1,91 @@
+import React from "react";
+import { useParams } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { getPatientById } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { Loader } from "@/components/ui/loader";
+import PatientHeader from "@/components/patients/PatientHeader";
+import MedicalHistory from "@/components/patients/MedicalHistory";
+import RestorativeChart from "@/components/patients/RestorativeChart";
+import PerioChart from "@/components/patients/PerioChart";
+import XrayViewer from "@/components/patients/XrayViewer";
+import InsuranceInfo from "@/components/patients/InsuranceInfo";
+import FinancialSummary from "@/components/patients/FinancialSummary";
+import PatientNotes from "@/components/patients/notes/PatientNotes";
+import AIHub from "@/components/patients/AIHub";
+
+const PatientProfilePage = () => {
+  const { id } = useParams();
+  const [patient, setPatient] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPatient = async () => {
+      try {
+        const data = await getPatientById(id);
+        setPatient(data);
+      } catch (error) {
+        console.error("Failed to fetch patient", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPatient();
+  }, [id]);
+
+  if (loading) return <Loader />;
+  if (!patient) return <div>Patient not found</div>;
+
+  return (
+    <div className="p-4">
+      <PatientHeader patient={patient} />
+      <Tabs defaultValue="overview" className="mt-6">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="medical">Medical History</TabsTrigger>
+          <TabsTrigger value="restorative">Restorative</TabsTrigger>
+          <TabsTrigger value="perio">Perio Chart</TabsTrigger>
+          <TabsTrigger value="xray">X-rays</TabsTrigger>
+          <TabsTrigger value="ai">AI Hub</TabsTrigger>
+          <TabsTrigger value="insurance">Insurance</TabsTrigger>
+          <TabsTrigger value="finance">Finances</TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
+        </TabsList>
+
+        <ScrollArea className="h-[calc(100vh-10rem)] pr-4">
+          <TabsContent value="overview">
+            <PatientHeader patient={patient} />
+          </TabsContent>
+          <TabsContent value="medical">
+            <MedicalHistory patient={patient} />
+          </TabsContent>
+          <TabsContent value="restorative">
+            <RestorativeChart patient={patient} />
+          </TabsContent>
+          <TabsContent value="perio">
+            <PerioChart patient={patient} />
+          </TabsContent>
+          <TabsContent value="xray">
+            <XrayViewer patient={patient} />
+          </TabsContent>
+          <TabsContent value="ai">
+            <AIHub patient={patient} />
+          </TabsContent>
+          <TabsContent value="insurance">
+            <InsuranceInfo patient={patient} />
+          </TabsContent>
+          <TabsContent value="finance">
+            <FinancialSummary patient={patient} />
+          </TabsContent>
+          <TabsContent value="notes">
+            <PatientNotes patient={patient} />
+          </TabsContent>
+        </ScrollArea>
+      </Tabs>
+    </div>
+  );
+};
+
+export default PatientProfilePage;

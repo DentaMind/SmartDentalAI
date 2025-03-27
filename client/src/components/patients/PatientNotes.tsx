@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { AutoNotesManager } from './notes/AutoNotesManager';
+import AutoNotesManager from './notes/AutoNotesManager';
 import { PatientNotesList } from './notes/PatientNotesList';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
