@@ -44,7 +44,27 @@ const PatientsPage = () => {
   
   // Process patients to ensure all required fields exist
   const processedPatients = patients?.map(patient => {
-    // Create a clean patient object with all required fields
+    // Extract and parse allergies from JSON string
+    let allergiesArray = [];
+    try {
+      if (patient.allergies && typeof patient.allergies === 'string' && patient.allergies.startsWith('[')) {
+        allergiesArray = JSON.parse(patient.allergies);
+      }
+    } catch (e) {
+      console.error("Failed to parse allergies:", e);
+    }
+    
+    // Extract and parse medical history from JSON string
+    let medicalHistoryObj = {};
+    try {
+      if (patient.medicalHistory && typeof patient.medicalHistory === 'string' && patient.medicalHistory.startsWith('{')) {
+        medicalHistoryObj = JSON.parse(patient.medicalHistory);
+      }
+    } catch (e) {
+      console.error("Failed to parse medical history:", e);
+    }
+    
+    // Create a clean patient object with all required fields, prioritizing user data
     return {
       id: patient.id,
       firstName: patient.user?.firstName || patient.firstName || "Unknown",
@@ -52,7 +72,9 @@ const PatientsPage = () => {
       email: patient.user?.email || patient.email || "-",
       phoneNumber: patient.user?.phoneNumber || patient.phoneNumber || "-",
       dateOfBirth: patient.user?.dateOfBirth || patient.dateOfBirth || null,
-      insuranceProvider: patient.user?.insuranceProvider || patient.insuranceProvider || null
+      insuranceProvider: patient.user?.insuranceProvider || patient.insuranceProvider || null,
+      allergies: allergiesArray,
+      medicalHistory: medicalHistoryObj
     };
   }) || [];
   
@@ -152,6 +174,11 @@ const PatientsPage = () => {
                               <div>
                                 <p className="font-medium">{patient.firstName} {patient.lastName}</p>
                                 <p className="text-xs text-muted-foreground">{patient.email}</p>
+                                {patient.allergies && patient.allergies.length > 0 && (
+                                  <p className="text-xs text-red-500 mt-1">
+                                    Allergies: {patient.allergies.join(', ')}
+                                  </p>
+                                )}
                               </div>
                             </div>
                           </TableCell>
