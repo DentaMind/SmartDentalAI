@@ -1,19 +1,45 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 
+export interface User {
+  id: number;
+  username: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  role: string;
+  language: string;
+  phoneNumber: string | null;
+  dateOfBirth: string | null;
+  insuranceProvider: string | null;
+  insuranceNumber: string | null;
+}
+
 export interface Patient {
   id: number;
   userId: number;
-  firstName: string;
-  lastName: string;
-  dateOfBirth: string;
-  email: string;
-  phoneNumber: string;
-  insuranceProvider?: string;
-  insuranceNumber?: string;
-  medicalHistory?: Record<string, any>;
+  firstName: string | null;
+  lastName: string | null;
+  dateOfBirth: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  homeAddress: string | null;
+  emergencyContactName: string | null;
+  emergencyContactPhone: string | null;
+  emergencyContactRelationship: string | null;
+  insuranceProvider?: string | null;
+  insuranceNumber?: string | null;
+  allergies?: string | string[] | null;
+  currentMedications?: string | null;
+  medicalHistory?: string | Record<string, any> | null;
+  dentalHistory?: string | null;
+  lastVisitDate?: string | null;
+  consentFormSigned?: boolean;
+  hipaaFormSigned?: boolean;
+  officePolicy?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  user?: User;
 }
 
 /**
