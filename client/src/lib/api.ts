@@ -58,20 +58,22 @@ export async function fetchPatients() {
 /**
  * Generic API request helper function for data mutations
  * @param url The API endpoint URL
- * @param method The HTTP method (POST, PUT, PATCH, DELETE)
- * @param data Optional data payload
+ * @param options Object containing method and optional data payload
  * @returns The API response data
  */
-export const apiRequest = async (url: string, method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', data?: any) => {
+export const apiRequest = async (url: string, options: {
+  method: string;
+  data?: any;
+}) => {
   try {
     const response = await api({
       url,
-      method,
-      data,
+      method: options.method,
+      data: options.data,
     });
     return response.data;
   } catch (error) {
-    console.error(`API ${method} request failed:`, error);
+    console.error(`API ${options.method} request failed:`, error);
     throw error;
   }
 };

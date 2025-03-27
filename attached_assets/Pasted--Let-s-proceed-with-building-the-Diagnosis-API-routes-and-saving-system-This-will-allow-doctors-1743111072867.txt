@@ -1,0 +1,77 @@
+// Let's proceed with building the Diagnosis API routes and saving system
+// This will allow doctors to review diagnoses, provide feedback, and save changes.
+
+import express from 'express'
+import { db } from '../db'
+import { diagnoses } from '../../shared/schema'
+import { z } from 'zod'
+import { requireAuth } from '../auth'
+
+const router = express.Router()
+
+// Define input validation schema
+const DiagnosisInput = z.object({
+  patientId: z.string(),
+  diagnosisText: z.string(),
+  confidenceScore: z.number(),
+  reasoning: z.string(),
+  requestedAdditionalInfo: z.string().optional(),
+  createdBy: z.string(),
+})
+
+// Create a new AI diagnosis (draft or submitted)
+router.post('/api/diagnoses', requireAuth, async (req, res) => {
+  try {
+    const result = DiagnosisInput.safeParse(req.body)
+    if (!result.success) return res.status(400).json({ error: result.error })
+
+    const newDiagnosis = await db.insert(diagnoses).values({
+      patient_id: result.data.patientId,
+      diagnosis_text: result.data.diagnosisText,
+      confidence_score: result.data.confidenceScore,
+      reasoning: result.data.reasoning,
+      requested_additional_info: result.data.requestedAdditionalInfo || '',
+      created_by: result.data.createdBy,
+      created_at: new Date(),
+    })
+
+    res.json({ success: true, diagnosis: newDiagnosis })
+  } catch (err) {
+    console.error('Diagnosis creation failed', err)
+    res.status(500).json({ error: 'Internal Server Error' })
+  }
+})
+
+// Get all diagnoses for a patient
+router.get('/api/diagnoses/:patientId', requireAuth, async (req, res) => {
+  try {
+    const diagnosesForPatient = await db.query.diagnoses.findMany({
+      where: { patient_id: req.params.patientId },
+      orderBy: { created_at: 'desc' },
+    })
+    res.json({ diagnoses: diagnosesForPatient })
+  } catch (err) {
+    console.error('Failed to fetch diagnoses', err)
+    res.status(500).json({ error: 'Internal Server Error' })
+  }
+})
+
+// Feedback route to update diagnosis with doctor approval or rejection
+router.put('/api/diagnoses/:id/feedback', requireAuth, async (req, res) => {
+  try {
+    const { approved, feedbackNote, approvedBy } = req.body
+    await db.update(diagnoses).set({
+      approved: !!approved,
+      feedback_note: feedbackNote || '',
+      approved_by: approvedBy,
+      approved_at: new Date(),
+    }).where({ id: req.params.id })
+
+    res.json({ success: true })
+  } catch (err) {
+    console.error('Failed to submit feedback', err)
+    res.status(500).json({ error: 'Internal Server Error' })
+  }
+})
+
+export default router

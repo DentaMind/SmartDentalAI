@@ -10,14 +10,22 @@ import { BrainCircuit, FileText, RefreshCw, AlertCircle, Lightbulb } from "lucid
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Diagnosis {
-  id: string;
+  id: number;
+  patientId: number;
   condition: string;
   confidence: number;
   explanation: string;
-  suggestedTreatments?: string[];
-  aiSource?: string;
+  suggestedTreatments: string[];
+  aiSource: string | null;
+  status: "pending" | "approved" | "rejected" | "modified";
+  providerNote: string | null;
+  accuracyRating: number | null;
+  modifiedDiagnosis: string | null;
+  modifiedExplanation: string | null;
   createdAt: string;
-  status?: 'pending' | 'approved' | 'rejected' | 'modified';
+  updatedAt: string | null;
+  approvedAt: string | null;
+  approvedBy: number | null;
 }
 
 interface TreatmentPlan {
@@ -62,12 +70,17 @@ const PatientDiagnosisTreatmentHub: React.FC<PatientDiagnosisTreatmentHubProps> 
   const fetchDiagnoses = async () => {
     setIsLoadingDiagnoses(true);
     try {
-      const response = await apiRequest(`/api/diagnoses/${patientId}`, {
-        method: 'GET'
+      const response = await fetch(`/api/patients/${patientId}/diagnoses`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
-      if (response && Array.isArray(response)) {
-        setDiagnoses(response);
+      const data = await response.json();
+      
+      if (data && data.success && Array.isArray(data.diagnoses)) {
+        setDiagnoses(data.diagnoses);
       } else {
         setDiagnoses([]);
       }
@@ -87,12 +100,17 @@ const PatientDiagnosisTreatmentHub: React.FC<PatientDiagnosisTreatmentHubProps> 
   const fetchTreatmentPlans = async () => {
     setIsLoadingPlans(true);
     try {
-      const response = await apiRequest(`/api/treatment-plans/${patientId}`, {
-        method: 'GET'
+      const response = await fetch(`/api/treatment-plans/${patientId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
-      if (response && Array.isArray(response)) {
-        setTreatmentPlans(response);
+      const data = await response.json();
+      
+      if (data && Array.isArray(data)) {
+        setTreatmentPlans(data);
       } else {
         setTreatmentPlans([]);
       }
@@ -116,18 +134,22 @@ const PatientDiagnosisTreatmentHub: React.FC<PatientDiagnosisTreatmentHubProps> 
         description: "Please wait while we analyze the patient data...",
       });
       
-      const diagnosis = await apiRequest('/api/diagnoses/generate', {
+      const response = await fetch(`/api/patients/${patientId}/generate-diagnosis`, {
         method: 'POST',
-        data: {
-          patientId,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           includeNotes: true,
           includeXrays: true,
           includeCharts: true
-        }
+        })
       });
       
-      if (diagnosis) {
-        setDiagnoses(prev => [diagnosis, ...prev]);
+      const data = await response.json();
+      
+      if (data && data.success && data.diagnosis) {
+        setDiagnoses(prev => [data.diagnosis, ...prev]);
         toast({
           title: "AI diagnosis generated",
           description: "A new diagnosis has been created based on patient data.",
@@ -142,12 +164,6 @@ const PatientDiagnosisTreatmentHub: React.FC<PatientDiagnosisTreatmentHubProps> 
         variant: "destructive"
       });
     }
-  };
-
-  const handleFeedbackSubmitted = (updatedDiagnosis: Diagnosis) => {
-    setDiagnoses(prev => 
-      prev.map(d => d.id === updatedDiagnosis.id ? updatedDiagnosis : d)
-    );
   };
 
   const renderDiagnosesTab = () => {
@@ -207,14 +223,7 @@ const PatientDiagnosisTreatmentHub: React.FC<PatientDiagnosisTreatmentHubProps> 
         </div>
         
         <div className="space-y-6">
-          {diagnoses.map(diagnosis => (
-            <DiagnosisFeedbackUI 
-              key={diagnosis.id} 
-              diagnosis={diagnosis} 
-              patientId={patientId}
-              onFeedbackSubmitted={handleFeedbackSubmitted}
-            />
-          ))}
+          <DiagnosisFeedbackUI patientId={patientId} />
         </div>
       </div>
     );

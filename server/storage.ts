@@ -21,6 +21,8 @@ import {
   InsuranceVerification,
   InsertInsuranceVerification,
   InsuranceVerificationStatusEnum,
+  Diagnosis,
+  InsertDiagnosis,
 } from "@shared/schema";
 import createMemoryStore from "memorystore";
 import session from "express-session";
@@ -79,6 +81,7 @@ export class MemStorage implements IStorage {
   private financialTransactions: Map<number, FinancialTransaction>;
   private insuranceClaims: Map<number, InsuranceClaim>;
   private insuranceVerifications: Map<number, InsuranceVerification>;
+  private diagnoses: Map<number, Diagnosis>;
   sessionStore: session.Store;
   currentId: number;
   isInitialized: boolean;
@@ -94,6 +97,7 @@ export class MemStorage implements IStorage {
     this.financialTransactions = new Map();
     this.insuranceClaims = new Map();
     this.insuranceVerifications = new Map();
+    this.diagnoses = new Map();
     this.currentId = 1;
     this.isInitialized = false;
     this.sessionStore = new MemoryStore({
@@ -904,6 +908,53 @@ export class MemStorage implements IStorage {
     return Array.from(this.insuranceVerifications.values()).filter(
       (verification) => verification.patientId === patientId
     );
+  }
+
+  // Diagnosis management methods
+  async createDiagnosis(diagnosis: InsertDiagnosis): Promise<Diagnosis> {
+    const id = this.currentId++;
+    const newDiagnosis: Diagnosis = { 
+      id,
+      ...diagnosis,
+      // Ensure all required fields have appropriate defaults if not provided
+      status: diagnosis.status ?? 'pending',
+      createdAt: diagnosis.createdAt ?? new Date(),
+      updatedAt: diagnosis.updatedAt ?? new Date(),
+      aiSource: diagnosis.aiSource ?? null,
+      approvedAt: diagnosis.approvedAt ?? null,
+      approvedBy: diagnosis.approvedBy ?? null,
+      providerNote: diagnosis.providerNote ?? null,
+      accuracyRating: diagnosis.accuracyRating ?? null,
+      modifiedDiagnosis: diagnosis.modifiedDiagnosis ?? null,
+      modifiedExplanation: diagnosis.modifiedExplanation ?? null
+    };
+    this.diagnoses.set(id, newDiagnosis);
+    return newDiagnosis;
+  }
+
+  async getDiagnosisById(id: number): Promise<Diagnosis | undefined> {
+    return this.diagnoses.get(id);
+  }
+
+  async getDiagnosesForPatient(patientId: number): Promise<Diagnosis[]> {
+    return Array.from(this.diagnoses.values()).filter(
+      (diagnosis) => diagnosis.patientId === patientId
+    );
+  }
+
+  async updateDiagnosis(id: number, updates: Partial<Diagnosis>): Promise<Diagnosis | undefined> {
+    const diagnosis = this.diagnoses.get(id);
+    if (!diagnosis) return undefined;
+
+    // Update the diagnosis with the new values
+    const updatedDiagnosis = { 
+      ...diagnosis, 
+      ...updates,
+      updatedAt: new Date() // Always update the updatedAt timestamp
+    };
+    
+    this.diagnoses.set(id, updatedDiagnosis);
+    return updatedDiagnosis;
   }
 }
 
