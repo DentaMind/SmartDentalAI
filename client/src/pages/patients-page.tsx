@@ -1,7 +1,13 @@
+import { PatientManagement } from "@/components/patients/patient-management";
+
+/**
+ * Main patients page component
+ * Renders the PatientManagement component within a dashboard layout
+ */
 const PatientsPage = () => {
   return (
-    <div style={{ padding: 50 }}>
-      <h1 style={{ color: 'red', fontSize: 30 }}>🔥 THIS IS THE REAL PATIENTS PAGE 🔥</h1>
+    <div className="container mx-auto py-6">
+      <PatientManagement />
     </div>
   );
 };

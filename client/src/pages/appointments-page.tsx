@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Appointment } from "@shared/schema";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -26,6 +26,17 @@ import { AppointmentDetails } from "@/components/appointments/appointment-detail
 // Import our new enhanced scheduler
 import { EnhancedSchedulerV2 } from "@/components/appointments/enhanced-scheduler-v2";
 import { SchedulerV3 } from "@/components/appointments/scheduler-v3";
+
+// Debug helper - check if patients page exists
+let patientsPageExists = false;
+try {
+  // Webpack magic comment for debugging only
+  import(/* webpackIgnore: true */ '../pages/patients-page.tsx')
+    .then(() => { patientsPageExists = true; })
+    .catch(() => { patientsPageExists = false; });
+} catch (e) {
+  console.error("Error checking for patients page:", e);
+}
 import {
   Dialog,
   DialogContent,
@@ -41,6 +52,52 @@ export default function AppointmentsPage() {
   const { user } = useAuth();
   const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null);
+  
+  // Debug state for helping troubleshoot the patients page issue
+  const [debugInfo, setDebugInfo] = useState({
+    patientsApiAvailable: false,
+    patientsModuleExists: patientsPageExists,
+    lastApiTest: ""
+  });
+  
+  // Test the patients API endpoint
+  useEffect(() => {
+    const testPatientsApi = async () => {
+      try {
+        // Try both endpoints to see if either works
+        const patientApiResponse = await fetch('/api/patients');
+        const patientApiStatus = patientApiResponse.status;
+        
+        const patientsResponse = await fetch('/patients');
+        const patientsStatus = patientsResponse.status;
+        
+        setDebugInfo(prev => ({
+          ...prev,
+          patientsApiAvailable: (patientApiStatus === 200 || patientsStatus === 200),
+          lastApiTest: `API Test Results: /api/patients (${patientApiStatus}), /patients (${patientsStatus})`
+        }));
+        
+        // Try to read the content
+        if (patientApiStatus === 200) {
+          const data = await patientApiResponse.json();
+          console.log("PATIENTS API DATA:", data);
+        }
+        
+        if (patientsStatus === 200) {
+          const data = await patientsResponse.json();
+          console.log("PATIENTS ROUTE DATA:", data);
+        }
+      } catch (error) {
+        console.error("Error testing patients API:", error);
+        setDebugInfo(prev => ({
+          ...prev,
+          lastApiTest: `Error testing API: ${error instanceof Error ? error.message : String(error)}`
+        }));
+      }
+    };
+    
+    testPatientsApi();
+  }, []);
   
   const { data: appointments } = useQuery<Appointment[]>({
     queryKey: ["/api/appointments/doctor", user?.id],
@@ -59,6 +116,16 @@ export default function AppointmentsPage() {
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
       <main className="flex-1 p-8 overflow-y-auto">
+        {/* Debug Information Panel */}
+        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-300 rounded-lg">
+          <h2 className="text-lg font-semibold text-yellow-800 mb-2">🔍 Debug Information for Patients Page</h2>
+          <div className="space-y-2 text-sm">
+            <p><strong>Patients API Available:</strong> {debugInfo.patientsApiAvailable ? '✅ Yes' : '❌ No'}</p>
+            <p><strong>Patients Module Exists:</strong> {debugInfo.patientsModuleExists ? '✅ Yes' : '❌ No'}</p>
+            <p><strong>API Test Results:</strong> {debugInfo.lastApiTest}</p>
+          </div>
+        </div>
+      
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
             {t("nav.appointments")}
