@@ -1,120 +1,150 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
-type VoiceToTextHook = {
-  transcript: string;
+interface VoiceToTextOptions {
+  continuous?: boolean;
+  interimResults?: boolean;
+  language?: string;
+  autoStart?: boolean;
+}
+
+interface VoiceToTextReturn {
+  text: string;
   isListening: boolean;
+  startListening: () => void;
+  stopListening: () => void;
+  resetText: () => void;
+  hasRecognitionSupport: boolean;
   error: string | null;
-  startRecording: () => void;
-  stopRecording: () => void;
-  reset: () => void;
-  processCommands: (text: string) => string;
-};
+}
 
-export const useVoiceToText = (): VoiceToTextHook => {
-  const [transcript, setTranscript] = useState<string>('');
+export const useVoiceToText = (options: VoiceToTextOptions = {}): VoiceToTextReturn => {
+  const [text, setText] = useState<string>('');
   const [isListening, setIsListening] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  const [hasRecognitionSupport, setHasRecognitionSupport] = useState<boolean>(false);
 
-  // Check if the browser supports Web Speech API
-  const browserSupportsRecognition = typeof window !== 'undefined' && 'webkitSpeechRecognition' in window;
+  const {
+    continuous = false,
+    interimResults = false,
+    language = 'en-US',
+    autoStart = false
+  } = options;
 
-  // Command processing
-  const processCommands = useCallback((text: string) => {
-    // Process special commands
-    let processedText = text;
-
-    // Special commands for common dental terms or formatting
-    const commandPatterns = [
-      { pattern: /new line/gi, replacement: '\n' },
-      { pattern: /new paragraph/gi, replacement: '\n\n' },
-      { pattern: /period$/gi, replacement: '.' },
-      { pattern: /question mark$/gi, replacement: '?' },
-      { pattern: /comma$/gi, replacement: ',' },
-      { pattern: /exclamation mark$/gi, replacement: '!' },
+  // Initialize speech recognition on component mount
+  useEffect(() => {
+    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognitionInstance = new SpeechRecognition();
       
-      // Dental specific commands
-      { pattern: /tooth number (\d+)/gi, replacement: 'tooth #$1' },
-      { pattern: /probing depths?/gi, replacement: 'Probing Depths' },
-      { pattern: /pocket depths?/gi, replacement: 'Pocket Depths' },
-      { pattern: /bleeding on probing/gi, replacement: 'Bleeding on Probing (BOP)' },
-      { pattern: /clinical attachment loss/gi, replacement: 'Clinical Attachment Loss (CAL)' },
-      { pattern: /prescribed/gi, replacement: 'Prescribed' },
-      { pattern: /amalgam/gi, replacement: 'amalgam' },
-      { pattern: /composite/gi, replacement: 'composite' },
-      { pattern: /caries/gi, replacement: 'caries' },
-      { pattern: /periodontal/gi, replacement: 'periodontal' },
-      { pattern: /gingivitis/gi, replacement: 'gingivitis' },
-      { pattern: /periodontitis/gi, replacement: 'periodontitis' },
+      recognitionInstance.continuous = continuous;
+      recognitionInstance.interimResults = interimResults;
+      recognitionInstance.lang = language;
       
-      // Common SOAP note commands
-      { pattern: /start subjective/gi, replacement: '**SUBJECTIVE**\n' },
-      { pattern: /start objective/gi, replacement: '**OBJECTIVE**\n' },
-      { pattern: /start assessment/gi, replacement: '**ASSESSMENT**\n' },
-      { pattern: /start plan/gi, replacement: '**PLAN**\n' },
-    ];
-
-    // Apply all command patterns
-    commandPatterns.forEach(({ pattern, replacement }) => {
-      processedText = processedText.replace(pattern, replacement);
-    });
-
-    return processedText;
-  }, []);
-
-  // Start recording
-  const startRecording = useCallback(() => {
-    if (browserSupportsRecognition) {
-      setError(null);
-      try {
-        // Mock web speech API functionality for the browser environment
-        // In a real implementation, this would use the actual Web Speech API
-        console.log('Starting voice recording...');
-        setIsListening(true);
-        // In a real implementation, we would initialize the recognition engine here
-      } catch (err) {
-        setError('Error starting speech recognition');
-        setIsListening(false);
+      setRecognition(recognitionInstance);
+      setHasRecognitionSupport(true);
+      
+      if (autoStart) {
+        startListeningFn(recognitionInstance);
       }
     } else {
-      setError('Your browser does not support speech recognition');
+      setHasRecognitionSupport(false);
+      setError('Your browser does not support speech recognition.');
     }
-  }, [browserSupportsRecognition]);
 
-  // Stop recording
-  const stopRecording = useCallback(() => {
-    if (isListening) {
-      console.log('Stopping voice recording...');
-      setIsListening(false);
-      
-      // Simulate receiving a transcript for demonstration purposes
-      // In a real implementation, this would come from the Web Speech API
-      const simulatedText = 'This is a simulated transcript for testing purposes';
-      setTranscript(simulatedText);
-    }
-  }, [isListening]);
-
-  // Reset the transcript
-  const reset = useCallback(() => {
-    setTranscript('');
-    setError(null);
-  }, []);
-
-  // Clean up
-  useEffect(() => {
+    // Cleanup function to stop recognition on unmount
     return () => {
-      if (isListening) {
-        stopRecording();
+      if (recognition) {
+        recognition.stop();
       }
     };
-  }, [isListening, stopRecording]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Function to start listening
+  const startListeningFn = useCallback((recognitionInstance: SpeechRecognition | null = recognition) => {
+    if (!recognitionInstance) return;
+    
+    try {
+      recognitionInstance.start();
+      setIsListening(true);
+      setError(null);
+    } catch (err) {
+      setError(`Error starting speech recognition: ${err instanceof Error ? err.message : String(err)}`);
+      setIsListening(false);
+    }
+  }, [recognition]);
+
+  // Function to stop listening
+  const stopListeningFn = useCallback(() => {
+    if (!recognition) return;
+    
+    try {
+      recognition.stop();
+      setIsListening(false);
+    } catch (err) {
+      setError(`Error stopping speech recognition: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }, [recognition]);
+
+  // Reset the transcribed text
+  const resetText = useCallback(() => {
+    setText('');
+  }, []);
+
+  // Set up event listeners for the recognition instance
+  useEffect(() => {
+    if (!recognition) return;
+
+    const handleResult = (event: SpeechRecognitionEvent) => {
+      const transcript = Array.from(event.results)
+        .map(result => result[0])
+        .map(result => result.transcript)
+        .join(' ');
+      
+      setText(transcript);
+    };
+
+    const handleEnd = () => {
+      setIsListening(false);
+      
+      // If continuous is true, restart recognition when it ends
+      if (continuous && recognition) {
+        startListeningFn();
+      }
+    };
+
+    const handleError = (event: SpeechRecognitionErrorEvent) => {
+      setError(`Speech recognition error: ${event.error}`);
+      setIsListening(false);
+    };
+
+    recognition.addEventListener('result', handleResult);
+    recognition.addEventListener('end', handleEnd);
+    recognition.addEventListener('error', handleError);
+
+    return () => {
+      recognition.removeEventListener('result', handleResult);
+      recognition.removeEventListener('end', handleEnd);
+      recognition.removeEventListener('error', handleError);
+    };
+  }, [recognition, continuous, startListeningFn]);
 
   return {
-    transcript,
+    text,
     isListening,
-    error,
-    startRecording,
-    stopRecording,
-    reset,
-    processCommands
+    startListening: startListeningFn,
+    stopListening: stopListeningFn,
+    resetText,
+    hasRecognitionSupport,
+    error
   };
 };
+
+// Type declarations for SpeechRecognition API
+declare global {
+  interface Window {
+    SpeechRecognition: typeof SpeechRecognition;
+    webkitSpeechRecognition: typeof SpeechRecognition;
+  }
+}
