@@ -185,64 +185,14 @@ router.get("/patients/:id", requireAuth, requireOwnership("id"), async (req, res
       return res.status(404).json({ message: "Patient not found" });
     }
     
-    // Make sure user property exists and has the right shape
-    if (!patient.user) {
-      // Create a minimal user object with required fields
-      patient.user = {
-        id: patient.userId,
-        username: "patient",
-        firstName: "Unknown",
-        lastName: "Patient",
-        email: "unknown@example.com",
-        role: "patient",
-        language: "en",
-        phoneNumber: null,
-        dateOfBirth: null,
-        insuranceProvider: null,
-        insuranceNumber: null
-      };
-    } else {
-      // Extract only the properties needed by the frontend
-      const simplifiedUser = {
-        id: patient.user.id,
-        username: patient.user.username,
-        firstName: patient.user.firstName,
-        lastName: patient.user.lastName,
-        email: patient.user.email,
-        role: patient.user.role,
-        language: patient.user.language,
-        phoneNumber: patient.user.phoneNumber,
-        dateOfBirth: patient.user.dateOfBirth,
-        insuranceProvider: patient.user.insuranceProvider,
-        insuranceNumber: patient.user.insuranceNumber
-      };
-      patient.user = simplifiedUser;
-    }
-    
-    res.json(patient);
-  } catch (error) {
-    console.error("Error getting patient:", error);
-    res.status(500).json({ message: error instanceof Error ? error.message : "Server error" });
-  }
-});
-
-// Get all patients route
-router.get("/patients", requireAuth, async (req, res) => {
-  try {
-    console.log("Getting all patients...");
-    console.log("Authenticated user:", req.user);
-    const patients = await storage.getAllPatients();
-    console.log("Patient count:", patients.length);
-    
-    // Make sure patients data is properly formatted for the frontend
-    const formattedPatients = patients.map(patient => {
-      // Ensure user property exists and has the right shape
+    try {
+      // Make sure user property exists and has the right shape
       if (!patient.user) {
         // Create a minimal user object with required fields
         patient.user = {
           id: patient.userId,
           username: "patient",
-          firstName: "Unknown", 
+          firstName: "Unknown",
           lastName: "Patient",
           email: "unknown@example.com",
           role: "patient",
@@ -269,14 +219,198 @@ router.get("/patients", requireAuth, async (req, res) => {
         };
         patient.user = simplifiedUser;
       }
-      return patient;
+      
+      // Safe handling of JSON string fields
+      if (patient.allergies && typeof patient.allergies === 'string') {
+        try {
+          patient.allergies = JSON.parse(patient.allergies);
+        } catch (e) {
+          console.warn(`Failed to parse allergies for patient ${patient.id}:`, e);
+          // If parsing fails, provide an empty array
+          patient.allergies = [];
+        }
+      }
+      
+      if (patient.medicalHistory && typeof patient.medicalHistory === 'string') {
+        try {
+          patient.medicalHistory = JSON.parse(patient.medicalHistory);
+        } catch (e) {
+          console.warn(`Failed to parse medicalHistory for patient ${patient.id}:`, e);
+          // If parsing fails, provide an empty object
+          patient.medicalHistory = {};
+        }
+      }
+      
+      if (patient.currentMedications && typeof patient.currentMedications === 'string') {
+        try {
+          patient.currentMedications = JSON.parse(patient.currentMedications);
+        } catch (e) {
+          console.warn(`Failed to parse currentMedications for patient ${patient.id}:`, e);
+          // If parsing fails, provide an empty array
+          patient.currentMedications = [];
+        }
+      }
+      
+      if (patient.dentalHistory && typeof patient.dentalHistory === 'string') {
+        try {
+          patient.dentalHistory = JSON.parse(patient.dentalHistory);
+        } catch (e) {
+          console.warn(`Failed to parse dentalHistory for patient ${patient.id}:`, e);
+          // If parsing fails, provide an empty object
+          patient.dentalHistory = {};
+        }
+      }
+      
+      res.json(patient);
+    } catch (patientProcessingError) {
+      console.error(`Error processing patient ${patient.id}:`, patientProcessingError);
+      
+      // Return a minimal valid patient object that won't break the UI
+      const safePatient = {
+        id: patient.id,
+        userId: patient.userId,
+        firstName: patient.firstName || null,
+        lastName: patient.lastName || null,
+        email: patient.email || null,
+        phoneNumber: patient.phoneNumber || null,
+        dateOfBirth: patient.dateOfBirth || null,
+        homeAddress: patient.homeAddress || null,
+        emergencyContactName: patient.emergencyContactName || null,
+        emergencyContactPhone: patient.emergencyContactPhone || null,
+        emergencyContactRelationship: patient.emergencyContactRelationship || null,
+        insuranceProvider: patient.insuranceProvider || null,
+        insuranceNumber: patient.insuranceNumber || null,
+        allergies: [],
+        currentMedications: [],
+        medicalHistory: {},
+        dentalHistory: {},
+        lastVisitDate: null,
+        consentFormSigned: false,
+        hipaaFormSigned: false,
+        officePolicy: false,
+        user: {
+          id: patient.userId,
+          username: "patient",
+          firstName: patient.firstName || "Data",
+          lastName: patient.lastName || "Error",
+          email: patient.email || "",
+          role: "patient",
+          language: "en"
+        }
+      };
+      
+      res.json(safePatient);
+    }
+  } catch (error) {
+    console.error("Error getting patient:", error);
+    res.status(500).json({ 
+      message: "Failed to get patient", 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    });
+  }
+});
+
+// Get all patients route
+router.get("/patients", requireAuth, async (req, res) => {
+  try {
+    console.log("Getting all patients...");
+    console.log("Authenticated user:", req.user);
+    const patients = await storage.getAllPatients();
+    console.log("Patient count:", patients.length);
+    
+    // Make sure patients data is properly formatted for the frontend
+    const formattedPatients = patients.map(patient => {
+      try {
+        // Ensure user property exists and has the right shape
+        if (!patient.user) {
+          // Create a minimal user object with required fields
+          patient.user = {
+            id: patient.userId,
+            username: "patient",
+            firstName: "Unknown", 
+            lastName: "Patient",
+            email: "unknown@example.com",
+            role: "patient",
+            language: "en",
+            phoneNumber: null,
+            dateOfBirth: null,
+            insuranceProvider: null,
+            insuranceNumber: null
+          };
+        } else {
+          // Extract only the properties needed by the frontend
+          const simplifiedUser = {
+            id: patient.user.id,
+            username: patient.user.username,
+            firstName: patient.user.firstName,
+            lastName: patient.user.lastName,
+            email: patient.user.email,
+            role: patient.user.role,
+            language: patient.user.language,
+            phoneNumber: patient.user.phoneNumber,
+            dateOfBirth: patient.user.dateOfBirth,
+            insuranceProvider: patient.user.insuranceProvider,
+            insuranceNumber: patient.user.insuranceNumber
+          };
+          patient.user = simplifiedUser;
+        }
+        
+        // Safe handling of JSON string fields
+        if (patient.allergies && typeof patient.allergies === 'string') {
+          try {
+            patient.allergies = JSON.parse(patient.allergies);
+          } catch (e) {
+            console.warn(`Failed to parse allergies for patient ${patient.id}:`, e);
+            // Keep as string if parsing fails
+          }
+        }
+        
+        if (patient.medicalHistory && typeof patient.medicalHistory === 'string') {
+          try {
+            patient.medicalHistory = JSON.parse(patient.medicalHistory);
+          } catch (e) {
+            console.warn(`Failed to parse medicalHistory for patient ${patient.id}:`, e);
+            // Keep as string if parsing fails
+          }
+        }
+        
+        if (patient.currentMedications && typeof patient.currentMedications === 'string') {
+          try {
+            patient.currentMedications = JSON.parse(patient.currentMedications);
+          } catch (e) {
+            console.warn(`Failed to parse currentMedications for patient ${patient.id}:`, e);
+            // Keep as string if parsing fails
+          }
+        }
+        
+        return patient;
+      } catch (patientError) {
+        console.error(`Error processing patient ${patient.id}:`, patientError);
+        // Return a cleaned version of the patient that won't break the UI
+        return {
+          id: patient.id,
+          userId: patient.userId,
+          user: patient.user || {
+            id: patient.userId,
+            username: "patient",
+            firstName: "Data Error", 
+            lastName: "Please Report",
+            email: "",
+            role: "patient",
+            language: "en"
+          },
+          allergies: [],
+          medicalHistory: {},
+          currentMedications: []
+        };
+      }
     });
     
-    console.log("Formatted patients data ready to send");
+    console.log("PATIENTS ROUTE DATA:", formattedPatients);
     res.json(formattedPatients);
   } catch (error) {
     console.error("Error getting all patients:", error);
-    res.status(500).json({ message: "Failed to get patients" });
+    res.status(500).json({ message: "Failed to get patients", error: error instanceof Error ? error.message : "Unknown error" });
   }
 });
 

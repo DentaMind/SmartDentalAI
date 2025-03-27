@@ -289,28 +289,53 @@ export class MemStorage implements IStorage {
     const patients = Array.from(this.patients.values());
     console.log("Patients array length:", patients.length);
     
-    try {
-      const patientsWithUsers = await Promise.all(
-        patients.map(async (patient) => {
-          console.log(`Processing patient ${patient.id} with userId ${patient.userId}`);
-          const user = await this.getUser(patient.userId);
-          
-          if (!user) {
-            console.error(`User not found for patient ${patient.id} with userId ${patient.userId}`);
-            throw new Error(`User not found for patient ${patient.id}`);
-          }
-          
+    // Process each patient separately and collect the results
+    // This prevents one bad record from breaking the entire request
+    const patientsWithUsers: (Patient & { user: User })[] = [];
+    
+    for (const patient of patients) {
+      try {
+        console.log(`Processing patient ${patient.id} with userId ${patient.userId}`);
+        const user = await this.getUser(patient.userId);
+        
+        if (!user) {
+          // Instead of throwing an error, create a minimal user record
+          console.warn(`User not found for patient ${patient.id} with userId ${patient.userId}, using placeholder`);
+          const placeholderUser: User = {
+            id: patient.userId,
+            username: `patient-${patient.id}`,
+            password: "",
+            email: "",
+            firstName: "Unknown",
+            lastName: "Patient",
+            role: "patient",
+            language: "en",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            specialization: null,
+            mfaEnabled: false,
+            licenseNumber: null,
+            phoneNumber: null,
+            dateOfBirth: null,
+            insuranceProvider: null,
+            insuranceNumber: null,
+            officeName: null,
+            officeEmail: null
+          };
+          patientsWithUsers.push({ ...patient, user: placeholderUser });
+        } else {
           console.log(`Found user for patient ${patient.id}:`, user.username);
-          return { ...patient, user };
-        })
-      );
-      
-      console.log("Successfully processed all patients with users");
-      return patientsWithUsers;
-    } catch (error) {
-      console.error("Error in getAllPatients:", error);
-      throw error;
+          patientsWithUsers.push({ ...patient, user });
+        }
+      } catch (error) {
+        // Log the error but continue processing other patients
+        console.error(`Error processing patient ${patient.id}:`, error);
+        // Skip this patient rather than breaking the entire function
+      }
     }
+    
+    console.log(`Successfully processed ${patientsWithUsers.length} out of ${patients.length} patients`);
+    return patientsWithUsers;
   }
 
   async createAppointment(insertAppointment: InsertAppointment): Promise<Appointment> {
