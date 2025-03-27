@@ -96,7 +96,7 @@ const PatientListPage: React.FC = () => {
     isLoading: loading,
     refetch
   } = useQuery<Patient[]>({
-    queryKey: ["/api/patients"],
+    queryKey: ["/patients"],
     queryFn: fetchPatients,
     retry: 3,
     refetchOnWindowFocus: false

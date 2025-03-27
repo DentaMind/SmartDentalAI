@@ -18,7 +18,8 @@ export const api = axios.create({
 export async function fetchPatients() {
   try {
     console.log('Requesting patients data...');
-    const response = await api.get('/api/patients');
+    // Changed endpoint to match server route definition
+    const response = await api.get('/patients');
     console.log('Raw patients API response:', response.data);
     
     if (!response.data || !Array.isArray(response.data)) {
