@@ -104,7 +104,7 @@ export default function SimpleAuthPage() {
           <img 
             src={dentaMindLogo} 
             alt="DentaMind Logo" 
-            className="h-20 w-20 mb-4 rounded-full"
+            className="h-20 w-20 mb-4 rounded-full object-contain bg-[#28C76F] p-1"
           />
           <h1 className="text-2xl font-bold text-gray-800">DentaMind</h1>
           <p className="text-gray-600 mt-1">AI-Powered Dental Excellence</p>

@@ -45,7 +45,7 @@ export function LoadingAnimation({ className }: LoadingAnimationProps) {
           <img 
             src={dentaMindLogo} 
             alt="DentaMind Logo" 
-            className="w-[135px] h-[135px] animate-pulse-subtle rounded-full"
+            className="w-[135px] h-[135px] animate-pulse-subtle rounded-full bg-[#28C76F] p-1 object-contain"
             style={{ 
               filter: 'drop-shadow(0 0 8px rgba(40, 199, 111, 0.7))'
             }}

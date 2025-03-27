@@ -19,7 +19,7 @@ export function DentaMindLogo({ className = "", size = "md", showText = true }: 
       <img 
         src={dentaMindLogo} 
         alt="DentaMind Logo" 
-        className={`${sizeMap[size]} object-contain animate-pulse-subtle rounded-full`}
+        className={`${sizeMap[size]} object-contain animate-pulse-subtle rounded-full bg-[#28C76F] p-1`}
       />
       {showText && (
         <div className="ml-3">
