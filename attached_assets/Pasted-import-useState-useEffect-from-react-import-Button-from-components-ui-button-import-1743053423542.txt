@@ -1,0 +1,100 @@
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/hooks/use-auth";
+import { useVoiceToText } from "@/hooks/use-voice-to-text";
+import { generateNoteFromTemplate } from "@/lib/note-templates";
+import { approveAndSaveNote } from "@/lib/api";
+
+interface PatientNoteProps {
+  patientId: string;
+  xrayFindings?: string;
+  medicalHistory?: string;
+  restorativeChart?: string;
+  perioChart?: string;
+  previousNotes?: string;
+  prescriptions?: string;
+  treatmentPlanAccepted?: boolean;
+}
+
+export default function PatientNote({
+  patientId,
+  xrayFindings,
+  medicalHistory,
+  restorativeChart,
+  perioChart,
+  previousNotes,
+  prescriptions,
+  treatmentPlanAccepted,
+}: PatientNoteProps) {
+  const { user } = useAuth();
+  const { voiceInput, startRecording, stopRecording } = useVoiceToText();
+  const [note, setNote] = useState("");
+  const [templateUsed, setTemplateUsed] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const useTemplate = async () => {
+    setLoading(true);
+    const generated = await generateNoteFromTemplate({
+      provider: user?.username,
+      date: new Date().toISOString(),
+      patientId,
+      xrayFindings,
+      medicalHistory,
+      restorativeChart,
+      perioChart,
+      previousNotes,
+      prescriptions,
+      treatmentPlanAccepted,
+    });
+    setNote(generated);
+    setTemplateUsed(true);
+    setLoading(false);
+  };
+
+  const handleApprove = async () => {
+    setLoading(true);
+    await approveAndSaveNote({
+      note,
+      patientId,
+      provider: user?.username,
+    });
+    setSubmitted(true);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (voiceInput) {
+      setNote((prev) => prev + "\n" + voiceInput);
+    }
+  }, [voiceInput]);
+
+  if (submitted) return <p className="text-green-600">Note submitted and saved.</p>;
+
+  return (
+    <div className="p-4 border rounded-xl shadow bg-white">
+      <h2 className="text-xl font-semibold mb-4">Draft Patient Note</h2>
+      <Textarea
+        className="mb-4 min-h-[200px]"
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Start writing or use a template"
+      />
+      <div className="flex gap-2">
+        <Button onClick={useTemplate} disabled={loading || templateUsed}>
+          Use Comprehensive Exam Template
+        </Button>
+        <Button onClick={startRecording} disabled={loading}>
+          Start Voice Input
+        </Button>
+        <Button onClick={stopRecording} disabled={loading}>
+          Stop Voice Input
+        </Button>
+        <Button onClick={handleApprove} disabled={loading || !note}>
+          Approve & Submit Note
+        </Button>
+      </div>
+    </div>
+  );
+}

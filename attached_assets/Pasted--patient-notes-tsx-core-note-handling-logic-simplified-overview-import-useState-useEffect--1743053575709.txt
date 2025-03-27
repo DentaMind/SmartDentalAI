@@ -1,0 +1,64 @@
+// patient-notes.tsx (core note handling logic - simplified overview)
+
+import { useState, useEffect } from 'react';
+import { getCurrentProvider } from '@/lib/auth';
+import { useVoiceAI } from '@/hooks/use-voice-ai';
+import { saveNoteDraft, finalizeNote } from '@/lib/api';
+
+export default function PatientNoteEditor({ patientId }: { patientId: string }) {
+  const [note, setNote] = useState('');
+  const [template, setTemplate] = useState('');
+  const [isApproved, setIsApproved] = useState(false);
+  const { transcript, listening, startListening, stopListening } = useVoiceAI();
+  const provider = getCurrentProvider();
+
+  useEffect(() => {
+    setNote(transcript);
+  }, [transcript]);
+
+  const handleTemplateLoad = (type: 'comprehensive') => {
+    if (type === 'comprehensive') {
+      setTemplate(`Provider: ${provider.name}\nDate: ${new Date().toLocaleDateString()}\n\nChief Complaint: \nMedical History: \nRestorative History: \nPerio Charting: \nX-ray Review: \nAssessment: \nTreatment Plan: \nPatient Accepted Care: `);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    await saveNoteDraft(patientId, {
+      note,
+      providerId: provider.id,
+      timestamp: new Date().toISOString(),
+      status: 'draft',
+    });
+  };
+
+  const handleFinalize = async () => {
+    await finalizeNote(patientId, {
+      note,
+      providerId: provider.id,
+      timestamp: new Date().toISOString(),
+      status: 'finalized',
+    });
+    setIsApproved(true);
+  };
+
+  return (
+    <div className="p-4 rounded-lg shadow bg-white">
+      <h2 className="text-xl font-bold mb-2">Patient Notes</h2>
+      <button onClick={() => handleTemplateLoad('comprehensive')} className="btn mb-2">Load Exam Template</button>
+      <textarea
+        value={note || template}
+        onChange={(e) => setNote(e.target.value)}
+        rows={12}
+        className="w-full border rounded p-2"
+        placeholder="Write or dictate your notes here..."
+      />
+      <div className="flex justify-between mt-4">
+        <button onClick={startListening} disabled={listening} className="btn">Start Voice</button>
+        <button onClick={stopListening} disabled={!listening} className="btn">Stop Voice</button>
+        <button onClick={handleSaveDraft} className="btn">Save Draft</button>
+        <button onClick={handleFinalize} disabled={isApproved} className="btn btn-primary">Finalize & Approve</button>
+      </div>
+      {isApproved && <p className="text-green-600 mt-2">Note finalized and locked by provider.</p>}
+    </div>
+  );
+}
