@@ -52,6 +52,9 @@ app.get('/api-health', (req, res) => {
 // Setup authentication on the router
 setupAuth(router);
 
+// Mount the authentication endpoints directly to make them accessible without /api prefix
+app.use("/auth", router);
+
 // Patient routes
 router.post("/patients", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
   try {

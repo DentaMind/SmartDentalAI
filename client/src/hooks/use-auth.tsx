@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '@/lib/api';
+import axios from 'axios';
 
 // Type guard for axios error responses
 function isAxiosError(error: any): error is { response?: { status: number; data?: any } } {
@@ -81,7 +82,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check the server session status regardless of local storage
     (async () => {
       try {
-        const response = await api.get('/user');
+        const response = await axios.get('/user', {
+          withCredentials: true
+        });
         if (response.status === 200) {
           // Update user from server data, which is the source of truth
           setUser(response.data);
@@ -109,10 +112,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       console.log("Auth hook: Attempting login for user:", username);
       
-      const response = await api.post('/auth/login', { 
+      // Using /auth/login path instead of /api/auth/login since auth routes are mounted directly
+      const response = await axios.post('/auth/login', { 
         username, 
         password,
         mfaCode
+      }, {
+        withCredentials: true // Include cookies with cross-origin requests
       });
       
       const userData = response.data;
@@ -184,7 +190,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     
     try {
-      const response = await api.post('/auth/register', userData);
+      // Using direct /auth/register path instead of /api/auth/register 
+      const response = await axios.post('/auth/register', userData, {
+        withCredentials: true // Include cookies with cross-origin requests
+      });
       const data = response.data;
       
       // Store user data
@@ -218,7 +227,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try {
       // Call the logout endpoint
-      await api.post('/auth/logout');
+      await axios.post('/auth/logout', {}, {
+        withCredentials: true
+      });
     } catch (err: unknown) {
       console.error('Logout error:', err);
     } finally {
@@ -232,7 +243,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // For session-based auth, we just need to check if the session is still valid
       console.log('Attempting to refresh authentication status');
-      const response = await api.get('/user');
+      const response = await axios.get('/user', {
+        withCredentials: true
+      });
       
       if (response.status === 200) {
         console.log('Authentication refreshed successfully');
@@ -271,7 +284,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const setupMFA = async (): Promise<MFASetupData> => {
     try {
-      const response = await api.post('/auth/mfa/setup');
+      const response = await axios.post('/auth/mfa/setup', {}, {
+        withCredentials: true
+      });
       return response.data;
     } catch (err: unknown) {
       let message = 'MFA setup failed';
@@ -289,7 +304,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const enableMFA = async (verificationCode: string): Promise<void> => {
     try {
-      await api.post('/auth/mfa/enable', { verificationCode });
+      await axios.post('/auth/mfa/enable', { verificationCode }, {
+        withCredentials: true
+      });
     } catch (err: unknown) {
       let message = 'Failed to enable MFA';
       
@@ -306,7 +323,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const disableMFA = async (password: string): Promise<void> => {
     try {
-      await api.post('/auth/mfa/disable', { password });
+      await axios.post('/auth/mfa/disable', { password }, {
+        withCredentials: true
+      });
     } catch (err: unknown) {
       let message = 'Failed to disable MFA';
       
@@ -323,9 +342,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
     try {
-      await api.post('/auth/password/change', { 
+      await axios.post('/auth/password/change', { 
         currentPassword, 
         newPassword 
+      }, {
+        withCredentials: true
       });
     } catch (err: unknown) {
       let message = 'Password change failed';

@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Create an axios instance with default configurations
 export const api = axios.create({
-  baseURL: '/',
+  baseURL: '/api', // Using /api prefix for server-side API routes
   timeout: 10000, // Reduced timeout to avoid long-running requests
   headers: {
     'Content-Type': 'application/json',
@@ -18,7 +18,6 @@ export const api = axios.create({
 export async function fetchPatients() {
   try {
     console.log('Requesting patients data...');
-    // Changed endpoint to match server route definition
     const response = await api.get('/patients');
     console.log('Raw patients API response:', response.data);
     
@@ -121,18 +120,11 @@ api.interceptors.response.use(
         error.message || 
         'An unknown error occurred';
       
-      // Add the error message to the error object for more readable access
-      error.displayMessage = errorMessage;
-      
+      // Log the error message, but don't modify the error object
       console.error('API Error:', errorMessage);
     } else {
       // Handle non-Axios errors
       console.error('Non-Axios error occurred:', error);
-      if (error instanceof Error) {
-        error.displayMessage = error.message;
-      } else {
-        error.displayMessage = 'Unknown error occurred';
-      }
     }
     
     return Promise.reject(error);
