@@ -10,6 +10,9 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
 import { CheckCircle, AlertCircle, Calendar, Upload, ZoomIn, ZoomOut, Layers } from "lucide-react";
 
+// Re-export as default for backward compatibility
+export { PatientXrays as default };
+
 interface XrayImage {
   id: number;
   patientId: number;
@@ -34,7 +37,7 @@ interface PatientXraysProps {
   showChartingOverlay?: boolean;
 }
 
-export default function PatientXrays({ patientId, showChartingOverlay = false }: PatientXraysProps) {
+export function PatientXrays({ patientId, showChartingOverlay = false }: PatientXraysProps) {
   const [activeXray, setActiveXray] = useState<XrayImage | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [showFindings, setShowFindings] = useState(true);
