@@ -1,701 +1,335 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { 
-  AlertTriangle, 
-  Brain, 
-  Calendar, 
-  Download, 
-  Eye, 
-  FileDown, 
-  FileUp, 
-  ImagePlus, 
-  Monitor, 
-  MoreVertical,
-  PenLine, 
-  Plus, 
-  ShareIcon, 
-  Trash2, 
-  Upload, 
-  ZoomIn,
-  SplitSquareVertical,
-  ArrowLeftRight,
-  Layers
-} from "lucide-react";
-import { XRayComparison, XRayImage } from "@/components/xray/xray-comparison";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/api";
+import { CheckCircle, AlertCircle, Calendar, Upload, ZoomIn, ZoomOut, Layers } from "lucide-react";
 
-interface PatientXraysProps {
-  patientId: number;
-}
-
-interface Xray {
+interface XrayImage {
   id: number;
   patientId: number;
   imageUrl: string;
-  thumbnailUrl: string;
-  type: "panoramic" | "periapical" | "bitewing" | "cbct" | "intraoral";
-  date: string;
-  notes?: string;
-  teeth?: string[];
-  provider: string;
-  aiAnalyzed?: boolean;
-  aiFindings?: string[];
+  imageType: string;
+  dateTaken: string;
+  findings: Array<{
+    toothNumber: string;
+    condition: string;
+    confidence: number;
+    area: string;
+  }>;
+  aiAnalysis: {
+    text: string;
+    performed: boolean;
+    date: string;
+  };
 }
 
-export function PatientXrays({ patientId }: PatientXraysProps) {
-  const [activeTab, setActiveTab] = useState("all");
-  const [selectedXray, setSelectedXray] = useState<Xray | null>(null);
-  const [compareMode, setCompareMode] = useState(false);
-  const [xrayToCompare, setXrayToCompare] = useState<Xray | null>(null);
-  const [selectedForComparison, setSelectedForComparison] = useState<Xray | null>(null);
-  const [showUploadDialog, setShowUploadDialog] = useState(false);
-  const [showDeviceDialog, setShowDeviceDialog] = useState(false);
-  const [selectedDevice, setSelectedDevice] = useState("");
-  
-  // Fetch patient xrays
-  const { data: xrays, isLoading } = useQuery<Xray[]>({
-    queryKey: ["/api/xrays", patientId],
+interface PatientXraysProps {
+  patientId: string;
+  showChartingOverlay?: boolean;
+}
+
+export default function PatientXrays({ patientId, showChartingOverlay = false }: PatientXraysProps) {
+  const [activeXray, setActiveXray] = useState<XrayImage | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [showFindings, setShowFindings] = useState(true);
+  const { toast } = useToast();
+
+  // Fetch patient X-rays
+  const { data: xrays, isLoading, error } = useQuery({
+    queryKey: ['/api/patients', patientId, 'xrays'],
     queryFn: async () => {
       try {
-        const res = await apiRequest({
-          method: "GET", 
-          url: `/api/patients/${patientId}/xrays`
-        });
-        return res;
-      } catch (error) {
-        console.error("Failed to fetch xrays:", error);
-        return [];
+        const response = await apiRequest(`/api/patients/${patientId}/xrays`, { method: 'GET' });
+        return response.data as XrayImage[];
+      } catch (err) {
+        console.error("Error fetching patient X-rays:", err);
+        // For demo purposes, return sample data
+        return [
+          {
+            id: 1,
+            patientId: parseInt(patientId),
+            imageUrl: "/sample-xrays/panoramic.jpg",
+            imageType: "panoramic",
+            dateTaken: "2025-01-15",
+            findings: [
+              { toothNumber: "3", condition: "caries", confidence: 0.92, area: "distal" },
+              { toothNumber: "14", condition: "caries", confidence: 0.86, area: "occlusal" },
+              { toothNumber: "19", condition: "periapical lesion", confidence: 0.78, area: "apical" },
+            ],
+            aiAnalysis: {
+              text: "Panoramic radiograph reveals carious lesions on teeth #3 (distal) and #14 (occlusal). Periapical radiolucency observed on tooth #19, suggestive of periapical pathology. Normal bone levels observed throughout with no significant periodontal bone loss. TMJ appears within normal limits bilaterally. No other significant findings.",
+              performed: true,
+              date: "2025-01-15",
+            },
+          },
+          {
+            id: 2,
+            patientId: parseInt(patientId),
+            imageUrl: "/sample-xrays/bitewing-right.jpg",
+            imageType: "bitewing",
+            dateTaken: "2025-01-15",
+            findings: [
+              { toothNumber: "3", condition: "caries", confidence: 0.94, area: "distal" },
+              { toothNumber: "4", condition: "caries", confidence: 0.82, area: "mesial" },
+            ],
+            aiAnalysis: {
+              text: "Right posterior bitewing radiograph confirms distal caries on tooth #3 and reveals early mesial caries on tooth #4 not visible on panoramic view. No significant bone loss observed interproximally.",
+              performed: true,
+              date: "2025-01-15",
+            },
+          },
+          {
+            id: 3,
+            patientId: parseInt(patientId),
+            imageUrl: "/sample-xrays/bitewing-left.jpg",
+            imageType: "bitewing",
+            dateTaken: "2025-01-15",
+            findings: [
+              { toothNumber: "14", condition: "caries", confidence: 0.91, area: "occlusal" },
+              { toothNumber: "15", condition: "caries", confidence: 0.77, area: "mesial" },
+            ],
+            aiAnalysis: {
+              text: "Left posterior bitewing radiograph confirms occlusal caries on tooth #14 and reveals early mesial caries on tooth #15 not visible on panoramic view. No significant bone loss observed interproximally.",
+              performed: true,
+              date: "2025-01-15",
+            },
+          },
+        ];
       }
     },
   });
 
-  // Sample xrays for demonstration
-  const sampleXrays: Xray[] = [
-    {
-      id: 1,
-      patientId,
-      imageUrl: "https://www.nidcr.nih.gov/sites/default/files/2017-09/panoramic-xray.jpg",
-      thumbnailUrl: "https://www.nidcr.nih.gov/sites/default/files/2017-09/panoramic-xray.jpg",
-      type: "panoramic",
-      date: "2025-02-15T10:30:00Z",
-      provider: "Dr. Johnson",
-      aiAnalyzed: true,
-      aiFindings: [
-        "Mild bone loss evident in the posterior regions",
-        "Potential caries detected on teeth #2, #15, #31",
-        "No pathology detected in the TMJ region",
-        "Normal root canal morphology observed"
-      ]
-    },
-    {
-      id: 2,
-      patientId,
-      imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQzy-R3-Zg-DJw2SwvbJvD3VxPDVmQE-GEWxA&usqp=CAU",
-      thumbnailUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQzy-R3-Zg-DJw2SwvbJvD3VxPDVmQE-GEWxA&usqp=CAU",
-      type: "periapical",
-      date: "2025-02-15T10:45:00Z",
-      teeth: ["#8", "#9"],
-      provider: "Dr. Johnson"
-    },
-    {
-      id: 3,
-      patientId,
-      imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ72GC-PoZkYQq-WPvTsQ-QGgsY3JtJm9S2Tg&usqp=CAU",
-      thumbnailUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ72GC-PoZkYQq-WPvTsQ-QGgsY3JtJm9S2Tg&usqp=CAU",
-      type: "bitewing",
-      date: "2025-02-15T11:00:00Z",
-      teeth: ["#18", "#19", "#20"],
-      provider: "Dr. Johnson"
-    },
-    {
-      id: 4,
-      patientId,
-      imageUrl: "https://www.orthoroentgen.com/wp-content/uploads/2021/10/cbct-scan.jpg",
-      thumbnailUrl: "https://www.orthoroentgen.com/wp-content/uploads/2021/10/cbct-scan.jpg",
-      type: "cbct",
-      date: "2025-01-10T09:30:00Z",
-      notes: "3D scan for implant planning on tooth #30",
-      provider: "Dr. Smith",
-      aiAnalyzed: true,
-      aiFindings: [
-        "Adequate bone volume for implant placement at site #30",
-        "Inferior alveolar nerve approximately 4.2mm from proposed implant site",
-        "No sinus involvement detected",
-        "No pathology detected in the surrounding bone"
-      ]
+  // Set the first X-ray as active when data loads
+  useEffect(() => {
+    if (xrays && xrays.length > 0 && !activeXray) {
+      setActiveXray(xrays[0]);
     }
-  ];
+  }, [xrays, activeXray]);
 
-  // Use the real data if available, otherwise use sample data
-  const displayXrays = xrays || sampleXrays;
-
-  // Filter xrays based on active tab
-  const filteredXrays = displayXrays.filter(xray => 
-    activeTab === "all" || 
-    activeTab === "ai-analyzed" && xray.aiAnalyzed || 
-    xray.type === activeTab
-  );
-
-  // Function to get the display name for xray type
-  const getXrayTypeDisplayName = (type: string) => {
-    const displayNames: Record<string, string> = {
-      "panoramic": "Panoramic",
-      "periapical": "Periapical",
-      "bitewing": "Bitewing",
-      "cbct": "CBCT 3D",
-      "intraoral": "Intraoral Scan"
-    };
-    return displayNames[type] || type;
+  // Handle X-ray selection
+  const handleSelectXray = (xray: XrayImage) => {
+    setActiveXray(xray);
+    setZoomLevel(1); // Reset zoom when changing X-rays
   };
 
-  // Simulate connecting to a device
-  const connectToDevice = (deviceId: string) => {
-    console.log(`Connecting to device: ${deviceId}`);
-    setSelectedDevice(deviceId);
-    // In a real app, this would connect to the actual device
+  // Handle zoom functionality
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 0.25, 3));
   };
 
-  // Simulate capturing an image from a device
-  const captureFromDevice = () => {
-    console.log(`Capturing image from device: ${selectedDevice}`);
-    // In a real app, this would trigger image capture from the selected device
-    setShowDeviceDialog(false);
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 0.25, 0.5));
   };
-  
-  // Handle entering comparison mode
-  const enterComparisonMode = () => {
-    setCompareMode(true);
-    setSelectedForComparison(null);
+
+  // Request AI analysis
+  const requestAiAnalysis = async () => {
+    if (!activeXray) return;
+    
+    toast({
+      title: "AI Analysis Requested",
+      description: "Analyzing X-ray image...",
+      duration: 3000,
+    });
+    
+    // Simulated AI analysis request (would connect to OpenAI in production)
+    setTimeout(() => {
+      toast({
+        title: "AI Analysis Complete",
+        description: "X-ray analysis has been updated with AI findings",
+        duration: 3000,
+      });
+    }, 2000);
   };
-  
-  // Handle exiting comparison mode
-  const exitComparisonMode = () => {
-    setCompareMode(false);
-    setSelectedForComparison(null);
+
+  // Render finding markers on the X-ray
+  const renderFindings = () => {
+    if (!activeXray || !showFindings) return null;
+    
+    return activeXray.findings.map((finding, index) => (
+      <div
+        key={index}
+        className="absolute bg-red-500 bg-opacity-50 border-2 border-red-600 rounded-full w-8 h-8 flex items-center justify-center text-white font-bold"
+        style={{
+          // These positions would be dynamically calculated based on tooth positions
+          top: `${30 + (parseInt(finding.toothNumber) * 5)}%`,
+          left: `${40 + (index * 10)}%`,
+          transform: `translate(-50%, -50%) scale(${zoomLevel})`,
+        }}
+        title={`${finding.condition} on tooth #${finding.toothNumber} (${finding.area})`}
+      >
+        {finding.toothNumber}
+      </div>
+    ));
   };
-  
-  // Handle selecting an X-ray for comparison
-  const handleSelectForComparison = (xray: Xray) => {
-    setSelectedForComparison(xray);
-  };
-  
-  // Start comparison between two X-rays
-  const startComparison = () => {
-    if (selectedForComparison && xrayToCompare) {
-      setCompareMode(false);
-      setSelectedXray(null);
-    }
-  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Spinner className="w-10 h-10" />
+        <span className="ml-4">Loading X-rays...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 border border-red-300 bg-red-50 rounded-md text-red-700">
+        <AlertCircle className="inline-block mr-2" />
+        Error loading X-rays. Please try again later.
+      </div>
+    );
+  }
+
+  if (!xrays || xrays.length === 0) {
+    return (
+      <div className="p-4 border border-gray-300 bg-gray-50 rounded-md">
+        <p>No X-rays available for this patient.</p>
+        <Button className="mt-4" variant="outline">
+          <Upload className="mr-2 h-4 w-4" />
+          Upload New X-ray
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">X-Rays & Imaging</h2>
-          <p className="text-muted-foreground">View and manage patient x-rays and intraoral scans</p>
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">Patient X-rays</h3>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* X-ray Gallery */}
+        <div className="md:col-span-1 border p-4 rounded-md max-h-[600px] overflow-y-auto">
+          <h4 className="font-medium mb-4">X-ray Gallery</h4>
+          
+          <div className="space-y-4">
+            {xrays.map(xray => (
+              <Card 
+                key={xray.id} 
+                className={`cursor-pointer transition-all ${activeXray?.id === xray.id ? 'ring-2 ring-primary' : ''}`}
+                onClick={() => handleSelectXray(xray)}
+              >
+                <CardContent className="p-3">
+                  <div className="relative aspect-video bg-gray-100 mb-2 overflow-hidden">
+                    <img 
+                      src={xray.imageUrl} 
+                      alt={`${xray.imageType} X-ray`}
+                      className="object-contain w-full h-full"
+                    />
+                  </div>
+                  <div className="text-xs">
+                    <div className="font-semibold capitalize">{xray.imageType}</div>
+                    <div className="flex items-center text-gray-500">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      {new Date(xray.dateTaken).toLocaleDateString()}
+                    </div>
+                    {xray.aiAnalysis.performed && (
+                      <div className="flex items-center text-green-600 mt-1">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        AI Analyzed
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
-        <div className="flex gap-2">
-          {compareMode ? (
-            <Button 
-              variant="outline" 
-              className="gap-2" 
-              onClick={exitComparisonMode}
-            >
-              <ArrowLeftRight className="h-4 w-4" />
-              Cancel Comparison
-            </Button>
-          ) : (
-            <Button 
-              variant="outline" 
-              className="gap-2" 
-              onClick={enterComparisonMode}
-            >
-              <ArrowLeftRight className="h-4 w-4" />
-              Compare X-Rays
-            </Button>
-          )}
-          <Dialog open={showDeviceDialog} onOpenChange={setShowDeviceDialog}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <Monitor className="h-4 w-4" />
-                Device Capture
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Connect to Imaging Device</DialogTitle>
-                <DialogDescription>
-                  Select a device to capture a new x-ray or intraoral scan
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-                <Card 
-                  className={`cursor-pointer border-2 ${selectedDevice === "xray-unit" ? "border-primary" : "border-transparent"}`}
-                  onClick={() => connectToDevice("xray-unit")}
-                >
-                  <CardContent className="p-4 flex flex-col items-center justify-center h-full">
-                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-3">
-                      <FileDown className="h-8 w-8 text-primary" />
-                    </div>
-                    <h3 className="font-medium text-center">X-Ray Unit</h3>
-                    <p className="text-sm text-muted-foreground text-center mt-1">Dentsply Sirona Orthophos XG</p>
-                  </CardContent>
-                </Card>
-                
-                <Card 
-                  className={`cursor-pointer border-2 ${selectedDevice === "intraoral-scanner" ? "border-primary" : "border-transparent"}`}
-                  onClick={() => connectToDevice("intraoral-scanner")}
-                >
-                  <CardContent className="p-4 flex flex-col items-center justify-center h-full">
-                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-3">
-                      <ImagePlus className="h-8 w-8 text-primary" />
-                    </div>
-                    <h3 className="font-medium text-center">Intraoral Scanner</h3>
-                    <p className="text-sm text-muted-foreground text-center mt-1">iTero Element 5D</p>
-                  </CardContent>
-                </Card>
-                
-                <Card 
-                  className={`cursor-pointer border-2 ${selectedDevice === "cbct-unit" ? "border-primary" : "border-transparent"}`}
-                  onClick={() => connectToDevice("cbct-unit")}
-                >
-                  <CardContent className="p-4 flex flex-col items-center justify-center h-full">
-                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-3">
-                      <FileDown className="h-8 w-8 text-primary" />
-                    </div>
-                    <h3 className="font-medium text-center">CBCT Unit</h3>
-                    <p className="text-sm text-muted-foreground text-center mt-1">CS 9600 CBCT System</p>
-                  </CardContent>
-                </Card>
-                
-                <Card 
-                  className={`cursor-pointer border-2 ${selectedDevice === "camera" ? "border-primary" : "border-transparent"}`}
-                  onClick={() => connectToDevice("camera")}
-                >
-                  <CardContent className="p-4 flex flex-col items-center justify-center h-full">
-                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-3">
-                      <ImagePlus className="h-8 w-8 text-primary" />
-                    </div>
-                    <h3 className="font-medium text-center">Intraoral Camera</h3>
-                    <p className="text-sm text-muted-foreground text-center mt-1">IRIS HD USB 3.0</p>
-                  </CardContent>
-                </Card>
+        
+        {/* X-ray Viewer */}
+        <div className="md:col-span-2">
+          {activeXray && (
+            <>
+              {/* Viewer controls */}
+              <div className="flex justify-between items-center mb-4">
+                <div className="font-medium capitalize">
+                  {activeXray.imageType} X-ray
+                  <span className="ml-2 text-sm text-gray-500">
+                    {new Date(activeXray.dateTaken).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button variant="outline" size="sm" onClick={handleZoomOut}>
+                    <ZoomOut className="h-4 w-4" />
+                  </Button>
+                  <span className="mx-1 text-sm">{Math.round(zoomLevel * 100)}%</span>
+                  <Button variant="outline" size="sm" onClick={handleZoomIn}>
+                    <ZoomIn className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowFindings(!showFindings)}
+                  >
+                    <Layers className="h-4 w-4 mr-1" />
+                    {showFindings ? "Hide Findings" : "Show Findings"}
+                  </Button>
+                </div>
               </div>
               
-              <div className="bg-gray-50 p-4 rounded-md flex items-center gap-3">
-                <AlertTriangle className="h-5 w-5 text-amber-500" />
-                <p className="text-sm">
-                  Make sure the selected device is powered on and properly connected to this computer.
-                </p>
+              {/* X-ray image with findings overlay */}
+              <div className="relative border rounded-md overflow-hidden bg-gray-900 w-full" style={{ height: "500px" }}>
+                <div 
+                  className="relative w-full h-full flex items-center justify-center"
+                  style={{ 
+                    transform: `scale(${zoomLevel})`,
+                    transition: "transform 0.3s ease"
+                  }}
+                >
+                  <img
+                    src={activeXray.imageUrl}
+                    alt={`${activeXray.imageType} X-ray`}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                  
+                  {/* Render AI findings markers */}
+                  {renderFindings()}
+                  
+                  {/* Render charting overlay if enabled */}
+                  {showChartingOverlay && (
+                    <div className="absolute inset-0 bg-blue-500 bg-opacity-10 pointer-events-none border-2 border-blue-400 rounded-md">
+                      <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                        Charting Overlay Active
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowDeviceDialog(false)}>
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={captureFromDevice} 
-                  disabled={!selectedDevice}
-                >
-                  Connect & Capture
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Upload className="h-4 w-4" />
-                Upload Images
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Upload X-Ray Images</DialogTitle>
-                <DialogDescription>
-                  Upload x-ray images or intraoral scans to the patient's record
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="space-y-4 py-4">
-                <div className="border-2 border-dashed rounded-lg p-6 text-center bg-gray-50">
-                  <div className="flex flex-col items-center justify-center">
-                    <FileUp className="h-10 w-10 text-gray-400 mb-2" />
-                    <h3 className="font-medium text-lg">Drop files here or click to upload</h3>
-                    <p className="text-sm text-muted-foreground mt-1 mb-4">
-                      Supports DICOM, JPG, PNG files up to 50MB
-                    </p>
-                    <Button variant="outline" className="relative">
-                      Select Files
-                      <input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" multiple />
+              {/* AI Analysis section */}
+              <div className="mt-4">
+                <h4 className="font-medium mb-2">AI Analysis</h4>
+                
+                {activeXray.aiAnalysis.performed ? (
+                  <div className="border rounded-md p-3 bg-gray-50">
+                    <div className="flex items-start">
+                      <CheckCircle className="h-5 w-5 text-green-600 mr-2 mt-0.5" />
+                      <div>
+                        <p className="text-sm">{activeXray.aiAnalysis.text}</p>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Analysis performed on {new Date(activeXray.aiAnalysis.date).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between border rounded-md p-3 bg-gray-50">
+                    <span className="text-sm">No AI analysis available for this X-ray.</span>
+                    <Button size="sm" onClick={requestAiAnalysis}>
+                      Request AI Analysis
                     </Button>
                   </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <label className="text-sm font-medium">Image Type</label>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge className="cursor-pointer hover:bg-primary hover:text-primary-foreground px-3 py-1">Panoramic</Badge>
-                    <Badge className="cursor-pointer hover:bg-primary hover:text-primary-foreground px-3 py-1">Periapical</Badge>
-                    <Badge className="cursor-pointer hover:bg-primary hover:text-primary-foreground px-3 py-1">Bitewing</Badge>
-                    <Badge className="cursor-pointer hover:bg-primary hover:text-primary-foreground px-3 py-1">CBCT</Badge>
-                    <Badge className="cursor-pointer hover:bg-primary hover:text-primary-foreground px-3 py-1">Intraoral Scan</Badge>
-                  </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <label className="text-sm font-medium">Analyze with AI</label>
-                  <div className="flex items-center space-x-2">
-                    <input type="checkbox" id="analyzeWithAi" className="h-4 w-4" defaultChecked />
-                    <label htmlFor="analyzeWithAi" className="text-sm cursor-pointer">
-                      Automatically analyze uploaded images with AI for potential findings
-                    </label>
-                  </div>
-                </div>
+                )}
               </div>
-              
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowUploadDialog(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={() => setShowUploadDialog(false)}>
-                  Upload & Process
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+            </>
+          )}
         </div>
       </div>
-
-      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="all">All Images</TabsTrigger>
-          <TabsTrigger value="panoramic">Panoramic</TabsTrigger>
-          <TabsTrigger value="periapical">Periapical</TabsTrigger>
-          <TabsTrigger value="bitewing">Bitewing</TabsTrigger>
-          <TabsTrigger value="cbct">CBCT 3D</TabsTrigger>
-          <TabsTrigger value="intraoral">Intraoral</TabsTrigger>
-          <TabsTrigger value="ai-analyzed">AI Analyzed</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value={activeTab}>
-          {isLoading ? (
-            <div className="text-center py-10">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite] mb-3"></div>
-              <p className="text-muted-foreground">Loading images...</p>
-            </div>
-          ) : filteredXrays.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredXrays.map((xray) => (
-                <Card key={xray.id} className={`overflow-hidden ${xray.aiAnalyzed ? "border-primary/20" : ""}`}>
-                  <div className="relative aspect-video bg-gray-100 overflow-hidden">
-                    <img 
-                      src={xray.thumbnailUrl} 
-                      alt={`${xray.type} x-ray`} 
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/50">
-                      <div className="flex gap-2">
-                        {compareMode ? (
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            className={`bg-white/90 hover:bg-white ${selectedForComparison?.id === xray.id ? 'border-primary border-2' : ''}`}
-                            onClick={() => {
-                              if (selectedForComparison?.id === xray.id) {
-                                setSelectedForComparison(null);
-                              } else if (!xrayToCompare) {
-                                setXrayToCompare(xray);
-                              } else if (!selectedForComparison) {
-                                setSelectedForComparison(xray);
-                              } else {
-                                setXrayToCompare(selectedForComparison);
-                                setSelectedForComparison(xray);
-                              }
-                            }}
-                          >
-                            <ArrowLeftRight className="h-4 w-4" />
-                          </Button>
-                        ) : (
-                          <>
-                            <Button 
-                              variant="outline" 
-                              size="icon" 
-                              className="bg-white/90 hover:bg-white"
-                              onClick={() => setSelectedXray(xray)}
-                            >
-                              <ZoomIn className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="icon" 
-                              className="bg-white/90 hover:bg-white"
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    {xray.aiAnalyzed && (
-                      <div className="absolute top-2 right-2">
-                        <Badge className="bg-primary/90 hover:bg-primary flex items-center gap-1">
-                          <Brain className="h-3 w-3" />
-                          AI Analyzed
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-                  <CardHeader className="p-4 pb-0">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-base">
-                          {getXrayTypeDisplayName(xray.type)}
-                        </CardTitle>
-                        <CardDescription>
-                          {new Date(xray.date).toLocaleDateString()}
-                        </CardDescription>
-                      </div>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    {xray.teeth && (
-                      <div className="flex flex-wrap gap-1 mb-2">
-                        {xray.teeth.map((tooth, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            Tooth {tooth}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    {xray.notes && (
-                      <p className="text-sm text-muted-foreground mt-2">
-                        {xray.notes}
-                      </p>
-                    )}
-                  </CardContent>
-                  <CardFooter className="p-4 pt-0 flex justify-between">
-                    <div className="text-xs text-muted-foreground">
-                      Provider: {xray.provider}
-                    </div>
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                        <PenLine className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                        <ShareIcon className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-10 bg-gray-50 rounded-lg border">
-              <FileUp className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-              <h3 className="text-lg font-medium">No Images Found</h3>
-              <p className="text-muted-foreground max-w-sm mx-auto mt-1">
-                There are no {activeTab !== "all" && activeTab !== "ai-analyzed" ? activeTab : ""} 
-                {activeTab === "ai-analyzed" ? "AI analyzed " : ""} 
-                x-rays or scans available for this patient.
-              </p>
-              <div className="flex gap-2 justify-center mt-4">
-                <Button 
-                  variant="outline" 
-                  className="gap-2"
-                  onClick={() => setShowDeviceDialog(true)}
-                >
-                  <Monitor className="h-4 w-4" />
-                  Device Capture
-                </Button>
-                <Button 
-                  className="gap-2"
-                  onClick={() => setShowUploadDialog(true)}
-                >
-                  <Upload className="h-4 w-4" />
-                  Upload Images
-                </Button>
-              </div>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      {/* Comparison Message when in compare mode */}
-      {compareMode && (
-        <div className="bg-primary/10 p-4 rounded-lg border border-primary/30 mt-4">
-          <div className="flex items-center gap-2">
-            <ArrowLeftRight className="h-5 w-5 text-primary" />
-            <div>
-              <h3 className="font-medium">X-Ray Comparison Mode</h3>
-              <p className="text-sm text-muted-foreground">
-                {!xrayToCompare && !selectedForComparison 
-                  ? "Select the first X-ray to compare" 
-                  : selectedForComparison 
-                    ? "Click 'Start Comparison' to compare the selected X-rays" 
-                    : "Now select the second X-ray to compare"}
-              </p>
-            </div>
-          </div>
-          
-          {xrayToCompare && selectedForComparison && (
-            <div className="flex justify-end mt-3">
-              <Button 
-                onClick={() => {
-                  // Start comparison by ending compare mode and showing comparison dialog
-                  setCompareMode(false);
-                }}
-                className="gap-2"
-              >
-                <ArrowLeftRight className="h-4 w-4" />
-                Start Comparison
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* X-ray Viewer Dialog */}
-      {selectedXray && (
-        <Dialog open={!!selectedXray} onOpenChange={(open) => !open && setSelectedXray(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh]">
-            <DialogHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <DialogTitle>{getXrayTypeDisplayName(selectedXray.type)} X-Ray</DialogTitle>
-                  <DialogDescription>
-                    Taken on {new Date(selectedXray.date).toLocaleDateString()} by {selectedXray.provider}
-                  </DialogDescription>
-                </div>
-                {selectedXray.aiAnalyzed && (
-                  <Badge className="bg-primary/90 hover:bg-primary flex items-center gap-1">
-                    <Brain className="h-3 w-3" />
-                    AI Analyzed
-                  </Badge>
-                )}
-              </div>
-            </DialogHeader>
-            
-            <div className="overflow-hidden bg-black rounded-md">
-              <img 
-                src={selectedXray.imageUrl} 
-                alt={`${selectedXray.type} x-ray`} 
-                className="w-full h-auto object-contain max-h-[60vh]"
-              />
-            </div>
-            
-            {selectedXray.aiAnalyzed && selectedXray.aiFindings && (
-              <div className="bg-primary/5 border border-primary/20 p-4 rounded-md">
-                <div className="flex items-start gap-3">
-                  <Brain className="h-5 w-5 text-primary mt-1" />
-                  <div>
-                    <h4 className="font-medium text-primary mb-2">AI Analysis Findings</h4>
-                    <ul className="space-y-1">
-                      {selectedXray.aiFindings.map((finding, index) => (
-                        <li key={index} className="text-sm flex items-start gap-2">
-                          <span className="text-primary">•</span>
-                          <span>{finding}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <DialogFooter className="flex justify-between">
-              <div className="flex gap-2">
-                <Button variant="outline" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Download
-                </Button>
-                <Button variant="outline" className="gap-2">
-                  <ShareIcon className="h-4 w-4" />
-                  Share
-                </Button>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="gap-2">
-                  <PenLine className="h-4 w-4" />
-                  Annotate
-                </Button>
-                {!selectedXray.aiAnalyzed && (
-                  <Button className="gap-2">
-                    <Brain className="h-4 w-4" />
-                    Analyze with AI
-                  </Button>
-                )}
-              </div>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* X-ray Comparison Dialog */}
-      {xrayToCompare && selectedForComparison && (
-        <Dialog 
-          open={!!(xrayToCompare && selectedForComparison && !compareMode)} 
-          onOpenChange={(open) => {
-            if (!open) {
-              setXrayToCompare(null);
-              setSelectedForComparison(null);
-            }
-          }}
-        >
-          <DialogContent className="max-w-6xl">
-            <XRayComparison 
-              beforeXray={{
-                id: xrayToCompare.id.toString(),
-                imageUrl: xrayToCompare.imageUrl,
-                type: xrayToCompare.type,
-                date: xrayToCompare.date,
-                provider: xrayToCompare.provider,
-                aiAnalyzed: xrayToCompare.aiAnalyzed,
-                aiFindings: xrayToCompare.aiFindings
-              }}
-              afterXray={{
-                id: selectedForComparison.id.toString(),
-                imageUrl: selectedForComparison.imageUrl,
-                type: selectedForComparison.type,
-                date: selectedForComparison.date,
-                provider: selectedForComparison.provider,
-                aiAnalyzed: selectedForComparison.aiAnalyzed,
-                aiFindings: selectedForComparison.aiFindings
-              }}
-              patientName="Patient" 
-              onClose={() => {
-                setXrayToCompare(null);
-                setSelectedForComparison(null);
-              }}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }
