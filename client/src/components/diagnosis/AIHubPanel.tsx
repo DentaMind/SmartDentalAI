@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   AlertCircle, 
   Calendar, 
@@ -19,7 +20,11 @@ import {
   User,
   X, 
   ChevronRight,
-  AlertTriangle
+  AlertTriangle,
+  Brain,
+  Activity,
+  CreditCard,
+  Clock4
 } from "lucide-react";
 // Use a custom tooth icon since lucide-react doesn't have one built-in
 const ToothIcon = () => (

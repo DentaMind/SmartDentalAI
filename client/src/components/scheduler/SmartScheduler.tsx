@@ -124,7 +124,7 @@ export default function SmartScheduler() {
       fetchAppointments();
     }
   };
-
+  
   const handleDragStart = (appt: Appointment, e: React.MouseEvent) => {
     e.preventDefault();
     if (appt.isBlockOut) return; // Don't allow dragging of block-out times
