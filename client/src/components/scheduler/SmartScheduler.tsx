@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Calendar, Clock, User, AlertCircle, Phone, CreditCard } from "lucide-react";
+import { Calendar, Clock, User, AlertCircle, Phone, CreditCard, Clock4, AlertTriangle, Bell, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
