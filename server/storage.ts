@@ -1036,6 +1036,177 @@ export class MemStorage implements IStorage {
     if (charts.length === 0) return undefined;
     return charts[0]; // Already sorted by date descending in getPatientPeriodontalCharts
   }
+
+  // Restorative Chart Entry management
+  async createRestorativeChartEntry(entry: InsertRestorativeChartEntry): Promise<RestorativeChartEntry> {
+    const id = this.currentId++;
+    const newEntry = {
+      id,
+      ...entry,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.restorativeChartEntries.set(id, newEntry);
+    return newEntry;
+  }
+
+  async getRestorativeChartEntry(id: number): Promise<RestorativeChartEntry | undefined> {
+    return this.restorativeChartEntries.get(id);
+  }
+
+  async getPatientRestorativeChartEntries(patientId: number): Promise<RestorativeChartEntry[]> {
+    return Array.from(this.restorativeChartEntries.values())
+      .filter(entry => entry.patientId === patientId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()); // Most recent first
+  }
+
+  async getPatientRestorativeChartEntriesByTooth(patientId: number, toothNumber: string): Promise<RestorativeChartEntry[]> {
+    return Array.from(this.restorativeChartEntries.values())
+      .filter(entry => entry.patientId === patientId && entry.toothNumber === toothNumber)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()); // Most recent first
+  }
+
+  async updateRestorativeChartEntry(id: number, updates: Partial<RestorativeChartEntry>): Promise<RestorativeChartEntry | undefined> {
+    const entry = this.restorativeChartEntries.get(id);
+    if (!entry) return undefined;
+
+    const updatedEntry = {
+      ...entry,
+      ...updates,
+      updatedAt: new Date()
+    };
+    this.restorativeChartEntries.set(id, updatedEntry);
+    return updatedEntry;
+  }
+
+  // Perio Chart Entry management
+  async createPerioChartEntry(entry: InsertPerioChartEntry): Promise<PerioChartEntry> {
+    const id = this.currentId++;
+    const newEntry = {
+      id,
+      ...entry,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.perioChartEntries.set(id, newEntry);
+    return newEntry;
+  }
+
+  async getPerioChartEntry(id: number): Promise<PerioChartEntry | undefined> {
+    return this.perioChartEntries.get(id);
+  }
+
+  async getPatientPerioChartEntries(patientId: number): Promise<PerioChartEntry[]> {
+    return Array.from(this.perioChartEntries.values())
+      .filter(entry => entry.patientId === patientId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()); // Most recent first
+  }
+
+  async getPatientPerioChartEntriesByTooth(patientId: number, toothNumber: string): Promise<PerioChartEntry[]> {
+    return Array.from(this.perioChartEntries.values())
+      .filter(entry => entry.patientId === patientId && entry.toothNumber === toothNumber)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()); // Most recent first
+  }
+
+  async updatePerioChartEntry(id: number, updates: Partial<PerioChartEntry>): Promise<PerioChartEntry | undefined> {
+    const entry = this.perioChartEntries.get(id);
+    if (!entry) return undefined;
+
+    const updatedEntry = {
+      ...entry,
+      ...updates,
+      updatedAt: new Date()
+    };
+    this.perioChartEntries.set(id, updatedEntry);
+    return updatedEntry;
+  }
+
+  // X-ray AI Findings management
+  async createXrayAiFinding(finding: InsertXrayAiFinding): Promise<XrayAiFinding> {
+    const id = this.currentId++;
+    const newFinding = {
+      id,
+      ...finding,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.xrayAiFindings.set(id, newFinding);
+    return newFinding;
+  }
+
+  async getXrayAiFinding(id: number): Promise<XrayAiFinding | undefined> {
+    return this.xrayAiFindings.get(id);
+  }
+
+  async getXrayAiFindings(xrayId: number): Promise<XrayAiFinding[]> {
+    return Array.from(this.xrayAiFindings.values())
+      .filter(finding => finding.xrayId === xrayId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()); // Most recent first
+  }
+
+  async updateXrayAiFinding(id: number, updates: Partial<XrayAiFinding>): Promise<XrayAiFinding | undefined> {
+    const finding = this.xrayAiFindings.get(id);
+    if (!finding) return undefined;
+
+    const updatedFinding = {
+      ...finding,
+      ...updates,
+      updatedAt: new Date()
+    };
+    this.xrayAiFindings.set(id, updatedFinding);
+    return updatedFinding;
+  }
+
+  // Charting Notes management
+  async createChartingNote(note: InsertChartingNote): Promise<ChartingNote> {
+    const id = this.currentId++;
+    const newNote = {
+      id,
+      ...note,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.chartingNotes.set(id, newNote);
+    return newNote;
+  }
+
+  async getChartingNote(id: number): Promise<ChartingNote | undefined> {
+    return this.chartingNotes.get(id);
+  }
+
+  async getPatientChartingNotes(patientId: number): Promise<ChartingNote[]> {
+    return Array.from(this.chartingNotes.values())
+      .filter(note => note.patientId === patientId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()); // Most recent first
+  }
+
+  async updateChartingNote(id: number, updates: Partial<ChartingNote>): Promise<ChartingNote | undefined> {
+    const note = this.chartingNotes.get(id);
+    if (!note) return undefined;
+
+    const updatedNote = {
+      ...note,
+      ...updates,
+      updatedAt: new Date()
+    };
+    this.chartingNotes.set(id, updatedNote);
+    return updatedNote;
+  }
+
+  async approveChartingNote(id: number, approvedBy: number): Promise<ChartingNote | undefined> {
+    const note = this.chartingNotes.get(id);
+    if (!note) return undefined;
+
+    const updatedNote = {
+      ...note,
+      approved: true,
+      approvedBy,
+      approvedAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.chartingNotes.set(id, updatedNote);
+    return updatedNote;
+  }
 }
 
 export const storage = new MemStorage();
