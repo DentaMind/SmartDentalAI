@@ -1,209 +1,261 @@
 import express from 'express';
 import { z } from 'zod';
-import { db } from '../db';
-import { treatmentPlans, diagnoses } from '@shared/schema';
-import { and, eq } from 'drizzle-orm';
-import { requireAuth, requireRole } from '../middleware/auth';
-import { aiServiceManager } from '../services/ai-service-manager';
-import { securityService } from '../services/security';
+import { storage } from "../storage";
+import axios from 'axios';
 
 const router = express.Router();
 
-// Schema for procedure in a treatment plan
-const procedureSchema = z.object({
-  code: z.string(),
-  description: z.string(),
-  price: z.number(),
-  priority: z.enum(['high', 'medium', 'low']),
-  timing: z.string(),
-  alternatives: z.array(z.string()).optional(),
-  notes: z.string().optional()
+// Function to generate AI treatment plan based on patient data and diagnosis
+async function generateAITreatmentPlan(patientId: number, diagnosisId?: number) {
+  try {
+    // Get patient's diagnostic information and chart data
+    let diagnosis;
+    if (diagnosisId) {
+      diagnosis = await storage.getDiagnosisById(diagnosisId);
+    } else {
+      // Get the most recent diagnosis if no specific one provided
+      const diagnoses = await storage.getDiagnosesForPatient(patientId);
+      if (diagnoses.length > 0) {
+        // Sort by most recent
+        diagnosis = diagnoses.sort((a, b) => 
+          new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        )[0];
+      }
+    }
+    
+    // Get chart data
+    const perioEntries = await storage.getPatientPerioChartEntries(patientId);
+    const restorativeEntries = await storage.getPatientRestorativeChartEntries(patientId);
+    
+    // If no diagnosis exists, cannot generate a treatment plan
+    if (!diagnosis) {
+      return {
+        ai_draft: "No diagnosis available. Please create a diagnosis first.",
+        confidence: 0,
+        reasoning: "A diagnosis is required to generate a treatment plan."
+      };
+    }
+    
+    // Prepare data for AI analysis
+    const patientData = {
+      diagnosis: {
+        condition: diagnosis.condition,
+        explanation: diagnosis.explanation,
+        modifiedExplanation: diagnosis.modifiedExplanation
+      },
+      perioData: perioEntries,
+      restorativeData: restorativeEntries
+    };
+    
+    // Select the appropriate OpenAI API key based on the treatment context
+    const apiKey = process.env.OPENAI_API_KEY_TREATMENT;
+    
+    if (!apiKey) {
+      throw new Error("OpenAI API key not configured for treatment planning");
+    }
+    
+    // Send data to OpenAI API for treatment plan generation
+    const response = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a dental AI assistant that generates treatment plans based on diagnoses and patient data.'
+          },
+          {
+            role: 'user',
+            content: `Generate a detailed dental treatment plan based on the following patient data: ${JSON.stringify(patientData)}`
+          }
+        ],
+        response_format: { type: "json_object" }
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    // Parse and return AI-generated treatment plan
+    const aiResponse = response.data.choices[0].message.content;
+    const parsedResponse = JSON.parse(aiResponse);
+    
+    return {
+      ai_draft: parsedResponse.treatment_plan || "",
+      confidence: parsedResponse.confidence || 75,
+      reasoning: parsedResponse.reasoning || "Based on the diagnosis and chart data"
+    };
+  } catch (error) {
+    console.error("Error generating AI treatment plan:", error);
+    
+    // Return fallback plan if AI generation fails
+    return {
+      ai_draft: "Unable to generate AI treatment plan. Please create one manually.",
+      confidence: 0,
+      reasoning: "There was an error connecting to the AI treatment planning service."
+    };
+  }
+}
+
+// Schema for validating treatment plan approval
+const treatmentPlanApprovalSchema = z.object({
+  finalPlan: z.string(),
+  providerId: z.number().optional(),
+  diagnosisId: z.number().optional()
 });
 
-// Schema for treatment plan
-const treatmentPlanSchema = z.object({
-  patientId: z.string(),
-  title: z.string(),
-  diagnosis: z.string(),
-  procedures: z.array(procedureSchema),
-  reasoning: z.string(),
-  confidence: z.number(),
-  totalCost: z.number(),
-  insuranceCoverage: z.number().optional(),
-  outOfPocket: z.number().optional(),
-  status: z.enum(['draft', 'approved', 'rejected', 'modified']),
-  aiDraft: z.string(),
-  approvedPlan: z.string().optional(),
-  providerNote: z.string().optional()
-});
-
-// Schema for generating a treatment plan
-const generateTreatmentPlanSchema = z.object({
-  patientId: z.string(),
-  includeXrays: z.boolean().default(true),
-  includePerio: z.boolean().default(true),
-  includeRestorative: z.boolean().default(true)
-});
-
-// Schema for approving a treatment plan
-const approveTreatmentPlanSchema = z.object({
-  planId: z.string(),
-  approvedPlan: z.string(),
-  providerNote: z.string().optional()
-});
-
-// Get treatment plans for a patient
-router.get('/:patientId', requireAuth, async (req, res) => {
+// Get treatment plan for a patient
+router.get('/api/treatment-plan/:patientId', async (req, res) => {
   try {
     const patientId = parseInt(req.params.patientId);
     
     if (isNaN(patientId)) {
-      return res.status(400).json({ error: 'Invalid patient ID' });
+      return res.status(400).json({ error: "Invalid patient ID" });
     }
     
-    const plans = await db.query.treatmentPlans.findMany({
-      where: eq(treatmentPlans.patientId, patientId),
-      orderBy: (treatmentPlans, { desc }) => [desc(treatmentPlans.createdAt)]
-    });
+    // Get existing treatment plans
+    const existingPlans = await storage.getPatientTreatmentPlans(patientId);
     
-    return res.json(plans);
+    // If there are recent treatment plans, return the most recent one
+    if (existingPlans.length > 0) {
+      // Sort by most recent
+      const sortedPlans = existingPlans.sort((a, b) => 
+        new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
+      
+      const mostRecent = sortedPlans[0];
+      
+      // If the most recent plan is less than 3 days old, return it
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+      
+      if (new Date(mostRecent.createdAt || 0) > threeDaysAgo) {
+        return res.json({
+          planText: mostRecent.planDetails || "",
+          confidence: 100,
+          reasoning: "Provider-approved treatment plan",
+          status: mostRecent.status
+        });
+      }
+    }
+    
+    // Generate new AI treatment plan
+    const aiPlan = await generateAITreatmentPlan(patientId);
+    
+    res.json({
+      planText: aiPlan.ai_draft,
+      confidence: aiPlan.confidence,
+      reasoning: aiPlan.reasoning,
+      status: "draft"
+    });
   } catch (error) {
-    console.error('Error fetching treatment plans:', error);
-    return res.status(500).json({ error: 'Failed to fetch treatment plans' });
+    console.error("Error retrieving treatment plan:", error);
+    res.status(500).json({ error: "Failed to retrieve treatment plan" });
   }
 });
 
-// Get a specific treatment plan
-router.get('/plan/:id', requireAuth, async (req, res) => {
+// Approve or update a treatment plan
+router.post('/api/treatment-plan/:patientId/approve', async (req, res) => {
   try {
-    const planId = parseInt(req.params.id);
+    const patientId = parseInt(req.params.patientId);
     
-    if (isNaN(planId)) {
-      return res.status(400).json({ error: 'Invalid plan ID' });
+    if (isNaN(patientId)) {
+      return res.status(400).json({ error: "Invalid patient ID" });
     }
     
-    const plan = await db.query.treatmentPlans.findFirst({
-      where: eq(treatmentPlans.id, planId)
-    });
+    const validation = treatmentPlanApprovalSchema.safeParse(req.body);
     
-    if (!plan) {
-      return res.status(404).json({ error: 'Treatment plan not found' });
-    }
-    
-    return res.json(plan);
-  } catch (error) {
-    console.error('Error fetching treatment plan:', error);
-    return res.status(500).json({ error: 'Failed to fetch treatment plan' });
-  }
-});
-
-// Generate a new treatment plan
-router.post('/generate', requireAuth, requireRole(['doctor']), async (req, res) => {
-  try {
-    const { patientId, includeXrays, includePerio, includeRestorative } = 
-      generateTreatmentPlanSchema.parse(req.body);
-    
-    // Get the patient's diagnoses
-    const patientDiagnoses = await db.query.diagnoses.findMany({
-      where: and(
-        eq(diagnoses.patientId, parseInt(patientId)),
-        eq(diagnoses.status, 'approved')
-      ),
-      orderBy: (diagnoses, { desc }) => [desc(diagnoses.createdAt)]
-    });
-    
-    // If no approved diagnoses, return an error
-    if (patientDiagnoses.length === 0) {
+    if (!validation.success) {
       return res.status(400).json({ 
-        error: 'No approved diagnoses found for this patient. Please approve a diagnosis before generating a treatment plan.' 
+        error: "Invalid input", 
+        details: validation.error.format() 
       });
     }
     
-    // Get the most recent approved diagnosis
-    const recentDiagnosis = patientDiagnoses[0];
+    const { finalPlan, providerId = 1, diagnosisId } = validation.data;
     
-    // Use AI service to generate treatment plan
-    const aiTreatmentPlan = await aiServiceManager.generateTreatmentPlan({
-      patientId: parseInt(patientId),
-      diagnosisId: recentDiagnosis.id,
-      includeXrays,
-      includePerio,
-      includeRestorative
-    });
-    
-    // Create a new treatment plan record
-    const newPlan = await db.insert(treatmentPlans).values({
-      patientId: parseInt(patientId),
-      title: aiTreatmentPlan.title || `Treatment Plan for ${recentDiagnosis.condition}`,
-      diagnosis: recentDiagnosis.condition,
-      procedures: aiTreatmentPlan.procedures,
-      reasoning: aiTreatmentPlan.reasoning,
-      confidence: aiTreatmentPlan.confidence || 0.7,
-      totalCost: aiTreatmentPlan.totalCost || 0,
-      status: 'draft',
-      aiDraft: JSON.stringify(aiTreatmentPlan),
-      createdBy: req.user.id,
-      createdAt: new Date()
-    }).returning();
-    
-    return res.status(201).json(newPlan[0]);
-  } catch (error) {
-    console.error('Error generating treatment plan:', error);
-    
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
-    
-    return res.status(500).json({ error: 'Failed to generate treatment plan' });
-  }
-});
-
-// Approve a treatment plan
-router.post('/approve', requireAuth, requireRole(['doctor']), async (req, res) => {
-  try {
-    const { planId, approvedPlan, providerNote } = approveTreatmentPlanSchema.parse(req.body);
-    
-    // Verify the plan exists
-    const plan = await db.query.treatmentPlans.findFirst({
-      where: eq(treatmentPlans.id, parseInt(planId))
-    });
-    
-    if (!plan) {
-      return res.status(404).json({ error: 'Treatment plan not found' });
-    }
-    
-    // Update the plan
-    const securityLog = securityService.logAction({
-      userId: req.user.id,
-      action: 'treatment_plan_approval',
-      resource: `treatment_plan:${planId}`,
-      details: {
-        originalStatus: plan.status,
-        newStatus: 'approved'
+    // Get diagnosis if provided
+    let diagnosisDetails = null;
+    if (diagnosisId) {
+      diagnosisDetails = await storage.getDiagnosisById(diagnosisId);
+    } else {
+      // Get most recent diagnosis
+      const diagnoses = await storage.getDiagnosesForPatient(patientId);
+      if (diagnoses.length > 0) {
+        diagnosisDetails = diagnoses.sort((a, b) => 
+          new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        )[0];
       }
-    });
-    
-    const updatedPlan = await db.update(treatmentPlans)
-      .set({
-        status: 'approved',
-        approvedPlan,
-        providerNote,
-        approvedBy: req.user.id,
-        approvedAt: new Date(),
-        updatedAt: new Date()
-      })
-      .where(eq(treatmentPlans.id, parseInt(planId)))
-      .returning();
-    
-    return res.json(updatedPlan[0]);
-  } catch (error) {
-    console.error('Error approving treatment plan:', error);
-    
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
     }
     
-    return res.status(500).json({ error: 'Failed to approve treatment plan' });
+    // Create the treatment plan
+    const newPlan = await storage.createTreatmentPlan({
+      patientId,
+      doctorId: providerId,
+      diagnosis: diagnosisDetails ? diagnosisDetails.condition : "Based on clinical examination",
+      procedures: [],
+      cost: 0, // Will be calculated later
+      planDetails: finalPlan,
+      status: "accepted",
+      startDate: new Date(),
+      endDate: null,
+      notes: "Provider approved treatment plan",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      appointmentsRequired: 1,
+      totalAppointments: 1,
+      appointmentsCompleted: 0,
+      patientAccepted: false,
+      paymentPlanOffered: false,
+      paymentPlanAccepted: false,
+      insuranceVerified: false,
+      insuranceStatus: null,
+      insuranceApprovalDate: null,
+      insuranceRejectionReason: null,
+      estimatedInsuranceCoverage: 0,
+      patientResponsibility: 0,
+      urgency: "normal",
+      complexity: "moderate",
+      treatmentType: "restorative",
+      isComplete: false,
+      completionDate: null,
+      followUpRequired: false,
+      followUpDate: null,
+      followUpNotes: null,
+      attachments: [],
+      relatedXrayIds: [],
+      patientConsent: false,
+      patientConsentDate: null,
+      consentFormPath: null,
+      createdBy: providerId
+    });
+    
+    // Create charting note for the treatment plan approval
+    await storage.createChartingNote({
+      patientId,
+      providerId,
+      title: "Treatment Plan Approved",
+      noteBody: `Treatment Plan Approved: \n\n${finalPlan}`,
+      source: "charting",
+      status: "approved",
+      approved: true,
+      approvedBy: providerId,
+      approvedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    
+    res.json({ 
+      success: true, 
+      message: "Treatment plan approved",
+      plan: newPlan
+    });
+  } catch (error) {
+    console.error("Error approving treatment plan:", error);
+    res.status(500).json({ error: "Failed to approve treatment plan" });
   }
 });
 
