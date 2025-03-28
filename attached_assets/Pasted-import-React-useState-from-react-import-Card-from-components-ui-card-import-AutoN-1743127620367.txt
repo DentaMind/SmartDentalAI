@@ -1,0 +1,89 @@
+import React, { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { AutoNoteGenerator } from '@/components/patients/notes/AutoNoteGenerator';
+import { useAIChartIntegration } from '@/hooks/useAIChartIntegration';
+
+interface ToothSurface {
+  occlusal: boolean;
+  buccal: boolean;
+  lingual: boolean;
+  mesial: boolean;
+  distal: boolean;
+  label?: string;
+}
+
+interface ToothData {
+  number: number;
+  surfaces: ToothSurface;
+  diagnosis: string;
+  treatment: string;
+}
+
+export const RestorativeChart: React.FC = () => {
+  const [teeth, setTeeth] = useState<ToothData[]>(
+    Array.from({ length: 32 }, (_, i) => ({
+      number: i + 1,
+      surfaces: {
+        occlusal: false,
+        buccal: false,
+        lingual: false,
+        mesial: false,
+        distal: false,
+      },
+      diagnosis: '',
+      treatment: '',
+    }))
+  );
+
+  const { sendToNotes } = useAIChartIntegration();
+
+  const toggleSurface = (index: number, surface: keyof ToothSurface) => {
+    const updated = [...teeth];
+    updated[index].surfaces[surface] = !updated[index].surfaces[surface];
+    setTeeth(updated);
+  };
+
+  const applyTreatment = (index: number, diagnosis: string, treatment: string) => {
+    const updated = [...teeth];
+    updated[index].diagnosis = diagnosis;
+    updated[index].treatment = treatment;
+    setTeeth(updated);
+    sendToNotes(`Tooth #${updated[index].number}: ${diagnosis} → ${treatment}`);
+  };
+
+  return (
+    <div className="grid grid-cols-8 gap-4">
+      {teeth.map((tooth, index) => (
+        <Card key={tooth.number} className="p-2 text-center">
+          <div className="font-bold">#{tooth.number}</div>
+          <div className="grid grid-cols-3 gap-1 text-xs mt-1">
+            {(['occlusal', 'buccal', 'lingual', 'mesial', 'distal'] as (keyof ToothSurface)[]).map((surface) => (
+              <button
+                key={surface}
+                className={`rounded p-1 ${tooth.surfaces[surface] ? 'bg-green-500 text-white' : 'bg-gray-200'}`}
+                onClick={() => toggleSurface(index, surface)}
+              >
+                {surface[0].toUpperCase()}
+              </button>
+            ))}
+          </div>
+          <div className="mt-2 text-xs">
+            <input
+              placeholder="Diagnosis"
+              value={tooth.diagnosis}
+              onChange={(e) => applyTreatment(index, e.target.value, tooth.treatment)}
+              className="border p-1 w-full mb-1"
+            />
+            <input
+              placeholder="Treatment"
+              value={tooth.treatment}
+              onChange={(e) => applyTreatment(index, tooth.diagnosis, e.target.value)}
+              className="border p-1 w-full"
+            />
+          </div>
+        </Card>
+      ))}
+      <AutoNoteGenerator trigger="restorative-chart" />
+    </div>
+  );
+};
