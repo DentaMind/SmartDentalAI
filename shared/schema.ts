@@ -689,6 +689,65 @@ export const insertComplianceRecordSchema = createInsertSchema(complianceRecords
 export const insertPrescriptionSchema = createInsertSchema(prescriptions);
 export const insertPatientNoteSchema = createInsertSchema(patientNotes);
 
+// Tables for our improved charting system
+export const restorativeChartEntries = pgTable("restorative_chart_entries", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  toothNumber: text("tooth_number").notNull(),
+  surfaces: jsonb("surfaces"), // Array of surfaces: ['O', 'M', 'D', 'B', 'L']
+  procedures: jsonb("procedures"), // Array of procedures: ['filling', 'RCT', etc.]
+  providerId: integer("provider_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const perioChartEntries = pgTable("perio_chart_entries", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  toothNumber: text("tooth_number").notNull(),
+  probingValues: jsonb("probing_values"), // Array of 6 integers for 6-point probing
+  bop: jsonb("bop"), // Array of 6 booleans for bleeding on probing
+  mobility: integer("mobility"), // 0-3 scale
+  furcation: integer("furcation"), // 0-3 scale
+  providerId: integer("provider_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const xrayAiFindings = pgTable("xray_ai_findings", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  xrayId: integer("xray_id").notNull().references(() => xrays.id),
+  toothNumber: text("tooth_number"),
+  condition: text("condition"), // e.g., "caries", "bone loss"
+  confidenceScore: real("confidence_score"),
+  aiNotes: text("ai_notes"),
+  overlayPath: text("overlay_path"), // path to visual overlay if stored
+  reviewedBy: integer("reviewed_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const chartingNotes = pgTable("charting_notes", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  title: text("title"),
+  noteBody: text("note_body"),
+  source: text("source", { enum: ["charting", "voice", "template"] }).default("charting"),
+  status: text("status", { enum: ["draft", "approved", "rejected"] }).default("draft"),
+  createdBy: integer("created_by").references(() => users.id),
+  approvedBy: integer("approved_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  approvedAt: timestamp("approved_at"),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Create insert schemas for the new tables
+export const insertRestorativeChartEntrySchema = createInsertSchema(restorativeChartEntries);
+export const insertPerioChartEntrySchema = createInsertSchema(perioChartEntries);
+export const insertXrayAiFindingSchema = createInsertSchema(xrayAiFindings);
+export const insertChartingNoteSchema = createInsertSchema(chartingNotes);
+
 // Insert schemas for new tables
 export const insertTimeClockSchema = createInsertSchema(timeClock).extend({
   workDate: z.string().transform(str => new Date(str)),
@@ -905,6 +964,16 @@ export type OrthodonticCase = typeof orthodonticCases.$inferSelect;
 export type InsertOrthodonticCase = z.infer<typeof insertOrthodonticCaseSchema>;
 export type OrthodonticTelehealthSession = typeof orthodonticTelehealthSessions.$inferSelect;
 export type InsertOrthodonticTelehealthSession = z.infer<typeof insertOrthodonticTelehealthSessionSchema>;
+
+// Types for the new charting system tables
+export type RestorativeChartEntry = typeof restorativeChartEntries.$inferSelect;
+export type InsertRestorativeChartEntry = z.infer<typeof insertRestorativeChartEntrySchema>;
+export type PerioChartEntry = typeof perioChartEntries.$inferSelect;
+export type InsertPerioChartEntry = z.infer<typeof insertPerioChartEntrySchema>;
+export type XrayAiFinding = typeof xrayAiFindings.$inferSelect;
+export type InsertXrayAiFinding = z.infer<typeof insertXrayAiFindingSchema>;
+export type ChartingNote = typeof chartingNotes.$inferSelect;
+export type InsertChartingNote = z.infer<typeof insertChartingNoteSchema>;
 
 // PHARMACY AND E-PRESCRIPTION TABLES
 export const pharmacies = pgTable("pharmacies", {

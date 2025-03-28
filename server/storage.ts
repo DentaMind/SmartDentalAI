@@ -25,6 +25,14 @@ import {
   InsertDiagnosis,
   PeriodontalChart,
   InsertPeriodontalChart,
+  RestorativeChartEntry,
+  InsertRestorativeChartEntry,
+  PerioChartEntry,
+  InsertPerioChartEntry,
+  XrayAiFinding,
+  InsertXrayAiFinding,
+  ChartingNote,
+  InsertChartingNote,
 } from "@shared/schema";
 import createMemoryStore from "memorystore";
 import session from "express-session";
@@ -85,6 +93,10 @@ export class MemStorage implements IStorage {
   private insuranceVerifications: Map<number, InsuranceVerification>;
   private diagnoses: Map<number, Diagnosis>;
   private periodontalCharts: Map<number, PeriodontalChart>;
+  private restorativeChartEntries: Map<number, RestorativeChartEntry>;
+  private perioChartEntries: Map<number, PerioChartEntry>;
+  private xrayAiFindings: Map<number, XrayAiFinding>;
+  private chartingNotes: Map<number, ChartingNote>;
   sessionStore: session.Store;
   currentId: number;
   isInitialized: boolean;
@@ -102,6 +114,10 @@ export class MemStorage implements IStorage {
     this.insuranceVerifications = new Map();
     this.diagnoses = new Map();
     this.periodontalCharts = new Map();
+    this.restorativeChartEntries = new Map();
+    this.perioChartEntries = new Map();
+    this.xrayAiFindings = new Map();
+    this.chartingNotes = new Map();
     this.currentId = 1;
     this.isInitialized = false;
     this.sessionStore = new MemoryStore({

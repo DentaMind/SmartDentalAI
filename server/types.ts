@@ -10,7 +10,15 @@ import {
   Diagnosis,
   InsertDiagnosis,
   PeriodontalChart,
-  InsertPeriodontalChart
+  InsertPeriodontalChart,
+  RestorativeChartEntry,
+  InsertRestorativeChartEntry,
+  PerioChartEntry,
+  InsertPerioChartEntry,
+  XrayAiFinding,
+  InsertXrayAiFinding,
+  ChartingNote,
+  InsertChartingNote
 } from "@shared/schema";
 
 export interface IStorage {
@@ -52,4 +60,31 @@ export interface IStorage {
   getPatientPeriodontalCharts(patientId: number): Promise<PeriodontalChart[]>;
   updatePeriodontalChart(id: number, updates: Partial<PeriodontalChart>): Promise<PeriodontalChart | undefined>;
   getLatestPeriodontalChart(patientId: number): Promise<PeriodontalChart | undefined>;
+  
+  // Restorative Chart Entry management
+  createRestorativeChartEntry(entry: InsertRestorativeChartEntry): Promise<RestorativeChartEntry>;
+  getRestorativeChartEntry(id: number): Promise<RestorativeChartEntry | undefined>;
+  getPatientRestorativeChartEntries(patientId: number): Promise<RestorativeChartEntry[]>;
+  getPatientRestorativeChartEntriesByTooth(patientId: number, toothNumber: string): Promise<RestorativeChartEntry[]>;
+  updateRestorativeChartEntry(id: number, updates: Partial<RestorativeChartEntry>): Promise<RestorativeChartEntry | undefined>;
+  
+  // Perio Chart Entry management
+  createPerioChartEntry(entry: InsertPerioChartEntry): Promise<PerioChartEntry>;
+  getPerioChartEntry(id: number): Promise<PerioChartEntry | undefined>;
+  getPatientPerioChartEntries(patientId: number): Promise<PerioChartEntry[]>;
+  getPatientPerioChartEntriesByTooth(patientId: number, toothNumber: string): Promise<PerioChartEntry[]>;
+  updatePerioChartEntry(id: number, updates: Partial<PerioChartEntry>): Promise<PerioChartEntry | undefined>;
+  
+  // X-ray AI Findings management
+  createXrayAiFinding(finding: InsertXrayAiFinding): Promise<XrayAiFinding>;
+  getXrayAiFinding(id: number): Promise<XrayAiFinding | undefined>;
+  getXrayAiFindings(xrayId: number): Promise<XrayAiFinding[]>;
+  updateXrayAiFinding(id: number, updates: Partial<XrayAiFinding>): Promise<XrayAiFinding | undefined>;
+  
+  // Charting Notes management
+  createChartingNote(note: InsertChartingNote): Promise<ChartingNote>;
+  getChartingNote(id: number): Promise<ChartingNote | undefined>;
+  getPatientChartingNotes(patientId: number): Promise<ChartingNote[]>;
+  updateChartingNote(id: number, updates: Partial<ChartingNote>): Promise<ChartingNote | undefined>;
+  approveChartingNote(id: number, approvedBy: number): Promise<ChartingNote | undefined>;
 }
