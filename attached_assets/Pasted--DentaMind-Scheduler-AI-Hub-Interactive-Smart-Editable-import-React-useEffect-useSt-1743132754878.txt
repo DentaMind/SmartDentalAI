@@ -1,0 +1,77 @@
+// 📅 DentaMind Scheduler & AI Hub: Interactive + Smart + Editable
+
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Pencil, Trash } from "lucide-react";
+
+export default function PatientSchedulerAndAIHub() {
+  const [appointments, setAppointments] = useState([]);
+
+  const fetchAppointments = async () => {
+    const res = await axios.get("/api/schedule");
+    setAppointments(res.data);
+  };
+
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
+
+  const colorMap = {
+    confirmed: "bg-green-100 border-green-600",
+    cancelled: "bg-red-100 border-red-600",
+    no_show: "bg-yellow-100 border-yellow-600",
+    unconfirmed: "bg-gray-200 border-gray-500",
+  };
+
+  const getTooltip = (appt: any) => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="font-bold truncate cursor-pointer">{appt.patientName}</div>
+      </TooltipTrigger>
+      <TooltipContent className="text-sm max-w-[240px]">
+        <div><strong>Phone:</strong> {appt.phone || "-"}</div>
+        <div><strong>Insurance:</strong> {appt.insurance || "-"}</div>
+        <div><strong>Notes:</strong> {appt.notes || "-"}</div>
+        <div><strong>Chart:</strong> <a href={`/patients/${appt.patientId}`} className="text-blue-500 underline">Open</a></div>
+      </TooltipContent>
+    </Tooltip>
+  );
+
+  return (
+    <div className="overflow-x-auto">
+      <div className="grid grid-cols-[100px_repeat(7,minmax(240px,1fr))] border">
+        <div className="bg-gray-100 font-semibold text-sm p-2 border-b">Time</div>
+        {[...Array(7)].map((_, i) => (
+          <div key={i} className="bg-gray-100 text-sm font-semibold p-2 border-b text-center">
+            Provider {i + 1}
+          </div>
+        ))}
+
+        {Array.from({ length: 13 }, (_, i) => 7 + i).map((hour) => (
+          <React.Fragment key={hour}>
+            <div className="border-t border-r text-xs font-medium p-1 bg-gray-50">{hour}:00</div>
+            {[...Array(7)].map((_, colIdx) => (
+              <div
+                key={`${hour}-${colIdx}`}
+                className="border-t border-r h-20 relative group bg-white hover:bg-blue-50 cursor-pointer"
+              >
+                {appointments
+                  .filter((appt) => appt.time === `${hour}:00` && appt.providerIndex === colIdx)
+                  .map((appt, i) => (
+                    <div
+                      key={i}
+                      className={`absolute top-0 left-0 right-0 h-full z-10 px-2 py-1 rounded shadow-md text-xs border ${colorMap[appt.status]}`}
+                    >
+                      {getTooltip(appt)}
+                      <div className="truncate">{appt.reason}</div>
+                    </div>
+                  ))}
+              </div>
+            ))}
+          </React.Fragment>

@@ -1,0 +1,71 @@
+// 🧠 AIHub.tsx
+// Full AI Insights Dashboard: Risk stratification, missed treatments, optimization
+
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+
+export default function AIHub({ patientId }: { patientId: string }) {
+  const [aiInsights, setAiInsights] = useState<any>(null);
+  const [feedback, setFeedback] = useState<string>("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    axios.get(`/api/ai/insights/${patientId}`).then((res) => setAiInsights(res.data));
+  }, [patientId]);
+
+  const submitFeedback = async () => {
+    setSubmitting(true);
+    await axios.post(`/api/ai/feedback/${patientId}`, { feedback });
+    setFeedback("");
+    setSubmitting(false);
+  };
+
+  if (!aiInsights) return <div>Loading AI Hub...</div>;
+
+  return (
+    <div className="grid gap-4">
+      <Card className="p-4">
+        <h2 className="text-xl font-semibold mb-2">Risk Profile</h2>
+        <div className="space-y-1">
+          <Badge className="bg-red-500">Perio: {aiInsights.perioRisk}</Badge>
+          <Badge className="bg-orange-400">Caries: {aiInsights.cariesRisk}</Badge>
+          <Badge className="bg-yellow-300">Systemic Risk: {aiInsights.systemicFlags}</Badge>
+        </div>
+      </Card>
+
+      <Card className="p-4">
+        <h2 className="text-xl font-semibold mb-2">Missed/Delayed Treatments</h2>
+        <ul className="list-disc pl-5 text-sm text-muted-foreground">
+          {aiInsights.missedTreatments.map((item: string, idx: number) => (
+            <li key={idx}>{item}</li>
+          ))}
+        </ul>
+      </Card>
+
+      <Card className="p-4">
+        <h2 className="text-xl font-semibold mb-2">AI Optimization Suggestions</h2>
+        <ul className="list-disc pl-5 text-sm">
+          {aiInsights.optimizations.map((opt: string, idx: number) => (
+            <li key={idx}>{opt}</li>
+          ))}
+        </ul>
+      </Card>
+
+      <Card className="p-4">
+        <h2 className="text-xl font-semibold mb-2">Doctor Feedback to AI</h2>
+        <Textarea
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+          className="min-h-[120px]"
+        />
+        <Button onClick={submitFeedback} disabled={submitting || !feedback} className="mt-2">
+          {submitting ? "Submitting..." : "Submit Feedback"}
+        </Button>
+      </Card>
+    </div>
+  );
+}
