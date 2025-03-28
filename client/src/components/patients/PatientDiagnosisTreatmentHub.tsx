@@ -1,370 +1,154 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import DiagnosisFeedbackUI from "@/components/diagnosis/DiagnosisFeedbackUI";
-import AdvancedTreatmentPlan from "@/components/treatment/AdvancedTreatmentPlan";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from '@/lib/api';
-import { BrainCircuit, FileText, RefreshCw, AlertCircle, Lightbulb } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-
-interface Diagnosis {
-  id: number;
-  patientId: number;
-  condition: string;
-  confidence: number;
-  explanation: string;
-  suggestedTreatments: string[];
-  aiSource: string | null;
-  status: "pending" | "approved" | "rejected" | "modified";
-  providerNote: string | null;
-  accuracyRating: number | null;
-  modifiedDiagnosis: string | null;
-  modifiedExplanation: string | null;
-  createdAt: string;
-  updatedAt: string | null;
-  approvedAt: string | null;
-  approvedBy: number | null;
-}
-
-interface TreatmentPlan {
-  id: string;
-  patientId: string;
-  title: string;
-  diagnosis: string;
-  procedures: any[];
-  reasoning: string;
-  confidence: number;
-  totalCost: number;
-  status: 'draft' | 'approved' | 'rejected' | 'modified';
-  aiDraft: string;
-  approvedPlan?: string;
-  providerNote?: string;
-  createdAt: string;
-  approvedAt?: string;
-  approvedBy?: string;
-}
+import React from "react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import AIHubPanel from "@/components/diagnosis/AIHubPanel";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
+import { LoadingAnimation } from "@/components/ui/loading-animation";
+import axios from "axios";
 
 interface PatientDiagnosisTreatmentHubProps {
   patientId: number;
-  patientName?: string;
+  patientName: string;
 }
 
-const PatientDiagnosisTreatmentHub: React.FC<PatientDiagnosisTreatmentHubProps> = ({ 
-  patientId,
-  patientName
-}) => {
-  const [activeTab, setActiveTab] = useState('diagnoses');
-  const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
-  const [treatmentPlans, setTreatmentPlans] = useState<TreatmentPlan[]>([]);
-  const [isLoadingDiagnoses, setIsLoadingDiagnoses] = useState(true);
-  const [isLoadingPlans, setIsLoadingPlans] = useState(true);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    fetchDiagnoses();
-    fetchTreatmentPlans();
-  }, [patientId]);
-
-  const fetchDiagnoses = async () => {
-    setIsLoadingDiagnoses(true);
-    try {
-      const response = await fetch(`/api/patients/${patientId}/diagnoses`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      const data = await response.json();
-      
-      if (data && data.success && Array.isArray(data.diagnoses)) {
-        setDiagnoses(data.diagnoses);
-      } else {
-        setDiagnoses([]);
+export default function PatientDiagnosisTreatmentHub({ patientId, patientName }: PatientDiagnosisTreatmentHubProps) {
+  // Fetch all previous diagnoses and treatment plans
+  const { data: diagnosisHistory, isLoading: loadingDiagnosis } = useQuery({
+    queryKey: [`/api/diagnosis/history/${patientId}`],
+    queryFn: async () => {
+      try {
+        const res = await axios.get(`/api/diagnosis/history/${patientId}`);
+        return res.data;
+      } catch (err) {
+        console.error("Error fetching diagnosis history:", err);
+        return [];
       }
-    } catch (error) {
-      console.error('Error fetching diagnoses:', error);
-      toast({
-        title: "Failed to load diagnoses",
-        description: "There was an error loading the diagnoses. Please try again.",
-        variant: "destructive"
-      });
-      setDiagnoses([]);
-    } finally {
-      setIsLoadingDiagnoses(false);
-    }
-  };
+    },
+    enabled: !!patientId,
+  });
 
-  const fetchTreatmentPlans = async () => {
-    setIsLoadingPlans(true);
-    try {
-      const response = await fetch(`/api/treatment-plans/${patientId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      const data = await response.json();
-      
-      if (data && Array.isArray(data)) {
-        setTreatmentPlans(data);
-      } else {
-        setTreatmentPlans([]);
+  const { data: treatmentHistory, isLoading: loadingTreatments } = useQuery({
+    queryKey: [`/api/treatment-plan/history/${patientId}`],
+    queryFn: async () => {
+      try {
+        const res = await axios.get(`/api/treatment-plan/history/${patientId}`);
+        return res.data;
+      } catch (err) {
+        console.error("Error fetching treatment plan history:", err);
+        return [];
       }
-    } catch (error) {
-      console.error('Error fetching treatment plans:', error);
-      toast({
-        title: "Failed to load treatment plans",
-        description: "There was an error loading the treatment plans. Please try again.",
-        variant: "destructive"
-      });
-      setTreatmentPlans([]);
-    } finally {
-      setIsLoadingPlans(false);
-    }
-  };
-
-  const handleGenerateDiagnosis = async () => {
-    try {
-      toast({
-        title: "Generating AI diagnosis",
-        description: "Please wait while we analyze the patient data...",
-      });
-      
-      const response = await fetch(`/api/patients/${patientId}/generate-diagnosis`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          includeNotes: true,
-          includeXrays: true,
-          includeCharts: true
-        })
-      });
-      
-      const data = await response.json();
-      
-      if (data && data.success && data.diagnosis) {
-        setDiagnoses(prev => [data.diagnosis, ...prev]);
-        toast({
-          title: "AI diagnosis generated",
-          description: "A new diagnosis has been created based on patient data.",
-          variant: "default"
-        });
-      }
-    } catch (error) {
-      console.error('Error generating diagnosis:', error);
-      toast({
-        title: "Failed to generate diagnosis",
-        description: "There was an error generating the AI diagnosis. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const renderDiagnosesTab = () => {
-    if (isLoadingDiagnoses) {
-      return (
-        <div className="space-y-4">
-          {[1, 2].map(i => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-6 w-3/4 mb-2" />
-                <Skeleton className="h-4 w-1/2" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-24 w-full mb-2" />
-                <Skeleton className="h-4 w-3/4 mb-2" />
-                <Skeleton className="h-4 w-1/2" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      );
-    }
-
-    if (diagnoses.length === 0) {
-      return (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Lightbulb className="mr-2 h-5 w-5" />
-              No AI Diagnoses Yet
-            </CardTitle>
-            <CardDescription>
-              Generate an AI diagnosis based on this patient's clinical data
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">
-              The AI will analyze the patient's notes, X-rays, and chart data to provide diagnostic suggestions.
-              These suggestions are for reference only and require professional review.
-            </p>
-            <Button onClick={handleGenerateDiagnosis}>
-              <BrainCircuit className="mr-2 h-4 w-4" />
-              Generate AI Diagnosis
-            </Button>
-          </CardContent>
-        </Card>
-      );
-    }
-
-    return (
-      <div>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium">AI Diagnostic Suggestions</h3>
-          <Button size="sm" onClick={handleGenerateDiagnosis}>
-            <BrainCircuit className="mr-2 h-4 w-4" /> Generate New Diagnosis
-          </Button>
-        </div>
-        
-        <div className="space-y-6">
-          <DiagnosisFeedbackUI patientId={patientId} />
-        </div>
-      </div>
-    );
-  };
-
-  const renderTreatmentPlansTab = () => {
-    if (isLoadingPlans) {
-      return (
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-3/4 mb-4" />
-          <Skeleton className="h-64 w-full" />
-        </div>
-      );
-    }
-
-    if (treatmentPlans.length === 0) {
-      return (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium">AI Treatment Planning</h3>
-          </div>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <FileText className="mr-2 h-5 w-5" />
-                No Treatment Plans Yet
-              </CardTitle>
-              <CardDescription>
-                Create a new AI-powered treatment plan for this patient
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                A new AI treatment plan will be generated based on approved diagnoses, patient X-rays, and chart data.
-              </p>
-            </CardContent>
-          </Card>
-          
-          <AdvancedTreatmentPlan 
-            patientId={patientId.toString()} 
-            onSave={(plan) => {
-              setTreatmentPlans(prev => [plan, ...prev]);
-            }}
-          />
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium">Treatment Plans</h3>
-          <Button 
-            size="sm" 
-            onClick={() => {
-              setTreatmentPlans([]);
-              setIsLoadingPlans(true);
-              setTimeout(() => {
-                fetchTreatmentPlans();
-              }, 100);
-            }}
-          >
-            <RefreshCw className="mr-2 h-4 w-4" /> Refresh Plans
-          </Button>
-        </div>
-        
-        {treatmentPlans.map((plan, index) => (
-          <AdvancedTreatmentPlan 
-            key={plan.id} 
-            patientId={patientId.toString()}
-            initialPlan={plan}
-            readOnly={index !== 0 || plan.status === 'approved'}
-            onSave={(updatedPlan) => {
-              setTreatmentPlans(prev => 
-                prev.map(p => p.id === updatedPlan.id ? updatedPlan : p)
-              );
-            }}
-          />
-        ))}
-      </div>
-    );
-  };
+    },
+    enabled: !!patientId,
+  });
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <BrainCircuit className="mr-2 h-5 w-5" />
-          AI Diagnosis & Treatment Hub
-          {patientName && <span className="ml-2 text-muted-foreground">({patientName})</span>}
-        </CardTitle>
-        <CardDescription>
-          Review AI-generated diagnoses and treatment plans with clinical decision support
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="diagnoses">Diagnoses</TabsTrigger>
-            <TabsTrigger value="treatment-plans">Treatment Plans</TabsTrigger>
-            <TabsTrigger value="ai-analytics">AI Analytics</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="diagnoses" className="space-y-4">
-            {renderDiagnosesTab()}
-          </TabsContent>
-          
-          <TabsContent value="treatment-plans" className="space-y-4">
-            {renderTreatmentPlansTab()}
-          </TabsContent>
-          
-          <TabsContent value="ai-analytics" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <AlertCircle className="mr-2 h-5 w-5" />
-                  AI Performance Analytics
-                </CardTitle>
-                <CardDescription>
-                  Diagnostic accuracy metrics and AI learning progress
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  This feature will provide analytics on AI performance, accuracy improvements over time, and provider feedback integration. Coming soon!
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
+    <div className="space-y-6">
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold mb-2">AI-Powered Diagnosis & Treatment</h2>
+        <p className="text-muted-foreground">
+          Analyze chart data, x-rays, and patient history to generate diagnostic insights and treatment options for {patientName}.
+        </p>
+      </div>
 
-      <CardFooter className="border-t pt-4 text-xs text-muted-foreground">
-        <div>
-          AI recommendations are provided for clinical decision support only. All diagnoses and treatments must be reviewed and approved by a licensed provider.
-        </div>
-      </CardFooter>
-    </Card>
+      <Tabs defaultValue="aihub" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="aihub">AI Hub</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="aihub">
+          <AIHubPanel patientId={patientId.toString()} />
+        </TabsContent>
+        
+        <TabsContent value="history">
+          {(loadingDiagnosis || loadingTreatments) ? (
+            <div className="flex justify-center items-center p-8">
+              <LoadingAnimation />
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Diagnosis History</CardTitle>
+                  <CardDescription>Previous AI-assisted diagnoses with provider feedback</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {diagnosisHistory && diagnosisHistory.length > 0 ? (
+                    <div className="space-y-4">
+                      {diagnosisHistory.map((diagnosis: any, index: number) => (
+                        <Card key={index} className="p-4 shadow-sm">
+                          <div className="flex justify-between">
+                            <div>
+                              <div className="font-medium">{diagnosis.condition}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {new Date(diagnosis.createdAt).toLocaleDateString()}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-sm">
+                                {diagnosis.status === "approved" ? "✓ Provider Approved" : "AI Generated"}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-2 text-sm">
+                            {diagnosis.modifiedExplanation || diagnosis.explanation}
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                      No diagnosis history found for this patient.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Treatment Plan History</CardTitle>
+                  <CardDescription>Previous treatment plans with status</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {treatmentHistory && treatmentHistory.length > 0 ? (
+                    <div className="space-y-4">
+                      {treatmentHistory.map((plan: any, index: number) => (
+                        <Card key={index} className="p-4 shadow-sm">
+                          <div className="flex justify-between">
+                            <div>
+                              <div className="font-medium">
+                                {plan.title || `Treatment Plan (${new Date(plan.createdAt).toLocaleDateString()})`}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {plan.diagnosis}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-sm capitalize">
+                                Status: {plan.status}
+                              </div>
+                              <div className="text-sm">
+                                Cost: ${plan.cost}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-2 text-sm whitespace-pre-line">
+                            {plan.planDetails || "No details provided"}
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                      No treatment plan history found for this patient.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
   );
-};
-
-export default PatientDiagnosisTreatmentHub;
+}

@@ -103,6 +103,7 @@ async function generateAITreatmentPlan(patientId: number, diagnosisId?: number) 
 // Schema for validating treatment plan approval
 const treatmentPlanApprovalSchema = z.object({
   finalPlan: z.string(),
+  structuredPlan: z.string().optional(),
   providerId: z.number().optional(),
   diagnosisId: z.number().optional()
 });
@@ -135,6 +136,7 @@ router.get('/api/treatment-plan/:patientId', async (req, res) => {
       if (new Date(mostRecent.createdAt || 0) > threeDaysAgo) {
         return res.json({
           planText: mostRecent.planDetails || "",
+          structuredPlan: mostRecent.metadata ? JSON.stringify(mostRecent.metadata) : null,
           confidence: 100,
           reasoning: "Provider-approved treatment plan",
           status: mostRecent.status
@@ -175,7 +177,7 @@ router.post('/api/treatment-plan/:patientId/approve', async (req, res) => {
       });
     }
     
-    const { finalPlan, providerId = 1, diagnosisId } = validation.data;
+    const { finalPlan, structuredPlan, providerId = 1, diagnosisId } = validation.data;
     
     // Get diagnosis if provided
     let diagnosisDetails = null;
@@ -191,13 +193,62 @@ router.post('/api/treatment-plan/:patientId/approve', async (req, res) => {
       }
     }
     
+    // Parse structured plan if available
+    let structuredData = null;
+    let cost = 0;
+    let appointmentsRequired = 1;
+    let urgency = "normal";
+    let complexity = "moderate";
+    let procedures = [];
+    let insuranceEstimate = 0;
+    let patientResponsibility = 0;
+    
+    if (structuredPlan) {
+      try {
+        structuredData = JSON.parse(structuredPlan);
+        
+        // Extract values from structured data
+        if (structuredData.estimatedTotalCost) {
+          cost = structuredData.estimatedTotalCost;
+        }
+        
+        if (structuredData.appointmentsRequired) {
+          appointmentsRequired = structuredData.appointmentsRequired;
+        }
+        
+        if (structuredData.urgency) {
+          urgency = structuredData.urgency;
+        }
+        
+        if (structuredData.complexity) {
+          complexity = structuredData.complexity;
+        }
+        
+        if (structuredData.proceduresList) {
+          procedures = structuredData.proceduresList;
+        }
+        
+        if (structuredData.insuranceEstimate) {
+          insuranceEstimate = structuredData.insuranceEstimate;
+        }
+        
+        if (structuredData.patientResponsibility) {
+          patientResponsibility = structuredData.patientResponsibility;
+        } else if (cost > 0) {
+          patientResponsibility = cost - insuranceEstimate;
+        }
+      } catch (parseError) {
+        console.error("Error parsing structured plan data:", parseError);
+      }
+    }
+    
     // Create the treatment plan
     const newPlan = await storage.createTreatmentPlan({
       patientId,
       doctorId: providerId,
       diagnosis: diagnosisDetails ? diagnosisDetails.condition : "Based on clinical examination",
-      procedures: [],
-      cost: 0, // Will be calculated later
+      procedures: procedures.length > 0 ? procedures : [],
+      cost: cost,
       planDetails: finalPlan,
       status: "accepted",
       startDate: new Date(),
@@ -205,8 +256,8 @@ router.post('/api/treatment-plan/:patientId/approve', async (req, res) => {
       notes: "Provider approved treatment plan",
       createdAt: new Date(),
       updatedAt: new Date(),
-      appointmentsRequired: 1,
-      totalAppointments: 1,
+      appointmentsRequired: appointmentsRequired,
+      totalAppointments: appointmentsRequired,
       appointmentsCompleted: 0,
       patientAccepted: false,
       paymentPlanOffered: false,
@@ -215,10 +266,10 @@ router.post('/api/treatment-plan/:patientId/approve', async (req, res) => {
       insuranceStatus: null,
       insuranceApprovalDate: null,
       insuranceRejectionReason: null,
-      estimatedInsuranceCoverage: 0,
-      patientResponsibility: 0,
-      urgency: "normal",
-      complexity: "moderate",
+      estimatedInsuranceCoverage: insuranceEstimate,
+      patientResponsibility: patientResponsibility,
+      urgency: urgency,
+      complexity: complexity,
       treatmentType: "restorative",
       isComplete: false,
       completionDate: null,
@@ -230,7 +281,8 @@ router.post('/api/treatment-plan/:patientId/approve', async (req, res) => {
       patientConsent: false,
       patientConsentDate: null,
       consentFormPath: null,
-      createdBy: providerId
+      createdBy: providerId,
+      metadata: structuredData // Store the full structured data in metadata field
     });
     
     // Create charting note for the treatment plan approval
