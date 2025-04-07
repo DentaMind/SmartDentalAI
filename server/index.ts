@@ -1,6 +1,7 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import http from 'http';
 import { setupWebSocketServer } from './websocket';
-import dotenv from 'dotenv';
 import app from './app';
 import { setupVite, log } from "./vite";
 import { securityService } from "./services/security";
