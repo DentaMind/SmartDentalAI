@@ -1,3 +1,4 @@
+import { setupUploadXrayRoutes } from "./routes/upload-xray-routes";
 import express from "express";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
@@ -290,3 +291,5 @@ app.use('/api', notFoundHandler);
 app.use('/api', errorHandler);
 
 export default app;
+
+setupUploadXrayRoutes(app);
