@@ -9,6 +9,12 @@ import { schedulerService } from "./services/scheduler";
 import { seedDatabase } from "./seed-data";
 import { pool } from './db';
 import { storage } from './storage';
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import patientRoutes from './routes/patients';
+import { errorHandler } from './middleware/error';
 
 dotenv.config();
 
