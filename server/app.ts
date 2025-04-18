@@ -32,6 +32,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import fs from 'fs';
+import xrayUploadRoutes from './routes/xray-upload';
+import authRoutes from './routes/auth';
+import patientRoutes from './routes/patients';
+import aiModelRoutes from './routes/ai-model';
 
 // Setup directory paths for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -293,3 +297,9 @@ app.use('/api', errorHandler);
 export default app;
 
 setupUploadXrayRoutes(app);
+
+// Register routes
+app.use('/api/auth', authRoutes);
+app.use('/api/patients', patientRoutes);
+app.use('/api/ai-model', aiModelRoutes);
+app.use('/api/xray-upload', xrayUploadRoutes);

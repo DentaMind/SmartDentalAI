@@ -137,3 +137,163 @@ See `.env.example` for all available configuration options.
 
 MIT
 
+# Crown & Bridge Module
+
+A comprehensive module for dental crown and bridge design, featuring AI-powered analysis, 3D visualization, and validation capabilities.
+
+## Features
+
+- AI-driven analysis of preparation and material selection
+- 3D design generation with STL export
+- Real-time validation of fit and clearance
+- Detailed PDF reports
+- Modern, responsive UI with step-by-step workflow
+
+## Tech Stack
+
+### Backend
+- Node.js with Express
+- TypeScript
+- Three.js for 3D geometry
+- PDFKit for report generation
+- Jest for testing
+
+### Frontend
+- React with TypeScript
+- Three.js for 3D visualization
+- Ant Design for UI components
+- React Query for API state management
+
+## Installation
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Set up environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+3. Start the development server:
+```bash
+npm run dev
+```
+
+## API Endpoints
+
+### Analysis
+- `POST /api/crown-bridge/analyze`
+  - Analyzes preparation and recommends material/design
+  - Returns analysis results with confidence scores
+
+### Design Generation
+- `POST /api/crown-bridge/generate`
+  - Generates 3D design based on analysis
+  - Returns STL file for 3D printing
+
+### Validation
+- `POST /api/crown-bridge/validate`
+  - Validates design fit and clearance
+  - Returns validation metrics and suggestions
+
+### PDF Export
+- `POST /api/crown-bridge/export-pdf`
+  - Generates detailed PDF report
+  - Includes design specifications and validation results
+
+## Type Definitions
+
+### Materials
+- `zirconia`
+- `lithium-disilicate`
+- `metal-ceramic`
+- `gold`
+
+### Design Types
+- `full-coverage`
+- `onlay`
+- `inlay`
+- `veneer`
+- `bridge`
+
+### Margin Types
+- `chamfer`
+- `shoulder`
+- `feather`
+- `bevel`
+
+### Occlusion Types
+- `centric`
+- `eccentric`
+- `balanced`
+
+## Testing
+
+Run the test suite:
+```bash
+npm test
+```
+
+## Development
+
+### Backend Structure
+```
+server/
+├── routes/
+│   └── crown-bridge.ts       # API endpoints
+├── services/
+│   └── crown-bridge-ai.ts    # AI service
+├── utils/
+│   └── mock-geometry.ts      # Test utilities
+├── types/
+│   └── crown-bridge.ts       # Type definitions
+└── tests/
+    └── crown-bridge.test.ts  # Test suite
+```
+
+### Frontend Structure
+```
+client/src/components/crown-bridge/
+├── steps/
+│   ├── AnalysisStep.tsx
+│   ├── DesignStep.tsx
+│   ├── PreviewStep.tsx
+│   └── ValidationStep.tsx
+├── CrownBridgePreview.tsx
+└── CrownBridgeDesignWorkflow.tsx
+```
+
+## Next Steps
+
+1. **AI Integration**
+   - Replace mock implementations with actual AI models
+   - Implement real geometry processing
+   - Add margin detection and prep analysis
+
+2. **Frontend Enhancement**
+   - Add real-time 3D preview
+   - Implement scan upload
+   - Add validation feedback
+   - Enhance PDF report visualization
+
+3. **Production Readiness**
+   - Add error logging
+   - Implement rate limiting
+   - Add authentication
+   - Set up monitoring
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+MIT
+

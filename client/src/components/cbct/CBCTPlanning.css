@@ -1,0 +1,74 @@
+.cbct-planning {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cbct-planning-header {
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cbct-planning-content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.cbct-planning-footer {
+  padding: 16px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: right;
+}
+
+.save-plan-button {
+  background-color: #1890ff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.save-plan-button:hover {
+  background-color: #40a9ff;
+}
+
+.save-plan-button:disabled {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.25);
+  cursor: not-allowed;
+}
+
+/* Ant Design overrides */
+.cbct-planning .ant-tabs {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.cbct-planning .ant-tabs-tab {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.cbct-planning .ant-tabs-tab:hover {
+  color: #1890ff;
+}
+
+.cbct-planning .ant-tabs-tab-active {
+  color: #1890ff;
+}
+
+.cbct-planning .ant-tabs-ink-bar {
+  background-color: #1890ff;
+}
+
+.cbct-planning .ant-tabs-nav::before {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+} 

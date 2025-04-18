@@ -1,0 +1,106 @@
+.pano-viewer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: #1a1a1a;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.pano-viewer canvas {
+  cursor: crosshair;
+}
+
+.pano-viewer .measurement-tools {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.pano-viewer .measurement-tools button {
+  background-color: #1890ff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.pano-viewer .measurement-tools button:hover {
+  background-color: #40a9ff;
+}
+
+.pano-viewer .measurement-tools button:disabled {
+  background-color: #d9d9d9;
+  cursor: not-allowed;
+}
+
+.pano-viewer .measurement-tools .calibration-mode {
+  background-color: #52c41a;
+}
+
+.pano-viewer .measurement-tools .calibration-mode:hover {
+  background-color: #73d13d;
+}
+
+.pano-viewer .scale-controls {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.pano-viewer .scale-controls button {
+  background-color: #1890ff;
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.pano-viewer .scale-controls button:hover {
+  background-color: #40a9ff;
+}
+
+.pano-viewer .measurement-info {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 8px;
+  border-radius: 4px;
+  color: white;
+  font-size: 14px;
+}
+
+.pano-viewer .measurement-info p {
+  margin: 4px 0;
+}
+
+.pano-viewer .measurement-info .length {
+  font-weight: bold;
+  color: #1890ff;
+}
+
+.pano-viewer .measurement-info .notes {
+  font-style: italic;
+  color: #d9d9d9;
+} 

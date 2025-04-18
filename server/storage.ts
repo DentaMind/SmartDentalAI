@@ -536,9 +536,9 @@ export class MemStorage implements IStorage {
     return this.insuranceClaims.get(claimId);
   }
 
-  async updateInsuranceClaim(claimId: number, updates: Partial<InsertInsuranceClaim>) {
+  async updateInsuranceClaim(claimId: number, updates: Partial<InsertInsuranceClaim>): Promise<InsuranceClaim | undefined> {
     const existingClaim = this.insuranceClaims.get(claimId);
-    if (!existingClaim) return null;
+    if (!existingClaim) return undefined;
     const updatedClaim = {...existingClaim, ...updates};
     this.insuranceClaims.set(claimId, updatedClaim);
     return updatedClaim;
@@ -572,10 +572,21 @@ export class MemStorage implements IStorage {
     return this.appointments.get(appointmentId);
   }
 
-  async updateAppointment(appointmentId: number, updates: Partial<InsertAppointment>) {
+  async updateAppointment(appointmentId: number, updates: Partial<InsertAppointment>): Promise<Appointment | undefined> {
     const existingAppointment = this.appointments.get(appointmentId);
-    if (!existingAppointment) return null;
-    const updatedAppointment = {...existingAppointment, ...updates};
+    if (!existingAppointment) return undefined;
+    
+    const updatedAppointment = {
+      ...existingAppointment,
+      ...updates,
+      status: updates.status ?? existingAppointment.status,
+      notes: updates.notes ?? existingAppointment.notes,
+      checkedIn: updates.checkedIn ?? existingAppointment.checkedIn,
+      checkedInTime: updates.checkedInTime ?? existingAppointment.checkedInTime,
+      isOnline: updates.isOnline ?? existingAppointment.isOnline,
+      insuranceVerified: updates.insuranceVerified ?? existingAppointment.insuranceVerified
+    };
+    
     this.appointments.set(appointmentId, updatedAppointment);
     return updatedAppointment;
   }
@@ -746,16 +757,18 @@ export class MemStorage implements IStorage {
     return newUser;
   }
 
-  async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
-    const user = this.users.get(id);
-    if (!user) return undefined;
-
+  async updateUser(id: number, updates: Partial<InsertUser>): Promise<User | undefined> {
+    const existingUser = this.users.get(id);
+    if (!existingUser) return undefined;
+    
     const updatedUser = {
-      ...user,
+      ...existingUser,
       ...updates,
-      updatedAt: new Date()
+      officeName: updates.officeName ?? existingUser.officeName,
+      officeEmail: updates.officeEmail ?? existingUser.officeEmail,
+      metadata: updates.metadata ?? existingUser.metadata
     };
-
+    
     this.users.set(id, updatedUser);
     return updatedUser;
   }
@@ -963,16 +976,9 @@ export class MemStorage implements IStorage {
   }
 
   async updateDiagnosis(id: number, updates: Partial<Diagnosis>): Promise<Diagnosis | undefined> {
-    const diagnosis = this.diagnoses.get(id);
-    if (!diagnosis) return undefined;
-
-    // Update the diagnosis with the new values
-    const updatedDiagnosis = { 
-      ...diagnosis, 
-      ...updates,
-      updatedAt: new Date() // Always update the updatedAt timestamp
-    };
-    
+    const existingDiagnosis = this.diagnoses.get(id);
+    if (!existingDiagnosis) return undefined;
+    const updatedDiagnosis = {...existingDiagnosis, ...updates};
     this.diagnoses.set(id, updatedDiagnosis);
     return updatedDiagnosis;
   }
@@ -1018,15 +1024,9 @@ export class MemStorage implements IStorage {
   }
 
   async updatePeriodontalChart(id: number, updates: Partial<PeriodontalChart>): Promise<PeriodontalChart | undefined> {
-    const chart = this.periodontalCharts.get(id);
-    if (!chart) return undefined;
-
-    const updatedChart = {
-      ...chart,
-      ...updates,
-      updatedAt: new Date() // Always update the timestamp
-    };
-
+    const existingChart = this.periodontalCharts.get(id);
+    if (!existingChart) return undefined;
+    const updatedChart = {...existingChart, ...updates};
     this.periodontalCharts.set(id, updatedChart);
     return updatedChart;
   }
@@ -1067,14 +1067,9 @@ export class MemStorage implements IStorage {
   }
 
   async updateRestorativeChartEntry(id: number, updates: Partial<RestorativeChartEntry>): Promise<RestorativeChartEntry | undefined> {
-    const entry = this.restorativeChartEntries.get(id);
-    if (!entry) return undefined;
-
-    const updatedEntry = {
-      ...entry,
-      ...updates,
-      updatedAt: new Date()
-    };
+    const existingEntry = this.restorativeChartEntries.get(id);
+    if (!existingEntry) return undefined;
+    const updatedEntry = {...existingEntry, ...updates};
     this.restorativeChartEntries.set(id, updatedEntry);
     return updatedEntry;
   }
@@ -1109,14 +1104,9 @@ export class MemStorage implements IStorage {
   }
 
   async updatePerioChartEntry(id: number, updates: Partial<PerioChartEntry>): Promise<PerioChartEntry | undefined> {
-    const entry = this.perioChartEntries.get(id);
-    if (!entry) return undefined;
-
-    const updatedEntry = {
-      ...entry,
-      ...updates,
-      updatedAt: new Date()
-    };
+    const existingEntry = this.perioChartEntries.get(id);
+    if (!existingEntry) return undefined;
+    const updatedEntry = {...existingEntry, ...updates};
     this.perioChartEntries.set(id, updatedEntry);
     return updatedEntry;
   }
@@ -1145,14 +1135,9 @@ export class MemStorage implements IStorage {
   }
 
   async updateXrayAiFinding(id: number, updates: Partial<XrayAiFinding>): Promise<XrayAiFinding | undefined> {
-    const finding = this.xrayAiFindings.get(id);
-    if (!finding) return undefined;
-
-    const updatedFinding = {
-      ...finding,
-      ...updates,
-      updatedAt: new Date()
-    };
+    const existingFinding = this.xrayAiFindings.get(id);
+    if (!existingFinding) return undefined;
+    const updatedFinding = {...existingFinding, ...updates};
     this.xrayAiFindings.set(id, updatedFinding);
     return updatedFinding;
   }
@@ -1181,14 +1166,9 @@ export class MemStorage implements IStorage {
   }
 
   async updateChartingNote(id: number, updates: Partial<ChartingNote>): Promise<ChartingNote | undefined> {
-    const note = this.chartingNotes.get(id);
-    if (!note) return undefined;
-
-    const updatedNote = {
-      ...note,
-      ...updates,
-      updatedAt: new Date()
-    };
+    const existingNote = this.chartingNotes.get(id);
+    if (!existingNote) return undefined;
+    const updatedNote = {...existingNote, ...updates};
     this.chartingNotes.set(id, updatedNote);
     return updatedNote;
   }
@@ -1206,6 +1186,24 @@ export class MemStorage implements IStorage {
     };
     this.chartingNotes.set(id, updatedNote);
     return updatedNote;
+  }
+
+  async updateTreatmentPlan(id: number, updates: Partial<InsertTreatmentPlan>): Promise<TreatmentPlan | undefined> {
+    const existingPlan = this.treatmentPlans.get(id);
+    if (!existingPlan) return undefined;
+    
+    const updatedPlan = {
+      ...existingPlan,
+      ...updates,
+      status: updates.status ?? existingPlan.status,
+      createdAt: existingPlan.createdAt,
+      updatedAt: new Date(),
+      notes: updates.notes ?? existingPlan.notes,
+      approvedPlan: updates.approvedPlan ?? existingPlan.approvedPlan
+    };
+    
+    this.treatmentPlans.set(id, updatedPlan);
+    return updatedPlan;
   }
 }
 
