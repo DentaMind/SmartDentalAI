@@ -9,7 +9,8 @@
     "start": "node dist/server/index.js",
     "check": "tsc",
     "db:push": "drizzle-kit push",
-    "check-token-blacklist": "node server/scripts/check-token-blacklist.js"
+    "check-token-blacklist": "node server/scripts/check-token-blacklist.js",
+    "rotate-tokens": "node scripts/rotate-tokens.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

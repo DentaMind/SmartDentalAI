@@ -7,6 +7,7 @@ This app uses a secure GitHub Actions pipeline that enforces:
 ### ✅ Token Validation
 - Checks `JWT_SECRET` and `EMAIL_LINK_SECRET` for blacklisted values
 - Validates these secrets before any deployment proceeds
+- Automatic token rotation via `npm run rotate-tokens`
 
 ### ✅ Environment Validation
 - Deployment will fail if any of the following are missing:
@@ -21,11 +22,13 @@ This app uses a secure GitHub Actions pipeline that enforces:
 ### ✅ Testing & Linting
 - All code is linted (`npm run lint`)
 - Tests are run (`npm test`)
+- Security audit is performed (`npm audit`)
 - Failure in any step halts deployment
 
 ### ✅ Deployment to Vercel
 - On push to `main`, code is deployed to production via Vercel
 - Slack notifications are sent on success or failure
+- Auto-rollback on deployment failure
 
 ## 📦 Environment Secrets Setup
 
@@ -52,6 +55,7 @@ GitHub Actions triggers
 - Validate secrets
 - Scan for blacklisted tokens
 - Lint & test
+- Run security audit
 - Deploy to Vercel
 - Notify Slack
 ```
@@ -70,6 +74,24 @@ It must be executable:
 chmod +x .git/hooks/pre-commit
 ```
 
+## 🔑 Token Rotation
+
+To rotate security tokens:
+
+```bash
+npm run rotate-tokens
+```
+
+This will:
+1. Generate new secure tokens for:
+   - `JWT_SECRET`
+   - `EMAIL_LINK_SECRET`
+2. Update the local `.env` file
+3. Provide instructions for updating tokens in:
+   - GitHub Secrets
+   - Vercel Environment Variables
+   - Other deployment environments
+
 ## 🧠 Deployment FAQ
 
 - **Q: How do I preview changes?**  
@@ -80,6 +102,9 @@ chmod +x .git/hooks/pre-commit
 
 - **Q: How do I add a new secret?**  
   Go to GitHub → Repository → Settings → Secrets → Actions.
+
+- **Q: How often should I rotate tokens?**  
+  Recommended: Every 90 days or after security incidents.
 
 ## 🔄 Auto-Rollback Configuration
 
@@ -109,4 +134,5 @@ PRs automatically deploy to staging:
 | Date | Version | Changes |
 |------|---------|---------|
 | 2024-03-20 | 1.0.0 | Initial deployment guide |
-| 2024-03-20 | 1.1.0 | Added auto-rollback and staging | 
+| 2024-03-20 | 1.1.0 | Added auto-rollback and staging |
+| 2024-03-20 | 1.2.0 | Added token rotation and security audit | 
