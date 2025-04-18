@@ -1,0 +1,47 @@
+name: Secure Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Secure Deployment Pipeline
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
+    - name: Install Dependencies
+      run: npm install
+
+    - name: Validate Required Secrets
+      run: |
+        REQUIRED_VARS=(JWT_SECRET EMAIL_LINK_SECRET OPENAI_API_KEY REDIS_URL)
+        for var in "${REQUIRED_VARS[@]}"; do
+          if [ -z "${!var}" ]; then
+            echo "❌ ERROR: Missing environment variable: $var"
+            exit 1
+          fi
+        done
+      env:
+        JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        EMAIL_LINK_SECRET: ${{ secrets.EMAIL_LINK_SECRET }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        REDIS_URL: ${{ secrets.REDIS_URL }}
+
+    - name: Run Linter
+      run: npm run lint
+
+    - name: Run Tests
+      run: npm test
+
+    - name: Deployment (placeholder)
+      run: echo "✅ Deployment logic goes here (Vercel, SSH, etc.)" 

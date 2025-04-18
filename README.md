@@ -40,6 +40,8 @@ Build an advanced AI assistant that connects all modules and continuously improv
 
 # SmartDentalAI
 
+![CI](https://github.com/DentaMind/SmartDentalAI/actions/workflows/deploy.yml/badge.svg)
+
 A modern dental practice management system with AI-powered features for diagnosis, treatment planning, and patient communication.
 
 ## Local Development Setup
