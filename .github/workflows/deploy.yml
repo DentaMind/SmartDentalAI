@@ -1,75 +1,95 @@
-name: Secure Deploy
+name: Deploy to Production
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   deploy:
-    name: Secure Deployment Pipeline
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20'
-
-    - name: Install Dependencies
-      run: npm install
-
-    - name: Validate Required Secrets
-      run: |
-        REQUIRED_VARS=(JWT_SECRET EMAIL_LINK_SECRET OPENAI_API_KEY REDIS_URL)
-        for var in "${REQUIRED_VARS[@]}"; do
-          if [ -z "${!var}" ]; then
-            echo "❌ ERROR: Missing environment variable: $var"
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.VERCEL_TOKEN }}" ]; then
+            echo "Error: VERCEL_TOKEN is not set"
             exit 1
           fi
-        done
-      env:
-        JWT_SECRET: ${{ secrets.JWT_SECRET }}
-        EMAIL_LINK_SECRET: ${{ secrets.EMAIL_LINK_SECRET }}
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        REDIS_URL: ${{ secrets.REDIS_URL }}
-
-    - name: Check Token Blacklist
-      run: |
-        # Check if any tokens in the blacklist are being used
-        npm run check-token-blacklist
-      env:
-        JWT_SECRET: ${{ secrets.JWT_SECRET }}
-        EMAIL_LINK_SECRET: ${{ secrets.EMAIL_LINK_SECRET }}
-
-    - name: Run Linter
-      run: npm run lint
-
-    - name: Run Tests
-      run: npm test
-
-    - name: Deployment (placeholder)
-      run: echo "✅ Deployment logic goes here (Vercel, SSH, etc.)"
-
-    - name: Notify Slack on Success
-      if: success()
-      uses: rtCamp/action-slack-notify@v2
-      env:
-        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-        SLACK_CHANNEL: deployments
-        SLACK_COLOR: good
-        SLACK_TITLE: Deployment Successful
-        SLACK_MESSAGE: "✅ Deployment completed successfully for ${{ github.repository }}"
-
-    - name: Notify Slack on Failure
-      if: failure()
-      uses: rtCamp/action-slack-notify@v2
-      env:
-        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-        SLACK_CHANNEL: deployments
-        SLACK_COLOR: danger
-        SLACK_TITLE: Deployment Failed
-        SLACK_MESSAGE: "❌ Deployment failed for ${{ github.repository }}. Check the logs for details." 
+          if [ -z "${{ secrets.VERCEL_ORG_ID }}" ]; then
+            echo "Error: VERCEL_ORG_ID is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
+            echo "Error: VERCEL_PROJECT_ID is not set"
+            exit 1
+          fi
+          
+      - name: Check token blacklist
+        run: node scripts/check-token-blacklist.js
+        
+      - name: Run linter
+        run: npm run lint
+        
+      - name: Run tests
+        run: npm test
+        
+      - name: Deploy to Vercel
+        id: deploy
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: ${{ github.event_name == 'pull_request' && '--target=staging' || '--prod' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          
+      - name: Notify Slack on Success
+        if: success()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: deployments
+          SLACK_COLOR: good
+          SLACK_TITLE: Deployment Successful
+          SLACK_MESSAGE: ${{ github.event_name == 'pull_request' && 'Staging deployment completed successfully' || 'Production deployment completed successfully' }}
+          
+      - name: Notify Slack on Failure
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: deployments
+          SLACK_COLOR: danger
+          SLACK_TITLE: Deployment Failed
+          SLACK_MESSAGE: ${{ github.event_name == 'pull_request' && 'Staging deployment failed' || 'Production deployment failed' }}
+          
+      - name: Auto Rollback on Failure
+        if: failure() && github.event_name != 'pull_request'
+        run: |
+          echo "Attempting auto-rollback..."
+          vercel rollback --token ${{ secrets.VERCEL_TOKEN }} --yes
+          
+      - name: Comment PR with Preview URL
+        if: github.event_name == 'pull_request' && success()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.name,
+              body: `🎉 Preview deployment successful!\n\n🔗 Preview URL: ${{ steps.deploy.outputs.preview-url }}`
+            }) 
