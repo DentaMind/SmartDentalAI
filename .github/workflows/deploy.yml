@@ -37,6 +37,14 @@ jobs:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         REDIS_URL: ${{ secrets.REDIS_URL }}
 
+    - name: Check Token Blacklist
+      run: |
+        # Check if any tokens in the blacklist are being used
+        npm run check-token-blacklist
+      env:
+        JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        EMAIL_LINK_SECRET: ${{ secrets.EMAIL_LINK_SECRET }}
+
     - name: Run Linter
       run: npm run lint
 
@@ -44,4 +52,24 @@ jobs:
       run: npm test
 
     - name: Deployment (placeholder)
-      run: echo "✅ Deployment logic goes here (Vercel, SSH, etc.)" 
+      run: echo "✅ Deployment logic goes here (Vercel, SSH, etc.)"
+
+    - name: Notify Slack on Success
+      if: success()
+      uses: rtCamp/action-slack-notify@v2
+      env:
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        SLACK_CHANNEL: deployments
+        SLACK_COLOR: good
+        SLACK_TITLE: Deployment Successful
+        SLACK_MESSAGE: "✅ Deployment completed successfully for ${{ github.repository }}"
+
+    - name: Notify Slack on Failure
+      if: failure()
+      uses: rtCamp/action-slack-notify@v2
+      env:
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        SLACK_CHANNEL: deployments
+        SLACK_COLOR: danger
+        SLACK_TITLE: Deployment Failed
+        SLACK_MESSAGE: "❌ Deployment failed for ${{ github.repository }}. Check the logs for details." 
