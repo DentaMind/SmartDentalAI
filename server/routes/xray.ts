@@ -67,64 +67,76 @@ router.post(
 );
 
 /**
- * Get X-ray by ID
- * GET /api/xrays/:id
- */
-router.get('/:id', authenticate, async (req, res) => {
-  try {
-    const xray = await storage.getXray(parseInt(req.params.id));
-    if (!xray) {
-      return res.status(404).json({ error: 'X-ray not found' });
-    }
-
-    // Check if user has access to this X-ray
-    if (xray.doctorId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
-    res.json(xray);
-  } catch (error) {
-    console.error('Error fetching X-ray:', error);
-    res.status(500).json({ error: 'Failed to fetch X-ray' });
-  }
-});
-
-/**
  * Get X-rays for a patient
  * GET /api/xrays/patient/:patientId
  */
-router.get('/patient/:patientId', authenticate, async (req, res) => {
-  try {
-    const xrays = await storage.getXraysByPatient(parseInt(req.params.patientId));
-    res.json(xrays);
-  } catch (error) {
-    console.error('Error fetching patient X-rays:', error);
-    res.status(500).json({ error: 'Failed to fetch patient X-rays' });
+router.get(
+  '/patient/:patientId',
+  authenticate,
+  async (req, res) => {
+    try {
+      const patientId = parseInt(req.params.patientId);
+      if (isNaN(patientId)) {
+        return res.status(400).json({ error: 'Invalid patient ID' });
+      }
+
+      const xrays = await storage.getPatientXrays(patientId);
+      res.json(xrays);
+    } catch (error) {
+      console.error('Error fetching patient X-rays:', error);
+      res.status(500).json({ error: 'Failed to fetch X-rays' });
+    }
   }
-});
+);
 
 /**
- * Delete X-ray
+ * Get a specific X-ray
+ * GET /api/xrays/:id
+ */
+router.get(
+  '/:id',
+  authenticate,
+  async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: 'Invalid X-ray ID' });
+      }
+
+      const xray = await storage.getXray(id);
+      if (!xray) {
+        return res.status(404).json({ error: 'X-ray not found' });
+      }
+
+      res.json(xray);
+    } catch (error) {
+      console.error('Error fetching X-ray:', error);
+      res.status(500).json({ error: 'Failed to fetch X-ray' });
+    }
+  }
+);
+
+/**
+ * Delete an X-ray
  * DELETE /api/xrays/:id
  */
-router.delete('/:id', authenticate, async (req, res) => {
-  try {
-    const xray = await storage.getXray(parseInt(req.params.id));
-    if (!xray) {
-      return res.status(404).json({ error: 'X-ray not found' });
-    }
+router.delete(
+  '/:id',
+  authenticate,
+  async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: 'Invalid X-ray ID' });
+      }
 
-    // Check if user has access to this X-ray
-    if (xray.doctorId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Access denied' });
+      await xrayUploadService.deleteXray(id, req.user.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting X-ray:', error);
+      res.status(500).json({ error: 'Failed to delete X-ray' });
     }
-
-    await storage.deleteXray(xray.id);
-    res.status(204).send();
-  } catch (error) {
-    console.error('Error deleting X-ray:', error);
-    res.status(500).json({ error: 'Failed to delete X-ray' });
   }
-});
+);
 
 export default router; 

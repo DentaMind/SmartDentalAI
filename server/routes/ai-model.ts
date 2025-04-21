@@ -1,11 +1,12 @@
 import express from 'express';
-import { AIModelService } from '../services/ai-model';
-import { authenticateToken } from '../middleware/auth';
+import { AIModelService } from '../services/ai-model.js';
+import { requireAuth } from '../middleware/auth.js';
 import cron from 'node-cron';
 import jwt from 'jsonwebtoken';
-import { AuditLogService } from '../services/audit-log';
-import { checkRateLimit } from '../utils/rate-limiter';
-import { verifyEmailLinkToken } from '../utils/token';
+import { AuditLogService } from '../services/audit-log.js';
+import { checkRateLimit } from '../utils/rate-limiter.js';
+import { verifyEmailLinkToken } from '../utils/token.js';
+import { User } from '../../shared/schema.js';
 
 const router = express.Router();
 
@@ -19,48 +20,65 @@ cron.schedule('0 0 * * *', async () => {
   }
 });
 
-// Get model versions (admin only)
-router.get('/versions', authenticateToken, async (req, res) => {
+// Get model versions (doctor only)
+router.get('/versions', requireAuth, async (req, res) => {
   try {
-    // Check if user is admin
-    if (req.user.role !== 'admin') {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const user = req.user as User;
+    // Check if user is doctor
+    if (user.role !== 'doctor') {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
     const versions = await AIModelService.getModelVersions();
     res.status(200).json(versions);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Failed to get model versions:', error);
-    res.status(500).json({ error: 'Failed to get model versions' });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ error: 'Failed to get model versions: ' + errorMessage });
   }
 });
 
 // Train new model version
-router.post('/train', authenticateToken, async (req, res) => {
+router.post('/train', requireAuth, async (req, res) => {
   try {
-    // Check if user is admin
-    if (req.user.role !== 'admin') {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const user = req.user as User;
+    // Check if user is doctor
+    if (user.role !== 'doctor') {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
     const result = await AIModelService.trainNewVersion();
     res.status(200).json(result);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error training new model version:', error);
-    res.status(500).json({ error: 'Failed to train new model version' });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ error: 'Failed to train new model version: ' + errorMessage });
   }
 });
 
 // Deploy model version
-router.post('/deploy/:version', authenticateToken, async (req, res) => {
+router.post('/deploy/:version', requireAuth, async (req, res) => {
   try {
-    // Check if user is admin
-    if (req.user.role !== 'admin') {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const user = req.user as User;
+    // Check if user is doctor
+    if (user.role !== 'doctor') {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
     const { version } = req.params;
-    const { userId } = req.user;
+    const userId = Number(user.id);
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -68,37 +86,44 @@ router.post('/deploy/:version', authenticateToken, async (req, res) => {
 
     const result = await AIModelService.deployVersion(version, userId);
     res.status(200).json(result);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error deploying model version:', error);
-    res.status(500).json({ error: 'Failed to deploy model version' });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ error: 'Failed to deploy model version: ' + errorMessage });
   }
 });
 
 // Rollback to a previous model version
-router.post('/rollback/:version', authenticateToken, async (req, res) => {
+router.post('/rollback/:version', requireAuth, async (req, res) => {
   try {
-    // Check if user is admin
-    if (req.user.role !== 'admin') {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const user = req.user as User;
+    // Check if user is doctor
+    if (user.role !== 'doctor') {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
     const { version } = req.params;
-    const { userId } = req.user;
+    const userId = Number(user.id);
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const result = await AIModelService.rollbackToVersion(version, userId);
+    const result = await AIModelService.deployVersion(version, userId, 'Rollback requested');
     res.status(200).json(result);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error rolling back model version:', error);
-    res.status(500).json({ error: error.message || 'Failed to rollback model version' });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ error: 'Failed to rollback model version: ' + errorMessage });
   }
 });
 
 // Get audit log (admin only)
-router.get('/audit-log', authenticateToken, async (req, res) => {
+router.get('/audit-log', requireAuth, async (req, res) => {
   try {
     // Check if user is admin
     if (req.user.role !== 'admin') {
@@ -114,7 +139,7 @@ router.get('/audit-log', authenticateToken, async (req, res) => {
 });
 
 // Get A/B testing summary
-router.get('/ab-summary', authenticateToken, async (req, res) => {
+router.get('/ab-summary', requireAuth, async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Unauthorized' });

@@ -1,9 +1,11 @@
-import React, { Suspense, lazy } from "react";
-import { Switch, Route } from "wouter";
+import React, { Suspense, lazy, useState, useEffect, useCallback } from "react";
+import { Switch, Route, Navigate } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from "./hooks/use-auth";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import { theme } from './theme';
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
@@ -36,6 +38,15 @@ import LabsSuppliesPage from "@/pages/labs-supplies-page";
 import DebugAuthPage from "@/pages/debug-auth";
 import AssistantTrainingPage from "@/pages/assistant-training-page";
 import TrainingDashboardPage from "@/pages/training-dashboard-page";
+import { CrownBridgePage } from './pages/CrownBridgePage';
+import PatientCases from './pages/patient/PatientCases';
+import { SplashScreen } from './components/SplashScreen';
+import { BrandedTransitions } from './components/BrandedTransitions';
+import { useAppTransitions } from './hooks/useAppTransitions';
+import { LoginView } from './views/LoginView';
+import { DashboardView } from './views/DashboardView';
+import { AIAssistantView } from './views/AIAssistantView';
+import { BrandedLoading } from './components/BrandedLoading';
 
 // Lazy-loaded components
 const AIHub = lazy(() => import('./pages/ai-hub'));
@@ -52,81 +63,108 @@ const EmailIntegrationWrapper = () => <EmailIntegrationPage />;
 const XRayFMXWrapper = () => <XRayFMXPage />;
 const XRayComparisonTestWrapper = () => <XRayComparisonTestPage />;
 
-// Import enhanced loading animation
-import { LoadingAnimation } from "@/components/ui/loading-animation";
-
-// Loading fallback with simplified animation and proper background color
+// Replace the Loading component with our new branded version
 const Loading = () => (
-  <div className="flex items-center justify-center h-screen bg-white">
-    <LoadingAnimation />
-  </div>
+  <BrandedLoading
+    type="fullscreen"
+    message="Loading DentaMind"
+    size="large"
+    delay={500}
+  />
 );
 
-function Router() {
+const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { currentUser, loading } = useAuth();
+
+  if (loading) {
+    return null;
+  }
+
+  return currentUser ? <>{children}</> : <Navigate to="/login" />;
+};
+
+const AppContent: React.FC = () => {
+  const {
+    currentView,
+    isAnimating,
+    transition,
+    skipTransitions
+  } = useAppTransitions({
+    initialView: 'splash',
+    transitionDuration: 700,
+    onTransitionComplete: (view) => {
+      console.log(`Transitioned to ${view}`);
+    }
+  });
+
+  const handleSplashComplete = useCallback(() => {
+    transition('login');
+  }, [transition]);
+
+  const handleLoginSuccess = useCallback(() => {
+    transition('dashboard');
+  }, [transition]);
+
+  const handleAIAssistantOpen = useCallback(() => {
+    transition('ai');
+  }, [transition]);
+
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case 'splash':
+        return <SplashScreen onAnimationComplete={handleSplashComplete} />;
+      case 'login':
+        return <LoginView onSuccess={handleLoginSuccess} />;
+      case 'dashboard':
+        return <DashboardView onAIAssistantOpen={handleAIAssistantOpen} />;
+      case 'ai':
+        return <AIAssistantView />;
+      default:
+        return null;
+    }
+  };
+
+  // Development mode shortcut
+  if (process.env.NODE_ENV === 'development') {
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 's') {
+        skipTransitions();
+      }
+    });
+  }
+
   return (
     <Suspense fallback={<Loading />}>
-      <Switch>
-        <Route path="/auth" component={AuthPage} />
-        <Route path="/auth/signup" component={AuthPage} />
-        <Route path="/auth/subscription" component={SubscriptionPageWrapper} />
-        <Route path="/debug-auth" component={DebugAuthPage} />
-        <Route path="/form/:formToken" component={FormPage} />
-        <Route path="/form-submitted" component={FormSubmittedPage} />
-        <ProtectedRoute path="/" component={AppointmentsPage} />
-        <ProtectedRoute path="/dashboard" component={AppointmentsPage} />
-        <ProtectedRoute path="/patients" component={PatientsPage} />
-        <ProtectedRoute path="/patient-list" component={PatientListPage} />
-        <ProtectedRoute path="/patients/:id" component={PatientProfilePage} />
-        <ProtectedRoute path="/appointments" component={AppointmentsPage} />
-        <ProtectedRoute path="/treatment-plans" component={TreatmentPlansPage} />
-        <ProtectedRoute path="/ai-diagnostics" component={AIDiagnosticsPage} />
-        <ProtectedRoute path="/interactive-diagnosis" component={InteractiveDiagnosisPage} />
-        <ProtectedRoute path="/billing" component={BillingPage} />
-        <ProtectedRoute path="/time-clock" component={TimeClockPage} />
-        <ProtectedRoute path="/ai-hub" component={AIHubPage} />
-        <ProtectedRoute path="/ai-hub/:patientId" component={AIHubPage} />
-        <ProtectedRoute path="/ai-hub-old" component={AIHubWrapper} />
-        <ProtectedRoute path="/orthodontic-dashboard" component={OrthodonticDashboardWrapper} />
-        <ProtectedRoute path="/dental-ai-hub" component={DentalAIHubWrapper} />
-        <ProtectedRoute path="/ai-recommendations" component={AIRecommendationsPage} />
-        <ProtectedRoute path="/financial" component={FinancialDashboardPage} />
-        <ProtectedRoute path="/financial-dashboard" component={FinancialDashboardPage} />
-        <ProtectedRoute path="/prescriptions" component={PrescriptionsPage} />
-        <ProtectedRoute path="/post-op-instructions" component={PostOpInstructionsPage} />
-        <ProtectedRoute path="/appointment-request" component={AppointmentRequestPage} />
-        <ProtectedRoute path="/email" component={UnifiedEmailPage} />
-        <ProtectedRoute path="/email-integration" component={EmailIntegrationWrapper} />
-        <ProtectedRoute path="/xray-fmx" component={XRayFMXWrapper} />
-        <ProtectedRoute path="/xray-fmx/:patientId" component={XRayFMXWrapper} />
-        <ProtectedRoute path="/xray-comparison-test" component={XRayComparisonTestWrapper} />
-        <ProtectedRoute path="/labs-supplies" component={LabsSuppliesPage} />
-        <ProtectedRoute path="/assistant-training" component={AssistantTrainingPage} />
-        <ProtectedRoute path="/training-dashboard" component={TrainingDashboardPage} />
-        <ProtectedRoute path="/scheduling-with-certifications" component={React.lazy(() => import('./pages/scheduling-with-certifications'))} />
-        <Route component={NotFound} />
-      </Switch>
+      <BrandedTransitions
+        currentView={currentView}
+        isAnimating={isAnimating}
+      >
+        {renderCurrentView()}
+      </BrandedTransitions>
     </Suspense>
   );
-}
+};
 
 function App() {
-  // Check if we're on auth or form pages, don't show assistant there
   const isAuthPage = window.location.pathname.includes('/auth');
   const isFormPage = window.location.pathname.includes('/form');
   const hideAssistant = isAuthPage || isFormPage;
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <WebSocketProvider>
-          <div className="min-h-screen bg-white">
-            <Router />
-            <Toaster />
-            {!hideAssistant && <AIAssistant />}
-          </div>
-        </WebSocketProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <WebSocketProvider>
+            <div className="min-h-screen bg-white">
+              <AppContent />
+              <Toaster />
+              {!hideAssistant && <AIAssistant />}
+            </div>
+          </WebSocketProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

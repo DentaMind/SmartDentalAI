@@ -23,6 +23,14 @@ export interface IXrayUpload extends Document {
   };
   status: 'pending' | 'processed' | 'failed';
   error?: string;
+  analysis: {
+    type: string;
+    findings: string[];
+    recommendations: string[];
+    aiConfidence: number;
+    reviewedBy?: mongoose.Types.ObjectId;
+    reviewDate?: Date;
+  };
 }
 
 const XrayUploadSchema: Schema = new Schema({
@@ -80,7 +88,22 @@ const XrayUploadSchema: Schema = new Schema({
     enum: ['pending', 'processed', 'failed'],
     default: 'pending'
   },
-  error: String
+  error: String,
+  analysis: {
+    type: {
+      type: String,
+      enum: ['panoramic', 'periapical', 'bitewing', 'cephalometric'],
+      required: true
+    },
+    findings: [String],
+    recommendations: [String],
+    aiConfidence: Number,
+    reviewedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    reviewDate: Date
+  }
 }, {
   timestamps: true
 });

@@ -2,9 +2,9 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { AuditLogService } from '../services/audit-log';
 import { TokenBlacklistService } from '../services/token-blacklist';
-import { config } from '../config';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const EMAIL_LINK_SECRET = process.env.EMAIL_LINK_SECRET || 'your-email-link-secret';
 
 export interface TokenPayload {
   userId: string;
@@ -19,7 +19,7 @@ export function generateToken(payload: TokenPayload): string {
 }
 
 export function generateEmailLinkToken(payload: TokenPayload): string {
-  return jwt.sign(payload, config.emailLinkSecret, { expiresIn: '24h' });
+  return jwt.sign(payload, EMAIL_LINK_SECRET, { expiresIn: '24h' });
 }
 
 export async function verifyToken(token: string, deviceId?: string, sessionId?: string): Promise<TokenPayload | null> {
@@ -98,7 +98,7 @@ export async function verifyToken(token: string, deviceId?: string, sessionId?: 
 }
 
 export function verifyEmailLinkToken(token: string): TokenPayload {
-  return jwt.verify(token, config.emailLinkSecret) as TokenPayload;
+  return jwt.verify(token, EMAIL_LINK_SECRET) as TokenPayload;
 }
 
 // Helper function to revoke a token

@@ -1,18 +1,17 @@
 import express from 'express';
-import { upload, XrayUploadService } from '../services/xray-upload';
-import { authenticateToken } from '../middleware/auth';
-import { checkRole } from '../middleware/roles';
-import { validateObjectId } from '../middleware/validation';
-import { XrayUpload } from '../models/xray-upload';
-import { AuditLogService } from '../services/audit-log';
+import { upload, XrayUploadService } from '../services/xray-upload.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
+import { validateObjectId } from '../middleware/validation.js';
+import { XrayUpload } from '../models/xray-upload.js';
+import { AuditLogService } from '../services/audit-log.js';
 
 const router = express.Router();
 
 // Upload X-ray for a patient
 router.post(
   '/:patientId',
-  authenticateToken,
-  checkRole(['dentist', 'admin']),
+  requireAuth,
+  requireRole(['dentist', 'admin']),
   validateObjectId('patientId'),
   upload.single('xray'),
   async (req, res) => {
@@ -43,8 +42,8 @@ router.post(
 // Get X-rays for a patient
 router.get(
   '/patient/:patientId',
-  authenticateToken,
-  checkRole(['dentist', 'admin', 'patient']),
+  requireAuth,
+  requireRole(['dentist', 'admin', 'patient']),
   validateObjectId('patientId'),
   async (req, res) => {
     try {
@@ -63,8 +62,8 @@ router.get(
 // Get single X-ray
 router.get(
   '/:id',
-  authenticateToken,
-  checkRole(['dentist', 'admin', 'patient']),
+  requireAuth,
+  requireRole(['dentist', 'admin', 'patient']),
   validateObjectId('id'),
   async (req, res) => {
     try {
@@ -91,8 +90,8 @@ router.get(
 // Delete X-ray
 router.delete(
   '/:id',
-  authenticateToken,
-  checkRole(['dentist', 'admin']),
+  requireAuth,
+  requireRole(['dentist', 'admin']),
   validateObjectId('id'),
   async (req, res) => {
     try {
@@ -108,8 +107,8 @@ router.delete(
 // Get X-ray file
 router.get(
   '/:id/file',
-  authenticateToken,
-  checkRole(['dentist', 'admin', 'patient']),
+  requireAuth,
+  requireRole(['dentist', 'admin', 'patient']),
   validateObjectId('id'),
   async (req, res) => {
     try {
@@ -135,8 +134,8 @@ router.get(
 // Get X-ray thumbnail
 router.get(
   '/:id/thumbnail',
-  authenticateToken,
-  checkRole(['dentist', 'admin', 'patient']),
+  requireAuth,
+  requireRole(['dentist', 'admin', 'patient']),
   validateObjectId('id'),
   async (req, res) => {
     try {

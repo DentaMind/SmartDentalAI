@@ -17,12 +17,12 @@ import { SymptomPrediction, symptomPredictionSchema } from "./ai-prediction";
 import { PatientMedicalHistory } from "@shared/schema";
 
 // Define domain-specific API instances
-const diagnosisAI = new OpenAI({ apiKey: process.env.OPENAI_API_KEY_DIAGNOSIS });
-const treatmentAI = new OpenAI({ apiKey: process.env.OPENAI_API_KEY_TREATMENT });
-const xrayAI = new OpenAI({ apiKey: process.env.OPENAI_API_KEY_XRAY });
-const financialAI = new OpenAI({ apiKey: process.env.OPENAI_API_KEY_FINANCIAL });
-const schedulingAI = new OpenAI({ apiKey: process.env.OPENAI_API_KEY_SCHEDULING });
-const communicationAI = new OpenAI({ apiKey: process.env.OPENAI_API_KEY_COMMUNICATION });
+const diagnosisAI = new OpenAI({ apiKey: process.env.DIAGNOSIS_AI_KEY });
+const treatmentAI = new OpenAI({ apiKey: process.env.TREATMENT_AI_KEY });
+const xrayAI = new OpenAI({ apiKey: process.env.XRAY_AI_KEY });
+const financialAI = new OpenAI({ apiKey: process.env.FINANCIAL_AI_KEY });
+const schedulingAI = new OpenAI({ apiKey: process.env.SCHEDULING_AI_KEY });
+const communicationAI = new OpenAI({ apiKey: process.env.CHAT_AI_KEY });
 
 // Default model settings
 const DEFAULT_MODEL = "gpt-4o";

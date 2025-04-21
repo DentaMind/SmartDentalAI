@@ -5,7 +5,7 @@ import { processThroughDomains, enhancePredictionWithDomains } from "./ai-domain
 import { analyzeMedicalHistory } from "./medical-history-ai";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.DIAGNOSIS_AI_KEY });
 
 interface DiagnosisResult {
   conditions: Array<{

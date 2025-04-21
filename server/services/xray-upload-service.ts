@@ -1,10 +1,9 @@
 import { z } from 'zod';
-import { Xray, InsertXray, XrayAiFinding, InsertXrayAiFinding } from '@shared/schema';
+import { Xray, InsertXray, XrayAiFinding, InsertXrayAiFinding, XrayType, XraySource } from '@shared/schema';
 import { AuditLogService } from './audit-log';
 import { AIService } from './ai-service';
 import { StorageService } from './storage';
 import { v4 as uuidv4 } from 'uuid';
-import * as fs from 'fs';
 import * as path from 'path';
 import * as dicomParser from 'dicom-parser';
 import sharp from 'sharp';
@@ -43,6 +42,48 @@ export class XrayUploadService {
     this.auditLog = new AuditLogService();
     this.aiService = new AIService();
     this.storage = new StorageService();
+  }
+
+  private getFileType(filename: string): keyof typeof SUPPORTED_FILE_TYPES | null {
+    const ext = path.extname(filename).toLowerCase();
+    for (const [type, extensions] of Object.entries(SUPPORTED_FILE_TYPES)) {
+      if (extensions.includes(ext)) {
+        return type as keyof typeof SUPPORTED_FILE_TYPES;
+      }
+    }
+    return null;
+  }
+
+  private async processDicomFile(buffer: Buffer): Promise<{ image: Buffer; metadata: Record<string, any> }> {
+    const dicomData = dicomParser.parseDicom(buffer);
+    const metadata: Record<string, any> = {};
+
+    // Extract DICOM metadata
+    dicomData.elements.forEach((element: any) => {
+      if (element.tag && element.value) {
+        metadata[element.tag] = element.value;
+      }
+    });
+
+    // Convert DICOM to PNG
+    const image = await sharp(buffer)
+      .png()
+      .toBuffer();
+
+    return { image, metadata };
+  }
+
+  private async processImageFile(buffer: Buffer): Promise<Buffer> {
+    return sharp(buffer)
+      .resize(2000, 2000, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 90 })
+      .toBuffer();
+  }
+
+  private async processPdfFile(buffer: Buffer): Promise<Buffer> {
+    // For now, we'll just return the PDF as is
+    // TODO: Implement PDF to image conversion if needed
+    return buffer;
   }
 
   /**
@@ -87,19 +128,24 @@ export class XrayUploadService {
         patientId: request.patientId,
         doctorId: request.doctorId,
         imageUrl: fileUrl,
-        type: request.type,
+        type: request.type as XrayType,
         notes: request.notes,
         metadata: {
-          ...metadata,
-          source: request.source,
+          source: request.source as XraySource,
           sourceDetails: request.sourceDetails,
           originalFilename: file.originalname,
           mimeType: file.mimetype,
-          size: file.size
+          size: file.size,
+          aiAnalysis: {
+            status: 'pending'
+          }
         }
       };
 
       const savedXray = await this.storage.createXray(xray);
+
+      // Queue AI analysis
+      this.aiService.analyzeXray(savedXray.id).catch(console.error);
 
       // Log the upload
       await this.auditLog.logAction({
@@ -107,15 +153,12 @@ export class XrayUploadService {
         action: 'xray_upload',
         entityType: 'xray',
         entityId: savedXray.id,
-        details: {
-          patientId: request.patientId,
+        metadata: {
           type: request.type,
-          source: request.source
+          source: request.source,
+          patientId: request.patientId
         }
       });
-
-      // Queue AI analysis
-      this.aiService.queueXrayAnalysis(savedXray.id);
 
       return savedXray;
     } catch (error) {
@@ -125,90 +168,34 @@ export class XrayUploadService {
   }
 
   /**
-   * Process a DICOM file and extract image and metadata
+   * Delete an X-ray and its associated files
    */
-  private async processDicomFile(buffer: Buffer): Promise<{ image: Buffer; metadata: Record<string, any> }> {
+  async deleteXray(xrayId: number, userId: number): Promise<void> {
     try {
-      const dicomData = dicomParser.parseDicom(buffer);
-      const metadata = this.extractDicomMetadata(dicomData);
-      
-      // Convert DICOM to PNG
-      const image = await this.convertDicomToImage(dicomData);
-      
-      return { image, metadata };
-    } catch (error) {
-      console.error('Error processing DICOM file:', error);
-      throw new Error('Invalid DICOM file');
-    }
-  }
-
-  /**
-   * Process an image file (JPEG, PNG, etc.)
-   */
-  private async processImageFile(buffer: Buffer): Promise<Buffer> {
-    try {
-      // Use sharp to ensure consistent format and optimize
-      return await sharp(buffer)
-        .png()
-        .toBuffer();
-    } catch (error) {
-      console.error('Error processing image file:', error);
-      throw new Error('Invalid image file');
-    }
-  }
-
-  /**
-   * Process a PDF file
-   */
-  private async processPdfFile(buffer: Buffer): Promise<Buffer> {
-    // TODO: Implement PDF processing
-    throw new Error('PDF processing not yet implemented');
-  }
-
-  /**
-   * Get file type based on extension
-   */
-  private getFileType(filename: string): 'DICOM' | 'IMAGE' | 'PDF' | null {
-    const ext = path.extname(filename).toLowerCase();
-    
-    if (SUPPORTED_FILE_TYPES.DICOM.includes(ext)) return 'DICOM';
-    if (SUPPORTED_FILE_TYPES.IMAGE.includes(ext)) return 'IMAGE';
-    if (SUPPORTED_FILE_TYPES.PDF.includes(ext)) return 'PDF';
-    
-    return null;
-  }
-
-  /**
-   * Extract metadata from DICOM file
-   */
-  private extractDicomMetadata(dicomData: any): Record<string, any> {
-    const metadata: Record<string, any> = {};
-    
-    // Extract common DICOM tags
-    const tags = {
-      patientName: 'x00100010',
-      patientId: 'x00100020',
-      studyDate: 'x00080020',
-      modality: 'x00080060',
-      // Add more tags as needed
-    };
-
-    for (const [key, tag] of Object.entries(tags)) {
-      const element = dicomData.elements[tag];
-      if (element) {
-        metadata[key] = dicomData.string(tag);
+      const xray = await this.storage.getXray(xrayId);
+      if (!xray) {
+        throw new Error('X-ray not found');
       }
+
+      // Delete the file from storage
+      await this.storage.deleteFile(xray.imageUrl);
+
+      // Delete the X-ray record
+      await this.storage.deleteXray(xrayId);
+
+      // Log the deletion
+      await this.auditLog.logAction({
+        userId,
+        action: 'xray_delete',
+        entityType: 'xray',
+        entityId: xrayId,
+        metadata: {
+          patientId: xray.patientId
+        }
+      });
+    } catch (error) {
+      console.error('Error deleting X-ray:', error);
+      throw error;
     }
-
-    return metadata;
-  }
-
-  /**
-   * Convert DICOM to image
-   */
-  private async convertDicomToImage(dicomData: any): Promise<Buffer> {
-    // TODO: Implement DICOM to image conversion
-    // This will depend on the specific DICOM parser library used
-    throw new Error('DICOM to image conversion not yet implemented');
   }
 } 

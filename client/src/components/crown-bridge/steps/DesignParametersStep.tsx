@@ -1,6 +1,5 @@
 import React from 'react';
-import { Card, Form, Select, Slider, Space, Typography, Tooltip } from 'antd';
-import { QuestionCircleOutlined } from '@ant-design/icons';
+import { Card, Form, Select, InputNumber, Space, Typography } from 'antd';
 import { CrownBridgeSettings } from '../../../../server/types/crown-bridge';
 
 const { Title } = Typography;
@@ -15,128 +14,97 @@ export const DesignParametersStep: React.FC<DesignParametersStepProps> = ({
   settings,
   onSettingsChange
 }) => {
+  const handleChange = (field: keyof CrownBridgeSettings, value: any) => {
+    onSettingsChange({ [field]: value });
+  };
+
   return (
     <Card>
       <Title level={4}>Design Parameters</Title>
       
       <Form layout="vertical">
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          <Form.Item label={
-            <Space>
-              <span>Material</span>
-              <Tooltip title="Select the material for the restoration">
-                <QuestionCircleOutlined />
-              </Tooltip>
-            </Space>
-          }>
+          <Form.Item label="Material">
             <Select
               value={settings.material}
-              onChange={(value) => onSettingsChange({ material: value })}
+              onChange={(value) => handleChange('material', value)}
               style={{ width: '100%' }}
             >
               <Option value="zirconia">Zirconia</Option>
-              <Option value="e-max">E.max</Option>
-              <Option value="pfm">PFM</Option>
-              <Option value="gold">Gold</Option>
-              <Option value="composite">Composite</Option>
+              <Option value="lithium_disilicate">Lithium Disilicate</Option>
+              <Option value="porcelain">Porcelain</Option>
+              <Option value="metal">Metal</Option>
             </Select>
           </Form.Item>
 
-          <Form.Item label={
-            <Space>
-              <span>Design Type</span>
-              <Tooltip title="Select the type of restoration">
-                <QuestionCircleOutlined />
-              </Tooltip>
-            </Space>
-          }>
+          <Form.Item label="Design Type">
             <Select
-              value={settings.designType}
-              onChange={(value) => onSettingsChange({ designType: value })}
+              value={settings.design}
+              onChange={(value) => handleChange('design', value)}
               style={{ width: '100%' }}
             >
-              <Option value="full-coverage">Full Coverage</Option>
-              <Option value="onlay">Onlay</Option>
-              <Option value="inlay">Inlay</Option>
-              <Option value="veneer">Veneer</Option>
-              <Option value="bridge">Bridge</Option>
+              <Option value="full_contour">Full Contour</Option>
+              <Option value="layered">Layered</Option>
+              <Option value="monolithic">Monolithic</Option>
             </Select>
           </Form.Item>
 
-          <Form.Item label={
-            <Space>
-              <span>Margin Type</span>
-              <Tooltip title="Select the margin design">
-                <QuestionCircleOutlined />
-              </Tooltip>
-            </Space>
-          }>
+          <Form.Item label="Margin Type">
             <Select
-              value={settings.marginType}
-              onChange={(value) => onSettingsChange({ marginType: value })}
+              value={settings.margin}
+              onChange={(value) => handleChange('margin', value)}
               style={{ width: '100%' }}
             >
               <Option value="chamfer">Chamfer</Option>
               <Option value="shoulder">Shoulder</Option>
               <Option value="feather">Feather</Option>
-              <Option value="bevel">Bevel</Option>
             </Select>
           </Form.Item>
 
-          <Form.Item label={
-            <Space>
-              <span>Occlusion Type</span>
-              <Tooltip title="Select the occlusion scheme">
-                <QuestionCircleOutlined />
-              </Tooltip>
-            </Space>
-          }>
+          <Form.Item label="Occlusion Type">
             <Select
-              value={settings.occlusionType}
-              onChange={(value) => onSettingsChange({ occlusionType: value })}
+              value={settings.occlusion}
+              onChange={(value) => handleChange('occlusion', value)}
               style={{ width: '100%' }}
             >
               <Option value="centric">Centric</Option>
-              <Option value="eccentric">Eccentric</Option>
               <Option value="balanced">Balanced</Option>
+              <Option value="group_function">Group Function</Option>
             </Select>
           </Form.Item>
 
-          <Form.Item label={
-            <Space>
-              <span>Minimum Thickness (mm)</span>
-              <Tooltip title="Set the minimum material thickness">
-                <QuestionCircleOutlined />
-              </Tooltip>
-            </Space>
-          }>
-            <Slider
-              min={0.3}
+          <Form.Item label="Minimum Thickness (mm)">
+            <InputNumber
+              value={settings.minThickness}
+              onChange={(value) => handleChange('minThickness', value)}
+              min={0.5}
               max={2.0}
               step={0.1}
-              value={settings.minimumThickness}
-              onChange={(value) => onSettingsChange({ minimumThickness: value })}
+              style={{ width: '100%' }}
             />
           </Form.Item>
 
-          {settings.designType === 'bridge' && (
-            <Form.Item label={
-              <Space>
-                <span>Connector Size (mm)</span>
-                <Tooltip title="Set the connector size for bridge design">
-                  <QuestionCircleOutlined />
-                </Tooltip>
-              </Space>
-            }>
-              <Slider
-                min={2}
-                max={5}
-                step={0.5}
-                value={settings.connectorSize}
-                onChange={(value) => onSettingsChange({ connectorSize: value })}
-              />
-            </Form.Item>
-          )}
+          <Form.Item label="Connector Height (mm)">
+            <InputNumber
+              value={settings.connectorHeight}
+              onChange={(value) => handleChange('connectorHeight', value)}
+              min={3.0}
+              max={5.0}
+              step={0.1}
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+
+          <Form.Item label="Connector Width (mm)">
+            <InputNumber
+              value={settings.connectorWidth}
+              onChange={(value) => handleChange('connectorWidth', value)}
+              min={2.0}
+              max={4.0}
+              step={0.1}
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
         </Space>
       </Form>
     </Card>

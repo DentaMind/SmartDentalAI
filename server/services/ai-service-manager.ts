@@ -3,8 +3,21 @@ import {
   AIServiceType,
   SERVICE_TYPE_TO_KEY_MAP,
   SERVICE_TYPE_DEFAULT_MODEL
-} from '../config/ai-keys';
+} from './ai-service-types';
 import { aiRequestQueue } from './ai-request-queue';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables explicitly
+const envPath = path.resolve(process.cwd(), '.env');
+dotenv.config({ path: envPath });
+
+// Log environment variables for debugging
+console.log('Environment variables loaded in ai-service-manager.ts:');
+console.log('OPENAI_API_KEY available:', !!process.env.OPENAI_API_KEY);
+console.log('DIAGNOSIS_AI_KEY available:', !!process.env.DIAGNOSIS_AI_KEY);
+console.log('Current working directory:', process.cwd());
+console.log('Environment file path:', envPath);
 
 /**
  * AI Service Manager
@@ -23,7 +36,22 @@ interface AIConfig {
 // Local implementation of config and tracking functions
 function getOptimalAIConfig(serviceType: AIServiceType): AIConfig {
   const keyName = SERVICE_TYPE_TO_KEY_MAP[serviceType];
-  const apiKey = process.env[keyName] || process.env.OPENAI_API_KEY || '';
+  const specificKey = process.env[keyName];
+  const defaultKey = process.env.OPENAI_API_KEY;
+  
+  console.log(`Looking for API key for ${serviceType}...`);
+  console.log(`Specific key name: ${keyName}`);
+  console.log(`Specific key available: ${!!specificKey}`);
+  console.log(`Default key available: ${!!defaultKey}`);
+  
+  const apiKey = specificKey || defaultKey;
+  
+  if (!apiKey) {
+    console.error(`No API key found for service type: ${serviceType}`);
+    console.error(`Tried keys: ${keyName} and OPENAI_API_KEY`);
+    throw new Error(`No API key found for service type: ${serviceType}`);
+  }
+  
   const model = SERVICE_TYPE_DEFAULT_MODEL[serviceType] || 'gpt-3.5-turbo';
   
   return {
@@ -59,28 +87,37 @@ class AIServiceManager {
    * Gets an OpenAI client for a specific service type
    */
   private getOpenAIClient(serviceType: AIServiceType): OpenAI {
-    // Get the optimal configuration based on current load
-    const config = getOptimalAIConfig(serviceType);
-    
-    if (!config.apiKey) {
-      throw new Error(`No API key found for service type: ${serviceType}`);
-    }
-
-    // Create a cache key that includes the API key to handle key rotation
-    const cacheKey = `${serviceType}_${config.apiKey.substring(0, 8)}`;
-    
-    // Check if we already have a client with this API key
-    if (!this.openAIClients[cacheKey]) {
-      console.log(`Creating new OpenAI client for ${serviceType} with key ending in ${config.apiKey.slice(-4)}`);
+    try {
+      // Get the optimal configuration based on current load
+      const config = getOptimalAIConfig(serviceType);
       
-      this.openAIClients[cacheKey] = new OpenAI({
-        apiKey: config.apiKey,
-        organization: process.env.OPENAI_ORGANIZATION_ID,
-        baseURL: config.baseUrl
-      });
+      // Try to get a fallback API key if the specific one is not available
+      const apiKey = config.apiKey || process.env.OPENAI_API_KEY;
+      
+      if (!apiKey) {
+        console.warn(`No API key found for service type: ${serviceType}. Using default key.`);
+        throw new Error('No API key available');
+      }
+
+      // Create a cache key that includes the API key to handle key rotation
+      const cacheKey = `${serviceType}_${apiKey.substring(0, 8)}`;
+      
+      // Check if we already have a client with this API key
+      if (!this.openAIClients[cacheKey]) {
+        console.log(`Creating new OpenAI client for ${serviceType} with key ending in ${apiKey.slice(-4)}`);
+        
+        this.openAIClients[cacheKey] = new OpenAI({
+          apiKey: apiKey,
+          organization: process.env.OPENAI_ORGANIZATION_ID,
+          baseURL: config.baseUrl
+        });
+      }
+      
+      return this.openAIClients[cacheKey];
+    } catch (error) {
+      console.error(`Error creating OpenAI client for ${serviceType}:`, error);
+      throw error;
     }
-    
-    return this.openAIClients[cacheKey];
   }
 
   /**

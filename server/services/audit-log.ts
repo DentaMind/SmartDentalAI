@@ -1,7 +1,7 @@
-import { db } from '../db';
-import { auditLogs } from '../../shared/schema';
-import { sendEmail } from '../utils/email';
-import { sendSlackNotification } from '../utils/slack';
+import { db } from '../db.js';
+import { auditLogs } from '../../shared/schema.js';
+import { sendEmail } from '../utils/email.js';
+import { sendSlackNotification } from '../utils/slack.js';
 
 export class AuditLogService {
   static async logAction(

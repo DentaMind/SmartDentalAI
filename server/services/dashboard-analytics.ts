@@ -1,9 +1,8 @@
-
 import { storage } from "../storage";
-import OpenAI from "openai";
+import { OpenAI } from "openai";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
+  apiKey: process.env.FINANCIAL_AI_KEY || "",
 });
 
 interface AnalyticsData {

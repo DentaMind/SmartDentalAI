@@ -1,8 +1,10 @@
 import OpenAI from "openai";
 import { z } from "zod";
+import { aiServiceManager } from "./ai-service-manager";
+import { AIServiceType } from "../services/ai-service-types";
 
-// Initialize OpenAI client
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY_DIAGNOSIS });
+// Initialize OpenAI client using the service manager
+const openai = aiServiceManager.getOpenAIClient(AIServiceType.DIAGNOSIS);
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const MODEL = "gpt-4o";

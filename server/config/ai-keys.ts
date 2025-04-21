@@ -34,13 +34,13 @@ export enum AIServiceType {
  * This allows for load distribution and specialization
  */
 export const SERVICE_TYPE_TO_KEY_MAP: Record<AIServiceType, string> = {
-  [AIServiceType.DIAGNOSIS]: process.env.OPENAI_API_KEY_DIAGNOSIS || process.env.OPENAI_API_KEY || '',
-  [AIServiceType.TREATMENT]: process.env.OPENAI_API_KEY_TREATMENT || process.env.OPENAI_API_KEY || '',
-  [AIServiceType.XRAY]: process.env.OPENAI_API_KEY_XRAY || process.env.OPENAI_API_KEY || '',
-  [AIServiceType.FINANCIAL]: process.env.OPENAI_API_KEY_FINANCIAL || process.env.OPENAI_API_KEY || '',
-  [AIServiceType.INSURANCE]: process.env.OPENAI_API_KEY_FINANCIAL || process.env.OPENAI_API_KEY || '',
-  [AIServiceType.PATIENT_COMMUNICATION]: process.env.OPENAI_API_KEY_COMMUNICATION || process.env.OPENAI_API_KEY || '',
-  [AIServiceType.SCHEDULING]: process.env.OPENAI_API_KEY_SCHEDULING || process.env.OPENAI_API_KEY || '',
+  [AIServiceType.DIAGNOSIS]: 'DIAGNOSIS_AI_KEY',
+  [AIServiceType.TREATMENT]: 'TREATMENT_AI_KEY',
+  [AIServiceType.XRAY]: 'XRAY_AI_KEY',
+  [AIServiceType.FINANCIAL]: 'FINANCIAL_AI_KEY',
+  [AIServiceType.INSURANCE]: 'FINANCIAL_AI_KEY',
+  [AIServiceType.PATIENT_COMMUNICATION]: 'CHAT_AI_KEY',
+  [AIServiceType.SCHEDULING]: 'SCHEDULING_AI_KEY',
 };
 
 /**

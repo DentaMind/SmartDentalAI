@@ -1,22 +1,39 @@
+// Load environment variables first
 import dotenv from 'dotenv';
-dotenv.config();
+dotenv.config({ path: '.env' });
+
+// Log environment variables (for debugging)
+console.log('Environment variables loaded:');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('PORT:', process.env.PORT);
+console.log('OPENAI_API_KEY available:', !!process.env.OPENAI_API_KEY);
+console.log('DIAGNOSIS_AI_KEY available:', !!process.env.DIAGNOSIS_AI_KEY);
+
+// Then import other modules
 import http from 'http';
-import { setupWebSocketServer } from './websocket';
-import app from './app';
-import { setupVite, log } from "./vite";
-import { securityService } from "./services/security";
-import { schedulerService } from "./services/scheduler";
-import { seedDatabase } from "./seed-data";
-import { pool } from './db';
-import { storage } from './storage';
+import { setupWebSocketServer } from './websocket.js';
+import app from './app.js';
+import { setupVite, log } from "./vite.js";
+import { securityService } from "./services/security.js";
+import { schedulerService } from "./services/scheduler.js";
+import { seedDatabase } from "./seed-data.js";
+import { pool } from './db.js';
+import { storage } from './storage.js';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import patientRoutes from './routes/patients';
-import { errorHandler } from './middleware/error';
+import patientRoutes from './routes/patients.js';
+import { errorHandler } from './middleware/error-handler.js';
+import session from 'express-session';
+import createMemoryStore from 'memorystore';
+import { connectDB } from './config/database.js';
+import xrayUploadRoutes from './routes/xray-upload.js';
+import authRoutes from './routes/auth.js';
+import aiModelRoutes from './routes/ai-model.js';
 
-dotenv.config();
+// Create HTTP server outside of startServer to prevent multiple instances
+const httpServer = http.createServer(app);
 
 const startServer = async () => {
   try {
@@ -36,10 +53,6 @@ const startServer = async () => {
       }
     }
 
-    console.log('Creating HTTP server...');
-    // Create HTTP server from Express app
-    const httpServer = http.createServer(app);
-
     console.log('Setting up WebSocket server...');
     // Setup WebSocket server
     const wsServer = setupWebSocketServer(httpServer);
@@ -48,10 +61,13 @@ const startServer = async () => {
     const PORT = Number(process.env.PORT) || 5000;
     console.log(`Attempting to start server on port ${PORT}...`);
 
-    httpServer.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server listening on port ${PORT}`);
-      console.log(`http://localhost:${PORT}`);
-      console.log(`WebSocket server available at ws://localhost:${PORT}`);
+    await new Promise<void>((resolve) => {
+      httpServer.listen(PORT, '0.0.0.0', () => {
+        console.log(`Server listening on port ${PORT}`);
+        console.log(`http://localhost:${PORT}`);
+        console.log(`WebSocket server available at ws://localhost:${PORT}`);
+        resolve();
+      });
     });
 
     // After server is listening, setup Vite in development
@@ -189,20 +205,56 @@ const startServer = async () => {
         console.warn('Continuing without seeding database');
       }
     }
+
+    // Connect to MongoDB
+    connectDB();
+
+    // Middleware
+    app.use(cors());
+    app.use(helmet());
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+
+    // Session configuration
+    const MemoryStore = createMemoryStore(session);
+    app.use(session({
+      secret: process.env.SESSION_SECRET || 'your-secret-key',
+      resave: false,
+      saveUninitialized: false,
+      store: new MemoryStore({
+        checkPeriod: 86400000 // prune expired entries every 24h
+      }),
+      cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      }
+    }));
+
+    // Routes
+    app.use('/api/auth', authRoutes);
+    app.use('/api/xray', xrayUploadRoutes);
+    app.use('/api/ai', aiModelRoutes);
+
+    // Error handling
+    app.use(errorHandler);
+
   } catch (error) {
     console.error('Failed to start server:', error);
     console.error('Full error details:', error instanceof Error ? error.stack : error);
-    process.exit(1);
+    throw error;
   }
 };
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+// Handle server shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  httpServer.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
 });
 
-startServer().catch(error => {
-  console.error('Unhandled startup error:', error);
-  console.error('Full error details:', error instanceof Error ? error.stack : error);
+startServer().catch((error) => {
+  console.error('Server startup failed:', error);
   process.exit(1);
 });

@@ -1,7 +1,6 @@
 import React from 'react';
-import { Card, Typography, Space, Tag, Tooltip } from 'antd';
+import { Card, Typography, Space, Tag, List, Spin } from 'antd';
 import { CrownBridgeAnalysis, CrownBridgeSettings } from '../../../../server/types/crown-bridge';
-import { QuestionCircleOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 
@@ -17,7 +16,10 @@ export const CaseAnalysisStep: React.FC<CaseAnalysisStepProps> = ({
   if (!analysis) {
     return (
       <Card>
-        <Text type="secondary">Loading analysis...</Text>
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <Spin size="large" />
+          <Text>Analyzing case...</Text>
+        </div>
       </Card>
     );
   }
@@ -28,74 +30,86 @@ export const CaseAnalysisStep: React.FC<CaseAnalysisStepProps> = ({
       
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <div>
-          <Text strong>Recommended Material: </Text>
-          <Tag color="blue">{analysis.recommendedMaterial}</Tag>
-          <Tooltip title="AI recommendation based on preparation type, location, and occlusion">
-            <QuestionCircleOutlined style={{ marginLeft: '8px' }} />
-          </Tooltip>
+          <Text strong>Recommended System:</Text>
+          <Space style={{ marginLeft: '1rem' }}>
+            <Tag color="blue">{analysis.recommendedMaterial}</Tag>
+            <Tag color="green">{analysis.recommendedDesign}</Tag>
+          </Space>
         </div>
 
         <div>
-          <Text strong>Recommended Design: </Text>
-          <Tag color="green">{analysis.recommendedDesign}</Tag>
-          <Tooltip title="AI recommendation based on tooth condition and restoration requirements">
-            <QuestionCircleOutlined style={{ marginLeft: '8px' }} />
-          </Tooltip>
+          <Text strong>Preparation Analysis:</Text>
+          <div style={{ marginTop: '0.5rem' }}>
+            <Text>Clearance: {analysis.prepClearance.toFixed(2)}mm</Text>
+            <Tag color={analysis.prepClearance >= 1.0 ? 'success' : 'warning'}>
+              {analysis.prepClearance >= 1.0 ? 'Adequate' : 'Insufficient'}
+            </Tag>
+          </div>
         </div>
 
         <div>
-          <Text strong>Preparation Clearance: </Text>
-          <Tag color={analysis.prepClearance > 1.5 ? 'green' : 'orange'}>
-            {analysis.prepClearance.toFixed(2)}mm
-          </Tag>
-          <Tooltip title="Minimum thickness required for the selected material">
-            <QuestionCircleOutlined style={{ marginLeft: '8px' }} />
-          </Tooltip>
+          <Text strong>Confidence Level:</Text>
+          <div style={{ marginTop: '0.5rem' }}>
+            <Tag color={analysis.confidence >= 0.8 ? 'success' : 'warning'}>
+              {(analysis.confidence * 100).toFixed(1)}%
+            </Tag>
+          </div>
         </div>
 
-        <div>
-          <Text strong>Confidence Level: </Text>
-          <Tag color={analysis.confidence > 0.8 ? 'green' : 'orange'}>
-            {(analysis.confidence * 100).toFixed(1)}%
-          </Tag>
-          <Tooltip title="AI confidence in the recommendations">
-            <QuestionCircleOutlined style={{ marginLeft: '8px' }} />
-          </Tooltip>
-        </div>
-
-        <div>
-          <Text strong>Reasoning:</Text>
-          <ul>
-            {analysis.reasoning.map((reason, index) => (
-              <li key={index}>{reason}</li>
-            ))}
-          </ul>
-        </div>
+        {analysis.reasoning.length > 0 && (
+          <div>
+            <Text strong>Analysis Reasoning:</Text>
+            <List
+              size="small"
+              dataSource={analysis.reasoning}
+              renderItem={item => (
+                <List.Item>
+                  <Text>{item}</Text>
+                </List.Item>
+              )}
+            />
+          </div>
+        )}
 
         {analysis.warnings.length > 0 && (
           <div>
             <Text strong type="warning">Warnings:</Text>
-            <ul>
-              {analysis.warnings.map((warning, index) => (
-                <li key={index}>{warning}</li>
-              ))}
-            </ul>
+            <List
+              size="small"
+              dataSource={analysis.warnings}
+              renderItem={item => (
+                <List.Item>
+                  <Text type="warning">{item}</Text>
+                </List.Item>
+              )}
+            />
           </div>
         )}
 
-        <div>
-          <Text strong>Suggestions:</Text>
-          <ul>
-            {analysis.suggestions.map((suggestion, index) => (
-              <li key={index}>
-                {suggestion.label}
-                {suggestion.recommended && (
-                  <Tag color="green" style={{ marginLeft: '8px' }}>Recommended</Tag>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
+        {analysis.suggestions.length > 0 && (
+          <div>
+            <Text strong>AI Suggestions:</Text>
+            <List
+              size="small"
+              dataSource={analysis.suggestions}
+              renderItem={suggestion => (
+                <List.Item>
+                  <Space direction="vertical">
+                    <Text>{suggestion.label}</Text>
+                    {suggestion.recommended && (
+                      <Tag color="green">Recommended</Tag>
+                    )}
+                    <Text type="secondary">
+                      Settings: {Object.entries(suggestion.settings)
+                        .map(([key, value]) => `${key}: ${value}`)
+                        .join(', ')}
+                    </Text>
+                  </Space>
+                </List.Item>
+              )}
+            />
+          </div>
+        )}
       </Space>
     </Card>
   );

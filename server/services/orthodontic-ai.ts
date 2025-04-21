@@ -1,10 +1,9 @@
-
 import { OpenAI } from "openai";
 import { storage } from "../storage";
 
 // Initialize OpenAI
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
+  apiKey: process.env.TREATMENT_AI_KEY || "",
 });
 
 export interface OrthodonticAnalysis {

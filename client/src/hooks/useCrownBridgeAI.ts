@@ -1,110 +1,74 @@
-import { useState, useCallback } from 'react';
-import { 
-  analyzeCrownBridge, 
-  generateCrownBridge, 
-  validateCrownBridge,
-  exportCrownBridgePDF 
-} from '../api/crown-bridge';
-import { 
-  CrownBridgeAnalysis, 
-  CrownBridgeValidation, 
-  CrownBridgeSettings,
-  Tooth
-} from '../../server/types/crown-bridge';
+import { useState } from 'react';
 import * as THREE from 'three';
+import { CrownBridgeSettings, CrownBridgeAnalysis, CrownBridgeValidation } from '../../server/types/crown-bridge';
+import { analyzeCrownBridge, generateCrownBridge, validateCrownBridge, exportPDF } from '../api/crown-bridge';
 
-interface UseCrownBridgeAIProps {
-  token: string;
-}
+export const useCrownBridgeAI = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-export const useCrownBridgeAI = ({ token }: UseCrownBridgeAIProps) => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [analysis, setAnalysis] = useState<CrownBridgeAnalysis | null>(null);
-  const [validation, setValidation] = useState<CrownBridgeValidation | null>(null);
+  const handleError = (err: Error) => {
+    setError(err);
+    throw err;
+  };
 
-  const analyzeCase = useCallback(async (
-    preparationScan: THREE.BufferGeometry,
-    opposingScan: THREE.BufferGeometry,
-    adjacentTeeth: Tooth[]
-  ) => {
-    setLoading(true);
-    setError(null);
+  const analyze = async (scan: THREE.BufferGeometry, settings: CrownBridgeSettings) => {
     try {
-      const result = await analyzeCrownBridge(
-        preparationScan,
-        opposingScan,
-        adjacentTeeth,
-        token
-      );
-      setAnalysis(result);
+      setIsLoading(true);
+      setError(null);
+      const result = await analyzeCrownBridge(scan, settings);
+      return result;
     } catch (err) {
-      setError((err as Error).message);
+      return handleError(err as Error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, [token]);
+  };
 
-  const generateDesign = useCallback(async (
-    settings: CrownBridgeSettings
-  ): Promise<Blob | null> => {
-    setLoading(true);
-    setError(null);
+  const generate = async (scan: THREE.BufferGeometry, settings: CrownBridgeSettings) => {
     try {
-      return await generateCrownBridge(settings, token);
+      setIsLoading(true);
+      setError(null);
+      const result = await generateCrownBridge(scan, settings);
+      return result;
     } catch (err) {
-      setError((err as Error).message);
-      return null;
+      return handleError(err as Error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, [token]);
+  };
 
-  const validateDesign = useCallback(async (
-    preparationScan: THREE.BufferGeometry,
-    settings: CrownBridgeSettings
-  ) => {
-    setLoading(true);
-    setError(null);
+  const validate = async (design: THREE.BufferGeometry, settings: CrownBridgeSettings) => {
     try {
-      const result = await validateCrownBridge(preparationScan, settings, token);
-      setValidation(result);
+      setIsLoading(true);
+      setError(null);
+      const result = await validateCrownBridge(design, settings);
+      return result;
     } catch (err) {
-      setError((err as Error).message);
+      return handleError(err as Error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, [token]);
+  };
 
-  const exportPDF = useCallback(async (
-    preparationScan: THREE.BufferGeometry,
-    settings: CrownBridgeSettings
-  ): Promise<Blob | null> => {
-    setLoading(true);
-    setError(null);
+  const exportDesign = async (design: THREE.BufferGeometry, settings: CrownBridgeSettings) => {
     try {
-      return await exportCrownBridgePDF(preparationScan, settings, token);
+      setIsLoading(true);
+      setError(null);
+      await exportPDF(design, settings);
     } catch (err) {
-      setError((err as Error).message);
-      return null;
+      return handleError(err as Error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, [token]);
-
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
+  };
 
   return {
-    loading,
+    isLoading,
     error,
-    analysis,
-    validation,
-    analyzeCase,
-    generateDesign,
-    validateDesign,
-    exportPDF,
-    clearError
+    analyzeCrownBridge: analyze,
+    generateCrownBridge: generate,
+    validateCrownBridge: validate,
+    exportPDF: exportDesign
   };
 }; 

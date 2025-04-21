@@ -36,6 +36,7 @@ import xrayUploadRoutes from './routes/xray-upload';
 import authRoutes from './routes/auth';
 import patientRoutes from './routes/patients';
 import aiModelRoutes from './routes/ai-model';
+import chartAIRoutes from './routes/chart-ai';
 
 // Setup directory paths for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -301,5 +302,6 @@ setupUploadXrayRoutes(app);
 // Register routes
 app.use('/api/auth', authRoutes);
 app.use('/api/patients', patientRoutes);
+app.use('/api/xray', xrayUploadRoutes);
 app.use('/api/ai-model', aiModelRoutes);
-app.use('/api/xray-upload', xrayUploadRoutes);
+app.use('/api/chart-ai', chartAIRoutes);

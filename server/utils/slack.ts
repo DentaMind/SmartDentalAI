@@ -1,22 +1,38 @@
 import axios from 'axios';
 
-export async function sendSlackMessage(params: {
+interface SlackMessage {
   text: string;
-  channel: string;
-}) {
-  try {
-    if (!process.env.SLACK_WEBHOOK_URL) {
-      console.warn('Slack webhook URL not configured');
-      return;
-    }
+  color?: 'good' | 'warning' | 'danger';
+}
 
-    await axios.post(process.env.SLACK_WEBHOOK_URL, {
-      text: params.text,
-      channel: params.channel,
+export const sendSlackNotification = async (message: SlackMessage) => {
+  if (!process.env.SLACK_WEBHOOK_URL) {
+    console.warn('Slack webhook URL not configured, skipping notification');
+    return;
+  }
+
+  try {
+    const response = await fetch(process.env.SLACK_WEBHOOK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        attachments: [{
+          color: message.color || 'good',
+          text: message.text,
+          ts: Math.floor(Date.now() / 1000)
+        }]
+      })
     });
+
+    if (!response.ok) {
+      throw new Error(`Failed to send Slack notification: ${response.statusText}`);
+    }
 
     console.log('Slack notification sent successfully');
   } catch (error) {
-    console.error('Failed to send Slack notification:', error);
+    console.error('Error sending Slack notification:', error);
+    throw error;
   }
-} 
+}; 

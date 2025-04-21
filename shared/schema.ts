@@ -1,6 +1,14 @@
-import { pgTable, text, serial, integer, timestamp, boolean, jsonb, date, decimal, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, jsonb, date, decimal, real, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { 
+  toothNumberSchema, 
+  toothSurfaceSchema, 
+  perioMeasurementSiteSchema,
+  ToothNumber,
+  ToothSurface,
+  PerioMeasurementSite
+} from './tooth-mapping';
 
 // Lab and Supply Ordering - Enum types
 export const LabCaseStatusEnum = z.enum([
@@ -30,6 +38,8 @@ export const OrthodonticCaseStatusEnum = z.enum([
 export const XRayTypeEnum = z.enum([
   'bitewing', 'periapical', 'panoramic', 'cbct', 'endodontic', 'fmx'
 ]);
+
+export const XraySourceEnum = z.enum(['upload', 'sensor', 'pacs', 'software']);
 
 // ReminderType enum types
 export const ReminderTimeframe = z.enum(['24h', '48h', '1week']);
@@ -1315,3 +1325,648 @@ export const insertSupplyReceiptSchema = createInsertSchema(supplyReceipts);
 export const insertVendorProfileSchema = createInsertSchema(vendorProfiles);
 export const insertOrthodonticCaseSchema = createInsertSchema(orthodonticCases);
 export const insertOrthodonticTelehealthSessionSchema = createInsertSchema(orthodonticTelehealthSessions);
+
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  userEmail: text("user_email").notNull(),
+  userRole: text("user_role").notNull(),
+  action: text("action").notNull(),
+  status: text("status", { enum: ["success", "failed"] }).notNull(),
+  details: text("details").notNull(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// AI Model Tables
+export const aiModelVersions = pgTable("ai_model_versions", {
+  id: serial("id").primaryKey(),
+  modelName: text("model_name").notNull(),
+  version: text("version").notNull(),
+  description: text("description"),
+  parameters: jsonb("parameters"),
+  trainingData: jsonb("training_data"),
+  accuracy: real("accuracy"),
+  deployedAt: timestamp("deployed_at").defaultNow(),
+  status: text("status", { enum: ["active", "inactive", "deprecated"] }).notNull().default("active"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const aiModelAuditLog = pgTable("ai_model_audit_log", {
+  id: serial("id").primaryKey(),
+  modelVersionId: integer("model_version_id").notNull(),
+  inputData: jsonb("input_data").notNull(),
+  outputData: jsonb("output_data").notNull(),
+  confidence: real("confidence"),
+  processingTime: real("processing_time"), // in milliseconds
+  success: boolean("success").notNull(),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const aiFeedbackQueue = pgTable("ai_feedback_queue", {
+  id: serial("id").primaryKey(),
+  modelVersionId: integer("model_version_id").notNull(),
+  inputData: jsonb("input_data").notNull(),
+  expectedOutput: jsonb("expected_output"),
+  actualOutput: jsonb("actual_output"),
+  feedback: text("feedback"),
+  priority: integer("priority").default(1),
+  status: text("status", { enum: ["pending", "processed", "ignored"] }).notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow(),
+  processedAt: timestamp("processed_at")
+});
+
+export const aiTriageResults = pgTable("ai_triage_results", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull(),
+  modelVersionId: integer("model_version_id").notNull(),
+  symptoms: jsonb("symptoms").notNull(),
+  diagnosis: jsonb("diagnosis").notNull(),
+  confidence: real("confidence").notNull(),
+  recommendedActions: jsonb("recommended_actions"),
+  urgencyLevel: text("urgency_level", { enum: ["low", "medium", "high", "emergency"] }).notNull(),
+  reviewedBy: integer("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  status: text("status", { enum: ["pending", "reviewed", "confirmed", "rejected"] }).notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Create insert schemas for AI tables
+export const insertAiModelVersionSchema = createInsertSchema(aiModelVersions);
+export const insertAiModelAuditLogSchema = createInsertSchema(aiModelAuditLog);
+export const insertAiFeedbackQueueSchema = createInsertSchema(aiFeedbackQueue);
+export const insertAiTriageResultSchema = createInsertSchema(aiTriageResults);
+
+// Export types for AI tables
+export type AiModelVersion = typeof aiModelVersions.$inferSelect;
+export type AiModelAuditLog = typeof aiModelAuditLog.$inferSelect;
+export type AiFeedbackQueue = typeof aiFeedbackQueue.$inferSelect;
+export type AiTriageResult = typeof aiTriageResults.$inferSelect;
+export type InsertAiModelVersion = z.infer<typeof insertAiModelVersionSchema>;
+export type InsertAiModelAuditLog = z.infer<typeof insertAiModelAuditLogSchema>;
+export type InsertAiFeedbackQueue = z.infer<typeof insertAiFeedbackQueueSchema>;
+export type InsertAiTriageResult = z.infer<typeof insertAiTriageResultSchema>;
+
+// Token Blacklist Table
+export const tokenBlacklist = pgTable("token_blacklist", {
+  id: serial("id").primaryKey(),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  reason: text("reason"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Create insert schema for token blacklist
+export const insertTokenBlacklistSchema = createInsertSchema(tokenBlacklist);
+
+// Export types for token blacklist
+export type TokenBlacklist = typeof tokenBlacklist.$inferSelect;
+export type InsertTokenBlacklist = z.infer<typeof insertTokenBlacklistSchema>;
+
+export interface Notification {
+  id: number;
+  userId: number;
+  type: string;
+  message: string;
+  read: boolean;
+  createdAt: Date;
+  metadata?: Record<string, unknown>;
+}
+
+export type InsertNotification = Omit<Notification, 'id' | 'createdAt'>;
+
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  type: text("type").notNull(),
+  message: text("message").notNull(),
+  read: boolean("read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  metadata: jsonb("metadata"),
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications);
+
+export interface NotificationPreferences {
+  id: number;
+  userId: number;
+  emailEnabled: boolean;
+  pushEnabled: boolean;
+  appointmentReminders: boolean;
+  labResults: boolean;
+  insuranceUpdates: boolean;
+  diagnosisUpdates: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface User {
+  id: number;
+  email: string;
+  name: string;
+  role: 'admin' | 'provider' | 'reviewer';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Notification {
+  id: number;
+  userId: number;
+  type: 'appointment_reminder' | 'override_alert' | 'review_request' | 'system_alert';
+  message: string;
+  read: boolean;
+  metadata: {
+    [key: string]: any;
+    overrideId?: number;
+    confidence?: number;
+    reviewDeadline?: string;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface OverrideReview {
+  id: number;
+  overrideId: number;
+  reviewerId: number;
+  status: 'pending' | 'approved' | 'rejected';
+  notes: string;
+  confidence: number;
+  modelVersion: string;
+  auditHistory: ReviewAuditEntry[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ReviewAuditEntry {
+  id: number;
+  reviewId: number;
+  action: 'created' | 'updated' | 'status_changed';
+  userId: number;
+  previousStatus?: 'pending' | 'approved' | 'rejected';
+  newStatus?: 'pending' | 'approved' | 'rejected';
+  notes: string;
+  timestamp: Date;
+}
+
+export interface AuditLog {
+  id: number;
+  entityType: string;
+  entityId: number;
+  action: string;
+  userId: number;
+  timestamp: Date;
+  details: string;
+  metadata: {
+    modelVersion?: string;
+    confidence?: number;
+    reviewStatus?: 'pending' | 'approved' | 'rejected';
+    reviewId?: number;
+  };
+}
+
+export interface NotificationSettings {
+  id: number;
+  userId: number;
+  emailEnabled: boolean;
+  slackEnabled: boolean;
+  highConfidenceThreshold: number;
+  overrideAlertEnabled: boolean;
+  reviewRequestEnabled: boolean;
+  systemAlertEnabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface MedicalHistoryItem {
+  condition: string;
+  diagnosedDate: string; // YYYY-MM-DD format
+  notes?: string;
+}
+
+export interface Medication {
+  name: string;
+  dosage: string;
+  frequency: string;
+}
+
+export interface Patient {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string; // YYYY-MM-DD format
+  email: string;
+  phone: string;
+  medicalHistory?: MedicalHistoryItem[];
+  allergies?: string[];
+  medications?: Medication[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
+}
+
+// AI Diagnosis Types
+export const diagnosisFeedbackSchema = z.object({
+  id: z.number().optional(),
+  diagnosisId: z.number(),
+  providerId: z.number(),
+  feedback: z.string(),
+  isCorrect: z.boolean(),
+  suggestedCorrection: z.string().optional(),
+  confidence: z.number().min(0).max(1).optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional()
+});
+
+export const diagnosisAuditLogSchema = z.object({
+  id: z.number().optional(),
+  diagnosisId: z.number(),
+  action: z.enum(['created', 'updated', 'approved', 'rejected', 'modified']),
+  userId: z.number(),
+  timestamp: z.date(),
+  details: z.string(),
+  metadata: z.record(z.unknown()).optional()
+});
+
+export const versionComparisonAuditLogSchema = z.object({
+  id: z.number().optional(),
+  version1: z.string(),
+  version2: z.string(),
+  comparisonDate: z.date(),
+  metrics: z.object({
+    accuracyDelta: z.number(),
+    confidenceDelta: z.number(),
+    overrideRateDelta: z.number(),
+    reviewTimeDelta: z.number()
+  }),
+  affectedReviews: z.array(z.number()),
+  createdAt: z.date().optional()
+});
+
+// Export types
+export type DiagnosisFeedback = z.infer<typeof diagnosisFeedbackSchema>;
+export type DiagnosisAuditLog = z.infer<typeof diagnosisAuditLogSchema>;
+export type VersionComparisonAuditLog = z.infer<typeof versionComparisonAuditLogSchema>;
+export type InsertDiagnosisFeedback = Omit<DiagnosisFeedback, 'id' | 'createdAt' | 'updatedAt'>;
+export type InsertDiagnosisAuditLog = Omit<DiagnosisAuditLog, 'id'>;
+export type InsertVersionComparisonAuditLog = Omit<VersionComparisonAuditLog, 'id' | 'createdAt'>;
+
+// X-ray Types
+export const XrayTypeEnum = z.enum(['bitewing', 'periapical', 'panoramic', 'cbct', 'endodontic', 'fmx']);
+export const XraySourceEnum = z.enum(['upload', 'sensor', 'pacs', 'software']);
+
+export const xraySchema = z.object({
+  id: z.number().optional(),
+  patientId: z.number(),
+  doctorId: z.number(),
+  imageUrl: z.string(),
+  type: XrayTypeEnum,
+  notes: z.string().optional(),
+  metadata: z.object({
+    source: XraySourceEnum,
+    sourceDetails: z.object({
+      device: z.string().optional(),
+      software: z.string().optional(),
+      pacsId: z.string().optional(),
+      metadata: z.record(z.any()).optional()
+    }).optional(),
+    originalFilename: z.string(),
+    mimeType: z.string(),
+    size: z.number(),
+    processingTime: z.number().optional(),
+    aiAnalysis: z.object({
+      status: z.enum(['pending', 'completed', 'failed']).optional(),
+      confidence: z.number().optional(),
+      findings: z.array(z.string()).optional(),
+      recommendations: z.array(z.string()).optional()
+    }).optional()
+  }),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional()
+});
+
+export const xrayAiFindingSchema = z.object({
+  id: z.number().optional(),
+  xrayId: z.number(),
+  toothNumber: z.string().optional(),
+  condition: z.string(),
+  confidence: z.number(),
+  aiNotes: z.string().optional(),
+  overlayPath: z.string().optional(),
+  reviewedBy: z.number().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional()
+});
+
+// Export types
+export type XrayType = z.infer<typeof XrayTypeEnum>;
+export type XraySource = z.infer<typeof XraySourceEnum>;
+export type Xray = z.infer<typeof xraySchema>;
+export type XrayAiFinding = z.infer<typeof xrayAiFindingSchema>;
+export type InsertXray = Omit<Xray, 'id' | 'createdAt' | 'updatedAt'>;
+export type InsertXrayAiFinding = Omit<XrayAiFinding, 'id' | 'createdAt' | 'updatedAt'>;
+
+// Restorative chart schema
+export const restorativeChartSchema = z.object({
+  id: z.string().uuid(),
+  patientId: z.string().uuid(),
+  doctorId: z.string().uuid(),
+  date: z.date(),
+  findings: z.array(z.object({
+    toothNumber: toothNumberSchema,
+    surfaces: z.array(toothSurfaceSchema),
+    condition: z.enum(['caries', 'restoration', 'missing', 'impacted', 'other']),
+    notes: z.string().optional(),
+    images: z.array(z.string().url()).optional()
+  })),
+  status: z.enum(['draft', 'pending_review', 'approved', 'rejected']),
+  reviewedBy: z.string().uuid().optional(),
+  reviewNotes: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date()
+});
+
+// Perio Measurement Schema
+const perioMeasurementSchema = z.object({
+  pd: z.number().min(0).max(10), // Probing Depth
+  rec: z.number().min(0).max(10), // Recession
+  cal: z.number().min(0).max(20), // Clinical Attachment Loss
+  bleeding: z.boolean().optional(),
+  suppuration: z.boolean().optional()
+});
+
+// Perio Surface Schema
+const perioSurfaceSchema = z.object({
+  mb: perioMeasurementSchema, // Mesiobuccal
+  b: perioMeasurementSchema,  // Buccal
+  db: perioMeasurementSchema, // Distobuccal
+  ml: perioMeasurementSchema, // Mesiolingual
+  l: perioMeasurementSchema,  // Lingual
+  dl: perioMeasurementSchema  // Distolingual
+});
+
+// Furcation Grade Enum
+const furcationGradeEnum = z.enum(['I', 'II', 'III', 'IV']);
+
+// Mobility Grade Enum
+const mobilityGradeEnum = z.enum(['0', '1', '2', '3']);
+
+// Perio Tooth Measurement Schema
+const perioToothMeasurementSchema = z.object({
+  toothNumber: toothNumberSchema,
+  buccal: z.object({
+    mb: perioMeasurementSchema,
+    b: perioMeasurementSchema,
+    db: perioMeasurementSchema
+  }),
+  lingual: z.object({
+    ml: perioMeasurementSchema,
+    l: perioMeasurementSchema,
+    dl: perioMeasurementSchema
+  }),
+  furcation: furcationGradeEnum.optional(),
+  mobility: mobilityGradeEnum.optional()
+});
+
+// Perio Chart Schema
+const perioChartSchema = z.object({
+  id: z.string(),
+  patientId: z.string(),
+  doctorId: z.string(),
+  date: z.date(),
+  measurements: z.array(perioToothMeasurementSchema),
+  status: z.enum(['in_progress', 'completed', 'signed_off']),
+  notes: z.string().optional(),
+  createdBy: z.string(),
+  updatedBy: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date()
+});
+
+// Perio Voice Command Schema
+const perioVoiceCommandSchema = z.object({
+  type: z.enum(['measurement', 'navigation', 'furcation', 'mobility']),
+  toothNumber: toothNumberSchema.optional(),
+  measurements: z.array(z.number()).optional(),
+  flags: z.array(z.enum(['bleeding', 'suppuration'])).optional(),
+  action: z.enum(['next', 'repeat', 'clear']).optional(),
+  grade: z.union([furcationGradeEnum, mobilityGradeEnum]).optional()
+});
+
+// Export types
+export type PerioMeasurement = z.infer<typeof perioMeasurementSchema>;
+export type PerioSurface = z.infer<typeof perioSurfaceSchema>;
+export type FurcationGrade = z.infer<typeof furcationGradeEnum>;
+export type MobilityGrade = z.infer<typeof mobilityGradeEnum>;
+export type PerioToothMeasurement = z.infer<typeof perioToothMeasurementSchema>;
+export type PerioChart = z.infer<typeof perioChartSchema>;
+export type PerioVoiceCommand = z.infer<typeof perioVoiceCommandSchema>;
+
+// Export insert types (omit id and timestamps)
+export type InsertPerioChart = Omit<PerioChart, 'id' | 'createdAt' | 'updatedAt'>;
+export type InsertPerioToothMeasurement = Omit<PerioToothMeasurement, 'id' | 'createdAt' | 'updatedAt'>;
+
+// Voice command schema for perio charting
+export const perioVoiceCommandSchema = z.object({
+  toothNumber: toothNumberSchema,
+  measurements: z.object({
+    mb: z.number().min(0).max(20),
+    b: z.number().min(0).max(20),
+    db: z.number().min(0).max(20),
+    bleeding: z.boolean().optional(),
+    suppuration: z.boolean().optional()
+  }),
+  commandType: z.enum(['next_tooth', 'repeat_tooth', 'clear_last']).optional()
+});
+
+// Type exports
+export type RestorativeChart = z.infer<typeof restorativeChartSchema>;
+export type PerioChart = z.infer<typeof perioChartSchema>;
+export type PerioVoiceCommand = z.infer<typeof perioVoiceCommandSchema>;
+
+// Insert types (omitting id and timestamps)
+export type InsertRestorativeChart = Omit<RestorativeChart, 'id' | 'createdAt' | 'updatedAt'>;
+export type InsertPerioChart = Omit<PerioChart, 'id' | 'createdAt' | 'updatedAt'>;
+
+// Add these interfaces before the perioChartSchema
+export interface PerioSiteMeasurement {
+  pd: number;        // probing depth
+  rec: number;       // recession
+  cal: number;       // attachment loss (pd + rec)
+  bleeding?: boolean;
+  suppuration?: boolean;
+}
+
+export interface FurcationInvolvement {
+  grade: 0 | 1 | 2 | 3;
+  location: 'buccal' | 'lingual' | 'mesial' | 'distal';
+}
+
+export interface ToothMobility {
+  grade: 0 | 1 | 2 | 3;
+}
+
+export interface PerioToothMeasurement {
+  toothNumber: number;
+  buccal: Record<'mb' | 'b' | 'db', PerioSiteMeasurement>;
+  lingual: Record<'ml' | 'l' | 'dl', PerioSiteMeasurement>;
+  furcation?: FurcationInvolvement[];
+  mobility?: ToothMobility;
+}
+
+// Update the perioChartSchema
+export const perioChartSchema = z.object({
+  id: z.string(),
+  patientId: z.string(),
+  doctorId: z.string(),
+  date: z.date(),
+  measurements: z.array(z.object({
+    toothNumber: toothNumberSchema,
+    buccal: z.object({
+      mb: z.object({
+        pd: z.number().min(0).max(10),
+        rec: z.number().min(0).max(10),
+        cal: z.number().min(0).max(20),
+        bleeding: z.boolean().optional(),
+        suppuration: z.boolean().optional()
+      }),
+      b: z.object({
+        pd: z.number().min(0).max(10),
+        rec: z.number().min(0).max(10),
+        cal: z.number().min(0).max(20),
+        bleeding: z.boolean().optional(),
+        suppuration: z.boolean().optional()
+      }),
+      db: z.object({
+        pd: z.number().min(0).max(10),
+        rec: z.number().min(0).max(10),
+        cal: z.number().min(0).max(20),
+        bleeding: z.boolean().optional(),
+        suppuration: z.boolean().optional()
+      })
+    }),
+    lingual: z.object({
+      ml: z.object({
+        pd: z.number().min(0).max(10),
+        rec: z.number().min(0).max(10),
+        cal: z.number().min(0).max(20),
+        bleeding: z.boolean().optional(),
+        suppuration: z.boolean().optional()
+      }),
+      l: z.object({
+        pd: z.number().min(0).max(10),
+        rec: z.number().min(0).max(10),
+        cal: z.number().min(0).max(20),
+        bleeding: z.boolean().optional(),
+        suppuration: z.boolean().optional()
+      }),
+      dl: z.object({
+        pd: z.number().min(0).max(10),
+        rec: z.number().min(0).max(10),
+        cal: z.number().min(0).max(20),
+        bleeding: z.boolean().optional(),
+        suppuration: z.boolean().optional()
+      })
+    }),
+    furcation: z.array(z.object({
+      grade: z.number().min(0).max(3),
+      location: z.enum(['buccal', 'lingual', 'mesial', 'distal'])
+    })).optional(),
+    mobility: z.object({
+      grade: z.number().min(0).max(3)
+    }).optional()
+  })),
+  status: z.enum(['draft', 'completed', 'reviewed']),
+  notes: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date()
+});
+
+// Update the voice command schema
+export const perioVoiceCommandSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('measurement'),
+    toothNumber: toothNumberSchema,
+    surface: z.enum(['buccal', 'lingual']),
+    measurements: z.array(z.number().min(0).max(10)),
+    flags: z.array(z.enum(['bleeding', 'suppuration'])).optional()
+  }),
+  z.object({
+    type: z.literal('recession'),
+    toothNumber: toothNumberSchema,
+    values: z.array(z.number().min(0).max(10))
+  }),
+  z.object({
+    type: z.literal('mobility'),
+    toothNumber: toothNumberSchema,
+    grade: z.number().min(0).max(3)
+  }),
+  z.object({
+    type: z.literal('furcation'),
+    toothNumber: toothNumberSchema,
+    location: z.enum(['buccal', 'lingual', 'mesial', 'distal']),
+    grade: z.number().min(0).max(3)
+  }),
+  z.object({
+    type: z.literal('navigation'),
+    action: z.enum(['next', 'back', 'clear', 'repeat'])
+  })
+]);
+
+export interface PerioSiteMeasurement {
+  pd: number;        // probing depth
+  rec: number;       // recession
+  cal: number;       // attachment loss (pd + rec)
+  bleeding?: boolean;
+  suppuration?: boolean;
+}
+
+export interface FurcationInvolvement {
+  grade: 0 | 1 | 2 | 3;
+  location: 'buccal' | 'lingual' | 'mesial' | 'distal';
+}
+
+export interface ToothMobility {
+  grade: 0 | 1 | 2 | 3;
+}
+
+export interface PerioToothMeasurement {
+  toothNumber: number;
+  buccal: Record<'mb' | 'b' | 'db', PerioSiteMeasurement>;
+  lingual: Record<'ml' | 'l' | 'dl', PerioSiteMeasurement>;
+  furcation?: FurcationInvolvement[];
+  mobility?: ToothMobility;
+}
+
+export interface PerioChart {
+  id: string;
+  patientId: string;
+  date: string;
+  measurements: PerioToothMeasurement[];
+  recordedBy: string;
+  recordedAt: string;
+}
+
+export type PerioVoiceCommand = {
+  type: 'measurement' | 'recession' | 'mobility' | 'furcation' | 'navigation';
+  toothNumber?: number;
+  surface?: 'buccal' | 'lingual';
+  measurements?: number[];
+  values?: number[];
+  grade?: 0 | 1 | 2 | 3;
+  location?: 'buccal' | 'lingual' | 'mesial' | 'distal';
+  action?: 'next' | 'back' | 'clear' | 'repeat';
+};
