@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinical Dental Assessment Report</title>
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.5.95/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="/static/css/clinical_report.css" rel="stylesheet">
+    <link href="/static/css/tooth_chart.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1 class="title">Clinical Dental Assessment Report</h1>
+                <p>Generated on {{ report_date }}</p>
+            </div>
+            <div class="no-print">
+                <button onclick="window.print()" class="action-button">
+                    <i class="mdi mdi-printer"></i> Print Report
+                </button>
+                <button onclick="window.location.href='{{ request.url_for('download_pdf', report_id=report_id) }}'" class="action-button">
+                    <i class="mdi mdi-file-pdf-box"></i> Download PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- Import tooth chart component -->
+        {% from "components/tooth_chart.html" import tooth_chart %}
+
+        <!-- Add tooth chart section after header -->
+        <div class="section">
+            <h2 class="section-title">
+                <i class="mdi mdi-tooth"></i>
+                Visual Findings Map
+            </h2>
+            {{ tooth_chart(data.findings) }}
+        </div>
+
+        <!-- Insurance Summary Section -->
+        <div class="section">
+            <h2 class="section-title">
+                <i class="mdi mdi-cash-multiple"></i>
+                Insurance Summary
+                <div class="tooltip">
+                    <i class="mdi mdi-information"></i>
+                    <span class="tooltip-text">
+                        Estimated costs based on standard insurance coverage.
+                        Actual costs may vary based on your specific plan.
+                        Pre-authorization may be required for some procedures.
+                    </span>
+                </div>
+            </h2>
+
+            <!-- Cost Summary -->
+            <div class="cost-summary">
+                <div class="cost-card total">
+                    <div class="cost-label">Total Treatment Cost</div>
+                    <div class="cost-amount">${{ "%.2f"|format(data.insurance_summary.costs.total) }}</div>
+                </div>
+                <div class="cost-card covered">
+                    <div class="cost-label">Insurance Coverage</div>
+                    <div class="cost-amount">${{ "%.2f"|format(data.insurance_summary.costs.insurance_pays) }}</div>
+                </div>
+                <div class="cost-card patient">
+                    <div class="cost-label">Patient Responsibility</div>
+                    <div class="cost-amount">${{ "%.2f"|format(data.insurance_summary.costs.patient_pays) }}</div>
+                </div>
+            </div>
+
+            <!-- Pre-Authorization Requirements -->
+            {% if data.insurance_summary.requires_preauth %}
+            <div class="preauth-notice">
+                <h3>
+                    <i class="mdi mdi-alert"></i>
+                    Pre-Authorization Required
+                </h3>
+                <p>The following procedures require insurance pre-authorization:</p>
+                <ul class="preauth-list">
+                    {% for proc in data.insurance_summary.requires_preauth %}
+                    <li>
+                        <span class="cdt-code">{{ proc.code }}</span>
+                        <span class="proc-desc">{{ proc.description }}</span>
+                        {% if proc.tooth %}
+                        <span class="tooth-num">Tooth #{{ proc.tooth }}</span>
+                        {% endif %}
+                        <span class="proc-cost">${{ "%.2f"|format(proc.cost) }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Procedures by Quadrant -->
+            <div class="quadrant-procedures">
+                <h3>Procedures by Quadrant</h3>
+                <div class="quadrant-grid">
+                    {% for quadrant in [1, 2, 3, 4] %}
+                    <div class="quadrant">
+                        <h4>Quadrant {{ quadrant }}</h4>
+                        {% if data.insurance_summary.quadrant_procedures[quadrant] %}
+                        <ul class="procedure-list">
+                            {% for proc in data.insurance_summary.quadrant_procedures[quadrant] %}
+                            <li>
+                                <span class="cdt-code">{{ proc.code }}</span>
+                                <span class="proc-desc">{{ proc.description }}</span>
+                                <span class="proc-cost">${{ "%.2f"|format(proc.cost) }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="no-procedures">No procedures needed</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">
+                <i class="mdi mdi-chart-timeline-variant"></i>
+                Periodontal Assessment
+            </h2>
+            <div class="staging-grid">
+                <!-- AAP 2018 Classification -->
+                <div class="staging-card stage-{{ data.clinical_assessment.periodontal_details_aap.stage_number }}">
+                    <div class="staging-header">
+                        <div class="staging-title">
+                            AAP/EFP 2018 Classification
+                            <div class="tooltip">
+                                <i class="mdi mdi-information"></i>
+                                <span class="tooltip-text">
+                                    The 2018 classification by the American Academy of Periodontology (AAP) and European Federation of Periodontology (EFP) uses a staging system based on severity, complexity, and extent.
+                                    <br><br>
+                                    Stage I: Early periodontitis (≤15% bone loss)
+                                    <br>
+                                    Stage II: Moderate periodontitis (15-33% bone loss)
+                                    <br>
+                                    Stage III: Severe with potential tooth loss (>33% bone loss)
+                                    <br>
+                                    Stage IV: Severe with tooth loss (>33% bone loss + tooth loss)
+                                </span>
+                            </div>
+                        </div>
+                        <span class="staging-badge" style="background: var(--stage-{{ data.clinical_assessment.periodontal_details_aap.stage_number }}-color)">
+                            {{ data.clinical_assessment.periodontal_status_aap }}
+                        </span>
+                    </div>
+                    <div class="metric-badges">
+                        <span class="metric-badge">
+                            <i class="mdi mdi-bone"></i>
+                            {{ data.clinical_assessment.periodontal_details_aap.bone_loss_percentage }}% Bone Loss
+                        </span>
+                        {% if data.clinical_assessment.periodontal_details_aap.vertical_defects %}
+                        <span class="metric-badge">
+                            <i class="mdi mdi-arrow-bottom-right"></i>
+                            Vertical Defects
+                        </span>
+                        {% endif %}
+                        {% if data.clinical_assessment.periodontal_details_aap.furcation_involvement %}
+                        <span class="metric-badge">
+                            <i class="mdi mdi-tooth"></i>
+                            Furcation Involvement
+                        </span>
+                        {% endif %}
+                        <span class="metric-badge">
+                            <i class="mdi mdi-tooth-outline"></i>
+                            {{ data.clinical_assessment.periodontal_details_aap.affected_teeth }} Affected Teeth
+                        </span>
+                    </div>
+                    <div class="citation">
+                        Reference: Tonetti, MS, et al. (2018). J Periodontol. 89(Suppl 1):S159-S172
+                    </div>
+                </div>
+
+                <!-- Classic Classification -->
+                <div class="staging-card stage-{{ data.clinical_assessment.periodontal_details_classic.severity_number }}">
+                    <div class="staging-header">
+                        <div class="staging-title">
+                            Classic Classification (Pre-2017)
+                            <div class="tooltip">
+                                <i class="mdi mdi-information"></i>
+                                <span class="tooltip-text">
+                                    The traditional classification system categorizes periodontal disease based on:
+                                    <br><br>
+                                    Type: Chronic vs Aggressive
+                                    <br>
+                                    Extent: Localized (<30% sites) vs Generalized
+                                    <br>
+                                    Severity: Mild (1-2mm), Moderate (3-4mm), Severe (≥5mm)
+                                </span>
+                            </div>
+                        </div>
+                        <span class="staging-badge" style="background: var(--stage-{{ data.clinical_assessment.periodontal_details_classic.severity_number }}-color)">
+                            {{ data.clinical_assessment.periodontal_status_classic }}
+                        </span>
+                    </div>
+                    <div class="metric-badges">
+                        <span class="metric-badge">
+                            <i class="mdi mdi-format-list-text"></i>
+                            {{ data.clinical_assessment.periodontal_details_classic.type }}
+                        </span>
+                        <span class="metric-badge">
+                            <i class="mdi mdi-map-marker-radius"></i>
+                            {{ data.clinical_assessment.periodontal_details_classic.extent }}
+                        </span>
+                        {% if data.clinical_assessment.periodontal_details_classic.rapid_progression %}
+                        <span class="metric-badge">
+                            <i class="mdi mdi-clock-fast"></i>
+                            Rapid Progression
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="citation">
+                        Reference: Armitage, GC. (1999). Ann Periodontol. 4(1):1-6
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">
+                <i class="mdi mdi-tooth"></i>
+                Caries Assessment
+            </h2>
+            <div class="staging-card" style="border-left: 4px solid var(--risk-{{ data.clinical_assessment.caries_risk|lower }})">
+                <div class="staging-header">
+                    <div class="staging-title">
+                        Caries Risk Assessment
+                        <div class="tooltip">
+                            <i class="mdi mdi-information"></i>
+                            <span class="tooltip-text">
+                                Risk Levels:
+                                <br><br>
+                                Low: Single lesion, no recurrence
+                                <br>
+                                Moderate: 2-3 lesions or recurrence
+                                <br>
+                                High: >3 lesions, severe, or near pulp
+                            </span>
+                        </div>
+                    </div>
+                    <span class="staging-badge" style="background: var(--risk-{{ data.clinical_assessment.caries_risk|lower }})">
+                        {{ data.clinical_assessment.caries_risk }} Risk
+                    </span>
+                </div>
+                <div class="metric-badges">
+                    <span class="metric-badge">
+                        <i class="mdi mdi-counter"></i>
+                        {{ data.clinical_assessment.caries_details.total_lesions }} Total Lesions
+                    </span>
+                    {% if data.clinical_assessment.caries_details.severe_lesions > 0 %}
+                    <span class="metric-badge">
+                        <i class="mdi mdi-alert"></i>
+                        {{ data.clinical_assessment.caries_details.severe_lesions }} Severe Lesions
+                    </span>
+                    {% endif %}
+                    {% if data.clinical_assessment.caries_details.near_pulp > 0 %}
+                    <span class="metric-badge">
+                        <i class="mdi mdi-alert-circle"></i>
+                        {{ data.clinical_assessment.caries_details.near_pulp }} Near Pulp
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="citation">
+                    Reference: Young, DA, et al. (2015). J Calif Dent Assoc. 43(10):557-65
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">
+                <i class="mdi mdi-clock-alert"></i>
+                Treatment Urgency
+            </h2>
+            <div class="staging-card" style="border-left: 4px solid var(--risk-{{ data.clinical_assessment.urgency_level|replace(' ', '-')|lower }})">
+                <div class="staging-header">
+                    <div class="staging-title">
+                        Overall Urgency Assessment
+                        <div class="tooltip">
+                            <i class="mdi mdi-information"></i>
+                            <span class="tooltip-text">
+                                Urgency Levels:
+                                <br><br>
+                                Immediate: Stage III/IV perio, near-pulp caries
+                                <br>
+                                Within 2 Weeks: Stage II perio, high caries risk
+                                <br>
+                                Routine: Stage I perio, low/moderate risk
+                            </span>
+                        </div>
+                    </div>
+                    <span class="staging-badge" style="background: var(--risk-{{ data.clinical_assessment.urgency_level|replace(' ', '-')|lower }})">
+                        {{ data.clinical_assessment.urgency_level }}
+                    </span>
+                </div>
+                <div class="recommendations">
+                    <ul class="recommendation-list">
+                        {% for rec in data.clinical_assessment.recommendations %}
+                        <li class="recommendation-item">
+                            <i class="mdi mdi-checkbox-marked-circle"></i>
+                            <span>{{ rec }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Add button styling */
+        .action-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            margin-left: 0.5rem;
+            transition: background 0.2s;
+        }
+
+        .action-button:hover {
+            background: #3182ce;
+        }
+
+        .action-button i {
+            font-size: 1.25rem;
+        }
+
+        /* Hide buttons when printing */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        /* Insurance Summary Styles */
+        .cost-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .cost-card {
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            color: white;
+        }
+
+        .cost-card.total {
+            background: #4a5568;
+        }
+
+        .cost-card.covered {
+            background: #48bb78;
+        }
+
+        .cost-card.patient {
+            background: #ed8936;
+        }
+
+        .cost-label {
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .cost-amount {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        /* Pre-Authorization Styles */
+        .preauth-notice {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: #fff8f0;
+            border-left: 4px solid #ed8936;
+            border-radius: 4px;
+        }
+
+        .preauth-notice h3 {
+            color: #c05621;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0 0 0.5rem;
+        }
+
+        .preauth-list {
+            list-style: none;
+            padding: 0;
+            margin: 0.5rem 0 0;
+        }
+
+        .preauth-list li {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        /* Quadrant Procedures Styles */
+        .quadrant-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .quadrant {
+            padding: 1rem;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+
+        .quadrant h4 {
+            margin: 0 0 0.5rem;
+            color: #2d3748;
+        }
+
+        .procedure-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .procedure-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0;
+            font-size: 0.875rem;
+        }
+
+        .cdt-code {
+            font-family: monospace;
+            background: #edf2f7;
+            padding: 0.125rem 0.25rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .proc-desc {
+            flex: 1;
+        }
+
+        .proc-cost {
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .no-procedures {
+            color: #718096;
+            font-style: italic;
+            margin: 0;
+            font-size: 0.875rem;
+        }
+
+        /* Print Optimizations */
+        @media print {
+            .cost-card {
+                border: 1px solid #000;
+            }
+
+            .cost-card.total {
+                background: #f7fafc !important;
+                color: #000;
+            }
+
+            .cost-card.covered {
+                background: #f0fff4 !important;
+                color: #000;
+            }
+
+            .cost-card.patient {
+                background: #fffaf0 !important;
+                color: #000;
+            }
+
+            .preauth-notice {
+                border: 1px solid #000;
+                background: none !important;
+            }
+
+            .quadrant {
+                break-inside: avoid;
+            }
+        }
+    </style>
+</body>
+</html> 

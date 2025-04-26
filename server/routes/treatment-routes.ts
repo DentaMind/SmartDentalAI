@@ -7,7 +7,7 @@ import {
   appointments, 
   insertTreatmentPlanSchema,
   insertAppointmentSchema 
-} from '@shared/schema';
+} from '../../shared/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { integrationService } from '../services/integration';
 import { aiServiceManager } from '../services/ai-service-manager';

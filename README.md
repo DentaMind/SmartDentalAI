@@ -297,3 +297,86 @@ client/src/components/crown-bridge/
 
 MIT
 
+# Dental Insurance API
+
+Real-time insurance coverage validation and benefits tracking API built with FastAPI.
+
+## Features
+
+- Real-time coverage validation for dental procedures
+- Benefits tracking and utilization
+- Procedure history tracking
+- Pre-authorization requirements checking
+- Frequency limit validation
+- Alternate benefits handling
+
+## Setup
+
+1. Create a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Run the development server:
+```bash
+uvicorn insurance.main:app --reload
+```
+
+The API will be available at http://localhost:8000
+
+## API Documentation
+
+Interactive API documentation is available at:
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+## API Endpoints
+
+### Coverage Validation
+
+`POST /insurance/validate`
+
+Validate insurance coverage for one or more procedures. Returns estimated coverage, patient portion, and any applicable warnings or requirements.
+
+Example request:
+```json
+{
+  "patient_id": "12345",
+  "procedures": [
+    {
+      "cdt_code": "D2392",
+      "tooth_number": "14",
+      "surfaces": ["M", "O"],
+      "procedure_cost": 236.00
+    }
+  ],
+  "service_date": "2023-11-15T00:00:00Z"
+}
+```
+
+### Benefits Snapshot
+
+`GET /insurance/benefits/{patient_id}`
+
+Get current benefits utilization and remaining benefits for a patient.
+
+### Procedure History
+
+`GET /insurance/history/{patient_id}`
+
+Get procedure history for a patient.
+
+## Development
+
+The API uses SQLite for development. For production, update the database configuration in `insurance/database/database.py` to use a production-ready database like PostgreSQL.
+
+## License
+
+MIT
+
