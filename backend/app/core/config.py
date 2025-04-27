@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings
 from pydantic import BaseModel
 from typing import Dict, Optional
 from datetime import datetime
+from app.models.canary import CanaryThresholds
 
 class AlertThresholds(BaseModel):
     diagnosis_accuracy: float = 0.05  # 5% change in diagnosis correction rate
@@ -34,6 +35,11 @@ class Settings(BaseSettings):
     retraining_cooldown: int = 7  # Days between retraining attempts
     max_retraining_samples: int = 1000  # Maximum samples to use for retraining
     validation_split: float = 0.2  # Portion of data to use for validation
+
+    # Canary deployment settings
+    canary_thresholds: CanaryThresholds = CanaryThresholds()
+    canary_evaluation_interval: int = 3600  # 1 hour between evaluations
+    canary_max_duration: int = 72  # Maximum hours before forced evaluation
 
     # Notification settings
     slack_webhook_url: Optional[str] = None

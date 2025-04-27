@@ -29,6 +29,9 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { fetchDashboardMetrics } from '../../api/admin';
 import { LineChart } from '@mui/x-charts/LineChart';
+import { useAdminEvents } from '@/hooks/useAdminEvents';
+import { useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '../../api/apiRequest';
 
 interface DashboardMetrics {
   audit_metrics: {
@@ -83,10 +86,151 @@ const MetricCard: React.FC<{
 );
 
 export const AdminDashboard: React.FC = () => {
+  const {
+    collectSettingsModified,
+    collectUserPermissionChanged,
+    collectAIModelRetrained,
+    collectAlertConfigurationChanged,
+    collectSystemBackupCreated,
+    collectSystemRestoreInitiated,
+    collectAuditLogExported,
+    collectBillingConfigurationChanged,
+    collectSecurityPolicyModified,
+    collectMaintenanceModeToggled
+  } = useAdminEvents();
+
+  const queryClient = useQueryClient();
+
   const { data: metrics, isLoading } = useQuery<DashboardMetrics>(
     ['dashboardMetrics'],
     fetchDashboardMetrics
   );
+
+  const handleSettingsChange = async (settingType: string, newValue: any) => {
+    try {
+      const response = await apiRequest('PATCH', `/api/admin/settings/${settingType}`, { value: newValue });
+      await collectSettingsModified(settingType, {
+        originalValue: metrics?.settings?.[settingType],
+        newValue,
+        source: 'user'
+      });
+      queryClient.invalidateQueries(['dashboardMetrics']);
+    } catch (error) {
+      console.error('Failed to update settings:', error);
+    }
+  };
+
+  const handlePermissionChange = async (userId: number, permission: string, action: 'granted' | 'revoked') => {
+    try {
+      const response = await apiRequest('POST', '/api/admin/permissions', { userId, permission, action });
+      await collectUserPermissionChanged(userId, permission, action, { source: 'user' });
+      queryClient.invalidateQueries(['dashboardMetrics']);
+    } catch (error) {
+      console.error('Failed to update permissions:', error);
+    }
+  };
+
+  const handleModelRetrain = async (modelType: string) => {
+    try {
+      const response = await apiRequest('POST', '/api/admin/retrain', { modelType });
+      await collectAIModelRetrained(modelType, {
+        source: 'user',
+        modelVersion: response.data.version
+      });
+      queryClient.invalidateQueries(['dashboardMetrics']);
+    } catch (error) {
+      console.error('Failed to retrain model:', error);
+    }
+  };
+
+  const handleAlertConfigChange = async (alertType: string, config: any) => {
+    try {
+      const response = await apiRequest('PATCH', `/api/admin/alerts/${alertType}`, config);
+      await collectAlertConfigurationChanged(alertType, {
+        originalValue: metrics?.alertConfigs?.[alertType],
+        newValue: config,
+        source: 'user'
+      });
+      queryClient.invalidateQueries(['dashboardMetrics']);
+    } catch (error) {
+      console.error('Failed to update alert configuration:', error);
+    }
+  };
+
+  const handleSystemBackup = async (backupType: string) => {
+    try {
+      const response = await apiRequest('POST', '/api/admin/backup', { type: backupType });
+      await collectSystemBackupCreated(backupType, {
+        source: 'user'
+      });
+      queryClient.invalidateQueries(['dashboardMetrics']);
+    } catch (error) {
+      console.error('Failed to create backup:', error);
+    }
+  };
+
+  const handleSystemRestore = async (restorePoint: string) => {
+    try {
+      const response = await apiRequest('POST', '/api/admin/restore', { restorePoint });
+      await collectSystemRestoreInitiated(restorePoint, {
+        source: 'user'
+      });
+      queryClient.invalidateQueries(['dashboardMetrics']);
+    } catch (error) {
+      console.error('Failed to initiate restore:', error);
+    }
+  };
+
+  const handleAuditLogExport = async (dateRange: { start: string; end: string }) => {
+    try {
+      const response = await apiRequest('POST', '/api/admin/audit-logs/export', dateRange);
+      await collectAuditLogExported(dateRange, {
+        source: 'user'
+      });
+    } catch (error) {
+      console.error('Failed to export audit logs:', error);
+    }
+  };
+
+  const handleBillingConfigChange = async (configType: string, config: any) => {
+    try {
+      const response = await apiRequest('PATCH', `/api/admin/billing/${configType}`, config);
+      await collectBillingConfigurationChanged(configType, {
+        originalValue: metrics?.billingConfigs?.[configType],
+        newValue: config,
+        source: 'user'
+      });
+      queryClient.invalidateQueries(['dashboardMetrics']);
+    } catch (error) {
+      console.error('Failed to update billing configuration:', error);
+    }
+  };
+
+  const handleSecurityPolicyChange = async (policyType: string, policy: any) => {
+    try {
+      const response = await apiRequest('PATCH', `/api/admin/security/${policyType}`, policy);
+      await collectSecurityPolicyModified(policyType, {
+        originalValue: metrics?.securityPolicies?.[policyType],
+        newValue: policy,
+        source: 'user'
+      });
+      queryClient.invalidateQueries(['dashboardMetrics']);
+    } catch (error) {
+      console.error('Failed to update security policy:', error);
+    }
+  };
+
+  const handleMaintenanceMode = async (enabled: boolean) => {
+    try {
+      const response = await apiRequest('POST', '/api/admin/maintenance', { enabled });
+      await collectMaintenanceModeToggled(enabled, {
+        source: 'user'
+      });
+      queryClient.invalidateQueries(['dashboardMetrics']);
+    } catch (error) {
+      console.error('Failed to toggle maintenance mode:', error);
+    }
+  };
 
   if (isLoading) {
     return (
