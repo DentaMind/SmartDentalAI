@@ -137,6 +137,105 @@ See `.env.example` for all available configuration options.
 
 MIT
 
+# SmartDentalAI Founder Console
+
+A real-time monitoring and alerting system for SmartDentalAI's founder console.
+
+## Features
+
+- Real-time system health monitoring (CPU, Memory, Disk)
+- Critical threshold alerts with sound notifications
+- Email and SMS alerting capabilities
+- Mobile-responsive dashboard
+- Founder-only access with authentication
+
+## Setup
+
+### Backend
+
+1. Create a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+2. Install dependencies:
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+3. Configure environment variables:
+```bash
+cp config.env .env
+# Edit .env with your actual credentials
+```
+
+4. Start the backend server:
+```bash
+uvicorn api.main:app --reload
+```
+
+### Frontend
+
+1. Install dependencies:
+```bash
+cd frontend
+npm install
+```
+
+2. Start the development server:
+```bash
+npm start
+```
+
+## Configuration
+
+### Email Alerts
+- Set up SMTP credentials in the backend `.env` file
+- Configure sender and recipient email addresses
+
+### SMS Alerts
+- Set up Twilio credentials in the backend `.env` file
+- Configure sender and recipient phone numbers
+
+### Alert Thresholds
+- CPU: 80%
+- Memory: 85%
+- Disk: 90%
+
+## Security
+
+- All API endpoints are protected with JWT authentication
+- Environment variables are used for sensitive credentials
+- CORS is configured for specific origins in production
+
+## API Endpoints
+
+### Health Monitoring
+- `GET /api/health` - Get system health metrics
+
+### Alert Management
+- `GET /api/alerts/config` - Get alert configuration
+- `POST /api/alerts/config` - Update alert configuration
+- `POST /api/alerts/test/{type}` - Send test alert (email/sms)
+
+## Development
+
+### Adding New Metrics
+1. Update the `SystemMetrics` interface in `frontend/src/pages/SystemHealthPage.tsx`
+2. Add the metric collection in `backend/api/routes/health.py`
+3. Update the dashboard UI to display the new metric
+
+### Customizing Alerts
+1. Modify thresholds in `backend/api/routes/alerts.py`
+2. Update alert messages in the `send_email_alert` and `send_sms_alert` functions
+3. Add new alert types in the `AlertConfig` model
+
+## License
+
+MIT License
+
 # Crown & Bridge Module
 
 A comprehensive module for dental crown and bridge design, featuring AI-powered analysis, 3D visualization, and validation capabilities.

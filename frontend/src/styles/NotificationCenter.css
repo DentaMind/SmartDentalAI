@@ -1,0 +1,91 @@
+.notification-dropdown {
+  width: 400px;
+  max-height: 500px;
+  overflow-y: auto;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16);
+}
+
+.notification-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notification-list {
+  padding: 8px 0;
+}
+
+.notification-item {
+  padding: 12px 16px;
+  transition: background-color 0.3s;
+  cursor: pointer;
+}
+
+.notification-item:hover {
+  background-color: #f5f5f5;
+}
+
+.notification-item.unread {
+  background-color: #e6f7ff;
+}
+
+.notification-item .ant-list-item-meta-title {
+  margin-bottom: 4px;
+}
+
+.notification-item .ant-list-item-meta-description {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.notification-item .ant-list-item-action {
+  margin-left: 16px;
+}
+
+.notification-item .ant-list-item-action li {
+  padding: 0 4px;
+}
+
+.empty-notifications {
+  padding: 24px;
+  text-align: center;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+/* Animation for new notifications */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.notification-item:first-child {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Custom scrollbar */
+.notification-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notification-dropdown::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.notification-dropdown::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.notification-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #555;
+} 

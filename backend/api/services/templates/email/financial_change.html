@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f8f9fa; padding: 20px; border-radius: 5px; }
+        .content { padding: 20px 0; }
+        .changes { background-color: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+        .change-item { margin-bottom: 10px; padding: 10px; border-left: 4px solid #007bff; }
+        .old-value { color: #dc3545; text-decoration: line-through; }
+        .new-value { color: #28a745; font-weight: bold; }
+        .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Financial Changes Made to Treatment Plan {{ plan_id }}</h2>
+        </div>
+        
+        <div class="content">
+            <p>Hello,</p>
+            <p>{{ changer_name }} has made financial changes to Treatment Plan {{ plan_id }}.</p>
+            
+            <div class="changes">
+                <h3>Changes Made:</h3>
+                {% for field, change in changes.items() %}
+                <div class="change-item">
+                    <strong>{{ field }}:</strong><br>
+                    <span class="old-value">{{ change.old }}</span> →
+                    <span class="new-value">{{ change.new }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <p>Please review these changes in the DentaMind system.</p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated message from DentaMind. Please do not reply to this email.</p>
+            <p>Timestamp: {{ timestamp }}</p>
+        </div>
+    </div>
+</body>
+</html> 

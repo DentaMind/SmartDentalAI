@@ -1,6 +1,7 @@
 {
   "dependencies": {
+    "@types/react-signature-canvas": "^1.0.5",
     "react-signature-canvas": "^1.0.6",
-    "@types/react-signature-canvas": "^1.0.5"
+    "tailwindcss-animate": "^1.0.7"
   }
-} 
+}
