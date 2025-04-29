@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo -e "${YELLOW}🔍 Running Alembic migration health check...${NC}"
+
+# Check if we're in the backend directory
+if [ -d "backend" ]; then
+    cd backend
+fi
+
+# Check for multiple Alembic heads
+if alembic heads | grep -q "head"; then
+    HEAD_COUNT=$(alembic heads | grep -c "head")
+    if [ "$HEAD_COUNT" -gt 1 ]; then
+        echo -e "${RED}❌ Multiple Alembic heads detected!${NC}"
+        echo -e "${YELLOW}Please run: alembic merge heads${NC}"
+        exit 1
+    fi
+fi
+
+# Check for pending migrations
+PENDING=$(alembic current | grep 'down_revision')
+if [ -n "$PENDING" ]; then
+    echo -e "${RED}❌ Pending Alembic migrations!${NC}"
+    echo -e "${YELLOW}Please run: alembic upgrade head${NC}"
+    exit 1
+fi
+
+# Check if current revision matches models
+if ! alembic current | grep -q "head"; then
+    echo -e "${RED}❌ Database is not at the latest migration!${NC}"
+    echo -e "${YELLOW}Please run: alembic upgrade head${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✅ Migration health check passed!${NC}"
+exit 0 

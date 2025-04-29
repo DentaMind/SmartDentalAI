@@ -40,102 +40,136 @@ Build an advanced AI assistant that connects all modules and continuously improv
 
 # SmartDentalAI
 
-![CI](https://github.com/DentaMind/SmartDentalAI/actions/workflows/deploy.yml/badge.svg)
+SmartDentalAI is an intelligent dental risk assessment and treatment planning system that leverages AI to provide personalized dental care recommendations.
 
-A modern dental practice management system with AI-powered features for diagnosis, treatment planning, and patient communication.
+## Features
 
-## Local Development Setup
+- **Risk Assessment**: AI-powered evaluation of patient risk factors
+- **Treatment Planning**: Automated generation of personalized treatment plans
+- **Real-time Monitoring**: System health and performance monitoring
+- **API Integration**: RESTful API for seamless integration with existing systems
+- **Security**: JWT authentication and rate limiting
+- **Scalability**: Designed for high availability and performance
+
+## Tech Stack
+
+- **Backend**: Python/FastAPI
+- **Frontend**: React/TypeScript
+- **Database**: PostgreSQL
+- **Caching**: Redis
+- **Monitoring**: Prometheus/Grafana
+- **CI/CD**: GitHub Actions
+
+## Getting Started
 
 ### Prerequisites
 
-- Docker and Docker Compose installed on your system
-- Git for version control
+- Python 3.8+
+- Node.js 16+
+- PostgreSQL 12+
+- Redis 6+
 
-### Getting Started
+### Installation
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/DentaMind/SmartDentalAI.git
 cd SmartDentalAI
 ```
 
-2. Create a .env file from the example:
+2. Set up the backend:
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+3. Set up the frontend:
+```bash
+cd frontend
+npm install
+```
+
+4. Configure environment variables:
 ```bash
 cp .env.example .env
+# Edit .env with your configuration
 ```
 
-3. Start the development environment:
+5. Initialize the database:
 ```bash
-docker compose up --build
+cd backend
+alembic upgrade head
 ```
 
-The application will be available at http://localhost:3000
+### Running the Application
 
-### Development Notes
-
-- The development environment uses hot-reloading, so changes to the code will automatically update the running application
-- PostgreSQL database is accessible at localhost:5432
-- Database credentials (for development):
-  - User: dentamind
-  - Password: dentamind
-  - Database: dentamind
-
-### Running Without Docker
-
-If you prefer to run the application without Docker:
-
-1. Install Node.js 20.x
-2. Install PostgreSQL 16
-3. Create a database and update .env with your database credentials
-4. Install dependencies:
+1. Start the backend server:
 ```bash
-npm ci
+cd backend
+uvicorn main:app --reload
 ```
 
-5. Run database migrations:
+2. Start the frontend development server:
 ```bash
-npm run db:push
-```
-
-6. Start the development server:
-```bash
+cd frontend
 npm run dev
 ```
 
-### Available Scripts
+The application will be available at:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
 
-- `npm run dev` - Start the development server
-- `npm run build` - Build the application for production
-- `npm run start` - Start the production server
-- `npm run check` - Run TypeScript type checking
-- `npm run db:push` - Push database schema changes
+## API Documentation
 
-### Environment Variables
+The API documentation is available at `/docs` when running the backend server. It includes:
+- Detailed endpoint descriptions
+- Request/response examples
+- Authentication requirements
+- Rate limiting information
 
-Key environment variables needed for development:
+## Development
 
-- `DATABASE_URL` - PostgreSQL connection string
-- `JWT_SECRET` - Secret for JWT token generation
-- `SESSION_SECRET` - Secret for session management
-- `NODE_ENV` - Environment (development/production)
-- `PORT` - Port to run the server on (default: 3000)
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines and contribution instructions.
 
-For AI features, you'll need:
-- `OPENAI_API_KEY` - OpenAI API key
-- `OPENAI_ORGANIZATION_ID` - OpenAI organization ID
+## Security
 
-See `.env.example` for all available configuration options.
+- All API endpoints require authentication
+- Rate limiting is implemented to prevent abuse
+- Sensitive data is encrypted
+- Regular security audits are performed
 
-## Contributing
+## Monitoring
 
-1. Create a feature branch
-2. Make your changes
-3. Run tests and type checking
-4. Submit a pull request
+The system includes:
+- Real-time performance metrics
+- Error tracking and logging
+- Health check endpoints
+- Automated alerts
+
+## Deployment
+
+See [deploy/README.md](deploy/README.md) for deployment instructions.
 
 ## License
 
-MIT
+Proprietary and Confidential.  
+© 2025 DentaMind AI Solutions. All rights reserved.
+
+## Support
+
+For support, please:
+1. Check the [documentation](docs/)
+2. Open an issue on GitHub
+3. Contact support@dentamind.com
+
+## Acknowledgments
+
+- OpenAI for GPT-4 integration
+- FastAPI team for the excellent framework
+- The open-source community for various dependencies
 
 # SmartDentalAI Founder Console
 
