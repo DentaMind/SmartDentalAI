@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/Users/abrahamabdin/Downloads/SmartDentalAI 3/backend/run_server.py", line 2, in <module>
+    from api.main import app
+  File "/Users/abrahamabdin/Downloads/SmartDentalAI 3/backend/api/main.py", line 3, in <module>
+    from .routes import health, alerts, telemetry, audit, metrics
+  File "/Users/abrahamabdin/Downloads/SmartDentalAI 3/backend/api/routes/__init__.py", line 1, in <module>
+    from . import risk
+  File "/Users/abrahamabdin/Downloads/SmartDentalAI 3/backend/api/routes/risk.py", line 4, in <module>
+    from backend.models.medical_history import MedicalHistoryRequest, RiskAssessment, ASAClassification
+ModuleNotFoundError: No module named 'backend.models'

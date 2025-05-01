@@ -49,7 +49,7 @@ class AuditEvent(Base):
     resource_id = Column(Integer, nullable=False)  # ID of the resource being audited
     ip_address = Column(String(45), nullable=False)
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    metadata = Column(JSON, nullable=True)  # Additional event-specific data
+    event_metadata = Column(JSON, nullable=True)  # Additional event-specific data
 
     @classmethod
     def log_consent_signed(cls, db, user_id: int, plan_id: int, patient_id: int,
@@ -75,7 +75,7 @@ class AuditEvent(Base):
             resource_type="treatment_plan",
             resource_id=plan_id,
             ip_address=ip_address,
-            metadata={
+            event_metadata={
                 "signed_by": signed_by,
                 "consent_type": "treatment_plan",
             }
@@ -98,7 +98,7 @@ class AuditEvent(Base):
             resource_type="procedure",
             resource_id=procedure_id,
             ip_address=ip_address,
-            metadata={
+            event_metadata={
                 "procedure_code": procedure_code,
                 "tooth_number": tooth,
                 "surface": surface,
@@ -121,7 +121,7 @@ class AuditEvent(Base):
             resource_type="payment",
             resource_id=payment_id,
             ip_address=ip_address,
-            metadata={
+            event_metadata={
                 "amount": amount,
                 "payment_method": payment_method,
                 "reference_number": reference_number,
@@ -142,7 +142,7 @@ class AuditEvent(Base):
             resource_type="insurance_claim",
             resource_id=claim_id,
             ip_address=ip_address,
-            metadata={
+            event_metadata={
                 "procedures": procedures,
                 "carrier": carrier,
                 "claim_type": "preauth",
@@ -163,7 +163,7 @@ class AuditEvent(Base):
             resource_type="treatment_plan",
             resource_id=plan_id,
             ip_address=ip_address,
-            metadata={
+            event_metadata={
                 "changes": changes,  # Dict of what was changed
                 "modification_type": "update",
             }
@@ -184,7 +184,7 @@ class AuditEvent(Base):
             resource_type="communication",
             resource_id=message_id,
             ip_address=ip_address,
-            metadata={
+            event_metadata={
                 "communication_type": comm_type,  # email, sms, portal, etc.
             }
         )
@@ -200,11 +200,11 @@ class AuditEvent(Base):
             event_type=AuditEventType.PATIENT_RECORD_UPDATED,
             user_id=user_id,
             patient_id=patient_id,
-            resource_type="patient",
+            resource_type="patient_record",
             resource_id=patient_id,
             ip_address=ip_address,
-            metadata={
-                "changes": changes,  # Dict of fields changed
+            event_metadata={
+                "changes": changes,  # Dict of what was changed
             }
         )
         db.add(event)
@@ -223,7 +223,7 @@ class AuditEvent(Base):
             resource_type="ledger_adjustment",
             resource_id=adjustment_id,
             ip_address=ip_address,
-            metadata={
+            event_metadata={
                 "amount": amount,
                 "reason": reason,
             }
@@ -244,7 +244,7 @@ class AuditEvent(Base):
             resource_type="procedure",
             resource_id=procedure_id,
             ip_address=ip_address,
-            metadata={
+            event_metadata={
                 "reason": reason,
             }
         )
@@ -265,7 +265,7 @@ class AuditEvent(Base):
             resource_type="insurance_claim",
             resource_id=claim_id,
             ip_address=ip_address,
-            metadata={
+            event_metadata={
                 "procedures": procedures,
                 "carrier": carrier,
                 "submission_method": submission_method,

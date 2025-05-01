@@ -7,6 +7,7 @@ from alembic import context
 
 # Import your models here
 from models.base import Base
+from models.audit import AuditEvent
 from models.treatment_plan import TreatmentPlan, TreatmentPlanProcedure
 from models.ledger import LedgerEntry, Payment
 
@@ -25,7 +26,7 @@ target_metadata = Base.metadata
 
 def get_url():
     """Get database URL from environment variable"""
-    return "postgresql+psycopg2://postgres:postgres@localhost:5432/dentamind"
+    return "postgresql+psycopg2://postgres:postgres@localhost:5432/smartdental"
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.

@@ -8,21 +8,26 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-export default defineConfig({
-  plugins: [
+
+// Create a function to load plugins dynamically
+const loadPlugins = async () => {
+  const plugins = [
     react(),
     runtimeErrorOverlay(),
     themePlugin(),
     tsconfigPaths(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
-        ]
-      : []),
-  ],
+  ];
+
+  if (process.env.NODE_ENV !== "production" && process.env.REPL_ID !== undefined) {
+    const cartographer = (await import("@replit/vite-plugin-cartographer")).cartographer;
+    plugins.push(cartographer());
+  }
+
+  return plugins;
+};
+
+export default defineConfig(async () => ({
+  plugins: await loadPlugins(),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -50,4 +55,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

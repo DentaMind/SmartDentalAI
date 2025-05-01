@@ -1,0 +1,19 @@
+[
+  {
+    "id": "pathology_1_20250430002539",
+    "category": "pathology",
+    "content": "Dental caries (tooth decay) is a multifactorial disease caused by bacteria in dental plaque that ferment carbohydrates to produce acid, which demineralizes tooth structure. The demineralization process begins at the outer enamel and can progress to dentin and eventually the pulp if untreated.",
+    "tags": [
+      "caries",
+      "decay",
+      "cavity",
+      "demineralization",
+      "enamel",
+      "dentin"
+    ],
+    "source": "Oral Pathology",
+    "reference": "Essentials of Oral Pathology and Oral Medicine, 8th Edition",
+    "created_at": "2025-04-30T00:25:39.766539",
+    "updated_at": "2025-04-30T00:25:39.766541"
+  }
+]

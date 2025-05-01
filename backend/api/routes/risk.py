@@ -1,13 +1,140 @@
-from fastapi import APIRouter, HTTPException, status, Body
-from pydantic import ValidationError
+from fastapi import APIRouter, HTTPException, status, Body, Depends
+from pydantic import ValidationError, BaseModel
 from typing import List, Optional, Dict, Any
-from backend.models.medical_history import MedicalHistoryRequest, RiskAssessment, ASAClassification
-from backend.services.medical_history_service import MedicalHistoryService
+from ...models.medical_history import MedicalHistoryRequest, RiskAssessment, ASAClassification
+from ...services.medical_history_service import MedicalHistoryService
+from ..auth import get_current_user
 
-router = APIRouter()
+router = APIRouter(prefix="/risk", tags=["risk"])
+
+class RiskEvaluationRequest(BaseModel):
+    patient_id: int
+    procedure_code: str
+    medical_history: Dict[str, Any]
+    medications: List[str]
+    allergies: List[str]
+
+class RiskEvaluationResponse(BaseModel):
+    risk_level: str
+    risk_factors: List[str]
+    recommendations: List[str]
+    asa_classification: str
+    requires_epinephrine_check: bool
+
+class EpinephrineCheckRequest(BaseModel):
+    patient_id: int
+    procedure_code: str
+    medical_history: Dict[str, Any]
+    medications: List[str]
+
+class EpinephrineCheckResponse(BaseModel):
+    requires_epinephrine: bool
+    contraindications: List[str]
+    recommendations: List[str]
+
+@router.post("/evaluate", response_model=RiskEvaluationResponse)
+async def evaluate_risk(
+    request: RiskEvaluationRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Evaluate overall risk for a procedure"""
+    # This is a simplified example - in a real implementation,
+    # you would use the medical history and other factors to
+    # determine the actual risk level
+    return {
+        "risk_level": "MODERATE",
+        "risk_factors": [
+            "Hypertension",
+            "Diabetes"
+        ],
+        "recommendations": [
+            "Monitor blood pressure throughout procedure",
+            "Have emergency medications available"
+        ],
+        "asa_classification": "ASA III",
+        "requires_epinephrine_check": True
+    }
+
+@router.post("/epinephrine-check", response_model=EpinephrineCheckResponse)
+async def check_epinephrine(
+    request: EpinephrineCheckRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Check if epinephrine can be safely used"""
+    # This is a simplified example - in a real implementation,
+    # you would check for actual contraindications
+    return {
+        "requires_epinephrine": True,
+        "contraindications": [],
+        "recommendations": [
+            "Use 1:100,000 concentration",
+            "Limit total dose to 0.2mg"
+        ]
+    }
+
+@router.get("/medications")
+async def get_risk_medications(
+    current_user: dict = Depends(get_current_user)
+):
+    """Get list of medications that require special consideration"""
+    return {
+        "medications": [
+            {
+                "name": "Warfarin",
+                "risk_level": "HIGH",
+                "recommendations": [
+                    "Check INR before procedure",
+                    "May need to adjust dosage"
+                ]
+            },
+            {
+                "name": "Insulin",
+                "risk_level": "MODERATE",
+                "recommendations": [
+                    "Monitor blood glucose",
+                    "Adjust dosage based on fasting status"
+                ]
+            }
+        ]
+    }
+
+@router.get("/asa-classification")
+async def get_asa_classification(
+    current_user: dict = Depends(get_current_user)
+):
+    """Get ASA classification guidelines"""
+    return {
+        "classifications": [
+            {
+                "class": "ASA I",
+                "description": "Normal healthy patient",
+                "examples": "No organic, physiological, or psychiatric disturbance"
+            },
+            {
+                "class": "ASA II",
+                "description": "Patient with mild systemic disease",
+                "examples": "Well-controlled hypertension, diabetes"
+            },
+            {
+                "class": "ASA III",
+                "description": "Patient with severe systemic disease",
+                "examples": "Poorly controlled hypertension, diabetes with complications"
+            },
+            {
+                "class": "ASA IV",
+                "description": "Patient with severe systemic disease that is a constant threat to life",
+                "examples": "Recent myocardial infarction, severe COPD"
+            },
+            {
+                "class": "ASA V",
+                "description": "Moribund patient who is not expected to survive without the operation",
+                "examples": "Ruptured abdominal aortic aneurysm, massive trauma"
+            }
+        ]
+    }
 
 @router.post("/evaluate", response_model=RiskAssessment)
-async def evaluate_risk(request: Dict[str, Any] = Body(...)) -> RiskAssessment:
+async def evaluate_risk_post(request: Dict[str, Any] = Body(...)) -> RiskAssessment:
     """
     Evaluate medical history and generate comprehensive risk assessment
     """
@@ -217,7 +344,7 @@ async def check_epinephrine_safety(request: MedicalHistoryRequest):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Internal server error: {str(e)}")
 
 @router.post("/asa-classification")
-async def get_asa_classification(request: MedicalHistoryRequest):
+async def get_asa_classification_post(request: MedicalHistoryRequest):
     """
     Get ASA classification and reasoning based on medical history
     """

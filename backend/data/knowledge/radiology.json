@@ -1,0 +1,18 @@
+[
+  {
+    "id": "radiology_1_20250430002539",
+    "category": "radiology",
+    "content": "Periapical radiographs show the entire tooth from crown to apex, including surrounding bone. They are indicated for detecting periapical lesions, root fractures, and evaluating periodontal bone loss. The paralleling technique is preferred over the bisecting angle technique as it produces less distortion. Digital sensors require approximately 50-80% less radiation compared to traditional D-speed film.",
+    "tags": [
+      "periapical",
+      "radiograph",
+      "x-ray",
+      "diagnosis",
+      "paralleling technique"
+    ],
+    "source": "Dental Radiology",
+    "reference": "Oral Radiology: Principles and Interpretation, 8th Edition",
+    "created_at": "2025-04-30T00:25:39.773266",
+    "updated_at": "2025-04-30T00:25:39.773267"
+  }
+]

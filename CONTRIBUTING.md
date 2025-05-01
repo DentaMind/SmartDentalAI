@@ -1,96 +1,62 @@
 # Contributing to DentaMind
 
-Thank you for your interest in contributing to DentaMind! This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to DentaMind! Before you begin, please read and agree to our Contributor License Agreement (CLA).
 
-## Table of Contents
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-- [Development Workflow](#development-workflow)
-- [Code Style](#code-style)
-- [Testing](#testing)
-- [Documentation](#documentation)
-- [Pull Request Process](#pull-request-process)
-- [Release Process](#release-process)
+## Contributor License Agreement
 
-## Code of Conduct
+By contributing to DentaMind, you agree to the following terms:
 
-By participating in this project, you agree to abide by our Code of Conduct. Please be respectful and considerate of others.
+1. You grant DentaMind AI Solutions a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable license to use, reproduce, prepare derivative works of, publicly display, publicly perform, sublicense, and distribute your contributions and any derivative works thereof.
 
-## Getting Started
+2. You represent that you are legally entitled to grant the above license. If your employer has rights to intellectual property that you create, you represent that you have received permission to make contributions on behalf of that employer, or that your employer has waived such rights for your contributions to DentaMind.
+
+3. You represent that each of your contributions is your original creation. You represent that your contribution submissions include complete details of any third-party license or other restriction (including, but not limited to, related patents and trademarks) of which you are personally aware and which are associated with any part of your contributions.
+
+4. You are not expected to provide support for your contributions, except to the extent you desire to provide support. You may provide support for free, for a fee, or not at all.
+
+## Development Process
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/your-username/dentamind.git`
-3. Install dependencies:
-   ```bash
-   npm install
-   ```
-4. Set up environment variables:
-   ```bash
-   cp .env.example .env
-   ```
-5. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-## Development Workflow
-
-1. Create a new branch for your feature:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-2. Make your changes
-3. Run tests:
-   ```bash
-   npm test
-   ```
-4. Commit your changes:
-   ```bash
-   git commit -m "feat: add your feature"
-   ```
-5. Push to your fork:
-   ```bash
-   git push origin feature/your-feature-name
-   ```
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## Code Style
 
-- Use TypeScript for all new code
-- Follow the ESLint configuration
-- Use Prettier for code formatting
-- Write meaningful commit messages following conventional commits
-- Include JSDoc comments for all functions and classes
+- Follow PEP 8 for Python code
+- Use ESLint and Prettier for JavaScript/TypeScript
+- Write comprehensive tests for new features
+- Document all public APIs and functions
 
 ## Testing
 
-- Write unit tests for all new features
-- Ensure test coverage remains above 80%
-- Run tests before submitting a pull request
-- Include integration tests for API endpoints
+Run the test suite before submitting a pull request:
+```bash
+# Backend tests
+cd backend
+pytest
+
+# Frontend tests
+cd frontend
+npm test
+```
 
 ## Documentation
 
 - Update README.md for significant changes
-- Document new API endpoints
-- Add comments for complex logic
-- Keep type definitions up to date
+- Add docstrings to new functions and classes
+- Update API documentation if endpoints are modified
 
-## Pull Request Process
+## Security
 
-1. Ensure your branch is up to date with main
-2. Submit a pull request with a clear description
-3. Include relevant tests and documentation
-4. Address any review comments
-5. Wait for approval before merging
+- Never commit sensitive information
+- Report security vulnerabilities to security@dentamind.com
+- Follow security best practices in code
 
-## Release Process
+## Support
 
-1. Update version in package.json
-2. Update CHANGELOG.md
-3. Create a release tag
-4. Deploy to staging for testing
-5. Deploy to production after approval
-
-## Questions?
-
-Feel free to open an issue or contact the maintainers for any questions. 
+For questions or support, please:
+1. Check the documentation
+2. Open an issue on GitHub
+3. Contact support@dentamind.com 

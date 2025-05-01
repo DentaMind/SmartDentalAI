@@ -62,13 +62,18 @@ class PatientHealthSummary(BaseModel):
                 key=lambda x: x.date_administered,
                 default=None
             )
+            if latest:
+                # Check if immunization is current based on due date
+                has_due_date = latest.next_due_date is not None
+                is_overdue = has_due_date and latest.next_due_date <= datetime.utcnow()
+                is_current = False if (has_due_date and is_overdue) else True
+            else:
+                is_current = False
+                
             status[imm_type] = {
                 "last_administered": latest.date_administered if latest else None,
                 "next_due": latest.next_due_date if latest else None,
-                "is_current": latest and (
-                    not latest.next_due_date or 
-                    latest.next_due_date > datetime.utcnow()
-                ) if latest else False
+                "is_current": is_current
             }
         return status
 
@@ -96,12 +101,12 @@ class PatientHealthSummary(BaseModel):
         
         # Check immunization status
         for imm_type, status in self.immunization_status.items():
-            if not status["is_current"]:
+            if status["is_current"] is False:
                 alerts.append(f"Immunization {imm_type.value} is due or overdue")
         
         # Check blood work values
         for bw_type, trend in self.blood_work_trends.items():
-            if trend["latest_value"]:
+            if trend.get("latest_value"):
                 # Add logic to check against reference ranges
                 # This is a placeholder - actual ranges would be defined
                 if bw_type == BloodWorkType.HBA1C and trend["latest_value"] > 6.5:

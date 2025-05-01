@@ -1,0 +1,18 @@
+[
+  {
+    "id": "medications_1_20250430002539",
+    "category": "medications",
+    "content": "Amoxicillin is a first-line antibiotic for dental infections. For adult dental infections, the typical dosage is 500mg three times daily for 7 days. It is effective against most oral pathogens but may be combined with clavulanic acid (Augmentin) for broader coverage when beta-lactamase producing organisms are suspected.",
+    "tags": [
+      "antibiotic",
+      "amoxicillin",
+      "infection",
+      "prescription",
+      "dosage"
+    ],
+    "source": "Pharmacology",
+    "reference": "Applied Pharmacology for the Dental Hygienist, 8th Edition",
+    "created_at": "2025-04-30T00:25:39.768121",
+    "updated_at": "2025-04-30T00:25:39.768122"
+  }
+]

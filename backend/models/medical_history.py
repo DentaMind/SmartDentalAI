@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict, Union
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel, Field, validator, constr
+from pydantic import BaseModel, Field, field_validator, constr
 
 class ASAClassification(str, Enum):
     """ASA Physical Status Classification System"""
@@ -15,70 +15,76 @@ class ASAClassification(str, Enum):
     def __str__(self):
         return self.value
 
-class BloodworkValue(BaseModel):
-    """Bloodwork test result"""
-    test_name: str
-    value: float
-    unit: str
-    reference_range: str
-    timestamp: Optional[datetime] = None
-    is_abnormal: Optional[bool] = None
-    clinical_significance: Optional[str] = None
+class TestResult(BaseModel):
+    test_name: str = Field(..., description="Name of the test")
+    value: float = Field(..., description="Test result value")
+    unit: str = Field(..., description="Unit of measurement")
+    reference_range: str = Field(..., description="Normal reference range")
+    date: datetime = Field(..., description="Date of test")
+    notes: Optional[str] = Field(None, description="Additional notes")
 
-    @validator("test_name")
+    @field_validator("test_name")
+    @classmethod
     def validate_test_name(cls, v):
-        if not v:
+        if not v.strip():
             raise ValueError("Test name cannot be empty")
-        return v
+        return v.strip()
 
-    @validator("value")
+    @field_validator("value")
+    @classmethod
     def validate_value(cls, v):
         if v < 0:
-            raise ValueError("Value cannot be negative")
+            raise ValueError("Test value cannot be negative")
         return v
 
 class Medication(BaseModel):
     """Patient medication information"""
-    name: str
+    name: str = Field(..., description="Name of medication")
     generic_name: Optional[str] = None
-    dosage: str
-    frequency: str
-    start_date: Optional[datetime] = None
+    dosage: str = Field(..., description="Dosage information")
+    frequency: str = Field(..., description="Frequency of administration")
+    start_date: datetime = Field(..., description="Start date of medication")
     end_date: Optional[datetime] = None
     is_active: bool = True
-    drug_class: str
+    drug_class: str = Field(..., description="Drug classification")
     dental_considerations: List[str] = Field(default_factory=list)
     contraindications: List[str] = Field(default_factory=list)
+    prescribing_doctor: str = Field(..., description="Name of prescribing doctor")
+    notes: Optional[str] = Field(None, description="Additional notes")
 
-    @validator("name")
+    @field_validator("name")
+    @classmethod
     def validate_name(cls, v):
-        if not v:
+        if not v.strip():
             raise ValueError("Medication name cannot be empty")
-        return v
+        return v.strip()
 
-    @validator("drug_class")
+    @field_validator("drug_class")
+    @classmethod
     def validate_drug_class(cls, v):
-        if not v:
+        if not v.strip():
             raise ValueError("Drug class cannot be empty")
-        return v
+        return v.strip()
 
 class MedicalCondition(BaseModel):
     """Patient medical condition"""
-    name: str
+    name: str = Field(..., description="Name of condition")
     icd_code: Optional[str] = None
-    severity: str  # mild, moderate, severe
+    severity: str = Field(..., description="Severity level")
     is_controlled: bool
     last_exacerbation: Optional[datetime] = None
     treatment_plan: Optional[str] = None
     dental_considerations: List[str] = Field(default_factory=list)
 
-    @validator("name")
+    @field_validator("name")
+    @classmethod
     def validate_name(cls, v):
-        if not v:
+        if not v.strip():
             raise ValueError("Condition name cannot be empty")
-        return v
+        return v.strip()
 
-    @validator("severity")
+    @field_validator("severity")
+    @classmethod
     def validate_severity(cls, v):
         valid_severities = ["mild", "moderate", "severe"]
         if v.lower() not in valid_severities:
@@ -95,16 +101,37 @@ class DentalHistory(BaseModel):
 
 class MedicalHistory(BaseModel):
     """Complete medical history record"""
-    patient_id: Optional[str] = None
-    conditions: List[MedicalCondition] = Field(default_factory=list)
-    medications: List[Medication] = Field(default_factory=list)
-    bloodwork: List[BloodworkValue] = Field(default_factory=list)
+    patient_id: str = Field(..., description="Patient ID")
+    conditions: List[MedicalCondition] = Field(default_factory=list, description="List of medical conditions")
+    medications: List[Medication] = Field(default_factory=list, description="List of medications")
+    bloodwork: List[TestResult] = Field(default_factory=list, description="List of bloodwork results")
     dental_history: Optional[DentalHistory] = None
     asa_classification: Optional[ASAClassification] = None
-    last_updated: datetime = Field(default_factory=datetime.now)
+    last_updated: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
     risk_factors: List[str] = Field(default_factory=list)
     requires_medical_clearance: bool = False
     medical_clearance_notes: Optional[str] = None
+
+    @field_validator("conditions")
+    @classmethod
+    def validate_conditions(cls, v):
+        if not isinstance(v, list):
+            raise ValueError("Conditions must be a list")
+        return v
+
+    @field_validator("medications")
+    @classmethod
+    def validate_medications(cls, v):
+        if not isinstance(v, list):
+            raise ValueError("Medications must be a list")
+        return v
+
+    @field_validator("bloodwork")
+    @classmethod
+    def validate_bloodwork(cls, v):
+        if not isinstance(v, list):
+            raise ValueError("Bloodwork must be a list")
+        return v
 
 class RiskAssessment(BaseModel):
     """Risk assessment results"""
@@ -130,7 +157,7 @@ class MedicalConditionRequest(MedicalCondition):
 class MedicationRequest(Medication):
     pass
 
-class BloodworkRequest(BloodworkValue):
+class BloodworkRequest(TestResult):
     pass
 
 class DentalHistoryRequest(DentalHistory):
@@ -146,19 +173,22 @@ class MedicalHistoryRequest(BaseModel):
     risk_factors: List[str] = Field(default_factory=list)
     asa_classification: Optional[ASAClassification] = None
 
-    @validator("conditions")
+    @field_validator("conditions")
+    @classmethod
     def validate_conditions(cls, v):
         if not isinstance(v, list):
             raise ValueError("Conditions must be a list")
         return v
 
-    @validator("medications")
+    @field_validator("medications")
+    @classmethod
     def validate_medications(cls, v):
         if not isinstance(v, list):
             raise ValueError("Medications must be a list")
         return v
 
-    @validator("bloodwork")
+    @field_validator("bloodwork")
+    @classmethod
     def validate_bloodwork(cls, v):
         if not isinstance(v, list):
             raise ValueError("Bloodwork must be a list")

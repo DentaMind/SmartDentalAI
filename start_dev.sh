@@ -7,6 +7,10 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Ensure the script starts from the project root
+echo -e "${YELLOW}Changing to project root directory...${NC}"
+cd "$(dirname "$0")"
+
 echo -e "${GREEN}🚀 Starting DentaMind Development Environment...${NC}"
 
 # Function to check if a command exists

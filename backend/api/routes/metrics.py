@@ -1,10 +1,12 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import numpy as np
 from pydantic import BaseModel
+from ..services.metrics import get_metric_history, get_system_metrics, get_performance_metrics
+from ..auth import get_current_user
 
-router = APIRouter()
+router = APIRouter(prefix="/api/metrics", tags=["metrics"])
 
 class MetricData(BaseModel):
     timestamp: str
@@ -111,62 +113,58 @@ def detect_significant_changes(data: List[MetricData]) -> List[Dict[str, Any]]:
             })
     return changes
 
-@router.get("/metrics")
-async def get_available_metrics() -> List[str]:
+@router.get("/")
+async def get_available_metrics(current_user: dict = Depends(get_current_user)):
     """Get list of available metrics"""
-    return list(MOCK_METRICS.keys())
+    return {
+        "metrics": [
+            "cpu_usage",
+            "memory_usage",
+            "disk_usage",
+            "response_time",
+            "error_rate",
+            "request_rate"
+        ]
+    }
 
-@router.get("/metrics/{metric_name}")
+@router.get("/{metric_name}")
 async def get_metric_details(
     metric_name: str,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None
-) -> MetricDetails:
-    """Get detailed information about a specific metric"""
-    if metric_name not in MOCK_METRICS:
-        raise HTTPException(status_code=404, detail="Metric not found")
-    
-    # Use default date range if not provided
-    if not start_date:
-        start_date = (datetime.now() - timedelta(days=30)).isoformat()
-    if not end_date:
-        end_date = datetime.now().isoformat()
-    
-    # Generate mock data
-    data = generate_mock_data(metric_name, start_date, end_date)
-    
-    # Calculate statistics
-    statistics = calculate_statistics(data)
-    
-    # Detect significant changes
-    significant_changes = detect_significant_changes(data)
-    
-    return MetricDetails(
-        name=MOCK_METRICS[metric_name]["name"],
-        description=MOCK_METRICS[metric_name]["description"],
-        unit=MOCK_METRICS[metric_name]["unit"],
-        data=data,
-        statistics=statistics,
-        significantChanges=significant_changes
-    )
+    start_date: str,
+    end_date: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get historical data for a specific metric"""
+    try:
+        start = datetime.fromisoformat(start_date)
+        end = datetime.fromisoformat(end_date)
+        days = (end - start).days
+        
+        history = get_metric_history(metric_name, days)
+        return {
+            "metric": metric_name,
+            "history": history,
+            "start_date": start_date,
+            "end_date": end_date
+        }
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format")
 
-@router.get("/metrics/{metric_name}/correlations")
-async def get_metric_correlations(metric_name: str) -> List[Dict[str, Any]]:
-    """Get correlations between the specified metric and other metrics"""
-    if metric_name not in MOCK_METRICS:
-        raise HTTPException(status_code=404, detail="Metric not found")
-    
-    # Generate mock correlations
-    correlations = []
-    for other_metric in MOCK_METRICS:
-        if other_metric != metric_name:
-            correlation = np.random.uniform(-1, 1)
-            correlations.append({
-                "metric": other_metric,
-                "correlation": float(correlation)
-            })
-    
-    return correlations
+@router.get("/{metric_name}/correlations")
+async def get_metric_correlations(
+    metric_name: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get correlations between this metric and other system metrics"""
+    # For demonstration, return some sample correlations
+    return {
+        "correlations": {
+            "cpu_usage": 0.75,
+            "memory_usage": 0.65,
+            "disk_usage": 0.25,
+            "response_time": 0.85
+        }
+    }
 
 async def get_event_details(
     event_id: str,

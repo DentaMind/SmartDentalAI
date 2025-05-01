@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
+from sqlalchemy.orm import Session
 from ..models.health import (
     Immunization,
     ImmunizationType,
@@ -10,8 +11,16 @@ from ..models.health import (
 )
 from ..services.health_service import health_service
 from ..auth import get_current_user, UserRole
+from ..config.database import get_db
+from ..services.monitoring import MonitoringService
+import psutil
+import os
 
 router = APIRouter(prefix="/health", tags=["health"])
+monitoring = MonitoringService()
+
+def check_user_role(current_user: dict, allowed_roles: List[UserRole]) -> bool:
+    return current_user["role"] in allowed_roles
 
 @router.get("/summary/{patient_id}", response_model=PatientHealthSummary)
 async def get_health_summary(
@@ -19,7 +28,8 @@ async def get_health_summary(
     current_user: dict = Depends(get_current_user)
 ):
     """Get health summary for a patient"""
-    if current_user["role"] not in [UserRole.DOCTOR, UserRole.NURSE, UserRole.ADMIN]:
+    allowed_roles = [UserRole.DOCTOR, UserRole.NURSE, UserRole.ADMIN]
+    if not check_user_role(current_user, allowed_roles):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only doctors, nurses, and admins can view health records"
@@ -145,4 +155,40 @@ async def get_upcoming_immunizations(
             detail="Only doctors, nurses, and admins can view upcoming immunizations"
         )
 
-    return health_service.get_upcoming_immunizations(days_ahead) 
+    return health_service.get_upcoming_immunizations(days_ahead)
+
+@router.get("/health", response_model=Dict[str, Any])
+async def health_check(db: Session = Depends(get_db)):
+    """Health check endpoint that verifies system status"""
+    try:
+        # Check database connectivity
+        db.execute("SELECT 1")
+        db_status = "healthy"
+    except Exception as e:
+        db_status = f"unhealthy: {str(e)}"
+
+    # Get system metrics
+    metrics = monitoring.check_system_metrics()
+    
+    # Check disk space
+    disk = psutil.disk_usage('/')
+    disk_status = "healthy" if disk.percent < 90 else "warning"
+
+    # Check memory usage
+    memory = psutil.virtual_memory()
+    memory_status = "healthy" if memory.percent < 90 else "warning"
+
+    # Check CPU usage
+    cpu_status = "healthy" if psutil.cpu_percent() < 90 else "warning"
+
+    return {
+        "status": "healthy" if all(status == "healthy" for status in [db_status, disk_status, memory_status, cpu_status]) else "degraded",
+        "components": {
+            "database": db_status,
+            "disk": disk_status,
+            "memory": memory_status,
+            "cpu": cpu_status
+        },
+        "metrics": metrics,
+        "version": os.getenv("APP_VERSION", "unknown")
+    } 

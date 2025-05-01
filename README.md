@@ -1,7 +1,210 @@
+# DentaMind - AI-Powered Dental Practice Management Platform
+
+DentaMind is a comprehensive dental practice management system featuring AI-driven diagnostic tools, patient management, and clinical workflow automation.
+
+## Key Features
+
+- **AI-Powered Diagnostics**: Automatic analysis of dental X-rays, periodontal assessments, and treatment planning
+- **Patient Management**: Complete patient records, appointment scheduling, and treatment history
+- **Financial Tools**: Insurance claim management, billing, and financial reporting
+- **Clinical Workflows**: Customizable clinical workflows for different procedure types
+- **Multi-modal Imaging**: Support for FMX, panoramic, and CBCT imaging with AI analysis
+
+## System Architecture
+
+DentaMind uses a microservices architecture with these components:
+
+- **Authentication Service**: User authentication and session management (port 8085)
+- **Patient Service**: Patient records and appointments (port 8086)
+- **Imaging Service**: Dental imaging processing and analysis (port 8087)
+- **Legacy API**: Backward compatibility for older components (port 8090)
+- **React Frontend**: Modern UI built with React, TypeScript, and Tailwind CSS
+
+For detailed architecture information, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js 18+
+- PostgreSQL 14+
+- Virtual environment tool (venv, conda, etc.)
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/dentamind.git
+   cd dentamind
+   ```
+
+2. Create and activate a Python virtual environment:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+3. Run the setup script to install dependencies:
+   ```bash
+   cd backend
+   ./setup_dentamind.sh
+   cd ..
+   ```
+
+4. Install frontend dependencies:
+   ```bash
+   cd client
+   npm install
+   cd ..
+   ```
+
+### Running the Application
+
+Start all services with a single command:
+
+```bash
+./start_dentamind.sh
+```
+
+This will start:
+- Authentication service on port 8085
+- Patient service on port 8086
+- Imaging service on port 8087
+- Legacy API on port 8090
+- React frontend on port 3000
+
+To stop all services:
+
+```bash
+./stop_dentamind.sh
+```
+
+### Demo Credentials
+
+Use these credentials to log in:
+
+- **Doctor Account**:
+  - Email: demo@dentamind.com
+  - Password: password123
+
+- **Admin Account**:
+  - Email: admin@dentamind.com
+  - Password: admin123
+
+## Development
+
+### Backend Development
+
+Each backend service is a separate FastAPI application:
+
+- `auth_server.py` - Authentication service
+- `patient_server.py` - Patient records service
+- `imaging_server.py` - Imaging service
+- `debug_routes.py` - Legacy API service
+
+To run a single service for development:
+
+```bash
+cd backend
+python auth_server.py  # Or any other service file
+```
+
+### Frontend Development
+
+The frontend is built with React, TypeScript, and Tailwind CSS:
+
+```bash
+cd client
+npm run dev
+```
+
+## Testing
+
+We use pytest for backend testing and Jest for frontend testing:
+
+```bash
+# Backend tests
+cd backend
+pytest
+
+# Frontend tests
+cd client
+npm test
+```
+
+## Deployment
+
+For production deployment, we recommend:
+
+1. Using Docker containers for each service
+2. Setting up a reverse proxy (like Nginx) in front of all services
+3. Configuring PostgreSQL with proper backup routines
+4. Using a proper secrets management solution
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Contact
+
+For questions or support, please contact support@dentamind.com
+
 # DentaMind AI
 
 ## 🧠 Overview
 DentaMind is an AI-driven diagnostic platform for dentistry and medicine. It links imaging, charting, patient records, scheduling, financials, treatment planning, insurance handling, and AI feedback-based diagnosis into one unified system.
+
+## 🎯 Core Principles
+
+### 1. Dentist-First Design
+DentaMind is built for **dentists**, not insurance companies. Our goal is to empower clinicians to diagnose faster, treat smarter, and improve patient outcomes — not to police them, slow them down, or interfere with clinical judgment.
+
+- 🦷 Assist the dentist, never override
+- 🦷 Reduce cognitive load, never add it
+- 🦷 Preserve and enhance clinical autonomy
+
+### 2. Clinical Accuracy and Speed
+Accuracy is essential, but **speed is clinical reality**. DentaMind provides AI insights **in real-time**, with **minimal clicks** and **zero friction** inside daily workflows.
+
+- ⚡ Instantaneous analysis where possible
+- ⚡ No lag, no bulky external viewers
+- ⚡ Seamless integration into imaging and charting systems
+
+### 3. Transparency and Trust
+Dentists must **trust** DentaMind like they trust their loupes or scalers — invisible when not needed, precise when needed most.
+
+- 👁️‍🗨️ Show the AI's findings clearly — but always allow human override
+- 👁️‍🗨️ No hidden "black box" decisions
+- 👁️‍🗨️ Make it easy to **agree, disagree, or adjust** AI suggestions
+
+### 4. Clinical Research-Backed
+Every feature we offer is **validated by clinical research**, academic collaborations, and real-world trials.
+
+- 📈 DentaMind leads in publishing independent clinical performance studies
+- 📈 Blind and non-blind research modules embedded
+- 📈 Transparent reporting of AI performance (sensitivity, specificity, time saved)
+
+### 5. Modularity and Flexibility
+Every dental office is different. DentaMind **adapts to the clinic**, not force the clinic to adapt to us.
+
+- 🛠️ Modular features: enable/disable diagnostics, treatment planning, prescriptions, billing tools
+- 🛠️ Support different practice types: solo, group, DSO, academic, hospital
+- 🛠️ Allow dentists to **customize AI confidence thresholds**, overlay visibility, and notifications
+
+### 6. Ethical Commercialization
+DentaMind's success is tied to helping dentists, **not exploiting them**.
+
+- 💬 Transparent, flexible pricing — no predatory contracts
+- 💬 No secret data-sharing with insurance companies
+- 💬 Data belongs to the clinic — with full patient privacy protections (HIPAA, GDPR)
+
+### 7. Constant Improvement
+We ship fast, learn fast, and improve fast — always in collaboration with real clinicians.
+
+- 🚀 Feedback loops built into the platform
+- 🚀 Regular upgrades based on real-world usage
+- 🚀 Open beta channels for early adopters to shape future features
 
 ## 🎯 Goal
 Build an advanced AI assistant that connects all modules and continuously improves through feedback-based learning. The AI should reason like a senior general dentist and developer.
@@ -40,136 +243,194 @@ Build an advanced AI assistant that connects all modules and continuously improv
 
 # SmartDentalAI
 
-SmartDentalAI is an intelligent dental risk assessment and treatment planning system that leverages AI to provide personalized dental care recommendations.
+A comprehensive dental practice management system with AI-powered features.
 
-## Features
+## Environment Setup
 
-- **Risk Assessment**: AI-powered evaluation of patient risk factors
-- **Treatment Planning**: Automated generation of personalized treatment plans
-- **Real-time Monitoring**: System health and performance monitoring
-- **API Integration**: RESTful API for seamless integration with existing systems
-- **Security**: JWT authentication and rate limiting
-- **Scalability**: Designed for high availability and performance
+### Required Environment Variables
 
-## Tech Stack
+Create a `.env` file in the root directory with the following variables:
 
-- **Backend**: Python/FastAPI
-- **Frontend**: React/TypeScript
-- **Database**: PostgreSQL
-- **Caching**: Redis
-- **Monitoring**: Prometheus/Grafana
-- **CI/CD**: GitHub Actions
+```env
+# Environment
+ENVIRONMENT=development  # development, staging, production
 
-## Getting Started
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=dentamind
+DB_USER=postgres
+DB_PASSWORD=your_password_here
 
-### Prerequisites
+# API Configuration
+API_HOST=0.0.0.0
+API_PORT=8000
+DEBUG=True
+WORKERS=4
 
-- Python 3.8+
-- Node.js 16+
-- PostgreSQL 12+
-- Redis 6+
+# JWT Configuration
+JWT_SECRET_KEY=your_jwt_secret_here
+JWT_ALGORITHM=HS256
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
+JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# Security
+ENCRYPTION_KEY=your_encryption_key_here  # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+RATE_LIMIT_REQUESTS=100
+RATE_LIMIT_PERIOD=60  # seconds
+
+# AWS Configuration (for production)
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+
+# Email Configuration
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASSWORD=your_app_specific_password
+EMAIL_FROM=noreply@dentamind.com
+
+# Monitoring
+MONITORING_ENABLED=True
+MONITORING_INTERVAL=300  # seconds
+ALERT_THRESHOLD=80  # percentage
+
+# Logging
+LOG_LEVEL=INFO
+LOG_FILE=logs/dentamind.log
+LOG_MAX_SIZE=10485760  # 10MB
+LOG_BACKUP_COUNT=5
+```
 
 ### Installation
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/DentaMind/SmartDentalAI.git
+git clone https://github.com/yourusername/SmartDentalAI.git
 cd SmartDentalAI
 ```
 
-2. Set up the backend:
+2. Create and activate a virtual environment:
 ```bash
-cd backend
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
 ```
 
-3. Set up the frontend:
+3. Install dependencies:
 ```bash
+pip install -r requirements.txt
 cd frontend
 npm install
 ```
 
-4. Configure environment variables:
+4. Set up the database:
 ```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
+# Create database
+createdb dentamind
 
-5. Initialize the database:
-```bash
+# Run migrations
 cd backend
 alembic upgrade head
 ```
 
-### Running the Application
-
-1. Start the backend server:
+5. Start the development server:
 ```bash
+# Backend
 cd backend
-uvicorn main:app --reload
-```
+uvicorn api.main:app --reload
 
-2. Start the frontend development server:
-```bash
+# Frontend
 cd frontend
 npm run dev
 ```
 
-The application will be available at:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- API Documentation: http://localhost:8000/docs
+## Configuration
 
-## API Documentation
+### Database
 
-The API documentation is available at `/docs` when running the backend server. It includes:
-- Detailed endpoint descriptions
-- Request/response examples
-- Authentication requirements
-- Rate limiting information
+The application uses PostgreSQL as its database. Configure the connection in the `.env` file:
 
-## Development
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=dentamind
+DB_USER=postgres
+DB_PASSWORD=your_password_here
+```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines and contribution instructions.
+### Security
 
-## Security
+Generate a secure JWT secret key and encryption key:
 
-- All API endpoints require authentication
-- Rate limiting is implemented to prevent abuse
-- Sensitive data is encrypted
-- Regular security audits are performed
+```bash
+# Generate JWT secret key
+openssl rand -hex 32
 
-## Monitoring
+# Generate encryption key
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
 
-The system includes:
-- Real-time performance metrics
-- Error tracking and logging
-- Health check endpoints
-- Automated alerts
+### Monitoring
+
+The application includes built-in monitoring capabilities. Configure the settings in `.env`:
+
+```env
+MONITORING_ENABLED=True
+MONITORING_INTERVAL=300  # Check every 5 minutes
+ALERT_THRESHOLD=80  # Alert when usage exceeds 80%
+```
 
 ## Deployment
 
-See [deploy/README.md](deploy/README.md) for deployment instructions.
+### Production Deployment
+
+1. Set up environment variables for production
+2. Configure AWS credentials for secrets management
+3. Run the deployment script:
+```bash
+./deploy/deploy.sh production v1.0.0
+```
+
+### Staging Deployment
+
+1. Set up environment variables for staging
+2. Run the deployment script:
+```bash
+./deploy/deploy.sh staging v1.0.0
+```
+
+## API Documentation
+
+The API documentation is available at `/docs` when running the server. It includes:
+- OpenAPI/Swagger documentation
+- ReDoc documentation
+- Example requests and responses
+
+## Testing
+
+Run the test suite:
+```bash
+# Backend tests
+cd backend
+pytest
+
+# Frontend tests
+cd frontend
+npm test
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
-Proprietary and Confidential.  
-© 2025 DentaMind AI Solutions. All rights reserved.
-
-## Support
-
-For support, please:
-1. Check the [documentation](docs/)
-2. Open an issue on GitHub
-3. Contact support@dentamind.com
-
-## Acknowledgments
-
-- OpenAI for GPT-4 integration
-- FastAPI team for the excellent framework
-- The open-source community for various dependencies
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 # SmartDentalAI Founder Console
 

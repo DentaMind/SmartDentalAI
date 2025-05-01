@@ -6,7 +6,7 @@ from backend.models.medical_history import (
     ASAClassification,
     MedicalCondition,
     Medication,
-    BloodworkValue
+    TestResult
 )
 
 class MedicalHistoryService:
@@ -110,7 +110,7 @@ class MedicalHistoryService:
     def _determine_asa_classification(
         conditions: List[MedicalCondition],
         medications: List[Medication],
-        bloodwork: List[BloodworkValue]
+        bloodwork: List[TestResult]
     ) -> ASAClassification:
         """
         Determine ASA classification based on medical conditions, medications, and bloodwork
@@ -172,7 +172,7 @@ class MedicalHistoryService:
     def _identify_risk_factors(
         conditions: List[MedicalCondition],
         medications: List[Medication],
-        bloodwork: List[BloodworkValue]
+        bloodwork: List[TestResult]
     ) -> List[str]:
         """
         Identify risk factors based on medical conditions, medications, and bloodwork
@@ -230,7 +230,7 @@ class MedicalHistoryService:
         return interactions
 
     @staticmethod
-    def _analyze_bloodwork(bloodwork: List[BloodworkValue]) -> List[str]:
+    def _analyze_bloodwork(bloodwork: List[TestResult]) -> List[str]:
         """
         Analyze bloodwork results for concerns
         """

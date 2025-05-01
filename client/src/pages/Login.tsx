@@ -1,34 +1,52 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+
+// Material UI Components
 import {
   Box,
   Button,
+  Container,
   TextField,
   Typography,
   Paper,
-  Container,
   CircularProgress,
-  Alert,
+  Alert
 } from '@mui/material';
-import { useAuth } from '../contexts/AuthContext';
-import { BRANDING } from '../constants/branding';
 
-export const Login: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+const Login = () => {
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [formError, setFormError] = useState<string>('');
+  const { login, loading, error } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
+  // Get the redirect path from location state or default to dashboard
+  const from = location.state?.from?.pathname || '/';
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setFormError('');
+
+    // Simple validation
+    if (!email) {
+      setFormError('Email is required');
+      return;
+    }
+    if (!password) {
+      setFormError('Password is required');
+      return;
+    }
 
     try {
-      await login(username, password);
+      const success = await login(email, password);
+      if (success) {
+        // Redirect to the page they were trying to access, or dashboard
+        navigate(from, { replace: true });
+      }
     } catch (err) {
-      setError('Invalid username or password');
-      setLoading(false);
+      console.error('Login error:', err);
     }
   };
 
@@ -42,64 +60,41 @@ export const Login: React.FC = () => {
           alignItems: 'center',
         }}
       >
-        <Box
-          component="img"
-          src={BRANDING.logo.full}
-          alt={BRANDING.name}
-          sx={{
-            width: '100%',
-            maxWidth: 300,
-            mb: 4,
-          }}
-        />
-
-        <Typography
-          variant="h6"
-          align="center"
-          sx={{
-            mb: 3,
-            fontFamily: BRANDING.fonts.secondary,
-            color: BRANDING.colors.secondary,
-          }}
-        >
-          {BRANDING.tagline}
-        </Typography>
-
         <Paper
           elevation={3}
           sx={{
-            p: 4,
-            width: '100%',
+            marginTop: 8,
+            padding: 4,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
+            width: '100%',
           }}
         >
-          <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
-            Sign In
+          <Typography component="h1" variant="h5">
+            DentaMind Login
           </Typography>
 
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-              </Alert>
-            )}
+          {(error || formError) && (
+            <Alert severity="error" sx={{ mt: 2, width: '100%' }}>
+              {formError || error}
+            </Alert>
+          )}
 
+          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3, width: '100%' }}>
             <TextField
               margin="normal"
               required
               fullWidth
-              id="username"
-              label="Username"
-              name="username"
-              autoComplete="username"
+              id="email"
+              label="Email Address"
+              name="email"
+              autoComplete="email"
               autoFocus
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
             />
-
             <TextField
               margin="normal"
               required
@@ -113,27 +108,26 @@ export const Login: React.FC = () => {
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
             />
-
             <Button
               type="submit"
               fullWidth
               variant="contained"
-              sx={{
-                mt: 3,
-                mb: 2,
-                bgcolor: BRANDING.colors.primary,
-                '&:hover': {
-                  bgcolor: BRANDING.colors.primary,
-                  opacity: 0.9,
-                },
-              }}
+              sx={{ mt: 3, mb: 2 }}
               disabled={loading}
             >
               {loading ? <CircularProgress size={24} /> : 'Sign In'}
             </Button>
+
+            <Box mt={2}>
+              <Typography variant="body2" color="textSecondary" align="center">
+                Demo credentials: demo@dentamind.com / password123
+              </Typography>
+            </Box>
           </Box>
         </Paper>
       </Box>
     </Container>
   );
-}; 
+};
+
+export default Login; 

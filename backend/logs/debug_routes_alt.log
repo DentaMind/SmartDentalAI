@@ -1,0 +1,13 @@
+INFO:     Started server process [97148]
+2025-04-30 17:14:37,834 - uvicorn.error - INFO - Started server process [97148]
+INFO:     Waiting for application startup.
+2025-04-30 17:14:37,834 - uvicorn.error - INFO - Waiting for application startup.
+INFO:     Application startup complete.
+2025-04-30 17:14:37,835 - uvicorn.error - INFO - Application startup complete.
+ERROR:    [Errno 48] error while attempting to bind on address ('0.0.0.0', 3000): address already in use
+2025-04-30 17:14:37,835 - uvicorn.error - ERROR - [Errno 48] error while attempting to bind on address ('0.0.0.0', 3000): address already in use
+INFO:     Waiting for application shutdown.
+2025-04-30 17:14:37,835 - uvicorn.error - INFO - Waiting for application shutdown.
+INFO:     Application shutdown complete.
+2025-04-30 17:14:37,835 - uvicorn.error - INFO - Application shutdown complete.
+Starting DentaMind Debug API (Alt) server on port 8092...
