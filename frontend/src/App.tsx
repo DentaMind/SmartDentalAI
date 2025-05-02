@@ -18,6 +18,15 @@ import CanaryDeploymentPage from './pages/CanaryDeploymentPage';
 import TreatmentPlansPage from './pages/TreatmentPlansPage';
 import PatientDetailsPage from './pages/PatientDetailsPage';
 import FinancialArrangementPage from './pages/FinancialArrangementPage';
+import AITrainingPage from './pages/ai-training';
+import AIDiagnosticsPage from './pages/ai-diagnostics';
+import WebSocketAnalyticsPage from './pages/admin/websocket-analytics';
+import AIDiagnosticsAnalyticsPage from './pages/admin/ai-diagnostics-analytics';
+import AIModelTrainingPage from './pages/admin/ai-model-training';
+import { Navigation } from './components/Navigation';
+import { ToastContainer } from './components/ui/toast';
+import { AIModelProvider } from './contexts/AIModelContext';
+import AITreatmentSuggestionsPage from './pages/ai-treatment-suggestions';
 
 const { Content } = Layout;
 
@@ -29,29 +38,34 @@ const App: React.FC = () => {
     }
 
     return (
-        <Router>
-            {user ? (
-                <Layout style={{ minHeight: '100vh' }}>
-                    <Sidebar />
-                    <Layout>
-                        <Header />
-                        <Content style={{ margin: '24px 16px', padding: 24, background: '#fff' }}>
-                            <Routes>
-                                <Route path="/" element={<DashboardPage />} />
-                                <Route path="/claims/*" element={<InsuranceClaimsRoutes />} />
-                                <Route path="/unauthorized" element={<UnauthorizedPage />} />
-                                <Route path="*" element={<Navigate to="/" replace />} />
-                            </Routes>
-                        </Content>
-                    </Layout>
-                </Layout>
-            ) : (
-                <Routes>
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="*" element={<Navigate to="/login" replace />} />
-                </Routes>
-            )}
-        </Router>
+        <AIModelProvider>
+            <Router>
+                <div className="flex h-screen bg-background">
+                    <div className="w-64 border-r shrink-0">
+                        <Navigation />
+                    </div>
+                    <div className="flex-1 overflow-auto">
+                        <Routes>
+                            <Route path="/" element={<DashboardPage />} />
+                            <Route path="/claims/*" element={<InsuranceClaimsRoutes />} />
+                            <Route path="/unauthorized" element={<UnauthorizedPage />} />
+                            <Route path="/ai-training" element={<AITrainingPage />} />
+                            <Route path="/ai-diagnostics" element={<AIDiagnosticsPage />} />
+                            <Route path="/admin/websocket-analytics" element={<WebSocketAnalyticsPage />} />
+                            <Route path="/admin/ai-diagnostics-analytics" element={<AIDiagnosticsAnalyticsPage />} />
+                            <Route path="/admin/ai-model-training" element={<AIModelTrainingPage />} />
+                            <Route path="/ai-treatment-suggestions" element={<AITreatmentSuggestionsPage />} />
+                            <Route path="/patients/:patientId/ai-treatment-suggestions" element={<AITreatmentSuggestionsPage />} />
+                            <Route path="/patients/:patientId/diagnoses/:diagnosisId/ai-treatment-suggestions" element={<AITreatmentSuggestionsPage />} />
+                            <Route path="*" element={<Navigate to="/" replace />} />
+                        </Routes>
+                    </div>
+                </div>
+                
+                {/* Toast container for notifications */}
+                <ToastContainer />
+            </Router>
+        </AIModelProvider>
     );
 };
 

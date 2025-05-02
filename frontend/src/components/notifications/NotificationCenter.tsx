@@ -1,227 +1,174 @@
-import React, { useState } from 'react';
-import {
-  Badge,
-  Dropdown,
-  Menu,
-  Space,
-  Tag,
-  Typography,
-  Button,
-  Modal,
-  Switch,
-  Select,
-  Divider,
-} from 'antd';
-import { BellOutlined, CheckCircleOutlined, CloseCircleOutlined, FilterOutlined } from '@ant-design/icons';
-import { useNotifications } from '../../hooks/useNotifications';
-import { NotificationType, NotificationPriority } from '../../types/notifications';
-import { formatDistanceToNow } from 'date-fns';
-import './NotificationCenter.css';
+import React, { useState, useEffect } from 'react';
+import { useNotifications } from '@/hooks/useNotifications';
+import { Bell, X, Info, AlertTriangle, CheckCircle, MessageSquare, Calendar, User, Clock } from 'lucide-react';
+import { format, formatDistanceToNow } from 'date-fns';
+import { cn } from '@/lib/utils';
 
-const { Text } = Typography;
+interface NotificationCenterProps {
+  maxHeight?: string;
+  className?: string;
+}
 
-const NotificationCenter: React.FC = () => {
-  const {
-    notifications,
-    unreadCount,
-    settings,
-    loading,
-    markAsRead,
-    markAllAsRead,
-    dismissNotification,
-    updateSettings,
-    getNotifications,
+export const NotificationCenter: React.FC<NotificationCenterProps> = ({
+  maxHeight = '400px',
+  className
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const { 
+    notifications, 
+    unreadCount, 
+    markAsRead, 
+    markAllAsRead, 
+    clearNotifications,
+    connectionStatus
   } = useNotifications();
 
-  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
-  const [typeFilter, setTypeFilter] = useState<NotificationType | null>(null);
-  const [priorityFilter, setPriorityFilter] = useState<NotificationPriority | null>(null);
-  const [grouped, setGrouped] = useState(false);
+  // Close the notification panel when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (isOpen && !target.closest('[data-notification-center]')) {
+        setIsOpen(false);
+      }
+    };
 
-  const filteredNotifications = getNotifications({
-    type: typeFilter,
-    priority: priorityFilter,
-    grouped,
-  });
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
-  const getNotificationColor = (type: NotificationType) => {
+  // Mark notifications as read when panel opens
+  useEffect(() => {
+    if (isOpen && unreadCount > 0) {
+      markAllAsRead();
+    }
+  }, [isOpen, unreadCount, markAllAsRead]);
+
+  // Get the appropriate icon for a notification type
+  const getNotificationIcon = (type: string) => {
     switch (type) {
-      case NotificationType.CLAIM_SUBMITTED:
-        return 'blue';
-      case NotificationType.CLAIM_DENIED:
-        return 'red';
-      case NotificationType.PAYMENT_RECEIVED:
-        return 'green';
-      case NotificationType.APPEAL_SUBMITTED:
-        return 'orange';
-      case NotificationType.SYSTEM_ALERT:
-        return 'purple';
+      case 'appointment_created':
+      case 'appointment_updated':
+        return <Calendar className="h-5 w-5 text-primary" />;
+      case 'patient_arrived':
+        return <User className="h-5 w-5 text-indigo-500" />;
+      case 'notification_alert':
+        return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+      case 'chat_message':
+        return <MessageSquare className="h-5 w-5 text-emerald-500" />;
+      case 'notification_success':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
       default:
-        return 'default';
+        return <Info className="h-5 w-5 text-blue-500" />;
     }
   };
 
-  const renderNotificationItem = (notification: any) => (
-    <Menu.Item key={notification.id} className="notification-item">
-      <Space direction="vertical" size={4}>
-        <Space>
-          <Tag color={getNotificationColor(notification.type)}>
-            {notification.type.replace('_', ' ').toUpperCase()}
-          </Tag>
-          {!notification.read && <Badge status="processing" />}
-        </Space>
-        <Text strong>{notification.title}</Text>
-        <Text type="secondary">{notification.message}</Text>
-        <Text type="secondary" style={{ fontSize: '12px' }}>
-          {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
-        </Text>
-        <Space>
-          {!notification.read && (
-            <Button
-              type="link"
-              size="small"
-              icon={<CheckCircleOutlined />}
-              onClick={() => markAsRead(notification.id)}
-            >
-              Mark as read
-            </Button>
-          )}
-          <Button
-            type="link"
-            size="small"
-            danger
-            icon={<CloseCircleOutlined />}
-            onClick={() => dismissNotification(notification.id)}
-          >
-            Dismiss
-          </Button>
-        </Space>
-      </Space>
-    </Menu.Item>
-  );
-
-  const renderGroupedNotifications = (group: any) => (
-    <Menu.ItemGroup key={group.id} title={
-      <Space>
-        <Tag color={getNotificationColor(group.type)}>
-          {group.type.replace('_', ' ').toUpperCase()}
-        </Tag>
-        <Badge count={group.count} />
-      </Space>
-    }>
-      {group.notifications.map(renderNotificationItem)}
-    </Menu.ItemGroup>
-  );
-
-  const menu = (
-    <Menu>
-      <Menu.Item key="header" className="notification-header">
-        <Space>
-          <Text strong>Notifications</Text>
-          {unreadCount > 0 && (
-            <Button type="link" onClick={markAllAsRead}>
-              Mark all as read
-            </Button>
-          )}
-        </Space>
-      </Menu.Item>
-      
-      <Divider style={{ margin: '8px 0' }} />
-      
-      <Menu.Item key="filters" className="notification-filters">
-        <Space>
-          <Select
-            placeholder="Filter by Type"
-            style={{ width: 150 }}
-            allowClear
-            onChange={setTypeFilter}
-            options={Object.values(NotificationType).map(type => ({
-              label: type.replace('_', ' ').toUpperCase(),
-              value: type,
-            }))}
-          />
-          <Select
-            placeholder="Filter by Priority"
-            style={{ width: 150 }}
-            allowClear
-            onChange={setPriorityFilter}
-            options={Object.values(NotificationPriority).map(priority => ({
-              label: priority.toUpperCase(),
-              value: priority,
-            }))}
-          />
-          <Button
-            type={grouped ? 'primary' : 'default'}
-            onClick={() => setGrouped(!grouped)}
-            icon={<FilterOutlined />}
-          >
-            {grouped ? 'Ungroup' : 'Group'}
-          </Button>
-        </Space>
-      </Menu.Item>
-      
-      <Divider style={{ margin: '8px 0' }} />
-      
-      {filteredNotifications.length === 0 ? (
-        <Menu.Item key="empty" disabled>
-          No notifications
-        </Menu.Item>
-      ) : grouped ? (
-        filteredNotifications.map(renderGroupedNotifications)
-      ) : (
-        filteredNotifications.map(renderNotificationItem)
-      )}
-      
-      <Divider style={{ margin: '8px 0' }} />
-      
-      <Menu.Item key="settings" onClick={() => setSettingsModalVisible(true)}>
-        Notification Settings
-      </Menu.Item>
-    </Menu>
-  );
-
   return (
-    <>
-      <Dropdown
-        overlay={menu}
-        trigger={['click']}
-        placement="bottomRight"
-        overlayClassName="notification-dropdown"
+    <div className={cn("relative", className)} data-notification-center>
+      {/* Notification bell icon */}
+      <button
+        className="relative p-2 rounded-full hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label="Notifications"
       >
-        <Badge count={unreadCount} offset={[-5, 5]}>
-          <BellOutlined style={{ fontSize: '20px', cursor: 'pointer' }} />
-        </Badge>
-      </Dropdown>
+        <Bell className="h-5 w-5" />
+        {unreadCount > 0 && (
+          <span className="absolute top-0 right-0 h-4 w-4 rounded-full bg-destructive text-xs text-white flex items-center justify-center">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </button>
 
-      <Modal
-        title="Notification Settings"
-        visible={settingsModalVisible}
-        onCancel={() => setSettingsModalVisible(false)}
-        footer={null}
-      >
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <div>
-            <Text strong>Desktop Notifications</Text>
-            <Switch
-              checked={settings.desktopNotifications}
-              onChange={(checked) =>
-                updateSettings({ ...settings, desktopNotifications: checked })
-              }
-            />
+      {/* Connection status indicator */}
+      {connectionStatus !== 'open' && (
+        <span 
+          className={cn(
+            "absolute -top-1 -left-1 h-3 w-3 rounded-full",
+            connectionStatus === 'connecting' ? "bg-amber-500" : "bg-red-500"
+          )}
+          title={`WebSocket is ${connectionStatus}`}
+        />
+      )}
+
+      {/* Notification panel */}
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-80 z-50 rounded-md border bg-background shadow-lg">
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="font-medium">Notifications</h3>
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <button
+                  onClick={markAllAsRead}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Mark all as read
+                </button>
+              )}
+              <button
+                onClick={() => setIsOpen(false)}
+                className="rounded-full p-1 hover:bg-muted"
+                aria-label="Close notifications"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-          <div>
-            <Text strong>Email Notifications</Text>
-            <Switch
-              checked={settings.emailNotifications}
-              onChange={(checked) =>
-                updateSettings({ ...settings, emailNotifications: checked })
-              }
-            />
+
+          <div className={`overflow-y-auto`} style={{ maxHeight }}>
+            {notifications.length === 0 ? (
+              <div className="p-4 text-center text-muted-foreground">
+                <p>No notifications</p>
+              </div>
+            ) : (
+              <ul className="divide-y">
+                {notifications.map((notification) => (
+                  <li
+                    key={notification.id}
+                    className={cn(
+                      "p-4 hover:bg-muted transition-colors",
+                      !notification.read && "bg-muted/50"
+                    )}
+                    onClick={() => markAsRead(notification.id)}
+                  >
+                    <div className="flex gap-3">
+                      <div className="flex-shrink-0 mt-0.5">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center mb-1">
+                          <p className="text-sm font-medium truncate">{notification.title}</p>
+                          <span className="flex-shrink-0 text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{notification.message}</p>
+                        {notification.data?.timestamp && (
+                          <div className="flex items-center mt-1 text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {format(new Date(notification.data.timestamp), 'MMM d, h:mm a')}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-        </Space>
-      </Modal>
-    </>
+
+          {notifications.length > 0 && (
+            <div className="p-2 border-t">
+              <button
+                onClick={clearNotifications}
+                className="w-full py-1.5 text-xs rounded-md hover:bg-muted"
+              >
+                Clear all notifications
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
-};
-
-export default NotificationCenter; 
+}; 

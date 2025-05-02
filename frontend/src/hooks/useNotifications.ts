@@ -1,141 +1,168 @@
-import { useState, useEffect } from 'react';
-import { notificationService } from '../services/notificationService';
-import { Notification, NotificationSettings, NotificationState } from '../types/notifications';
+import { useState, useEffect, useCallback } from 'react';
+import { useWebSocket } from './useWebSocket';
+import { 
+  WebSocketStatus, 
+  AppointmentCreatedMessage, 
+  AppointmentUpdatedMessage,
+  PatientArrivedMessage,
+  NotificationAlertMessage,
+  NotificationMessageMessage,
+  ServerMessage
+} from '../types/websocket';
 
-export const useNotifications = () => {
-  const [state, setState] = useState<NotificationState>({
-    notifications: [],
-    unreadCount: 0,
-    settings: {
-      emailNotifications: true,
-      inAppNotifications: true,
-      notificationTypes: {
-        claim_submitted: true,
-        claim_denied: true,
-        payment_received: true,
-        appeal_submitted: true,
-        appeal_approved: true,
-        appeal_denied: true,
-        system_alert: true,
-      },
-      soundEnabled: true,
-      desktopNotifications: true,
-    },
-    loading: true,
-    error: null,
+export interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  data?: any;
+}
+
+interface UseNotificationsReturn {
+  notifications: Notification[];
+  unreadCount: number;
+  markAsRead: (id: string) => void;
+  markAllAsRead: () => void;
+  clearNotifications: () => void;
+  connectionStatus: WebSocketStatus;
+}
+
+type NotificationMessage = 
+  | AppointmentCreatedMessage 
+  | AppointmentUpdatedMessage 
+  | PatientArrivedMessage 
+  | NotificationAlertMessage 
+  | NotificationMessageMessage;
+
+/**
+ * Hook for managing real-time notifications via WebSocket
+ * 
+ * @returns Notifications state and methods
+ */
+export const useNotifications = (): UseNotificationsReturn => {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  
+  // Connect to the notifications WebSocket endpoint
+  const { status, lastMessage } = useWebSocket('ws/notifications', {
+    reconnectAttempts: 10,
+    reconnectInterval: 2000,
+    autoReconnect: true,
   });
-
+  
+  // Check if a message is a notification type
+  const isNotificationMessage = (message: ServerMessage): message is NotificationMessage => {
+    return (
+      message.type === 'appointment_created' ||
+      message.type === 'appointment_updated' ||
+      message.type === 'patient_arrived' ||
+      message.type === 'notification_alert' ||
+      message.type === 'notification_message'
+    );
+  };
+  
+  // Process incoming WebSocket messages
   useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        const [notifications, settings] = await Promise.all([
-          notificationService.getNotifications(),
-          notificationService.getSettings(),
-        ]);
-
-        setState(prev => ({
-          ...prev,
-          notifications,
-          unreadCount: notifications.filter(n => !n.read).length,
-          settings,
-          loading: false,
-        }));
-      } catch (error) {
-        setState(prev => ({
-          ...prev,
-          error: error instanceof Error ? error.message : 'Failed to load notifications',
-          loading: false,
-        }));
-      }
-    };
-
-    loadInitialData();
-
-    const unsubscribe = notificationService.subscribe((notification) => {
-      setState(prev => ({
-        ...prev,
-        notifications: [notification, ...prev.notifications],
-        unreadCount: prev.unreadCount + 1,
-      }));
-
-      // Play notification sound if enabled
-      if (prev.settings.soundEnabled) {
-        const audio = new Audio('/notification.mp3');
-        audio.play().catch(console.error);
-      }
-
-      // Show desktop notification if enabled
-      if (prev.settings.desktopNotifications && Notification.permission === 'granted') {
-        new Notification(notification.title, {
-          body: notification.message,
-          icon: '/logo.png',
-        });
-      }
-    });
-
-    return () => {
-      unsubscribe();
-    };
+    if (!lastMessage) return;
+    
+    // Handle different notification types
+    if (isNotificationMessage(lastMessage)) {
+      // Create a standardized notification object
+      const newNotification: Notification = {
+        id: `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        type: lastMessage.type,
+        title: getNotificationTitle(lastMessage),
+        message: getNotificationMessage(lastMessage),
+        timestamp: lastMessage.timestamp,
+        read: false,
+        data: lastMessage
+      };
+      
+      // Add to notifications list
+      setNotifications(prevNotifications => [
+        newNotification,
+        ...prevNotifications
+      ].slice(0, 100)); // Keep only the most recent 100 notifications
+    }
+  }, [lastMessage]);
+  
+  // Helper function to determine notification title based on type
+  const getNotificationTitle = (message: NotificationMessage): string => {
+    switch (message.type) {
+      case 'appointment_created':
+        return 'New Appointment';
+      case 'appointment_updated':
+        return 'Appointment Updated';
+      case 'patient_arrived':
+        return 'Patient Check-in';
+      case 'notification_alert':
+        return message.title;
+      case 'notification_message':
+        return message.title;
+      default:
+        // This should never happen due to the type guard
+        return 'Notification';
+    }
+  };
+  
+  // Helper function to create user-friendly notification message
+  const getNotificationMessage = (message: NotificationMessage): string => {
+    switch (message.type) {
+      case 'appointment_created':
+        const apptPatient = message.appointment?.patientName || 'A patient';
+        const apptDate = new Date(message.appointment?.startTime).toLocaleDateString();
+        const apptTime = new Date(message.appointment?.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return `${apptPatient} has a new appointment on ${apptDate} at ${apptTime}`;
+        
+      case 'appointment_updated':
+        return `Appointment for ${message.appointment?.patientName || 'a patient'} has been updated`;
+        
+      case 'patient_arrived':
+        return `${message.patient?.name || 'A patient'} has arrived for their appointment`;
+        
+      case 'notification_alert':
+      case 'notification_message':
+        return message.message;
+        
+      default:
+        // This should never happen due to the type guard
+        return 'You have a new notification';
+    }
+  };
+  
+  // Mark a notification as read
+  const markAsRead = useCallback((id: string) => {
+    setNotifications(prevNotifications => 
+      prevNotifications.map(notification => 
+        notification.id === id 
+          ? { ...notification, read: true } 
+          : notification
+      )
+    );
   }, []);
-
-  const markAsRead = async (id: string) => {
-    try {
-      await notificationService.markAsRead(id);
-      setState(prev => ({
-        ...prev,
-        notifications: prev.notifications.map(n =>
-          n.id === id ? { ...n, read: true } : n
-        ),
-        unreadCount: prev.unreadCount - 1,
-      }));
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
-  };
-
-  const markAllAsRead = async () => {
-    try {
-      await notificationService.markAllAsRead();
-      setState(prev => ({
-        ...prev,
-        notifications: prev.notifications.map(n => ({ ...n, read: true })),
-        unreadCount: 0,
-      }));
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-    }
-  };
-
-  const dismiss = async (id: string) => {
-    try {
-      await notificationService.dismiss(id);
-      setState(prev => ({
-        ...prev,
-        notifications: prev.notifications.filter(n => n.id !== id),
-        unreadCount: prev.unreadCount - (prev.notifications.find(n => n.id === id)?.read ? 0 : 1),
-      }));
-    } catch (error) {
-      console.error('Error dismissing notification:', error);
-    }
-  };
-
-  const updateSettings = async (settings: Partial<NotificationSettings>) => {
-    try {
-      await notificationService.updateSettings(settings);
-      setState(prev => ({
-        ...prev,
-        settings: { ...prev.settings, ...settings },
-      }));
-    } catch (error) {
-      console.error('Error updating notification settings:', error);
-    }
-  };
-
+  
+  // Mark all notifications as read
+  const markAllAsRead = useCallback(() => {
+    setNotifications(prevNotifications => 
+      prevNotifications.map(notification => ({ ...notification, read: true }))
+    );
+  }, []);
+  
+  // Clear all notifications
+  const clearNotifications = useCallback(() => {
+    setNotifications([]);
+  }, []);
+  
+  // Calculate unread count
+  const unreadCount = notifications.filter(n => !n.read).length;
+  
   return {
-    ...state,
+    notifications,
+    unreadCount,
     markAsRead,
     markAllAsRead,
-    dismiss,
-    updateSettings,
+    clearNotifications,
+    connectionStatus: status
   };
 }; 

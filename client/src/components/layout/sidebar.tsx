@@ -36,6 +36,8 @@ import {
   BookOpen,
   GraduationCap,
   Award,
+  BarChart,
+  Network,
 } from "lucide-react";
 import { ToothDoctorIcon } from "../icons/tooth-doctor-icon";
 import { CircuitToothIcon } from "../icons/circuit-tooth-icon";
@@ -157,7 +159,8 @@ export function Sidebar() {
       { name: "Email Hub", href: "/email", icon: Mail, highlight: true },
       { name: "Labs & Supplies", href: "/labs-supplies", icon: Beaker, highlight: true },
       { name: "Financial Dashboard", href: "/financial-dashboard", icon: DollarSign },
-      { name: "Training Dashboard", href: "/training-dashboard", icon: GraduationCap, highlight: true }
+      { name: "Training Dashboard", href: "/training-dashboard", icon: GraduationCap, highlight: true },
+      { name: "WebSocket Analytics", href: "/admin/websocket-analytics", icon: Network, highlight: true }
     ];
 
     switch (user?.role) {

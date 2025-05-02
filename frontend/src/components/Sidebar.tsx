@@ -16,13 +16,19 @@ import {
   DollarOutlined,
   InsuranceOutlined,
   SettingOutlined,
+  ApiOutlined,
+  TeamOutlined,
+  CalendarOutlined,
+  AuditOutlined,
 } from '@ant-design/icons';
+import { useAuth } from '../hooks/useAuth';
 
 const { Sider } = Layout;
 
 const Sidebar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const menuItems = [
     {
@@ -86,14 +92,44 @@ const Sidebar: React.FC = () => {
       label: 'Settings'
     }
   ];
+  
+  // Add admin-only items
+  if (user?.role === 'admin') {
+    menuItems.push({
+      key: '/admin/audit-logs',
+      icon: <AuditOutlined />,
+      label: 'Audit Logs'
+    });
+    
+    menuItems.push({
+      key: '/admin/websocket-analytics',
+      icon: <ApiOutlined />,
+      label: 'WebSocket Analytics'
+    });
+    
+    menuItems.push({
+      key: '/admin/ai-diagnostics-analytics',
+      icon: <ExperimentOutlined />,
+      label: 'AI Diagnostics'
+    });
+  }
 
   return (
-    <Sider width={200}>
+    <Sider
+      width={200}
+      theme="light"
+      style={{
+        overflow: 'auto',
+        height: '100vh',
+        position: 'fixed',
+        left: 0,
+      }}
+    >
+      <div style={{ height: 32, margin: 16, background: 'rgba(0, 0, 0, 0.05)' }} />
       <Menu
-        theme="dark"
         mode="inline"
         selectedKeys={[location.pathname]}
-        style={{ height: '100%', borderRight: 0 }}
+        style={{ height: '90%', borderRight: 0 }}
         onClick={({ key }) => navigate(key)}
         items={menuItems}
       />

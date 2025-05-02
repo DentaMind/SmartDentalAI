@@ -1,154 +1,262 @@
-# DentaMind - AI-Powered Dental Practice Management Platform
+# DentaMind
 
-DentaMind is a comprehensive dental practice management system featuring AI-driven diagnostic tools, patient management, and clinical workflow automation.
+DentaMind is a full-stack AI-powered dental operating platform that integrates diagnostics, patient management, treatment planning, and business intelligence into a single, modular ecosystem.
 
-## Key Features
+## 🧠 Core Features
 
-- **AI-Powered Diagnostics**: Automatic analysis of dental X-rays, periodontal assessments, and treatment planning
-- **Patient Management**: Complete patient records, appointment scheduling, and treatment history
-- **Financial Tools**: Insurance claim management, billing, and financial reporting
-- **Clinical Workflows**: Customizable clinical workflows for different procedure types
-- **Multi-modal Imaging**: Support for FMX, panoramic, and CBCT imaging with AI analysis
+- **AI Diagnostics**: Roboflow-integrated radiograph analysis with GPT-based reasoning
+- **Clinical Dashboard**: Patient overview with diagnostic cards, 3D charts, perio status
+- **Perio & Restorative Charting**: Complete dental charting with AI overlay
+- **Treatment Planning**: AI-generated plans with insurance integration
+- **Scheduler**: Comprehensive appointment scheduling system
+- **Research Module**: IRB protocol tracking and AI model training
 
-## System Architecture
+## 🛠️ Tech Stack
 
-DentaMind uses a microservices architecture with these components:
+- **Frontend**: React (TypeScript), Tailwind CSS, shadcn/ui
+- **Backend**: FastAPI, PostgreSQL, Pydantic
+- **AI Integration**: Roboflow for image models, GPT for reasoning
+- **Infrastructure**: Dual-server architecture, virtual environment support
 
-- **Authentication Service**: User authentication and session management (port 8085)
-- **Patient Service**: Patient records and appointments (port 8086)
-- **Imaging Service**: Dental imaging processing and analysis (port 8087)
-- **Legacy API**: Backward compatibility for older components (port 8090)
-- **React Frontend**: Modern UI built with React, TypeScript, and Tailwind CSS
-
-For detailed architecture information, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
-## Getting Started
+## 📋 Getting Started
 
 ### Prerequisites
 
 - Python 3.11+
 - Node.js 18+
-- PostgreSQL 14+
-- Virtual environment tool (venv, conda, etc.)
+- PostgreSQL 13+
+- Roboflow API key (for AI features)
 
 ### Installation
 
-1. Clone the repository:
+1. Clone the repository
    ```bash
    git clone https://github.com/yourusername/dentamind.git
    cd dentamind
    ```
 
-2. Create and activate a Python virtual environment:
+2. Set up environment variables
+   ```bash
+   # Copy the template file
+   cp .env.template .env
+   # Edit the .env file with your configuration
+   nano .env
+   ```
+
+3. Set up the Python virtual environment
    ```bash
    python -m venv .venv
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   pip install -r requirements.txt
    ```
 
-3. Run the setup script to install dependencies:
+4. Install frontend dependencies
    ```bash
-   cd backend
-   ./setup_dentamind.sh
-   cd ..
-   ```
-
-4. Install frontend dependencies:
-   ```bash
-   cd client
    npm install
-   cd ..
+   ```
+
+5. Initialize the database
+   ```bash
+   python -m backend.init_db
    ```
 
 ### Running the Application
 
-Start all services with a single command:
+1. Start the backend server
+   ```bash
+   ./start_dentamind.sh
+   # Or manually:
+   python run_backend.py
+   ```
 
-```bash
-./start_dentamind.sh
+2. Start the frontend development server
+   ```bash
+   npm run dev
+   ```
+
+3. Access the application
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:8000
+   - API Documentation: http://localhost:8000/docs
+
+## 📦 Project Structure
+
+```
+DentaMind/
+├── backend/                  # FastAPI backend
+│   ├── api/                  # API modules
+│   │   ├── config/           # Configuration settings
+│   │   ├── models/           # Database models
+│   │   ├── routers/          # API routes
+│   │   ├── schemas/          # Pydantic schemas
+│   │   └── services/         # Business logic services
+│   ├── alembic/              # Database migrations
+│   └── migrations/           # Migration scripts
+├── frontend/                 # React frontend
+│   ├── src/
+│   │   ├── components/       # React components
+│   │   ├── hooks/            # Custom React hooks
+│   │   ├── lib/              # Utility functions
+│   │   ├── pages/            # Page components
+│   │   └── services/         # API service clients
+│   └── public/               # Static assets
+├── attached_assets/          # Uploaded files
+│   └── xrays/                # X-ray images
+├── models/                   # ML models
+│   └── imaging_ai/           # X-ray analysis models
+└── scripts/                  # Utility scripts
 ```
 
-This will start:
-- Authentication service on port 8085
-- Patient service on port 8086
-- Imaging service on port 8087
-- Legacy API on port 8090
-- React frontend on port 3000
-
-To stop all services:
+## 🧪 Testing
 
 ```bash
-./stop_dentamind.sh
-```
-
-### Demo Credentials
-
-Use these credentials to log in:
-
-- **Doctor Account**:
-  - Email: demo@dentamind.com
-  - Password: password123
-
-- **Admin Account**:
-  - Email: admin@dentamind.com
-  - Password: admin123
-
-## Development
-
-### Backend Development
-
-Each backend service is a separate FastAPI application:
-
-- `auth_server.py` - Authentication service
-- `patient_server.py` - Patient records service
-- `imaging_server.py` - Imaging service
-- `debug_routes.py` - Legacy API service
-
-To run a single service for development:
-
-```bash
-cd backend
-python auth_server.py  # Or any other service file
-```
-
-### Frontend Development
-
-The frontend is built with React, TypeScript, and Tailwind CSS:
-
-```bash
-cd client
-npm run dev
-```
-
-## Testing
-
-We use pytest for backend testing and Jest for frontend testing:
-
-```bash
-# Backend tests
-cd backend
+# Run backend tests
 pytest
 
-# Frontend tests
-cd client
+# Run frontend tests
 npm test
 ```
 
-## Deployment
+## 🔄 Recent Improvements
 
-For production deployment, we recommend:
+- **Enhanced Backend**: Consolidated server architecture with standardized API patterns
+- **Improved Security**: Environment-based configuration with proper security practices
+- **AI Enhancements**: Better image analysis with caching and error handling
+- **Database Connection**: Pooled database connections with proper session management
+- **Frontend Structure**: Unified UI components with shadcn/ui design system
+- **Scheduler Enhancement**: Comprehensive scheduler with mock data support
+- **API Client**: Centralized API client with authentication and error handling
+- **Documentation**: Improved code documentation and environment configuration
 
-1. Using Docker containers for each service
-2. Setting up a reverse proxy (like Nginx) in front of all services
-3. Configuring PostgreSQL with proper backup routines
-4. Using a proper secrets management solution
-
-## License
+## 📝 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Contact
+## 👥 Contributing
 
-For questions or support, please contact support@dentamind.com
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+# DentaMind: AI-Powered Dental Diagnostic Platform
+
+DentaMind is a comprehensive dental diagnostic and practice management platform that uses AI to assist clinicians in diagnosis, treatment planning, charting, financial workflows, and clinical decision-making.
+
+## ✨ Key Features
+
+- **AI-Powered Diagnostics**: Analyze dental X-rays for caries, bone loss, and other conditions
+- **3D Dental Charting**: Interactive dental chart with restoration tracking
+- **Patient Management**: Comprehensive patient records and history
+- **Treatment Planning**: Create and track treatment plans with cost estimates
+- **Practice Management**: Scheduling, billing, and reporting
+- **Voice-Driven Interface**: Voice commands for hands-free operation
+- **Continuous Learning**: AI models that learn from clinician feedback
+
+## 🧠 AI Capabilities
+
+DentaMind's AI capabilities include:
+
+- **X-ray Analysis**: Automatically detect conditions in radiographs
+- **Risk Assessment**: Calculate patient risk profiles based on history and findings
+- **Treatment Suggestions**: Recommend appropriate treatments based on findings
+- **Voice Recognition**: Hands-free operation during procedures
+- **Adaptive Learning**: Models that improve with clinician feedback
+
+### 🔄 AI Feedback System
+
+DentaMind includes a sophisticated AI feedback system that:
+
+1. **Collects Clinician Input**: Providers can approve or reject AI findings with detailed corrections
+2. **Improves Model Accuracy**: Uses feedback to retrain and fine-tune AI models
+3. **Clinic-Specific Learning**: Creates customized models for each clinic's patient population
+4. **Performance Tracking**: Monitors model accuracy and improvement over time
+
+The feedback loop enables continuous improvement through:
+- Rating AI findings as correct or incorrect
+- Specifying the type of error (false positive, wrong classification, etc.)
+- Prioritizing critical corrections
+- Aggregating feedback across all providers
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js v16+
+- Python 3.9+
+- PostgreSQL database
+
+### Installation
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/dentamind.git
+   cd dentamind
+   ```
+
+2. Install dependencies:
+   ```
+   # Backend
+   pip install -r requirements.txt
+   
+   # Frontend
+   npm install
+   ```
+
+3. Set up environment variables:
+   ```
+   cp .env.example .env
+   # Edit .env with your database credentials
+   ```
+
+4. Run database migrations:
+   ```
+   python -m backend.api.migrations.run
+   ```
+
+5. Start the development servers:
+   ```
+   # Backend
+   ./start_dev.sh
+   
+   # Frontend
+   npm run dev
+   ```
+
+## 📁 Project Structure
+
+DentaMind uses a microservice-oriented architecture:
+
+- **Core Services** (backend/api): Patient data, appointments, clinical records
+- **Smart Services** (AI): Diagnosis, risk scoring, automation
+- **Operations Layer**: Auth, security, notifications, messaging
+
+Key directories:
+- `backend/api`: FastAPI server with database models
+- `backend/api/models`: Database and Pydantic models
+- `backend/api/routers`: API endpoints
+- `backend/api/services`: Business logic services
+- `frontend/src`: React frontend application
+- `frontend/src/components`: Reusable UI components
+- `frontend/src/pages`: Application pages
+- `frontend/src/hooks`: Custom React hooks
+
+## 📝 License
+
+[MIT License](LICENSE)
+
+## ✉️ Contact
+
+For questions or support, please contact [your-email@example.com]
+
+## 🙏 Acknowledgements
+
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [React](https://reactjs.org/)
+- [Roboflow](https://roboflow.com/) for image analysis
 
 # DentaMind AI
 

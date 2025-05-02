@@ -17,10 +17,25 @@ import {
   CalendarToday as CalendarIcon,
   Settings as SettingsIcon,
   Assessment as AuditIcon,
+  Speed as SpeedIcon,
+  Psychology as AiIcon,
+  BiotechOutlined as BrainIcon,
+  Lightbulb as LightbulbIcon,
 } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { UserRole } from '../types/user';
+import { 
+  User, 
+  Calendar, 
+  FileText, 
+  DollarSign, 
+  Settings,
+  Users,
+  Activity,
+  Brain,
+  Home
+} from 'lucide-react';
 
 const Navigation: React.FC = () => {
   const theme = useTheme();
@@ -58,7 +73,38 @@ const Navigation: React.FC = () => {
       icon: <AuditIcon />,
       path: '/audit-logs',
     });
+    menuItems.push({
+      text: 'WebSocket Analytics',
+      icon: <SpeedIcon />,
+      path: '/admin/websocket-analytics',
+    });
+    menuItems.push({
+      text: 'AI Diagnostics Analytics',
+      icon: <AiIcon />,
+      path: '/admin/ai-diagnostics-analytics',
+    });
+    menuItems.push({
+      text: 'AI Model Training',
+      icon: <BrainIcon />,
+      path: '/admin/ai-model-training',
+    });
   }
+
+  menuItems.push({
+    text: 'AI Diagnostics',
+    icon: <AiIcon />,
+    path: '/ai-diagnostics',
+  });
+
+  menuItems.push({
+    text: 'AI Treatment Suggestions',
+    icon: <LightbulbIcon />,
+    path: '/ai-treatment-suggestions',
+  });
+
+  const isActive = (path: string) => {
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
 
   return (
     <Drawer
@@ -88,6 +134,71 @@ const Navigation: React.FC = () => {
       </Box>
       <Divider />
       <List>
+        <li>
+          <Link
+            to="/"
+            className={`flex items-center p-2 rounded-md transition-colors ${
+              isActive('/') 
+                ? 'bg-primary text-primary-foreground' 
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <Home className="h-5 w-5" />
+            {!isMobile && <span className="ml-3">Dashboard</span>}
+          </Link>
+        </li>
+        <li>
+          <Link
+            to="/patients"
+            className={`flex items-center p-2 rounded-md transition-colors ${
+              isActive('/patients') 
+                ? 'bg-primary text-primary-foreground' 
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <Users className="h-5 w-5" />
+            {!isMobile && <span className="ml-3">Patients</span>}
+          </Link>
+        </li>
+        <li>
+          <Link
+            to="/schedule"
+            className={`flex items-center p-2 rounded-md transition-colors ${
+              isActive('/schedule') 
+                ? 'bg-primary text-primary-foreground' 
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <Calendar className="h-5 w-5" />
+            {!isMobile && <span className="ml-3">Schedule</span>}
+          </Link>
+        </li>
+        <li>
+          <Link
+            to="/treatments"
+            className={`flex items-center p-2 rounded-md transition-colors ${
+              isActive('/treatments') 
+                ? 'bg-primary text-primary-foreground' 
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <FileText className="h-5 w-5" />
+            {!isMobile && <span className="ml-3">Treatments</span>}
+          </Link>
+        </li>
+        <li>
+          <Link
+            to="/finances"
+            className={`flex items-center p-2 rounded-md transition-colors ${
+              isActive('/finances') 
+                ? 'bg-primary text-primary-foreground' 
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <DollarSign className="h-5 w-5" />
+            {!isMobile && <span className="ml-3">Finances</span>}
+          </Link>
+        </li>
         {menuItems.map((item) => (
           <ListItem
             button
@@ -116,6 +227,64 @@ const Navigation: React.FC = () => {
             <ListItemText primary={item.text} />
           </ListItem>
         ))}
+      </List>
+      <Divider />
+      <List>
+        <li>
+          <Link
+            to="/ai-diagnostics"
+            className={`flex items-center p-2 rounded-md transition-colors ${
+              isActive('/ai-diagnostics') 
+                ? 'bg-primary text-primary-foreground' 
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <Activity className="h-5 w-5" />
+            {!isMobile && <span className="ml-3">AI Diagnostics</span>}
+          </Link>
+        </li>
+        <li>
+          <Link
+            to="/ai-training"
+            className={`flex items-center p-2 rounded-md transition-colors ${
+              isActive('/ai-training') 
+                ? 'bg-primary text-primary-foreground' 
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <Brain className="h-5 w-5" />
+            {!isMobile && <span className="ml-3">AI Training</span>}
+          </Link>
+        </li>
+      </List>
+      <Divider />
+      <List>
+        <li>
+          <Link
+            to="/settings"
+            className={`flex items-center p-2 rounded-md transition-colors ${
+              isActive('/settings') 
+                ? 'bg-primary text-primary-foreground' 
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <Settings className="h-5 w-5" />
+            {!isMobile && <span className="ml-3">Settings</span>}
+          </Link>
+        </li>
+        <li>
+          <Link
+            to="/profile"
+            className={`flex items-center p-2 rounded-md transition-colors ${
+              isActive('/profile') 
+                ? 'bg-primary text-primary-foreground' 
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <User className="h-5 w-5" />
+            {!isMobile && <span className="ml-3">Profile</span>}
+          </Link>
+        </li>
       </List>
     </Drawer>
   );
