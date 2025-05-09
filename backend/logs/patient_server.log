@@ -1,9 +1,0 @@
-2025-04-30 17:14:31,806 - __main__ - INFO - Starting Patient Data Server on port 8086
-INFO:     Started server process [97119]
-2025-04-30 17:14:31,811 - uvicorn.error - INFO - Started server process [97119]
-INFO:     Waiting for application startup.
-2025-04-30 17:14:31,811 - uvicorn.error - INFO - Waiting for application startup.
-INFO:     Application startup complete.
-2025-04-30 17:14:31,811 - uvicorn.error - INFO - Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8086 (Press CTRL+C to quit)
-2025-04-30 17:14:31,812 - uvicorn.error - INFO - Uvicorn running on http://0.0.0.0:8086 (Press CTRL+C to quit)

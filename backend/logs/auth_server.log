@@ -1,9 +1,0 @@
-2025-04-30 17:14:29,470 - __main__ - INFO - Starting Authentication Server on port 8085
-INFO:     Started server process [97093]
-2025-04-30 17:14:29,477 - uvicorn.error - INFO - Started server process [97093]
-INFO:     Waiting for application startup.
-2025-04-30 17:14:29,477 - uvicorn.error - INFO - Waiting for application startup.
-INFO:     Application startup complete.
-2025-04-30 17:14:29,477 - uvicorn.error - INFO - Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8085 (Press CTRL+C to quit)
-2025-04-30 17:14:29,477 - uvicorn.error - INFO - Uvicorn running on http://0.0.0.0:8085 (Press CTRL+C to quit)

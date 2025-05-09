@@ -1,8 +1,0 @@
----
-description: 
-globs: 
-alwaysApply: false
----
-Always verify that any changes to SQLAlchemy models are reflected with a corresponding Alembic migration. Never suggest editing the database schema directly without `alembic revision --autogenerate` and `alembic upgrade head`.
-
-Migration files live in `backend/migrations/versions/`.

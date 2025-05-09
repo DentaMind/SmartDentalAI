@@ -1,8 +1,0 @@
-// Create insertion schemas for lab & supply tables
-export const insertLabCaseSchema = createInsertSchema(labCases);
-export const insertSupplyItemSchema = createInsertSchema(supplyItems);
-export const insertSupplyOrderSchema = createInsertSchema(supplyOrders);
-export const insertSupplyReceiptSchema = createInsertSchema(supplyReceipts);
-export const insertVendorProfileSchema = createInsertSchema(vendorProfiles);
-export const insertOrthodonticCaseSchema = createInsertSchema(orthodonticCases);
-export const insertOrthodonticTelehealthSessionSchema = createInsertSchema(orthodonticTelehealthSessions);

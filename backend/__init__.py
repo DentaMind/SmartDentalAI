@@ -1,3 +1,0 @@
-"""
-DentaMind AI Backend Package
-""" 

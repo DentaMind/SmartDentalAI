@@ -1,8 +1,0 @@
----
-description: 
-globs: 
-alwaysApply: true
----
-The application operates in a medical setting and must use clinically accurate terminology and logic. Do not suggest approximations, casual terms, or features that could mislead dental professionals.
-
-Assume real patient data may be involved — prioritize HIPAA compliance and auditability in all suggestions.

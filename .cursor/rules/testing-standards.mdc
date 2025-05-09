@@ -1,8 +1,0 @@
----
-description: 
-globs: 
-alwaysApply: false
----
-Use `pytest` for all backend testing. Backend tests live in `backend/tests/`. Test fixtures should use `TestClient` from FastAPI, and SQLite for in-memory test databases.
-
-Every PR must include at least one new or updated test.
