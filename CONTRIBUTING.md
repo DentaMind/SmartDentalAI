@@ -1,62 +1,159 @@
 # Contributing to DentaMind
 
-Thank you for your interest in contributing to DentaMind! Before you begin, please read and agree to our Contributor License Agreement (CLA).
+Thank you for your interest in contributing to DentaMind, the AI-powered dental practice management system. This guide will help you understand how to work with our codebase, particularly after the May 2025 frontend cleanup.
 
-## Contributor License Agreement
+## Project Structure
 
-By contributing to DentaMind, you agree to the following terms:
+DentaMind follows a modular architecture with a FastAPI backend and a React (TypeScript) frontend:
 
-1. You grant DentaMind AI Solutions a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable license to use, reproduce, prepare derivative works of, publicly display, publicly perform, sublicense, and distribute your contributions and any derivative works thereof.
+```
+DentaMind/
+├── backend/            # FastAPI backend code
+├── frontend/           # React TypeScript frontend (newly organized)
+├── server/             # Node.js server components
+└── shared/             # Shared types and utilities
+```
 
-2. You represent that you are legally entitled to grant the above license. If your employer has rights to intellectual property that you create, you represent that you have received permission to make contributions on behalf of that employer, or that your employer has waived such rights for your contributions to DentaMind.
+### Frontend Organization
 
-3. You represent that each of your contributions is your original creation. You represent that your contribution submissions include complete details of any third-party license or other restriction (including, but not limited to, related patents and trademarks) of which you are personally aware and which are associated with any part of your contributions.
+The frontend uses a feature-based organization pattern:
 
-4. You are not expected to provide support for your contributions, except to the extent you desire to provide support. You may provide support for free, for a fee, or not at all.
+```
+frontend/
+├── src/
+│   ├── features/       # Feature modules (NEW)
+│   │   ├── ai/         # AI-related features
+│   │   └── patientIntake/ # Patient intake features
+│   ├── components/     # Shared components
+│   ├── contexts/       # React context providers
+│   ├── hooks/          # Custom React hooks
+│   ├── pages/          # Page components
+│   ├── services/       # API service layer
+│   └── types/          # TypeScript definitions
+```
 
-## Development Process
+## Development Workflow
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+### Setting Up Your Environment
 
-## Code Style
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-org/dentamind.git
+   cd dentamind
+   ```
 
-- Follow PEP 8 for Python code
-- Use ESLint and Prettier for JavaScript/TypeScript
-- Write comprehensive tests for new features
-- Document all public APIs and functions
+2. Install dependencies:
+   ```bash
+   # Backend dependencies
+   cd backend
+   pip install -r requirements.txt
+   
+   # Frontend dependencies
+   cd ../frontend
+   npm install
+   ```
+
+3. Start the development servers:
+   ```bash
+   # In one terminal, start the backend
+   cd backend
+   python run_backend.py
+   
+   # In another terminal, start the frontend
+   cd frontend
+   npm run dev
+   ```
+
+### Adding New Features
+
+When adding new functionality to DentaMind, follow these guidelines:
+
+1. **For major features**:
+   - Create a new directory under `frontend/src/features/`
+   - Include components, services, hooks, and types specific to the feature
+   - Add a README.md explaining the feature's purpose and structure
+
+2. **For new components**:
+   - If the component is specific to a feature, place it in that feature's `components/` directory
+   - If the component is shared across features, place it in `src/components/`
+   - Use TypeScript for all component definitions
+   - Include prop type definitions
+
+3. **For new API integrations**:
+   - Feature-specific API services go in the feature's `services/` directory
+   - Shared API services go in `src/services/`
+
+### Code Style and Linting
+
+- Follow the established TypeScript and React patterns
+- Use async/await for asynchronous code
+- Prefer functional components with hooks
+- Keep components focused on a single responsibility
 
 ## Testing
 
-Run the test suite before submitting a pull request:
-```bash
-# Backend tests
-cd backend
-pytest
+### Writing Tests
 
-# Frontend tests
+- Place Cypress tests in `frontend/cypress/integration/`
+- Create component tests for critical functionality
+- Test both happy paths and error states
+
+### Running Tests
+
+```bash
+# Run Cypress tests in headless mode
 cd frontend
-npm test
+npx cypress run
+
+# Open Cypress Test Runner
+npx cypress open
 ```
 
-## Documentation
+## Pull Request Process
 
-- Update README.md for significant changes
-- Add docstrings to new functions and classes
-- Update API documentation if endpoints are modified
+1. Create a new branch from `main`:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
 
-## Security
+2. Make your changes following the contribution guidelines
 
-- Never commit sensitive information
-- Report security vulnerabilities to security@dentamind.com
-- Follow security best practices in code
+3. Test your changes thoroughly:
+   ```bash
+   # Run backend tests
+   cd backend
+   pytest
+   
+   # Run frontend tests
+   cd frontend
+   npx cypress run
+   ```
 
-## Support
+4. Push your branch and create a Pull Request:
+   ```bash
+   git push -u origin feature/your-feature-name
+   ```
 
-For questions or support, please:
-1. Check the documentation
-2. Open an issue on GitHub
-3. Contact support@dentamind.com 
+5. Ensure the PR description explains:
+   - What changes you've made
+   - Why you're making the changes
+   - Any considerations for reviewers
+
+## Clinical Considerations
+
+DentaMind is used in dental practices with real patient data. Always:
+
+- Maintain HIPAA compliance in all code changes
+- Use clinically accurate terminology
+- Never store or log patient identifiable information
+- Ensure all code handling patient data is properly reviewed
+- Consider security implications of any changes
+
+## Further Help
+
+If you need assistance:
+- Check the documentation in the `docs/` directory
+- Review the READMEs in feature directories
+- Reach out to the maintainers
+
+Thank you for contributing to DentaMind! 
