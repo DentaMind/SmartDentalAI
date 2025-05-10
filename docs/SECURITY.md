@@ -321,4 +321,138 @@ Regularly perform these security tasks:
 1. Run security audits before major releases
 2. Update dependencies to address security vulnerabilities
 3. Review and update role permissions as needed
-4. Conduct security training for the development team 
+4. Conduct security training for the development team
+
+# Security Guidelines for DentaMind
+
+## Overview
+
+DentaMind is a dental practice management application that handles sensitive patient data. As such, it must adhere to strict security requirements, including HIPAA compliance for patient data protection.
+
+This document outlines security practices that all developers must follow when working on this codebase.
+
+## HIPAA Compliance Requirements
+
+As a dental practice management system, DentaMind handles Protected Health Information (PHI) and must comply with HIPAA regulations:
+
+### Required Safeguards
+
+1. **Administrative Safeguards**
+   - Access Control: Only authorized users can access patient data
+   - Audit Controls: All PHI access is logged and auditable
+   - Security Management: Regular risk assessments
+   - Training: Security awareness training documentation
+
+2. **Technical Safeguards**
+   - Access Controls: Unique user identification, automatic logoff, encryption
+   - Audit Controls: Logging of all PHI access and modifications
+   - Integrity Controls: Data cannot be improperly altered
+   - Transmission Security: Data encrypted in transit
+
+3. **Physical Safeguards**
+   - For deployment environments, ensure physical access restrictions
+
+## Authentication and Authorization
+
+All API endpoints that handle patient data **MUST** include:
+
+1. **Authentication** - Verify the user is logged in using `Depends(get_current_user)` dependency
+2. **Authorization** - Verify the user has the correct role/permissions to access the data
+
+Example:
+
+```python
+@router.get("/patients/{patient_id}")
+async def get_patient(
+    patient_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)  # Authentication
+):
+    # Authorization
+    if current_user["role"] not in ["admin", "dentist", "staff"]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Handle the request
+    # ...
+```
+
+## Secrets Management
+
+### Environment Variables
+
+- **Never commit `.env` files or any file containing secrets**
+- Always use `.env.example` files with placeholder values
+- Use a secrets manager for production environments
+- Rotate secrets immediately if they are accidentally exposed
+
+### Secret Detection
+
+Pre-commit hooks are configured to detect and prevent committing secrets:
+
+- Run `./setup-security-checks.sh` to set up pre-commit hooks
+- Never bypass these checks with `--no-verify` unless absolutely necessary
+- If secrets are exposed, run `./rotate-secrets.sh` immediately
+
+## Common Security Issues
+
+### Missing Authentication
+
+All endpoints should use `Depends(get_current_user)` to ensure the request is authenticated.
+
+### Missing Role Checks
+
+After verifying authentication, verify that the user has the appropriate role to access the resource.
+
+### SQL Injection
+
+Always use parameterized queries instead of string concatenation.
+
+**Incorrect:**
+```python
+query = f"SELECT * FROM users WHERE username = '{username}'"
+```
+
+**Correct:**
+```python
+query = "SELECT * FROM users WHERE username = :username"
+db.execute(query, {"username": username})
+```
+
+### Sensitive Data Exposure
+
+- Never log sensitive information (passwords, tokens, patient data)
+- Encrypt sensitive data at rest
+- Use HTTPS for all communications
+
+## Security Practices for Development
+
+1. **Isolation of Environments**
+   - Use separate development, staging, and production environments
+   - Never use production data in development
+
+2. **Dependency Management**
+   - Regularly update dependencies
+   - Use `npm audit` and `pip-audit` to check for vulnerabilities
+
+3. **Code Review**
+   - Security-focused code reviews
+   - Check for exposed secrets, authentication, and authorization
+
+4. **Regular Security Audits**
+   - Schedule regular security audits
+   - Use automated scanning tools
+
+## Reporting Security Issues
+
+If you discover a security vulnerability:
+
+1. **Do not** create a public issue
+2. Report it to [security@dentamind.com](mailto:security@dentamind.com)
+3. Include detailed information about the vulnerability
+4. Do not disclose to others until it's resolved
+
+## Security Tools
+
+- **Pre-commit Hooks**: Prevent committing secrets
+- **detect-secrets**: Detect high entropy strings and secrets
+- **TruffleHog**: Scan for credentials in Git history
+- **GitHub Secret Scanning**: Automatic detection of common credential formats 
