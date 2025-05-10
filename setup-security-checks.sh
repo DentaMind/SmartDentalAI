@@ -241,4 +241,77 @@ echo "To run a security audit:"
 echo "   python backend/scripts/run_security_audit.py"
 echo
 echo "The pre-commit hook will automatically run before each commit."
-echo "Security reports will be generated in the reports/ directory." 
+echo "Security reports will be generated in the reports/ directory."
+
+# Script to set up pre-commit hooks for preventing secret leaks
+echo "🔒 Setting up security checks for DentaMind"
+echo "=========================================="
+echo "This script will set up pre-commit hooks to prevent accidental committing of secrets."
+
+# Check for prerequisites
+if ! command -v pip &> /dev/null; then
+    echo "❌ Python pip not found. Please install Python first."
+    exit 1
+fi
+
+echo ""
+echo "Step 1: Installing pre-commit and detect-secrets..."
+pip install pre-commit detect-secrets
+
+echo ""
+echo "Step 2: Setting up pre-commit configuration..."
+cat > .pre-commit-config.yaml << EOF
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: check-yaml
+    -   id: check-added-large-files
+    -   id: check-merge-conflict
+    -   id: detect-private-key
+
+-   repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+    -   id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+
+-   repo: local
+    hooks:
+    -   id: block-env-files
+        name: Block .env file commits
+        entry: bash -c 'for file in "$@"; do if [[ "$file" =~ \.env|config\.env|credentials ]]; then echo "ERROR: Blocked committing potential secret file: $file"; exit 1; fi; done'
+        language: system
+        pass_filenames: true
+EOF
+
+echo ""
+echo "Step 3: Creating secrets baseline..."
+detect-secrets scan > .secrets.baseline
+
+echo ""
+echo "Step 4: Installing pre-commit hooks..."
+pre-commit install
+
+echo ""
+echo "Step 5: Adding config files to Git..."
+git add .pre-commit-config.yaml .secrets.baseline
+git commit -m "Add pre-commit hooks for security scanning" --no-verify || echo "Failed to commit config files, but hooks are installed."
+
+echo ""
+echo "✅ Security checks have been set up!"
+echo ""
+echo "From now on, pre-commit will run these checks before each commit:"
+echo "  - Detect potential secrets and credentials"
+echo "  - Block committing .env and config files"
+echo "  - Detect private keys and other sensitive data"
+echo ""
+echo "If you want to update the security baseline in the future, run:"
+echo "  detect-secrets scan > .secrets.baseline"
+echo ""
+echo "To temporarily bypass the checks (ONLY in emergencies), use:"
+echo "  git commit --no-verify"
+echo ""
+echo "Remember: Security is everyone's responsibility!" 
