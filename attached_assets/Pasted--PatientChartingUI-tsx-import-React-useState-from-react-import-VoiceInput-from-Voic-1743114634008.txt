@@ -1,0 +1,61 @@
+// PatientChartingUI.tsx
+import React, { useState } from 'react';
+import { VoiceInput } from './VoiceInput';
+import { ToothSelector } from './ToothSelector';
+import { PerioChart } from './PerioChart';
+import { RestorativeChart } from './RestorativeChart';
+import { NotePreview } from './NotePreview';
+import { Button } from '@/components/ui/button';
+
+export default function PatientChartingUI({ patientId }: { patientId: string }) {
+  const [notes, setNotes] = useState<string[]>([]);
+  const [draft, setDraft] = useState('');
+
+  const handleVoiceNote = (text: string) => {
+    const timestamp = new Date().toLocaleString();
+    setNotes(prev => [...prev, `[${timestamp}] ${text}`]);
+  };
+
+  const handleRestorativeEntry = (entry: string) => {
+    const timestamp = new Date().toLocaleString();
+    setNotes(prev => [...prev, `[${timestamp}] Restorative: ${entry}`]);
+  };
+
+  const handlePerioEntry = (entry: string) => {
+    const timestamp = new Date().toLocaleString();
+    setNotes(prev => [...prev, `[${timestamp}] Perio: ${entry}`]);
+  };
+
+  const handleDraftSubmit = () => {
+    if (draft.trim()) {
+      const timestamp = new Date().toLocaleString();
+      setNotes(prev => [...prev, `[${timestamp}] Provider Note: ${draft}`]);
+      setDraft('');
+    }
+  };
+
+  const handleSaveFinalNote = () => {
+    // Save note to DB and require provider approval
+    console.log('Note submitted for review/approval:', notes);
+  };
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xl font-bold">Patient Charting Interface</h2>
+      <VoiceInput onTranscribe={handleVoiceNote} />
+      <RestorativeChart onProcedureLogged={handleRestorativeEntry} />
+      <PerioChart onProbingComplete={handlePerioEntry} />
+      <textarea
+        className="w-full border p-2 rounded"
+        placeholder="Add provider manual notes here..."
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+      />
+      <div className="flex gap-2">
+        <Button onClick={handleDraftSubmit}>Add to Draft</Button>
+        <Button onClick={handleSaveFinalNote} variant="outline">Submit for Approval</Button>
+      </div>
+      <NotePreview notes={notes} />
+    </div>
+  );
+}

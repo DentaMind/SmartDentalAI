@@ -1,0 +1,174 @@
+{
+  "patient_id": "8d0fcdd7-1269-4349-8481-202257e5d4ab",
+  "appointments": [
+    {
+      "patient_id": "8d0fcdd7-1269-4349-8481-202257e5d4ab",
+      "provider": "Dr. Smith",
+      "date": "2025-03-29 05:44:45.407442",
+      "time": "10:00 AM",
+      "type": "Comprehensive Exam",
+      "status": "Scheduled"
+    }
+  ],
+  "ai_diagnostics": {
+    "patient_id": "8d0fcdd7-1269-4349-8481-202257e5d4ab",
+    "symptom_analysis": "High caries risk due to dietary habits",
+    "xray_diagnosis": "Interproximal caries on #13 and early bone loss around #30",
+    "treatment_suggestion": [
+      "Restore #13 with composite",
+      "Scaling and root planing"
+    ],
+    "risk_factors": [
+      "Diabetes",
+      "Poor oral hygiene"
+    ],
+    "last_updated": "2025-03-27 05:44:45.407513"
+  },
+  "finance": {
+    "patient_id": "8d0fcdd7-1269-4349-8481-202257e5d4ab",
+    "outstanding_balance": 240.0,
+    "insurance_estimate": 160.0,
+    "total_due": 80.0,
+    "billing_history": [
+      {
+        "date": "2025-03-17 05:44:45.407621",
+        "procedure": "Initial Exam",
+        "cost": 100.0,
+        "insurance_paid": 80.0
+      },
+      {
+        "date": "2025-03-22 05:44:45.407628",
+        "procedure": "X-ray",
+        "cost": 60.0,
+        "insurance_paid": 40.0
+      }
+    ]
+  },
+  "insurance": {
+    "patient_id": "8d0fcdd7-1269-4349-8481-202257e5d4ab",
+    "provider": "Delta Dental",
+    "group_number": "GRP123456",
+    "subscriber_id": "SUB78910",
+    "coverage": {
+      "preventive": "100%",
+      "basic": "80%",
+      "major": "50%"
+    },
+    "renewal_date": "2025-05-26 05:44:45.407690"
+  },
+  "labs": {
+    "patient_id": "8d0fcdd7-1269-4349-8481-202257e5d4ab",
+    "lab": "Pacific Dental Lab",
+    "case_type": "Crown on #19",
+    "status": "In Production",
+    "sent_date": "2025-03-24 05:44:45.407754",
+    "expected_return": "2025-04-03 05:44:45.407759"
+  },
+  "xray_analysis": {
+    "patient_id": "8d0fcdd7-1269-4349-8481-202257e5d4ab",
+    "image_id": "6290265d-699f-4b7c-9331-e87f1fc5e701",
+    "findings": [
+      {
+        "tooth": "#13",
+        "condition": "Caries"
+      },
+      {
+        "tooth": "#30",
+        "condition": "Bone loss"
+      }
+    ],
+    "confidence": 0.91,
+    "recommendations": [
+      "Composite restoration",
+      "SRP"
+    ],
+    "reviewed_by_AI": true
+  },
+  "clinical_notes": [
+    {
+      "patient_id": "8d0fcdd7-1269-4349-8481-202257e5d4ab",
+      "date": "2025-03-27 05:44:45.408166",
+      "provider": "Dr. Smith",
+      "note": "Comprehensive exam completed. Multiple interproximal caries found. Patient advised oral hygiene improvement.",
+      "status": "Draft",
+      "source": "Voice AI"
+    }
+  ],
+  "perio_chart": {
+    "patient_id": "8d0fcdd7-1269-4349-8481-202257e5d4ab",
+    "pockets": {
+      "1": 4,
+      "2": 3,
+      "3": 5,
+      "4": 4,
+      "5": 5,
+      "6": 6,
+      "7": 6,
+      "8": 5,
+      "9": 6,
+      "10": 4,
+      "11": 5,
+      "12": 6,
+      "13": 5,
+      "14": 5,
+      "15": 5,
+      "16": 5,
+      "17": 3,
+      "18": 3,
+      "19": 5,
+      "20": 5,
+      "21": 5,
+      "22": 6,
+      "23": 3,
+      "24": 6,
+      "25": 5,
+      "26": 3,
+      "27": 5,
+      "28": 6,
+      "29": 3,
+      "30": 3,
+      "31": 6,
+      "32": 3
+    },
+    "bleeding_on_probing": [
+      "2",
+      "7",
+      "8",
+      "27",
+      "21",
+      "10",
+      "31",
+      "32"
+    ],
+    "mobility": {
+      "#30": "Class I"
+    },
+    "furcation": {
+      "#3": "Class II"
+    }
+  },
+  "restorative_chart": {
+    "patient_id": "8d0fcdd7-1269-4349-8481-202257e5d4ab",
+    "existing_restorations": {
+      "#3": "MO amalgam",
+      "#8": "Composite facial",
+      "#30": "PFM crown"
+    },
+    "planned_treatment": {
+      "#13": "Composite DO",
+      "#19": "Crown"
+    }
+  },
+  "medical_history": {
+    "patient_id": "8d0fcdd7-1269-4349-8481-202257e5d4ab",
+    "conditions": [
+      "Diabetes Type II"
+    ],
+    "medications": [
+      "Metformin"
+    ],
+    "allergies": [
+      "Penicillin"
+    ]
+  }
+}

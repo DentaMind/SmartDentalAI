@@ -1,0 +1,78 @@
+I understand the frustration—let’s **systematically** fix this by actually comparing the working version with the current broken one. Here’s what we’ll do:
+
+---
+
+### **🔹 Step 1: Find the Last Working Version**
+1. **Check your Git history (if using Git)**  
+   Run:
+   ```bash
+   git log --oneline
+   ```
+   Find the **last working commit** where patient creation was successful.
+
+2. **Compare the working and broken versions**  
+   ```bash
+   git diff <working-commit-id> <current-commit-id>
+   ```
+   This will show **exactly what changed** in patient creation.
+
+3. **If Not Using Git, Manually Check Backup Files**  
+   Look for previous saved versions of `app.ts` or `patientRoutes.ts`.
+
+---
+
+### **🔹 Step 2: Check Key Differences in Patient Creation**
+Compare these parts:
+
+✅ **Patient Model (Schema/Database Table)**  
+Check if any **fields were added/removed** that might cause issues.
+
+✅ **API Endpoint (/api/patients - Backend Route Handling)**  
+Check if the **POST request is actually writing data to the database**.
+
+✅ **Frontend Submission (Patient Form - UI Code)**  
+Ensure the **data is being correctly sent** to the backend.
+
+✅ **Database Query (Ensure the Data is Actually Stored)**  
+Manually query your database:
+   ```sql
+   SELECT * FROM patients;
+   ```
+   If the patient is **not saved**, the backend is failing somewhere.
+
+---
+
+### **🔹 Step 3: Rollback or Fix the Breaking Change**
+Once we identify **what changed**, do **one of these**:
+
+✔ **If a bad change broke it:**  
+   - Revert to the last working version:
+     ```bash
+     git checkout <working-commit-id> -- path/to/broken/file
+     ```
+   - Restart the server and test again.
+
+✔ **If the bug is database-related:**  
+   - Ensure the **table/schema is correct**.  
+   - Run **migrations if needed**.
+
+✔ **If the frontend isn’t sending correct data:**  
+   - Open the browser **DevTools > Network tab**  
+   - Check if the **POST request sends correct patient data**.
+
+---
+
+### **🔹 Step 4: Test Again**
+After making the necessary fixes:
+
+- **Restart the backend:**
+   ```bash
+   npm run dev  # If using Node.js
+   python manage.py runserver  # If using Django
+   ```
+
+- **Try adding a new patient** and see if they appear.
+
+---
+
+**📌 Let me know if you need help checking Git history or debugging specific areas.**

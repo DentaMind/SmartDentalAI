@@ -1,0 +1,237 @@
+{
+  "timestamp": "2025-04-30T03:41:00.736054",
+  "total_images": 21,
+  "results": [
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-f5fd1e78",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-5aca9ad4",
+        "timestamp": "2025-04-30T07:40:39.470468",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-72b88280",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-04faa230",
+        "timestamp": "2025-04-30T07:40:40.479094",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-fc63cac3",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-cb5676e9",
+        "timestamp": "2025-04-30T07:40:41.496457",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-b094386f",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-d8a169b2",
+        "timestamp": "2025-04-30T07:40:42.506993",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-0e90a3b9",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-68d6492c",
+        "timestamp": "2025-04-30T07:40:43.522566",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-ac4d2626",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-3f9de968",
+        "timestamp": "2025-04-30T07:40:44.535930",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-ad63f978",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-9b2bd1d7",
+        "timestamp": "2025-04-30T07:40:45.543987",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-1d405985",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-30701fa4",
+        "timestamp": "2025-04-30T07:40:46.556819",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-90d51b3b",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-5f51082b",
+        "timestamp": "2025-04-30T07:40:47.569186",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-0a90886e",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-3b90b6de",
+        "timestamp": "2025-04-30T07:40:48.585058",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-48f0e972",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-84c81acd",
+        "timestamp": "2025-04-30T07:40:49.596849",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-6a839594",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-4db72c2d",
+        "timestamp": "2025-04-30T07:40:50.607647",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-1e00fbb6",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-6e36af6a",
+        "timestamp": "2025-04-30T07:40:51.620014",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-571240ae",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-b3498ad8",
+        "timestamp": "2025-04-30T07:40:52.632694",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-85bf76d2",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-42808514",
+        "timestamp": "2025-04-30T07:40:53.647936",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-671f47b2",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-9e58dfe1",
+        "timestamp": "2025-04-30T07:40:54.662704",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-2c55a6a8",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-f32e5ed6",
+        "timestamp": "2025-04-30T07:40:55.670650",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-631db549",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-0ec6ab0e",
+        "timestamp": "2025-04-30T07:40:56.685481",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-a8eb7938",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-44d66ffa",
+        "timestamp": "2025-04-30T07:40:57.701632",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-39b56d4c",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-0770ba4d",
+        "timestamp": "2025-04-30T07:40:58.717278",
+        "findings": {},
+        "summary": null
+      }
+    },
+    {
+      "status": "success",
+      "diagnosis": {
+        "id": "diag-90c2c6f6",
+        "patient_id": "TEST_FMX_PATIENT",
+        "image_id": "img-c3c19146",
+        "timestamp": "2025-04-30T07:40:59.731209",
+        "findings": {},
+        "summary": null
+      }
+    }
+  ]
+}

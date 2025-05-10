@@ -1,0 +1,22 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# DentaMind Context Rule
+
+This project is DentaMind — an AI-powered dental diagnostic and practice management platform.
+
+It uses:
+- FastAPI for backend (`backend/api`)
+- React (TypeScript) for frontend (`frontend/`)
+- PostgreSQL as the database
+- Alembic for managing database migrations
+- Pydantic models and strict typing for data validation
+- Roboflow for dental image analysis and diagnosis
+
+When suggesting code edits:
+- Always follow RESTful API conventions
+- Keep schema and migrations in sync
+- Never suggest raw SQL unless explicitly needed
+- Backend modules are under `backend/api`, models in `backend/api/database.py`

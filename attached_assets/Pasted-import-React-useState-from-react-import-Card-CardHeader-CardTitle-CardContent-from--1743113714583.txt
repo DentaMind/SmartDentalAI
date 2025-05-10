@@ -1,0 +1,90 @@
+import React, { useState } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+
+interface DiagnosisOption {
+  id: string;
+  label: string;
+  confidence: number;
+  reasoning: string;
+}
+
+interface DiagnosisFeedbackUIProps {
+  patientId: string;
+  options: DiagnosisOption[];
+  onSubmit: (feedback: {
+    selectedId: string;
+    explanation: string;
+  }) => void;
+  allowExplainRequest?: boolean;
+  onRequestInfo?: () => void;
+}
+
+const DiagnosisFeedbackUI: React.FC<DiagnosisFeedbackUIProps> = ({
+  patientId,
+  options,
+  onSubmit,
+  allowExplainRequest = false,
+  onRequestInfo,
+}) => {
+  const [selectedId, setSelectedId] = useState('');
+  const [explanation, setExplanation] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = () => {
+    if (selectedId) {
+      onSubmit({ selectedId, explanation });
+      setSubmitted(true);
+    }
+  };
+
+  return (
+    <Card className="p-4">
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold">AI Diagnosis Review</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {options.map((option) => (
+            <div
+              key={option.id}
+              className={`border p-3 rounded-lg cursor-pointer ${
+                selectedId === option.id ? 'border-green-500 bg-green-50' : 'border-gray-200'
+              }`}
+              onClick={() => setSelectedId(option.id)}
+            >
+              <div className="flex justify-between items-center">
+                <p className="font-medium">{option.label}</p>
+                <p className="text-sm text-muted-foreground">{option.confidence}% confident</p>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">Reason: {option.reasoning}</p>
+            </div>
+          ))}
+
+          <Textarea
+            placeholder="Why did you agree or disagree? Add context for the AI."
+            className="w-full mt-2"
+            rows={3}
+            value={explanation}
+            onChange={(e) => setExplanation(e.target.value)}
+          />
+
+          <div className="flex gap-2 mt-4">
+            <Button onClick={handleSubmit} disabled={!selectedId || submitted}>
+              {submitted ? 'Submitted' : 'Submit Feedback'}
+            </Button>
+
+            {allowExplainRequest && onRequestInfo && (
+              <Button variant="ghost" onClick={onRequestInfo}>
+                Ask AI for More Info
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default DiagnosisFeedbackUI;

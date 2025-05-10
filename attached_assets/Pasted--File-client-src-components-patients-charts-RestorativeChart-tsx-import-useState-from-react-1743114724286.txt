@@ -1,0 +1,60 @@
+// File: client/src/components/patients/charts/RestorativeChart.tsx
+
+import { useState } from 'react';
+import { toast } from '@/components/ui/use-toast';
+
+interface ToothStatus {
+  [toothNumber: string]: string[]; // e.g., ["Crown", "RCT"]
+}
+
+const teethNumbers = [
+  ...Array.from({ length: 8 }, (_, i) => 18 - i), // Upper Right 18 to 11
+  ...Array.from({ length: 8 }, (_, i) => 21 + i), // Upper Left 21 to 28
+  ...Array.from({ length: 8 }, (_, i) => 48 - i), // Lower Left 48 to 41
+  ...Array.from({ length: 8 }, (_, i) => 31 + i), // Lower Right 31 to 38
+];
+
+const availableProcedures = [
+  'Crown', 'RCT', 'Post/Core', 'Filling', 'Missing', 'Bridge', 'Implant', 'Extraction', 'Temp'
+];
+
+export default function RestorativeChart({ onUpdateNotes }: { onUpdateNotes: (note: string) => void }) {
+  const [chart, setChart] = useState<ToothStatus>({});
+
+  const handleProcedureClick = (toothNumber: string, procedure: string) => {
+    setChart(prev => {
+      const updated = { ...prev };
+      updated[toothNumber] = updated[toothNumber] || [];
+      if (!updated[toothNumber].includes(procedure)) {
+        updated[toothNumber].push(procedure);
+        onUpdateNotes(`Added ${procedure} on tooth #${toothNumber}`);
+        toast({ title: 'Updated Restorative Chart', description: `${procedure} on #${toothNumber}` });
+      }
+      return updated;
+    });
+  };
+
+  return (
+    <div className="grid grid-cols-8 gap-2">
+      {teethNumbers.map(tooth => (
+        <div key={tooth} className="border p-2 rounded shadow">
+          <div className="font-bold text-center">#{tooth}</div>
+          <div className="flex flex-wrap justify-center gap-1 mt-1">
+            {availableProcedures.map(proc => (
+              <button
+                key={proc}
+                className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded"
+                onClick={() => handleProcedureClick(String(tooth), proc)}
+              >
+                {proc}
+              </button>
+            ))}
+          </div>
+          <div className="mt-1 text-sm text-center text-gray-600">
+            {chart[tooth]?.join(', ')}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

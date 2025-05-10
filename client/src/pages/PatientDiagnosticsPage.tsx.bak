@@ -1,0 +1,606 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  Container,
+  Paper,
+  Grid,
+  Button,
+  CircularProgress,
+  Card,
+  CardContent,
+  CardMedia,
+  Stepper,
+  Step,
+  StepLabel,
+  IconButton,
+  Divider,
+  Alert,
+  AlertTitle,
+  Chip,
+  List,
+  ListItem,
+  ListItemText,
+  TextField,
+} from '@mui/material';
+import { useParams, useNavigate } from 'react-router-dom';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
+import axios from 'axios';
+
+interface Patient {
+  id: string;
+  name: string;
+}
+
+interface ImageAnalysisResult {
+  id: string;
+  imageType: 'xray' | 'photo' | 'scan';
+  findings: Finding[];
+  confidence: number;
+  timestamp: string;
+  imageUrl: string;
+}
+
+interface Finding {
+  id: string;
+  type: string;
+  description: string;
+  location: string;
+  confidence: number;
+  suggestedTreatments: string[];
+}
+
+/**
+ * Patient Diagnostics Page Component
+ * Allows uploading and analyzing dental images using AI
+ */
+const PatientDiagnosticsPage: React.FC = () => {
+  const { patientId } = useParams<{ patientId: string }>();
+  const navigate = useNavigate();
+  const [activeStep, setActiveStep] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [patient, setPatient] = useState<Patient | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageType, setImageType] = useState<'xray' | 'photo' | 'scan'>('xray');
+  const [analysisResults, setAnalysisResults] = useState<ImageAnalysisResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [patientNote, setPatientNote] = useState('');
+
+  // Mock diagnosis results for development
+  const mockAnalysisResult: ImageAnalysisResult = {
+    id: 'D1001',
+    imageType: 'xray',
+    findings: [
+      {
+        id: 'F1',
+        type: 'Cavity',
+        description: 'Dental caries detected on distal surface',
+        location: 'Tooth #14 (Upper Right First Molar)',
+        confidence: 0.94,
+        suggestedTreatments: ['Filling', 'Restoration']
+      },
+      {
+        id: 'F2',
+        type: 'Periapical Radiolucency',
+        description: 'Potential periapical infection indicated by radiolucent area',
+        location: 'Tooth #19 (Lower Left First Molar)',
+        confidence: 0.87,
+        suggestedTreatments: ['Root Canal Therapy', 'Evaluation for Endodontic Treatment']
+      },
+      {
+        id: 'F3',
+        type: 'Bone Loss',
+        description: 'Horizontal bone loss observed in posterior region',
+        location: 'Lower Right Quadrant',
+        confidence: 0.91,
+        suggestedTreatments: ['Periodontal Therapy', 'Deep Cleaning']
+      }
+    ],
+    confidence: 0.92,
+    timestamp: new Date().toISOString(),
+    imageUrl: 'sample-image-url.jpg'
+  };
+
+  const steps = ['Select Patient', 'Upload Image', 'AI Analysis', 'Review Results'];
+
+  useEffect(() => {
+    // Fetch patient data
+    const fetchPatient = async () => {
+      if (!patientId) return;
+
+      try {
+        setLoading(true);
+        const response = await axios.get(`/api/patients/${patientId}`);
+        setPatient(response.data);
+        setLoading(false);
+        setActiveStep(1); // Move to upload step once patient is loaded
+      } catch (err) {
+        console.error('Error fetching patient data:', err);
+        setError('Failed to load patient information. Please try again.');
+        setLoading(false);
+      }
+    };
+
+    fetchPatient();
+  }, [patientId]);
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+      setSelectedFile(file);
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    setImagePreview(null);
+  };
+
+  const handleImageTypeChange = (type: 'xray' | 'photo' | 'scan') => {
+    setImageType(type);
+  };
+
+  const handleAnalyzeImage = async () => {
+    if (!selectedFile) {
+      setError('Please select an image first');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // In a real implementation, we would upload the file and get analysis
+      // For now, use mock data with a delay to simulate API call
+      setTimeout(() => {
+        setAnalysisResults(mockAnalysisResult);
+        setActiveStep(3); // Move to results step
+        setLoading(false);
+      }, 2500);
+    } catch (err) {
+      console.error('Error analyzing image:', err);
+      setError('Failed to analyze image. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const handleSaveDiagnostics = async () => {
+    if (!analysisResults) return;
+
+    setLoading(true);
+    try {
+      // Navigate to treatment suggestions based on these findings
+      setTimeout(() => {
+        setLoading(false);
+        navigate(`/patients/${patientId}/treatment-suggestions`, { 
+          state: { 
+            diagnosticId: analysisResults.id,
+            findings: analysisResults.findings 
+          } 
+        });
+      }, 1000);
+    } catch (err) {
+      console.error('Error saving diagnostics:', err);
+      setError('Failed to save diagnostic results.');
+      setLoading(false);
+    }
+  };
+
+  const handleBackToPatient = () => {
+    navigate(`/patients/${patientId}`);
+  };
+
+  const renderStepContent = () => {
+    switch (activeStep) {
+      case 0: // Select Patient
+        return (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            {loading ? (
+              <CircularProgress />
+            ) : (
+              <>
+                <Typography variant="h6" gutterBottom>
+                  Loading patient information...
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  This won't take long.
+                </Typography>
+              </>
+            )}
+          </Box>
+        );
+
+      case 1: // Upload Image
+        return (
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Upload Dental Image
+                  </Typography>
+                  
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Image Type
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button 
+                        variant={imageType === 'xray' ? 'contained' : 'outlined'} 
+                        onClick={() => handleImageTypeChange('xray')}
+                        size="small"
+                      >
+                        X-Ray
+                      </Button>
+                      <Button 
+                        variant={imageType === 'photo' ? 'contained' : 'outlined'} 
+                        onClick={() => handleImageTypeChange('photo')}
+                        size="small"
+                      >
+                        Intraoral Photo
+                      </Button>
+                      <Button 
+                        variant={imageType === 'scan' ? 'contained' : 'outlined'} 
+                        onClick={() => handleImageTypeChange('scan')}
+                        size="small"
+                      >
+                        3D Scan
+                      </Button>
+                    </Box>
+                  </Box>
+
+                  <Box 
+                    sx={{ 
+                      border: '2px dashed #ccc', 
+                      borderRadius: 2, 
+                      p: 3, 
+                      textAlign: 'center',
+                      mb: 3,
+                      backgroundColor: '#f9f9f9'
+                    }}
+                  >
+                    <input
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      id="upload-image-input"
+                      type="file"
+                      onChange={handleFileSelect}
+                    />
+                    <label htmlFor="upload-image-input">
+                      <Button
+                        variant="contained"
+                        component="span"
+                        startIcon={<CloudUploadIcon />}
+                      >
+                        Select Image
+                      </Button>
+                    </label>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      Supported formats: JPEG, PNG, DICOM
+                    </Typography>
+                  </Box>
+
+                  {selectedFile && (
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" gutterBottom>
+                        {selectedFile.name} ({Math.round(selectedFile.size / 1024)} KB)
+                      </Typography>
+                      <Button 
+                        size="small" 
+                        startIcon={<DeleteIcon />} 
+                        onClick={handleRemoveFile}
+                        color="error"
+                      >
+                        Remove
+                      </Button>
+                    </Box>
+                  )}
+
+                  <Button 
+                    variant="contained" 
+                    color="primary"
+                    disabled={!selectedFile}
+                    onClick={() => setActiveStep(2)}
+                    fullWidth
+                  >
+                    Continue
+                  </Button>
+                </CardContent>
+              </Card>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Image Preview
+                  </Typography>
+                  
+                  {imagePreview ? (
+                    <CardMedia
+                      component="img"
+                      image={imagePreview}
+                      alt="Dental image preview"
+                      sx={{ 
+                        maxHeight: 300, 
+                        objectFit: 'contain', 
+                        borderRadius: 1,
+                        border: '1px solid #eee'
+                      }}
+                    />
+                  ) : (
+                    <Box 
+                      sx={{ 
+                        height: 300, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        backgroundColor: '#f5f5f5',
+                        borderRadius: 1
+                      }}
+                    >
+                      <Box sx={{ textAlign: 'center' }}>
+                        <AddPhotoAlternateIcon sx={{ fontSize: 60, color: '#bdbdbd' }} />
+                        <Typography variant="body2" color="text.secondary">
+                          No image selected
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        );
+
+      case 2: // AI Analysis
+        return (
+          <Box>
+            <Card>
+              <CardContent>
+                <Box sx={{ textAlign: 'center', py: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Analyzing Image with DentaMind AI
+                  </Typography>
+                  
+                  <Box sx={{ my: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <CircularProgress size={60} thickness={4} />
+                    <Typography variant="body1" sx={{ mt: 2 }}>
+                      {loading ? 'Processing image...' : 'Starting analysis...'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      Our AI is examining the image for conditions including:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2, justifyContent: 'center' }}>
+                      <Chip label="Caries/Cavities" size="small" />
+                      <Chip label="Periapical Lesions" size="small" />
+                      <Chip label="Bone Loss" size="small" />
+                      <Chip label="Impacted Teeth" size="small" />
+                      <Chip label="Root Abnormalities" size="small" />
+                    </Box>
+                  </Box>
+                  
+                  <Button 
+                    variant="contained"
+                    onClick={handleAnalyzeImage}
+                    disabled={loading}
+                  >
+                    {loading ? 'Analyzing...' : 'Continue Analysis'}
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
+        );
+
+      case 3: // Review Results
+        return (
+          <Box>
+            {analysisResults && (
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={5}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        Analyzed Image
+                      </Typography>
+                      
+                      {imagePreview && (
+                        <CardMedia
+                          component="img"
+                          image={imagePreview}
+                          alt="Analyzed dental image"
+                          sx={{ 
+                            maxHeight: 300, 
+                            objectFit: 'contain', 
+                            borderRadius: 1,
+                            border: '1px solid #eee'
+                          }}
+                        />
+                      )}
+                      
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Analysis Information
+                        </Typography>
+                        <Typography variant="body2">
+                          <strong>Image Type:</strong> {imageType.charAt(0).toUpperCase() + imageType.slice(1)}
+                        </Typography>
+                        <Typography variant="body2">
+                          <strong>Analysis Date:</strong> {new Date().toLocaleDateString()}
+                        </Typography>
+                        <Typography variant="body2">
+                          <strong>Overall Confidence:</strong> {Math.round(analysisResults.confidence * 100)}%
+                        </Typography>
+                      </Box>
+                      
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Notes
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          multiline
+                          rows={4}
+                          placeholder="Add clinical notes or observations..."
+                          variant="outlined"
+                          value={patientNote}
+                          onChange={(e) => setPatientNote(e.target.value)}
+                        />
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                
+                <Grid item xs={12} md={7}>
+                  <Card>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <Typography variant="h6">
+                          AI Findings
+                        </Typography>
+                        <Chip 
+                          icon={<CheckCircleIcon />} 
+                          label={`${analysisResults.findings.length} conditions detected`} 
+                          color="primary" 
+                        />
+                      </Box>
+                      
+                      <Alert severity="info" sx={{ mb: 3 }}>
+                        <AlertTitle>AI Assistant</AlertTitle>
+                        The analysis identified potential dental conditions that require attention. Review the findings below.
+                      </Alert>
+                      
+                      <List>
+                        {analysisResults.findings.map((finding, index) => (
+                          <React.Fragment key={finding.id}>
+                            {index > 0 && <Divider />}
+                            <ListItem alignItems="flex-start" sx={{ py: 2 }}>
+                              <ListItemText
+                                primary={
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Typography variant="subtitle1">
+                                      {finding.type}
+                                    </Typography>
+                                    <Chip 
+                                      label={`${Math.round(finding.confidence * 100)}%`} 
+                                      size="small" 
+                                      color={finding.confidence > 0.9 ? "success" : "primary"}
+                                    />
+                                  </Box>
+                                }
+                                secondary={
+                                  <>
+                                    <Typography variant="body2" color="text.primary" paragraph>
+                                      {finding.description}
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ mt: 1 }}>
+                                      <strong>Location:</strong> {finding.location}
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ mt: 1 }}>
+                                      <strong>Suggested Treatments:</strong>
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
+                                      {finding.suggestedTreatments.map((treatment, i) => (
+                                        <Chip 
+                                          key={i} 
+                                          label={treatment} 
+                                          size="small" 
+                                          variant="outlined"
+                                        />
+                                      ))}
+                                    </Box>
+                                  </>
+                                }
+                              />
+                            </ListItem>
+                          </React.Fragment>
+                        ))}
+                      </List>
+                      
+                      <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
+                        <Button 
+                          variant="outlined" 
+                          onClick={() => setActiveStep(1)}
+                        >
+                          Upload New Image
+                        </Button>
+                        <Button 
+                          variant="contained" 
+                          startIcon={<MedicalServicesIcon />}
+                          onClick={handleSaveDiagnostics}
+                          color="primary"
+                        >
+                          View Treatment Suggestions
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+            )}
+          </Box>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  if (error) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ mt: 4, mb: 4 }}>
+          <Button startIcon={<ArrowBackIcon />} onClick={handleBackToPatient}>
+            Back to Patient
+          </Button>
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        </Box>
+      </Container>
+    );
+  }
+
+  return (
+    <Container maxWidth="lg">
+      <Box sx={{ mt: 4, mb: 4 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+          <Button startIcon={<ArrowBackIcon />} onClick={handleBackToPatient} sx={{ mr: 2 }}>
+            Back
+          </Button>
+          <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>
+            Diagnostics{patient ? `: ${patient.name}` : ''}
+          </Typography>
+        </Box>
+
+        <Paper sx={{ p: 3, mb: 4 }}>
+          <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+            {steps.map((label) => (
+              <Step key={label}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+          
+          {renderStepContent()}
+        </Paper>
+      </Box>
+    </Container>
+  );
+};
+
+export default PatientDiagnosticsPage; 

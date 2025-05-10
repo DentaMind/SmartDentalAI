@@ -1,0 +1,84 @@
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+
+interface DiagnosisOption {
+  id: string;
+  title: string;
+  reasoning: string;
+  confidence: number;
+}
+
+interface DiagnosisFeedbackUIProps {
+  patientId: string;
+  diagnosisOptions: DiagnosisOption[];
+  onSubmitFeedback: (feedback: {
+    selectedDiagnosisId: string;
+    doctorComment: string;
+  }) => void;
+  onRequestMoreInfo?: () => void;
+}
+
+export default function DiagnosisFeedbackUI({
+  patientId,
+  diagnosisOptions,
+  onSubmitFeedback,
+  onRequestMoreInfo,
+}: DiagnosisFeedbackUIProps) {
+  const [selectedDiagnosisId, setSelectedDiagnosisId] = useState<string>("");
+  const [doctorComment, setDoctorComment] = useState<string>("");
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xl font-bold">AI Diagnosis Review</h2>
+      {diagnosisOptions.map((diagnosis) => (
+        <Card
+          key={diagnosis.id}
+          onClick={() => setSelectedDiagnosisId(diagnosis.id)}
+          className={`cursor-pointer border-2 transition-all ${
+            selectedDiagnosisId === diagnosis.id
+              ? "border-green-500 shadow-md"
+              : "border-gray-200"
+          }`}
+        >
+          <CardContent className="p-4 space-y-2">
+            <div className="text-lg font-semibold">{diagnosis.title}</div>
+            <div className="text-sm text-gray-600">{diagnosis.reasoning}</div>
+            <div className="text-sm">Confidence: {diagnosis.confidence}%</div>
+          </CardContent>
+        </Card>
+      ))}
+
+      <div className="space-y-2">
+        <Label htmlFor="comment">Doctor's Comment (optional)</Label>
+        <Textarea
+          id="comment"
+          placeholder="Explain your reasoning or corrections..."
+          value={doctorComment}
+          onChange={(e) => setDoctorComment(e.target.value)}
+        />
+      </div>
+
+      <div className="flex space-x-4">
+        <Button
+          onClick={() =>
+            onSubmitFeedback({
+              selectedDiagnosisId,
+              doctorComment,
+            })
+          }
+          disabled={!selectedDiagnosisId}
+        >
+          Submit Feedback
+        </Button>
+        {onRequestMoreInfo && (
+          <Button variant="outline" onClick={onRequestMoreInfo}>
+            Request More Info
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,69 @@
+// src/components/diagnosis/DiagnosisFeedbackUI.tsx
+
+import { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+
+interface DiagnosisOption {
+  id: string;
+  title: string;
+  reasoning: string;
+  confidence: number;
+}
+
+interface DiagnosisFeedbackUIProps {
+  patientId: string;
+  options: DiagnosisOption[];
+  onSubmit: (diagnosisId: string, feedback: string) => void;
+  onRequestMoreInfo: () => void;
+}
+
+export default function DiagnosisFeedbackUI({
+  patientId,
+  options,
+  onSubmit,
+  onRequestMoreInfo,
+}: DiagnosisFeedbackUIProps) {
+  const [selectedId, setSelectedId] = useState<string>('');
+  const [feedback, setFeedback] = useState<string>('');
+
+  const handleSubmit = () => {
+    if (!selectedId) return alert('Please select a diagnosis.');
+    onSubmit(selectedId, feedback);
+  };
+
+  return (
+    <Card className="p-4 space-y-4">
+      <h2 className="text-xl font-semibold">AI Diagnosis Feedback</h2>
+      {options.map((option) => (
+        <Card
+          key={option.id}
+          onClick={() => setSelectedId(option.id)}
+          className={`p-3 border cursor-pointer ${
+            selectedId === option.id ? 'border-green-500 bg-green-50' : ''
+          }`}
+        >
+          <h3 className="font-medium text-lg">{option.title}</h3>
+          <p className="text-sm text-gray-600 mb-2">Confidence: {option.confidence}%</p>
+          <p className="text-sm">Reasoning: {option.reasoning}</p>
+        </Card>
+      ))}
+
+      <Textarea
+        value={feedback}
+        onChange={(e) => setFeedback(e.target.value)}
+        placeholder="Leave optional feedback about the AI's diagnosis..."
+      />
+
+      <div className="flex gap-2">
+        <Button onClick={handleSubmit} className="bg-green-600 text-white">
+          Submit Feedback
+        </Button>
+        <Button variant="outline" onClick={onRequestMoreInfo}>
+          Request More Info
+        </Button>
+      </div>
+    </Card>
+  );
+}

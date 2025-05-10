@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Primary Meta Tags -->
+    <title>DentaMind - AI-Powered Dental Excellence</title>
+    <meta name="title" content="DentaMind - AI-Powered Dental Excellence">
+    <meta name="description" content="Revolutionary AI-powered dental platform that simplifies complexity in every case. Streamline diagnoses, treatment planning, and patient care.">
+    
+    <!-- Favicon and App Icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon.svg" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0d0d0d" />
+    <meta name="application-name" content="DentaMind">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DentaMind">
+    
+    <!-- DentaMind Styles -->
+    <style>
+      html, body {
+        background-color: #0d0d0d;
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      }
+      #root {
+        height: 100%;
+      }
+      
+      /* Simple spinner */
+      .spinner {
+        width: 40px;
+        height: 40px;
+        margin: 20px auto;
+        border: 4px solid rgba(101, 255, 101, 0.2);
+        border-left-color: #65FF65;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      @keyframes pulse {
+        0% { opacity: 0.6; }
+        50% { opacity: 1; }
+        100% { opacity: 0.6; }
+      }
+      
+      /* Branded loader */
+      #loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background-color: #0d0d0d;
+        background-image: radial-gradient(circle at 50% 70%, #1a1a1a 0%, #0d0d0d 100%);
+        z-index: 9999;
+      }
+      
+      .logo-container {
+        animation: pulse 3s infinite;
+        margin-bottom: 20px;
+      }
+      
+      .loader-text {
+        margin-top: 20px;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        color: white;
+        font-size: 0.9rem;
+        letter-spacing: 0.05em;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Branded loader -->
+    <div id="loader">
+      <div class="logo-container">
+        <svg width="80" height="80" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 40C31.0457 40 40 31.0457 40 20C40 8.9543 31.0457 0 20 0C8.9543 0 0 8.9543 0 20C0 31.0457 8.9543 40 20 40Z" fill="#000000"/>
+          <path d="M20 38C29.9411 38 38 29.9411 38 20C38 10.0589 29.9411 2 20 2C10.0589 2 2 10.0589 2 20C2 29.9411 10.0589 38 20 38Z" fill="#0d0d0d"/>
+          <path d="M20 15C23.866 15 27 12.3137 27 9C27 5.68629 23.866 3 20 3C16.134 3 13 5.68629 13 9C13 12.3137 16.134 15 20 15Z" fill="#65FF65"/>
+          <path d="M18 9C18 10.6569 18.8954 12 20 12C21.1046 12 22 10.6569 22 9C22 7.34315 21.1046 6 20 6C18.8954 6 18 7.34315 18 9Z" fill="white"/>
+          <path d="M10 20C10 24.4183 14.4772 28 20 28C25.5228 28 30 24.4183 30 20C30 15.5817 25.5228 12 20 12C14.4772 12 10 15.5817 10 20Z" fill="#65FF65"/>
+          <path d="M14 20C14 22.2091 16.6863 24 20 24C23.3137 24 26 22.2091 26 20C26 17.7909 23.3137 16 20 16C16.6863 16 14 17.7909 14 20Z" fill="#0d0d0d"/>
+          <path d="M18 32C18 34.7614 18.8954 37 20 37C21.1046 37 22 34.7614 22 32C22 29.2386 21.1046 27 20 27C18.8954 27 18 29.2386 18 32Z" fill="#65FF65"/>
+        </svg>
+      </div>
+      <div class="spinner"></div>
+      <div class="loader-text">DENTAMIND</div>
+    </div>
+    
+    <div id="root"></div>
+    
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <script>
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          var loader = document.getElementById('loader');
+          if (loader) {
+            loader.style.opacity = '0';
+            loader.style.transition = 'opacity 0.8s ease';
+            setTimeout(function() {
+              loader.style.display = 'none';
+            }, 800);
+          }
+        }, 600);
+      });
+    </script>
+  </body>
+</html>

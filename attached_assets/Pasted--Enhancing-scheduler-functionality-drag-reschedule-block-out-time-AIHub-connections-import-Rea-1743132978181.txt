@@ -1,0 +1,112 @@
+// Enhancing scheduler functionality: drag/reschedule, block-out time, AIHub connections
+
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { toast } from "@/components/ui/use-toast";
+import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+
+export function EnhancedSmartScheduler() {
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [editingAppt, setEditingAppt] = useState<any | null>(null);
+
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
+
+  const fetchAppointments = async () => {
+    const res = await axios.get("/api/schedule");
+    setAppointments(res.data);
+  };
+
+  const handleUpdateAppt = async () => {
+    await axios.put(`/api/schedule/${editingAppt.id}`, editingAppt);
+    toast({ title: "Updated", description: "Appointment updated." });
+    setEditingAppt(null);
+    fetchAppointments();
+  };
+
+  const providers = [...Array(7).keys()];
+  const hours = Array.from({ length: 13 }, (_, i) => 7 + i);
+
+  return (
+    <div className="overflow-x-auto">
+      <div className="grid grid-cols-[100px_repeat(7,minmax(200px,1fr))] border-t">
+        <div className="bg-gray-100 text-sm font-semibold p-2 border-b">Time</div>
+        {providers.map((_, i) => (
+          <div key={i} className="bg-gray-100 text-sm font-semibold p-2 border-b">
+            Provider {i + 1}
+          </div>
+        ))}
+        {hours.map((hour) => (
+          <React.Fragment key={hour}>
+            <div className="border-t border-r text-xs font-medium p-1 bg-gray-50">{hour}:00</div>
+            {providers.map((colIdx) => (
+              <div
+                key={`${hour}-${colIdx}`}
+                className="border-t border-r h-20 relative group bg-white hover:bg-blue-50"
+                onDoubleClick={() =>
+                  setEditingAppt({
+                    id: null,
+                    patientName: "",
+                    providerIndex: colIdx,
+                    time: `${hour}:00`,
+                    status: "unconfirmed",
+                    notes: "",
+                    reason: "New Appointment",
+                  })
+                }
+              >
+                {appointments
+                  .filter((appt) => appt.time === `${hour}:00` && appt.providerIndex === colIdx)
+                  .map((appt, i) => (
+                    <div
+                      key={appt.id}
+                      className={`absolute top-[${i * 20}px] left-0 right-0 h-[20px] text-xs px-2 py-1 rounded shadow-md cursor-pointer z-10
+                        ${appt.status === "confirmed" ? "bg-green-100 border border-green-600" : ""}
+                        ${appt.status === "cancelled" ? "bg-red-100 border border-red-600" : ""}
+                        ${appt.status === "no_show" ? "bg-yellow-100 border border-yellow-600" : ""}
+                        ${appt.status === "unconfirmed" ? "bg-gray-200 border border-gray-500" : ""}`}
+                      onClick={() => setEditingAppt(appt)}
+                    >
+                      <strong>{appt.patientName}</strong>
+                      <div className="truncate text-xs">{appt.reason}</div>
+                    </div>
+                  ))}
+              </div>
+            ))}
+          </React.Fragment>
+        ))}
+      </div>
+
+      <Dialog open={!!editingAppt} onOpenChange={() => setEditingAppt(null)}>
+        <DialogTrigger asChild></DialogTrigger>
+        <DialogContent className="p-4 space-y-2">
+          <h2 className="font-semibold text-lg">Edit Appointment</h2>
+          {editingAppt && (
+            <>
+              <Input
+                placeholder="Patient Name"
+                value={editingAppt.patientName}
+                onChange={(e) =>
+                  setEditingAppt({ ...editingAppt, patientName: e.target.value })
+                }
+              />
+              <Input
+                placeholder="Time"
+                value={editingAppt.time}
+                onChange={(e) => setEditingAppt({ ...editingAppt, time: e.target.value })}
+              />
+              <Input
+                placeholder="Reason"
+                value={editingAppt.reason}
+                onChange={(e) => setEditingAppt({ ...editingAppt, reason: e.target.value })}
+              />
+              <Button onClick={handleUpdateAppt}>Save</Button>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

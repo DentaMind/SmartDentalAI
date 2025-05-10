@@ -1,0 +1,65 @@
+#!/bin/bash
+
+# Alembic migration integrity pre-commit hook
+# This script checks for common migration issues before allowing a commit
+
+set -e
+
+echo "🔍 Checking Alembic migrations integrity..."
+
+# Check if any migration files are being committed
+MIGRATION_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E "backend/migrations/versions/.*\.py$" || true)
+
+if [ -n "$MIGRATION_FILES" ]; then
+    echo "Found migration files to check: $MIGRATION_FILES"
+    
+    # Check for missing down_revision
+    for file in $MIGRATION_FILES; do
+        if ! grep -q "down_revision" "$file"; then
+            echo "❌ ERROR: $file is missing down_revision!"
+            echo "All migrations must have a down_revision defined."
+            echo "Please fix this issue before committing."
+            exit 1
+        fi
+        
+        # Check that down_revision isn't None unless it's the very first migration
+        if grep -q "down_revision = None" "$file" && ! grep -q "# Initial migration" "$file"; then
+            echo "⚠️ WARNING: $file has down_revision = None but isn't marked as initial migration."
+            echo "This could create a disconnected migration chain."
+            echo "Is this intentional? If yes, add '# Initial migration' comment."
+            exit 1
+        fi
+        
+        # Check for other typical issues
+        if grep -q "down_revision = .*#.*TODO\|FIXME\|UPDATE" "$file"; then
+            echo "❌ ERROR: $file contains TODOs or FIXMEs in the down_revision!"
+            echo "Please update the down_revision to point to the correct migration before committing."
+            exit 1
+        fi
+    fi
+    
+    echo "✅ All migration files have proper down_revision values."
+    
+    # Optional: Try to check migration chain integrity if alembic is available
+    if command -v alembic &> /dev/null && [ -d "backend" ]; then
+        echo "🔄 Checking Alembic migration chain integrity..."
+        cd backend
+        if ! alembic history &> /dev/null; then
+            echo "⚠️ WARNING: Alembic history check failed."
+            echo "There might be issues with the migration chain."
+            echo "Consider running 'alembic history' manually to verify."
+            exit 1
+        fi
+        
+        # Check for multiple heads
+        if alembic heads | grep -q "head" | wc -l | grep -qv "^1$"; then
+            echo "⚠️ WARNING: Multiple migration heads detected!"
+            echo "You should merge migration heads with 'alembic merge' before proceeding."
+            exit 1
+        fi
+        
+        echo "✅ Alembic migration chain looks good."
+    fi
+fi
+
+exit 0 

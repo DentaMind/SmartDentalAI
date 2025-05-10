@@ -1,0 +1,19 @@
+{
+  "jwt": {
+    "secret": "your-secret-key-here",
+    "expiresIn": "24h",
+    "refreshExpiresIn": "7d"
+  },
+  "security": {
+    "tokenBlacklistCheckInterval": "1h",
+    "tokenRotationInterval": "24h",
+    "maxLoginAttempts": 5,
+    "lockoutDuration": "15m"
+  },
+  "api": {
+    "rateLimit": {
+      "windowMs": 900000,
+      "max": 100
+    }
+  }
+} 

@@ -1,0 +1,20 @@
+{
+  "baseUrl": "http://localhost:3000",
+  "viewportWidth": 1280,
+  "viewportHeight": 800,
+  "defaultCommandTimeout": 8000,
+  "requestTimeout": 10000,
+  "responseTimeout": 10000,
+  "video": false,
+  "screenshotOnRunFailure": true,
+  "screenshotsFolder": "cypress/screenshots",
+  "videosFolder": "cypress/videos",
+  "experimentalStudio": true,
+  "fixturesFolder": "cypress/fixtures",
+  "integrationFolder": "cypress/integration",
+  "supportFile": "cypress/support/index.js",
+  "testFiles": "**/*.spec.js",
+  "env": {
+    "apiUrl": "http://localhost:8000"
+  }
+} 

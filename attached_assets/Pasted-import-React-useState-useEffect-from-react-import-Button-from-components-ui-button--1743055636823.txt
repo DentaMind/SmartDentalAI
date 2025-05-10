@@ -1,0 +1,100 @@
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
+
+interface Note {
+  id: number;
+  date: string;
+  provider: string;
+  procedure: string;
+  content: string;
+  status: "draft" | "finalized";
+}
+
+const PatientNotesDisplay = ({ patientId }: { patientId: number }) => {
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
+  const [editedContent, setEditedContent] = useState<string>("");
+
+  useEffect(() => {
+    fetch(`/api/patient/${patientId}/notes`)
+      .then((res) => res.json())
+      .then((data) => setNotes(data))
+      .catch((err) => console.error("Error loading notes:", err));
+  }, [patientId]);
+
+  const approveNote = async (id: number) => {
+    await fetch(`/api/notes/${id}/finalize`, {
+      method: "POST",
+    });
+    refreshNotes();
+  };
+
+  const refreshNotes = () => {
+    fetch(`/api/patient/${patientId}/notes`)
+      .then((res) => res.json())
+      .then((data) => setNotes(data));
+  };
+
+  const startEdit = (note: Note) => {
+    setEditingNoteId(note.id);
+    setEditedContent(note.content);
+  };
+
+  const saveEdit = async () => {
+    if (editingNoteId !== null) {
+      await fetch(`/api/notes/${editingNoteId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: editedContent }),
+      });
+      setEditingNoteId(null);
+      setEditedContent("");
+      refreshNotes();
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {notes.map((note) => (
+        <Card key={note.id} className="shadow">
+          <CardContent className="space-y-2">
+            <div className="text-sm text-muted-foreground">
+              {note.date} - {note.provider} - {note.procedure} - {note.status}
+            </div>
+            {editingNoteId === note.id ? (
+              <>
+                <Textarea
+                  value={editedContent}
+                  onChange={(e) => setEditedContent(e.target.value)}
+                />
+                <div className="flex gap-2 mt-2">
+                  <Button onClick={saveEdit}>Save</Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditingNoteId(null)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="whitespace-pre-wrap">{note.content}</div>
+            )}
+            {note.status === "draft" && editingNoteId !== note.id && (
+              <div className="flex gap-2 mt-2">
+                <Button onClick={() => startEdit(note)}>Edit</Button>
+                <Button onClick={() => approveNote(note.id)}>Approve</Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+};
+
+export default PatientNotesDisplay;

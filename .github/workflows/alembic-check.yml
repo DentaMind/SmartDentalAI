@@ -1,0 +1,121 @@
+name: Alembic Migration Integrity Check
+
+on:
+  pull_request:
+    paths:
+      - 'backend/migrations/versions/**'
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/migrations/versions/**'
+
+jobs:
+  check-migrations:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Fetch all history for proper migration chain checking
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install alembic psycopg2-binary sqlalchemy
+        if [ -f backend/requirements.txt ]; then
+          pip install -r backend/requirements.txt
+        fi
+    
+    - name: Check for missing down_revision in changed migration files
+      run: |
+        echo "Checking for migrations without down_revision..."
+        
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          FILES=$(git diff --name-only origin/${{ github.base_ref }} | grep -E "backend/migrations/versions/.*\.py$" || true)
+        else
+          # For push events, check just the pushed commits
+          FILES=$(git diff --name-only HEAD~1 HEAD | grep -E "backend/migrations/versions/.*\.py$" || true)
+        fi
+        
+        if [ -z "$FILES" ]; then
+          echo "No migration files changed, skipping check"
+          exit 0
+        fi
+        
+        echo "Checking files: $FILES"
+        
+        ERRORS=0
+        for file in $FILES; do
+          if ! grep -q "down_revision" "$file"; then
+            echo "::error::Migration file $file is missing down_revision!"
+            ERRORS=$((ERRORS+1))
+          fi
+          
+          # Check for TODOs/FIXMEs in down_revision
+          if grep -q "down_revision.*# *\(TODO\|FIXME\|UPDATE\)" "$file"; then
+            echo "::error::Migration file $file has TODOs or FIXMEs in down_revision!"
+            ERRORS=$((ERRORS+1))
+          fi
+        done
+        
+        if [ $ERRORS -gt 0 ]; then
+          echo "::error::Found $ERRORS issues with migration files"
+          exit 1
+        fi
+    
+    - name: Check Alembic migration chain integrity
+      run: |
+        cd backend
+        echo "Checking Alembic history..."
+        alembic history || {
+          echo "::error::Alembic history check failed - migration chain might be broken"
+          exit 1
+        }
+        
+        echo "Checking for multiple heads..."
+        HEAD_COUNT=$(alembic heads | grep -c "head" || echo "0")
+        if [ "$HEAD_COUNT" -gt 1 ]; then
+          echo "::error::Found multiple Alembic heads ($HEAD_COUNT). Migrations should be merged."
+          alembic heads
+          exit 1
+        fi
+        
+        echo "All Alembic migration checks passed!"
+
+    - name: Generate SQL preview for changed migrations
+      if: success()
+      run: |
+        cd backend
+        
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          FILES=$(git diff --name-only origin/${{ github.base_ref }} | grep -E "backend/migrations/versions/.*\.py$" || true)
+        else
+          FILES=$(git diff --name-only HEAD~1 HEAD | grep -E "backend/migrations/versions/.*\.py$" || true)
+        fi
+        
+        if [ -z "$FILES" ]; then
+          echo "No migration files changed, skipping SQL preview"
+          exit 0
+        fi
+        
+        echo "Generating SQL preview for new migrations..."
+        
+        # Extract revision IDs from changed migration files
+        for file in $FILES; do
+          REV_ID=$(grep -E "revision = '([a-z0-9]+)'" $file | sed -E "s/.*revision = '([a-z0-9]+)'.*/\1/")
+          if [ -n "$REV_ID" ]; then
+            echo "Previewing SQL for revision $REV_ID..."
+            # Generate SQL for each migration
+            PREV_REV=$(grep -E "down_revision = '([a-z0-9]+)'" $file | sed -E "s/.*down_revision = '([a-z0-9]+)'.*/\1/")
+            if [ -n "$PREV_REV" ]; then
+              echo "SQL from $PREV_REV to $REV_ID:"
+              alembic upgrade ${PREV_REV}:${REV_ID} --sql || true
+            fi
+          fi
+        done 

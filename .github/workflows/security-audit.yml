@@ -1,0 +1,70 @@
+name: Security Audit
+
+on:
+  pull_request:
+    branches: [ main, development ]
+    paths:
+      - 'backend/**/*.py'
+      - '.github/workflows/security-audit.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**/*.py'
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  security-audit:
+    name: Run Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+      
+      - name: Run RBAC Security Audit
+        id: rbac-audit
+        run: |
+          # Run the security audit
+          python -m backend.scripts.run_security_audit --ci
+          
+      - name: Check for critical security issues
+        id: check-critical
+        run: |
+          # Check if the audit found critical issues
+          if [ -f "reports/critical_issues.txt" ]; then
+            echo "Critical security issues found!"
+            cat reports/critical_issues.txt
+            echo "::set-output name=has_critical::true"
+          else
+            echo "No critical security issues found."
+            echo "::set-output name=has_critical::false"
+          fi
+      
+      - name: Upload security report
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-report
+          path: reports/
+          
+      - name: Notify on security issues
+        if: steps.check-critical.outputs.has_critical == 'true'
+        run: |
+          echo "::warning ::Critical security issues were found in this PR. Please address them before merging."
+      
+      - name: Fail if critical issues found
+        if: steps.check-critical.outputs.has_critical == 'true'
+        run: |
+          echo "Critical security issues must be fixed before merging."
+          exit 1 

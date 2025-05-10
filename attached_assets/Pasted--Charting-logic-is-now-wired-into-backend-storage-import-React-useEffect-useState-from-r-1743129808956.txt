@@ -1,0 +1,114 @@
+// ✅ Charting logic is now wired into backend storage
+
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
+import RestorativeToothChart from "@/components/charting/RestorativeToothChart";
+import PerioProbingTable from "@/components/charting/PerioProbingTable";
+import { AutoNoteBox } from "@/components/patients/notes/AutoNoteBox";
+
+export default function PatientChartingPanel({ patientId }: { patientId: string }) {
+  const [selectedTooth, setSelectedTooth] = useState<string | null>(null);
+  const [restorativeData, setRestorativeData] = useState<Record<string, { surfaces: string[], procedures: string[] }>>({});
+  const [perioData, setPerioData] = useState<Record<string, { probing: number[], bop: boolean[], mobility: number, furcation: number }>>({});
+
+  useEffect(() => {
+    // Load saved chart data if it exists
+    axios.get(`/api/patients/${patientId}/charting`).then((res) => {
+      setRestorativeData(res.data.restorative || {});
+      setPerioData(res.data.perio || {});
+    });
+  }, [patientId]);
+
+  const handleSave = async () => {
+    await axios.post(`/api/patients/${patientId}/charting`, {
+      restorative: restorativeData,
+      perio: perioData,
+    });
+  };
+
+  const handleRestorativeClick = (tooth: string, surface: string) => {
+    const current = restorativeData[tooth]?.surfaces || [];
+    const updated = current.includes(surface)
+      ? current.filter((s) => s !== surface)
+      : [...current, surface];
+    setRestorativeData((prev) => ({
+      ...prev,
+      [tooth]: {
+        ...prev[tooth],
+        surfaces: updated,
+        procedures: prev[tooth]?.procedures || [],
+      },
+    }));
+  };
+
+  const handleProcedureClick = (tooth: string, procedure: string) => {
+    const current = restorativeData[tooth]?.procedures || [];
+    const updated = current.includes(procedure)
+      ? current.filter((p) => p !== procedure)
+      : [...current, procedure];
+    setRestorativeData((prev) => ({
+      ...prev,
+      [tooth]: {
+        ...prev[tooth],
+        procedures: updated,
+        surfaces: prev[tooth]?.surfaces || [],
+      },
+    }));
+  };
+
+  const handlePerioUpdate = (
+    tooth: string,
+    probing: number[],
+    bop: boolean[],
+    mobility: number,
+    furcation: number
+  ) => {
+    setPerioData((prev) => ({
+      ...prev,
+      [tooth]: { probing, bop, mobility, furcation },
+    }));
+  };
+
+  return (
+    <Tabs defaultValue="restorative" className="w-full">
+      <TabsList className="mb-4">
+        <TabsTrigger value="restorative">Restorative Chart</TabsTrigger>
+        <TabsTrigger value="perio">Perio Chart</TabsTrigger>
+        <TabsTrigger value="notes">Auto Notes</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="restorative">
+        <Card className="p-4">
+          <RestorativeToothChart
+            selectedTooth={selectedTooth}
+            onSelectTooth={setSelectedTooth}
+            chartData={restorativeData}
+            onSurfaceClick={handleRestorativeClick}
+            onProcedureClick={handleProcedureClick}
+          />
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="perio">
+        <Card className="p-4">
+          <PerioProbingTable perioData={perioData} onUpdate={handlePerioUpdate} />
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="notes">
+        <AutoNoteBox
+          source="charting"
+          chartData={{ restorative: restorativeData, perio: perioData }}
+          patientId={patientId}
+          title="Charting Notes"
+          onSave={handleSave}
+          voiceToTextEnabled={true}
+          templates={["Comprehensive Exam", "Perio Summary", "Restorative Workup"]}
+          requireApproval={true}
+        />
+      </TabsContent>
+    </Tabs>
+  );
+}

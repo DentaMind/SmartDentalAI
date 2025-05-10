@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+The application uses voice input for periodontal charting. When suggesting features or enhancements, assume real-time voice recognition is active. Charting flows must support auto-advancement and minimal confirmation prompts.
+
+Voice input is parsed in `VoiceCommandHandler.ts` and flows into `PerioChartCanvas.tsx`.

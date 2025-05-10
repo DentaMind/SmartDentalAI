@@ -1,0 +1,74 @@
+name: API Contract Validation
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'client/src/types/apiContracts.ts'
+      - 'client/src/types/websocket-contracts.ts'
+      - 'backend/api/**/*.py'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'client/src/types/apiContracts.ts'
+      - 'client/src/types/websocket-contracts.ts'
+      - 'backend/api/**/*.py'
+  # Allow manual triggers
+  workflow_dispatch:
+
+jobs:
+  validate-contracts:
+    name: Validate API Contracts
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'client/package-lock.json'
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
+      
+      - name: Install frontend dependencies
+        working-directory: ./client
+        run: npm ci
+      
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: pip install -r requirements.txt
+      
+      - name: Start backend server (for OpenAPI schema)
+        working-directory: ./backend
+        run: |
+          python -m uvicorn api.main:app --port 8000 &
+          # Wait for the server to start
+          sleep 5
+      
+      - name: Validate API contracts
+        working-directory: ./client
+        run: node ./scripts/ci-validate-contracts.js
+      
+      - name: Upload validation reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: contract-validation-reports
+          path: reports/contract-validation/
+          retention-days: 14
+      
+      - name: Upload OpenAPI schemas
+        uses: actions/upload-artifact@v3
+        with:
+          name: openapi-schemas
+          path: docs/openapi/
+          retention-days: 14 

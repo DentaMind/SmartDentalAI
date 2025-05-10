@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f8f9fa; padding: 20px; border-radius: 5px; }
+        .content { padding: 20px 0; }
+        .denial-details { 
+            background-color: #f8d7da; 
+            border: 1px solid #f5c6cb; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 15px 0; 
+        }
+        .claim-details { 
+            background-color: #fff; 
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 15px 0; 
+        }
+        .appeal-instructions {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .procedure-list {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 3px;
+        }
+        .procedure-item {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .detail-row { margin-bottom: 10px; }
+        .label { font-weight: bold; color: #666; }
+        .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
+        .action-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #dc3545;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Insurance Claim Denied</h2>
+        </div>
+        
+        <div class="content">
+            <p>Hello,</p>
+            <p>We regret to inform you that your insurance claim has been denied.</p>
+            
+            <div class="denial-details">
+                <h3>Denial Information:</h3>
+                <div class="detail-row">
+                    <span class="label">Denial Reason:</span> {{ denial_reason }}
+                </div>
+                <div class="detail-row">
+                    <span class="label">Denial Code:</span> {{ denial_code }}
+                </div>
+                <div class="detail-row">
+                    <span class="label">Denial Date:</span> {{ denial_date }}
+                </div>
+            </div>
+            
+            <div class="claim-details">
+                <div class="detail-row">
+                    <span class="label">Claim Number:</span> {{ claim_number }}
+                </div>
+                <div class="detail-row">
+                    <span class="label">Patient:</span> {{ patient_name }}
+                </div>
+                <div class="detail-row">
+                    <span class="label">Treatment Plan:</span> {{ plan_id }}
+                </div>
+                <div class="detail-row">
+                    <span class="label">Insurance Company:</span> {{ insurance_company }}
+                </div>
+                
+                <div class="procedure-list">
+                    <h4>Denied Procedures:</h4>
+                    {% for procedure in denied_procedures %}
+                    <div class="procedure-item">
+                        <strong>{{ procedure.code }}:</strong> {{ procedure.description }}<br>
+                        <span class="label">Denial Reason:</span> {{ procedure.denial_reason }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="appeal-instructions">
+                <h3>Appeal Instructions:</h3>
+                <ol>
+                    <li>Review the denial reason and gather any necessary supporting documentation</li>
+                    <li>Prepare a detailed appeal letter explaining why the claim should be reconsidered</li>
+                    <li>Include any relevant clinical notes, x-rays, or other supporting evidence</li>
+                    <li>Submit the appeal through the DentaMind system</li>
+                </ol>
+                <a href="{{ appeal_url }}" class="action-button">Submit Appeal</a>
+            </div>
+            
+            <p>If you need assistance with the appeal process, please contact our billing department.</p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated message from DentaMind. Please do not reply to this email.</p>
+            <p>Timestamp: {{ timestamp }}</p>
+        </div>
+    </div>
+</body>
+</html> 

@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      target: development
+    image: smartdentalai-app
+    container_name: smartdentalai-app
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/smartdentalai
+      - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      - SESSION_SECRET=${SESSION_SECRET:-dev-session-secret-change-in-production}
+      - PORT=3000
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npm install && npm run db:push && npm run dev"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - smartdentalai-network
+
+  db:
+    image: postgres:16-alpine
+    container_name: smartdentalai-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=smartdentalai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - smartdentalai-network
+
+volumes:
+  postgres_data:
+    name: smartdentalai-postgres-data
+
+networks:
+  smartdentalai-network:
+    name: smartdentalai-network 

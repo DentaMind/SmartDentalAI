@@ -1,0 +1,97 @@
+name: API Contract Coverage
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'client/src/types/apiContracts.ts'
+      - 'client/src/types/websocket-contracts.ts'
+      - 'backend/api/**/*.py'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'client/src/types/apiContracts.ts'
+      - 'client/src/types/websocket-contracts.ts'
+      - 'backend/api/**/*.py'
+  # Allow manual triggers
+  workflow_dispatch:
+
+jobs:
+  check-coverage:
+    name: Check API Contract Coverage
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
+      
+      - name: Install dependencies
+        working-directory: ./backend
+        run: pip install -r requirements.txt
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'client/package-lock.json'
+      
+      - name: Install frontend dependencies
+        working-directory: ./client
+        run: npm ci
+      
+      - name: Generate OpenAPI schema
+        working-directory: ./client
+        run: npm run generate-openapi
+      
+      - name: Generate coverage report
+        working-directory: ./backend
+        run: python scripts/generate_coverage_report.py
+      
+      - name: Check coverage thresholds
+        working-directory: ./backend
+        run: python scripts/check_coverage_thresholds.py
+      
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: contract-coverage-reports
+          path: |
+            reports/contract-coverage/
+            docs/openapi/
+          retention-days: 14
+          
+      - name: Create coverage badge
+        if: github.ref == 'refs/heads/main'
+        working-directory: ./backend
+        run: |
+          # Get fully covered percentage from report
+          FULLY_COVERED=$(python -c "import json; report = json.load(open('../reports/contract-coverage/latest.json')); print(round(report['summary']['fully_covered'] / report['summary']['total'] * 100))")
+          
+          # Create badge JSON file
+          mkdir -p ../reports/badges
+          cat > ../reports/badges/contract-coverage.json << EOF
+          {
+            "schemaVersion": 1,
+            "label": "contract coverage",
+            "message": "${FULLY_COVERED}%",
+            "color": "$([ $FULLY_COVERED -ge 80 ] && echo 'brightgreen' || ([ $FULLY_COVERED -ge 60 ] && echo 'yellow' || echo 'red'))"
+          }
+          EOF
+          
+      - name: Deploy coverage report to GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./reports
+          destination_dir: coverage
+          keep_files: true 

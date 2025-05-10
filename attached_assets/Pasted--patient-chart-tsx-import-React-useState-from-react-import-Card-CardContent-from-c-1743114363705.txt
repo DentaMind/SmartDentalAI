@@ -1,0 +1,69 @@
+// patient-chart.tsx
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import RestorativeChart from '@/components/chart/RestorativeChart';
+import PerioChart from '@/components/chart/PerioChart';
+import AutoNotes from '@/components/notes/AutoNotes';
+
+export default function PatientChart({ patientId }: { patientId: string }) {
+  const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
+  const [restorativeData, setRestorativeData] = useState<Record<number, string>>({});
+  const [perioData, setPerioData] = useState<number[][]>([]); // [toothIndex][sixPointProbing]
+  const [notes, setNotes] = useState<string>('');
+
+  const handleRestorativeInput = (tooth: number, procedure: string) => {
+    setRestorativeData(prev => ({ ...prev, [tooth]: procedure }));
+    setNotes(prev => `${prev}\nTooth #${tooth}: ${procedure} recorded.`);
+  };
+
+  const handlePerioInput = (probes: number[][]) => {
+    setPerioData(probes);
+    let perioNotes = '';
+    probes.forEach((values, index) => {
+      if (values.some(val => val > 3)) {
+        perioNotes += `\nTooth #${index + 1}: Deep pockets detected (${values.join(', ')})`;
+      }
+    });
+    setNotes(prev => `${prev}\n${perioNotes}`);
+  };
+
+  return (
+    <Tabs defaultValue="restorative" className="w-full p-4">
+      <TabsList>
+        <TabsTrigger value="restorative">Restorative Chart</TabsTrigger>
+        <TabsTrigger value="perio">Perio Chart</TabsTrigger>
+        <TabsTrigger value="notes">Notes</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="restorative">
+        <Card>
+          <CardContent>
+            <RestorativeChart onProcedure={handleRestorativeInput} data={restorativeData} />
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="perio">
+        <Card>
+          <CardContent>
+            <PerioChart onProbingComplete={handlePerioInput} data={perioData} />
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="notes">
+        <Card>
+          <CardContent>
+            <AutoNotes
+              initialText={notes}
+              editable
+              patientId={patientId}
+              category="chart"
+            />
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
+  );
+}

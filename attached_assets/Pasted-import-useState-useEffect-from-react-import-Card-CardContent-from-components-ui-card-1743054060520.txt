@@ -1,0 +1,77 @@
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useParams } from "react-router-dom";
+
+export default function PatientNotesSection() {
+  const { patientId } = useParams();
+  const [notes, setNotes] = useState([]);
+  const [newNote, setNewNote] = useState("");
+  const [selectedTemplate, setSelectedTemplate] = useState("");
+
+  useEffect(() => {
+    fetch(`/api/patients/${patientId}/notes`)
+      .then((res) => res.json())
+      .then((data) => setNotes(data))
+      .catch((err) => console.error("Failed to load notes", err));
+  }, [patientId]);
+
+  const handleCreateNote = async () => {
+    const res = await fetch(`/api/patients/${patientId}/notes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: newNote, templateId: selectedTemplate }),
+    });
+    const data = await res.json();
+    setNotes([data, ...notes]);
+    setNewNote("");
+  };
+
+  const handleApprove = async (noteId) => {
+    await fetch(`/api/patients/${patientId}/notes/${noteId}/approve`, { method: "POST" });
+    setNotes((prev) => prev.map((n) => (n.id === noteId ? { ...n, approved: true } : n)));
+  };
+
+  return (
+    <div className="p-4">
+      <h2 className="text-xl font-bold mb-2">Patient Notes</h2>
+
+      <select
+        className="mb-2 border rounded p-1"
+        value={selectedTemplate}
+        onChange={(e) => setSelectedTemplate(e.target.value)}
+      >
+        <option value="">Select Template</option>
+        <option value="comprehensive-exam">Comprehensive Exam</option>
+        <option value="follow-up">Follow-Up</option>
+        <option value="treatment-note">Treatment Note</option>
+      </select>
+
+      <Textarea
+        className="w-full mb-2"
+        value={newNote}
+        onChange={(e) => setNewNote(e.target.value)}
+        placeholder="Write or dictate note here..."
+      />
+
+      <Button onClick={handleCreateNote}>Save Draft</Button>
+
+      <div className="mt-6 space-y-4">
+        {notes.map((note) => (
+          <Card key={note.id}>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                {note.createdAt} | {note.provider} | Status: {note.approved ? "Approved" : "Draft"}
+              </p>
+              <p className="mt-2 whitespace-pre-wrap">{note.content}</p>
+              {!note.approved && (
+                <Button onClick={() => handleApprove(note.id)} className="mt-2">Approve</Button>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}

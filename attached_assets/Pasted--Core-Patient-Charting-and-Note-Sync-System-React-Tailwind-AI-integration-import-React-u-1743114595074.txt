@@ -1,0 +1,78 @@
+// Core Patient Charting and Note Sync System (React + Tailwind + AI integration)
+
+import React, { useState, useEffect } from 'react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import RestorativeChart from '@/components/charting/RestorativeChart';
+import PerioChart from '@/components/charting/PerioChart';
+import VoiceToText from '@/components/notes/VoiceToText';
+import NotesEditor from '@/components/notes/NotesEditor';
+import { postNoteDraft, syncProceduresToNotes } from '@/lib/api';
+
+export default function PatientCharting({ patientId }: { patientId: string }) {
+  const [activeTab, setActiveTab] = useState('restorative');
+  const [noteDraft, setNoteDraft] = useState('');
+  const [autoNotes, setAutoNotes] = useState<string[]>([]);
+
+  const handleRestorativeChange = async (data: any) => {
+    const update = await syncProceduresToNotes(patientId, data, 'restorative');
+    setAutoNotes(prev => [...prev, update]);
+  };
+
+  const handlePerioChange = async (data: any) => {
+    const update = await syncProceduresToNotes(patientId, data, 'perio');
+    setAutoNotes(prev => [...prev, update]);
+  };
+
+  const handleVoiceInput = (text: string) => {
+    const timestamp = new Date().toLocaleString();
+    setAutoNotes(prev => [...prev, `[${timestamp}] ${text}`]);
+  };
+
+  const handleSaveNote = async () => {
+    const fullNote = autoNotes.join('\n') + '\n' + noteDraft;
+    await postNoteDraft(patientId, fullNote);
+    alert('Note saved as draft for review.');
+  };
+
+  return (
+    <div className="p-4 bg-white rounded-xl shadow">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="restorative">Restorative Chart</TabsTrigger>
+          <TabsTrigger value="perio">Perio Chart</TabsTrigger>
+          <TabsTrigger value="notes">Patient Notes</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="restorative">
+          <RestorativeChart patientId={patientId} onChange={handleRestorativeChange} />
+        </TabsContent>
+
+        <TabsContent value="perio">
+          <PerioChart patientId={patientId} onChange={handlePerioChange} autoSequence />
+        </TabsContent>
+
+        <TabsContent value="notes">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <VoiceToText onTranscript={handleVoiceInput} />
+              <ul className="mt-4 text-sm text-gray-600 list-disc list-inside">
+                {autoNotes.map((line, idx) => (
+                  <li key={idx}>{line}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <NotesEditor value={noteDraft} onChange={setNoteDraft} />
+              <button
+                onClick={handleSaveNote}
+                className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                Save Note as Draft
+              </button>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

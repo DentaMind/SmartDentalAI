@@ -1,0 +1,95 @@
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useVoiceToText } from "@/lib/hooks/useVoiceToText";
+
+const templates = {
+  "comprehensive-exam": `Chief Complaint:
+Medical History:
+Dental History:
+EO/IO Exam:
+Periodontal Charting:
+Restorative Charting:
+X-rays Taken:
+Findings:
+Diagnosis:
+Treatment Plan:
+Patient Accepted Treatment: 
+Notes:`,
+  "perio-reeval": `Date of Initial SRP:
+Tissue Response:
+Bleeding on Probing:
+Pocket Changes:
+Home Care Compliance:
+Recommendations:
+Next Steps:`,
+  "new-patient": `Patient Name:
+Date of Birth:
+Medical Alerts:
+Dental Concerns:
+Exam Summary:
+Initial Diagnosis:
+Recommended Treatment:
+Referral Needed:
+Notes:`
+};
+
+const PatientNotes = () => {
+  const [note, setNote] = useState(templates["comprehensive-exam"]);
+  const [template, setTemplate] = useState("comprehensive-exam");
+  const [approved, setApproved] = useState(false);
+  const voiceText = useVoiceToText();
+
+  const handleApprove = () => {
+    setApproved(true);
+    // save note to backend with provider ID and timestamp
+    console.log("Approved Note:", note);
+  };
+
+  const handleEdit = () => {
+    setApproved(false);
+  };
+
+  const handleTemplateChange = (value) => {
+    setTemplate(value);
+    setNote(templates[value]);
+    setApproved(false);
+  };
+
+  return (
+    <Card className="w-full max-w-5xl mx-auto mt-6">
+      <CardHeader>
+        <CardTitle>Patient Notes</CardTitle>
+        <Tabs value={template} onValueChange={handleTemplateChange}>
+          <TabsList>
+            <TabsTrigger value="comprehensive-exam">Comprehensive</TabsTrigger>
+            <TabsTrigger value="perio-reeval">Perio Re-eval</TabsTrigger>
+            <TabsTrigger value="new-patient">New Patient</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </CardHeader>
+      <CardContent>
+        <Textarea
+          className="min-h-[250px]"
+          value={note + (voiceText ? `\n\nVoice Draft:\n${voiceText}` : "")}
+          onChange={(e) => setNote(e.target.value)}
+          disabled={approved}
+        />
+        <div className="flex justify-end gap-4 mt-4">
+          {!approved ? (
+            <>
+              <Button variant="outline" onClick={() => setNote(note + `\n\n${voiceText}`)}>Insert Voice Draft</Button>
+              <Button onClick={handleApprove}>Approve Note</Button>
+            </>
+          ) : (
+            <Button variant="secondary" onClick={handleEdit}>Edit</Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default PatientNotes;

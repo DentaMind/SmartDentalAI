@@ -1,0 +1,19 @@
+[
+  {
+    "id": "treatments_1_20250430002539",
+    "category": "treatments",
+    "content": "Composite restorations (tooth-colored fillings) involve the removal of decayed tooth structure followed by placement of a tooth-colored resin material. This material is bonded to the tooth using adhesive systems and then cured with a blue light. Indications include small to moderate sized carious lesions, especially in areas where aesthetics is a concern.",
+    "tags": [
+      "composite",
+      "restoration",
+      "filling",
+      "caries",
+      "treatment",
+      "esthetic"
+    ],
+    "source": "Operative Dentistry",
+    "reference": "Sturdevant's Art and Science of Operative Dentistry, 7th Edition",
+    "created_at": "2025-04-30T00:25:39.767404",
+    "updated_at": "2025-04-30T00:25:39.767406"
+  }
+]

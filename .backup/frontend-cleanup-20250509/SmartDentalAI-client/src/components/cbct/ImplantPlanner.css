@@ -1,0 +1,88 @@
+.implant-planner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.implant-planner-toolbar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 12px;
+  border-radius: 4px;
+  pointer-events: auto;
+}
+
+/* Ant Design overrides */
+.implant-planner .ant-select {
+  background-color: transparent;
+}
+
+.implant-planner .ant-select-selector {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+.implant-planner .ant-select-arrow {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.implant-planner .ant-select-dropdown {
+  background-color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.implant-planner .ant-select-item {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.implant-planner .ant-select-item-option-selected {
+  background-color: rgba(24, 144, 255, 0.2);
+  color: #1890ff;
+}
+
+.implant-planner .ant-select-item-option-active {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.implant-planner .ant-btn {
+  background-color: transparent;
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.implant-planner .ant-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.implant-planner .ant-btn[disabled] {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.implant-planner .ant-btn-group {
+  margin-left: 8px;
+}
+
+.implant-planner .ant-btn-group .ant-btn {
+  margin-left: -1px;
+}
+
+.implant-planner .ant-btn-group .ant-btn:first-child {
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+.implant-planner .ant-btn-group .ant-btn:last-child {
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+} 

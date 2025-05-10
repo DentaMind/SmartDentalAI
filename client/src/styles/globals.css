@@ -1,0 +1,224 @@
+/* Global styles for DentaMind */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Light mode variables */
+  --color-primary: #65FF65;
+  --color-primary-dark: #4cd94c;
+  --color-primary-light: #a3ffa3;
+  --color-primary-transparent: rgba(101, 255, 101, 0.15);
+  
+  --color-bg-light: #f9f9f9;
+  --color-bg-card: #ffffff;
+  --color-bg-subtle: #f0f0f0;
+  --color-bg-medium: #e0e0e0;
+  
+  --color-text-primary: #0d0d0d;
+  --color-text-secondary: #4a4a4a;
+  --color-text-muted: #8a8a8a;
+  
+  --color-border: #e2e2e2;
+  --color-input-border: #d0d0d0;
+  
+  --color-error: #ff4d4f;
+  --color-success: #00c853;
+  --color-warning: #ffab00;
+  --color-info: #0288d1;
+  
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.05);
+}
+
+.dark-mode {
+  /* Dark mode variables */
+  --color-primary: #65FF65;
+  --color-primary-dark: #4cd94c;
+  --color-primary-light: #a3ffa3;
+  --color-primary-transparent: rgba(101, 255, 101, 0.15);
+  
+  --color-bg-light: #0d0d0d;
+  --color-bg-card: #1a1a1a;
+  --color-bg-subtle: #2a2a2a;
+  --color-bg-medium: #3a3a3a;
+  
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #e0e0e0;
+  --color-text-muted: #a0a0a0;
+  
+  --color-border: #313131;
+  --color-input-border: #4a4a4a;
+  
+  --color-error: #ff4d4f;
+  --color-success: #00c853;
+  --color-warning: #ffab00;
+  --color-info: #0288d1;
+  
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Base styles */
+html, body {
+  padding: 0;
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  min-height: 100vh;
+}
+
+body {
+  background-color: var(--color-bg-light);
+  color: var(--color-text-primary);
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Form elements */
+input, select, textarea {
+  font-family: inherit;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-input-border);
+  transition: border-color 0.2s;
+}
+
+.dark-mode input, 
+.dark-mode select, 
+.dark-mode textarea {
+  background-color: var(--color-bg-subtle);
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Material UI overrides for dark mode */
+.dark-mode .MuiPaper-root {
+  background-color: var(--color-bg-card);
+  color: var(--color-text-primary);
+}
+
+.dark-mode .MuiTypography-root {
+  color: var(--color-text-primary);
+}
+
+.dark-mode .MuiInputBase-root {
+  color: var(--color-text-primary);
+}
+
+.dark-mode .MuiOutlinedInput-notchedOutline {
+  border-color: var(--color-input-border);
+}
+
+/* Loading spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-spinner {
+  border-radius: 50%;
+  width: 1rem;
+  height: 1rem;
+  border: 0.2rem solid var(--color-primary-transparent);
+  border-top-color: var(--color-primary);
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+/* Remove focus outline for non-keyboard focus */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Accessibility - better focus styles */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Ensure dark mode text visibility */
+.dark-mode, 
+.dark-mode .bg-background, 
+.dark-mode [class*="dark:text-white"] {
+  color: var(--color-text-primary) !important;
+}
+
+.dark-mode .text-muted-foreground {
+  color: var(--color-text-secondary) !important;
+}
+
+/* Fix button styling and alignment */
+.button,
+button[class*="btn"],
+[class*="button"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  text-align: center;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Dark mode specific chart and visualization fixes */
+.dark-mode .recharts-text {
+  fill: var(--color-text-secondary) !important;
+}
+
+.dark-mode .recharts-cartesian-grid line,
+.dark-mode .recharts-cartesian-axis-line {
+  stroke: var(--color-border) !important;
+}
+
+.dark-mode .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: var(--color-bg-card) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+}
+
+/* Make primary button text more visible with higher contrast */
+.dark-mode button[class*="primary"],
+.dark-mode [class*="primary-button"],
+.dark-mode .primary {
+  color: #000000 !important;
+  font-weight: 600;
+}
+
+/* Ensure tabs and navigation elements are visible in dark mode */
+.dark-mode [role="tab"],
+.dark-mode [role="tablist"] button {
+  color: var(--color-text-secondary);
+}
+
+.dark-mode [role="tab"][aria-selected="true"],
+.dark-mode [role="tablist"] button[aria-selected="true"] {
+  color: var(--color-primary);
+  font-weight: 600;
+} 

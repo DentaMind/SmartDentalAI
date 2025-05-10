@@ -1,0 +1,14 @@
+{
+  "rules": {
+    "require-downgrade": true,
+    "no-drop-column-without-default": true,
+    "no-untyped-column": true,
+    "require-op-comments": true,
+    "no-raw-sql-without-downgrade": true,
+    "no-index-without-name": true,
+    "no-constraints-without-name": true
+  },
+  "ignores": {
+    "require-downgrade": ["initial_schema.py"]
+  }
+} 

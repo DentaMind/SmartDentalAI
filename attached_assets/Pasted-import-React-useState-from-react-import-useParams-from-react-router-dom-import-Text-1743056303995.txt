@@ -1,0 +1,81 @@
+import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { useVoiceToText } from '@/lib/hooks/use-voice-to-text';
+
+export default function PatientNotesPage() {
+  const { patientId } = useParams();
+  const [notes, setNotes] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [status, setStatus] = useState<'draft' | 'pending' | 'approved'>('draft');
+  const { startListening, stopListening, transcript } = useVoiceToText({
+    onResult: (text: string) => setNotes((prev) => `${prev} ${text}`),
+  });
+
+  const handleSaveDraft = () => {
+    setStatus('pending');
+    // Simulate saving to server
+    console.log('Saving draft notes:', { patientId, notes });
+  };
+
+  const handleApprove = () => {
+    setStatus('approved');
+    // Simulate saving final notes
+    console.log('Approving notes:', { patientId, notes });
+  };
+
+  const handleStartVoice = () => {
+    setIsListening(true);
+    startListening();
+  };
+
+  const handleStopVoice = () => {
+    stopListening();
+    setIsListening(false);
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <h2 className="text-2xl font-semibold mb-4">Patient Notes for ID: {patientId}</h2>
+
+      <Textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="Start typing or use voice input..."
+        rows={12}
+        className="mb-4"
+      />
+
+      <div className="flex gap-2 mb-4">
+        {!isListening ? (
+          <Button onClick={handleStartVoice}>Start Voice</Button>
+        ) : (
+          <Button onClick={handleStopVoice} variant="destructive">Stop Voice</Button>
+        )}
+
+        <Button onClick={handleSaveDraft} variant="outline">
+          Save Draft for Approval
+        </Button>
+
+        <Button onClick={handleApprove} disabled={status !== 'pending'}>
+          Approve & Finalize
+        </Button>
+      </div>
+
+      <p className="text-sm text-muted-foreground">
+        Status: <span className={`font-semibold ${status === 'approved' ? 'text-green-600' : status === 'pending' ? 'text-yellow-600' : 'text-gray-500'}`}>{status}</span>
+      </p>
+
+      <div className="mt-6">
+        <h4 className="text-lg font-semibold mb-2">Template Options:</h4>
+        <ul className="list-disc pl-6 text-sm text-muted-foreground">
+          <li>Comprehensive Exam</li>
+          <li>Initial Consultation</li>
+          <li>Post-Operative Follow-up</li>
+          <li>Emergency Evaluation</li>
+        </ul>
+      </div>
+    </div>
+  );
+}

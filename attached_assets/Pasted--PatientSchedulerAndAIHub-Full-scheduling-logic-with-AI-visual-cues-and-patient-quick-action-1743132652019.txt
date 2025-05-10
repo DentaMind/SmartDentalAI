@@ -1,0 +1,124 @@
+// 🦷 PatientSchedulerAndAIHub: Full scheduling logic with AI, visual cues, and patient quick actions
+
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
+import { Pencil } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+export default function TreatmentPlanEditor({ patientId }: { patientId: string }) {
+  const [aiPlan, setAiPlan] = useState<any>(null);
+  const [editedPlan, setEditedPlan] = useState<string>("");
+  const [isEdited, setIsEdited] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    axios.get(`/api/treatment/${patientId}`).then((res) => {
+      setAiPlan(res.data);
+      setEditedPlan(res.data.approved_plan || res.data.ai_draft);
+    });
+  }, [patientId]);
+
+  const submitApprovedPlan = async () => {
+    setLoading(true);
+    try {
+      await axios.post(`/api/treatment/${patientId}/approve`, {
+        approved_plan: editedPlan,
+        edited_by_provider: isEdited,
+      });
+      toast({
+        title: "Treatment Plan Saved",
+        description: "The provider-approved plan has been stored.",
+      });
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to save treatment plan." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!aiPlan) return <div>Loading AI Treatment Plan...</div>;
+
+  return (
+    <Card className="p-4 space-y-4">
+      <h2 className="text-xl font-semibold">AI-Powered Treatment Plan</h2>
+      <div className="text-muted-foreground text-sm">AI Confidence: {aiPlan.confidence}%</div>
+      <p className="text-sm text-muted-foreground">AI Reasoning: {aiPlan.reasoning}</p>
+
+      <Textarea
+        value={editedPlan}
+        onChange={(e) => {
+          setEditedPlan(e.target.value);
+          setIsEdited(true);
+        }}
+        className="min-h-[180px]"
+      />
+
+      {isEdited && <Badge className="bg-yellow-400 text-black">Doctor Edited</Badge>}
+
+      <Button onClick={submitApprovedPlan} disabled={loading || !isEdited}>
+        {loading ? "Submitting..." : "Approve & Save"}
+      </Button>
+    </Card>
+  );
+}
+
+// ✅ SmartScheduler.tsx Implementation
+
+export function SmartScheduler() {
+  const [appointments, setAppointments] = useState([]);
+
+  useEffect(() => {
+    axios.get("/api/schedule").then((res) => setAppointments(res.data));
+  }, []);
+
+  const getPatientTooltip = (appt: any) => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="font-bold truncate cursor-pointer">{appt.patientName}</div>
+      </TooltipTrigger>
+      <TooltipContent className="text-sm max-w-[220px]">
+        <div><strong>Phone:</strong> {appt.phone || "-"}</div>
+        <div><strong>Insurance:</strong> {appt.insurance || "-"}</div>
+        <div><strong>Notes:</strong> {appt.notes || "-"}</div>
+        <div><strong>Chart:</strong> <a href={`/patients/${appt.patientId}`} className="text-blue-500 underline">View</a></div>
+      </TooltipContent>
+    </Tooltip>
+  );
+
+  return (
+    <div className="overflow-x-auto">
+      <div className="grid grid-cols-[100px_repeat(7,minmax(200px,1fr))] border-t">
+        <div className="bg-gray-100 text-sm font-semibold p-2 border-b">Time</div>
+        {[...Array(7)].map((_, i) => (
+          <div key={i} className="bg-gray-100 text-sm font-semibold p-2 border-b">
+            Provider {i + 1}
+          </div>
+        ))}
+        {Array.from({ length: 13 }, (_, i) => 7 + i).map((hour) => (
+          <React.Fragment key={hour}>
+            <div className="border-t border-r text-xs font-medium p-1 bg-gray-50">{hour}:00</div>
+            {[...Array(7)].map((_, colIdx) => (
+              <div
+                key={`${hour}-${colIdx}`}
+                className="border-t border-r h-20 relative group bg-white hover:bg-blue-50 cursor-pointer"
+              >
+                {appointments
+                  .filter((appt: any) => appt.time === `${hour}:00` && appt.providerIndex === colIdx)
+                  .map((appt: any, i: number) => (
+                    <div
+                      key={i}
+                      className={`absolute top-0 left-0 right-0 h-full text-xs px-2 py-1 rounded shadow-md
+                        ${appt.status === "confirmed" ? "bg-green-100 border-green-600" : ""}
+                        ${appt.status === "cancelled" ? "bg-red-100 border-red-600" : ""}
+                        ${appt.status === "no_show" ? "bg-yellow-100 border-yellow-600" : ""}
+                        ${appt.status === "unconfirmed" ? "bg-gray-200 border-gray-500" : ""}`}
+                    >
+                      {getPatientTooltip(appt)}
+                      <div className="text-xs truncate">{appt.reason}</div>
+                    </di

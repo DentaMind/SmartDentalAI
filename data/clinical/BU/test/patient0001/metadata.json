@@ -1,0 +1,105 @@
+{
+  "patient_id": "P0001",
+  "demographics": {
+    "age": 42,
+    "sex": "M",
+    "smoking_status": "non-smoker",
+    "medical_conditions": ["none"]
+  },
+  "dental_history": {
+    "last_cleaning": "2023-11-15",
+    "previous_treatments": ["filling", "crown"],
+    "chief_complaint": "sensitivity on right side"
+  },
+  "imaging": {
+    "xray": [
+      {
+        "filename": "xray/bitewing_001_18-14.dcm",
+        "date_taken": "2023-12-01",
+        "type": "bitewing",
+        "region": "upper_right",
+        "tooth_numbers": ["14", "15", "16", "17", "18"],
+        "annotations": [
+          {
+            "type": "caries",
+            "location": "distal_15",
+            "confidence": 0.94,
+            "annotator": "dr_johnson",
+            "verified": true
+          },
+          {
+            "type": "periapical_radiolucency",
+            "location": "apex_17",
+            "confidence": 0.87,
+            "annotator": "dr_johnson",
+            "verified": true
+          }
+        ]
+      },
+      {
+        "filename": "xray/periapical_001_17.dcm",
+        "date_taken": "2023-12-01",
+        "type": "periapical",
+        "region": "tooth_17",
+        "tooth_numbers": ["17"],
+        "annotations": [
+          {
+            "type": "periapical_radiolucency",
+            "location": "apex_17",
+            "confidence": 0.91,
+            "annotator": "dr_johnson",
+            "verified": true
+          }
+        ]
+      }
+    ],
+    "panoramic": [
+      {
+        "filename": "panoramic/pan_001.dcm",
+        "date_taken": "2023-12-01",
+        "annotations": [
+          {
+            "type": "bone_loss",
+            "location": "posterior_right",
+            "confidence": 0.89,
+            "annotator": "dr_johnson",
+            "verified": true
+          }
+        ]
+      }
+    ],
+    "photo": [
+      {
+        "filename": "photo/intraoral_001_14-18.jpg",
+        "date_taken": "2023-12-01",
+        "region": "upper_right",
+        "annotations": []
+      }
+    ]
+  },
+  "ai_diagnosis": {
+    "run_id": "AI_RUN_0001",
+    "timestamp": "2023-12-02T14:30:00Z",
+    "model_version": "DentaMind v1.0",
+    "findings": [
+      {
+        "type": "caries",
+        "location": "distal_15",
+        "confidence": 0.96,
+        "suggested_treatments": ["composite_filling"]
+      },
+      {
+        "type": "periapical_radiolucency",
+        "location": "apex_17",
+        "confidence": 0.89,
+        "suggested_treatments": ["root_canal_therapy"]
+      },
+      {
+        "type": "bone_loss",
+        "location": "posterior_right",
+        "confidence": 0.83,
+        "suggested_treatments": ["scaling_root_planing"]
+      }
+    ]
+  }
+} 

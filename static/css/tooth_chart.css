@@ -1,0 +1,230 @@
+/* Base Tooth Chart Styles */
+.tooth-chart {
+    width: 100%;
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1rem;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.chart-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.tooth-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+.tooth {
+    position: relative;
+    padding: 0.5rem;
+    text-align: center;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+}
+
+.tooth-number {
+    font-size: 0.75rem;
+    color: #4a5568;
+    margin-bottom: 0.25rem;
+}
+
+.tooth-icon {
+    position: relative;
+    font-size: 1.5rem;
+    color: #4a5568;
+}
+
+.tooth-severity {
+    position: absolute;
+    inset: 0;
+    border-radius: 3px;
+    opacity: 0.3;
+}
+
+/* Severity Colors */
+.severity-none { background: transparent; }
+.severity-mild { background: #48bb78; }
+.severity-moderate { background: #ecc94b; }
+.severity-severe { background: #ed8936; }
+.severity-critical { background: #e53e3e; }
+
+/* Tooltip Styles */
+.tooltip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin-left: 0.5rem;
+}
+
+.tooltip-text {
+    visibility: hidden;
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    padding: 0.5rem;
+    background: #2d3748;
+    color: white;
+    font-size: 0.875rem;
+    border-radius: 4px;
+    z-index: 10;
+}
+
+/* Chart Legend */
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #4a5568;
+}
+
+.legend-color {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 3px;
+    opacity: 0.3;
+}
+
+/* Detail Lists */
+.detail-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0;
+    font-size: 0.75rem;
+    text-align: left;
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0;
+    color: #4a5568;
+}
+
+/* Screen-only Interactions */
+@media screen {
+    .tooth:hover {
+        border-color: #4299e1;
+    }
+
+    .tooltip:hover .tooltip-text {
+        visibility: visible;
+    }
+
+    .tooth-details {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 200px;
+        padding: 0.5rem;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 20;
+    }
+
+    .tooth:hover .tooth-details {
+        display: block;
+    }
+}
+
+/* Print Optimizations */
+@media print {
+    .tooth-chart {
+        box-shadow: none;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        padding: 0;
+    }
+
+    .tooltip {
+        display: none;
+    }
+
+    .tooth {
+        border: 1px solid #000;
+        break-inside: avoid;
+    }
+
+    .tooth-number {
+        color: #000;
+    }
+
+    .tooth-icon {
+        color: #000;
+    }
+
+    /* Show all details directly under each tooth */
+    .tooth-details {
+        position: static;
+        width: 100%;
+        padding: 0.25rem 0 0;
+        font-size: 7pt;
+        border: none;
+        background: none;
+    }
+
+    .detail-item {
+        color: #000;
+    }
+
+    /* Enhance severity contrast for print */
+    .severity-mild { 
+        background: #90cba9;
+        opacity: 0.4;
+    }
+    .severity-moderate { 
+        background: #ffd875;
+        opacity: 0.4;
+    }
+    .severity-severe { 
+        background: #ffb088;
+        opacity: 0.4;
+    }
+    .severity-critical { 
+        background: #ff8f8f;
+        opacity: 0.4;
+    }
+
+    /* Ensure legend prints clearly */
+    .chart-legend {
+        border-top: 1px solid #000;
+        gap: 2rem;
+    }
+
+    .legend-item {
+        color: #000;
+        font-size: 8pt;
+    }
+
+    .legend-color {
+        border: 1px solid #000;
+    }
+} 

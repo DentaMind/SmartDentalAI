@@ -1,0 +1,11 @@
+{
+  "name": "dentamind-server",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "tsx watch index.ts",
+    "build": "tsc"
+  }
+} 

@@ -1,0 +1,142 @@
+name: Database Health Check
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Run every 6 hours
+  workflow_dispatch:  # Allow manual triggering
+  push:
+    branches: [main, develop]
+    paths:
+      - 'backend/migrations/versions/**'
+      - 'backend/api/models/**'
+      - 'backend/database.py'
+
+jobs:
+  health-check:
+    name: Check Database Health
+    runs-on: ubuntu-latest
+    
+    # Define separate environments for different branches
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+    
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+      
+      - name: Set environment variables
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "DB_ENV=production" >> $GITHUB_ENV
+          else
+            echo "DB_ENV=development" >> $GITHUB_ENV
+          fi
+      
+      - name: Run database health check
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          cd backend
+          python scripts/db_health_notification.py \
+            --environment=${{ env.DB_ENV }} \
+            --slack-webhook=${{ secrets.SLACK_WEBHOOK_URL }} \
+            --output=health-check-results.json
+      
+      - name: Upload health check results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: db-health-report
+          path: health-check-results.json
+          retention-days: 7
+      
+      - name: Create GitHub Issue if issues found
+        if: ${{ failure() || contains(job.status, 'failure') }}
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            try {
+              const healthReport = JSON.parse(fs.readFileSync('health-check-results.json', 'utf8'));
+              
+              // Only create issue if there are actual problems
+              if (healthReport.status !== 'healthy') {
+                // Format issue body
+                let issueBody = `## Database Health Check Failed\n\n`;
+                issueBody += `Environment: ${process.env.DB_ENV}\n`;
+                issueBody += `Status: ${healthReport.status.toUpperCase()}\n\n`;
+                
+                if (healthReport.issues && healthReport.issues.length > 0) {
+                  issueBody += `### Issues Detected:\n\n`;
+                  healthReport.issues.forEach(issue => {
+                    issueBody += `- ${issue}\n`;
+                  });
+                  issueBody += `\n`;
+                }
+                
+                // Add details about missing tables if any
+                if (healthReport.tables && healthReport.tables.missing_tables && healthReport.tables.missing_tables.length > 0) {
+                  issueBody += `### Missing Tables:\n\n`;
+                  healthReport.tables.missing_tables.forEach(table => {
+                    issueBody += `- ${table}\n`;
+                  });
+                  issueBody += `\n`;
+                }
+                
+                // Add details about broken foreign keys if any
+                if (healthReport.foreign_keys && healthReport.foreign_keys.broken_foreign_keys && healthReport.foreign_keys.broken_foreign_keys.length > 0) {
+                  issueBody += `### Broken Foreign Keys:\n\n`;
+                  healthReport.foreign_keys.broken_foreign_keys.forEach(fk => {
+                    issueBody += `- ${fk.table}.${fk.column} → ${fk.ref_table}.${fk.ref_column}\n`;
+                    if (fk.issue) {
+                      issueBody += `  - Issue: ${fk.issue}\n`;
+                    }
+                  });
+                  issueBody += `\n`;
+                }
+                
+                // Add build information
+                issueBody += `### Build Information:\n\n`;
+                issueBody += `- GitHub Action: ${process.env.GITHUB_WORKFLOW}\n`;
+                issueBody += `- Run ID: ${process.env.GITHUB_RUN_ID}\n`;
+                issueBody += `- Branch: ${process.env.GITHUB_REF}\n`;
+                issueBody += `- Commit: ${process.env.GITHUB_SHA}\n\n`;
+                
+                issueBody += `[View GitHub Action Run](https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})`;
+                
+                // Create the issue
+                await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: `🔴 Database Health Check Failed: ${healthReport.status.toUpperCase()} - ${new Date().toISOString().split('T')[0]}`,
+                  body: issueBody,
+                  labels: ['database', 'health-check', 'bug']
+                });
+                
+                console.log('Created GitHub issue for database health problems');
+              } else {
+                console.log('No database health issues found, skipping issue creation');
+              }
+            } catch (error) {
+              console.error('Error creating GitHub issue:', error);
+              
+              // Create a fallback issue if we couldn't parse the health report
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `🔴 Database Health Check Error - ${new Date().toISOString().split('T')[0]}`,
+                body: `Failed to run or parse database health check results.\n\nError: ${error.message}\n\n[View GitHub Action Run](https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})`,
+                labels: ['database', 'health-check', 'bug']
+              });
+            } 

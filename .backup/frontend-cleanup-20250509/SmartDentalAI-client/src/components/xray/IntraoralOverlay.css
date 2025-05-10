@@ -1,0 +1,56 @@
+.intraoral-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.overlay-controls {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 8px;
+  border-radius: 4px;
+  pointer-events: auto;
+}
+
+.overlay-canvas {
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+}
+
+.overlay-controls .ant-slider {
+  margin: 0 8px;
+}
+
+.overlay-controls .ant-btn {
+  color: white;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.overlay-controls .ant-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.overlay-controls .ant-slider-track {
+  background-color: #1890ff;
+}
+
+.overlay-controls .ant-slider-handle {
+  border-color: #1890ff;
+}
+
+.overlay-controls .ant-slider:hover .ant-slider-track {
+  background-color: #40a9ff;
+}
+
+.overlay-controls .ant-slider:hover .ant-slider-handle {
+  border-color: #40a9ff;
+} 

@@ -1,0 +1,86 @@
+// 🦷 PatientSchedulerAndAIHub: Full scheduling logic with AI, visual cues, and patient quick actions
+
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
+import { Pencil } from "lucide-react";
+
+export default function TreatmentPlanEditor({ patientId }: { patientId: string }) {
+  const [aiPlan, setAiPlan] = useState<any>(null);
+  const [editedPlan, setEditedPlan] = useState<string>("");
+  const [isEdited, setIsEdited] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    axios.get(`/api/treatment/${patientId}`).then((res) => {
+      setAiPlan(res.data);
+      setEditedPlan(res.data.approved_plan || res.data.ai_draft);
+    });
+  }, [patientId]);
+
+  const submitApprovedPlan = async () => {
+    setLoading(true);
+    try {
+      await axios.post(`/api/treatment/${patientId}/approve`, {
+        approved_plan: editedPlan,
+        edited_by_provider: isEdited,
+      });
+      toast({
+        title: "Treatment Plan Saved",
+        description: "The provider-approved plan has been stored.",
+      });
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to save treatment plan." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!aiPlan) return <div>Loading AI Treatment Plan...</div>;
+
+  return (
+    <Card className="p-4 space-y-4">
+      <h2 className="text-xl font-semibold">AI-Powered Treatment Plan</h2>
+      <div className="text-muted-foreground text-sm">
+        AI Confidence: {aiPlan.confidence}%
+      </div>
+      <p className="text-sm text-muted-foreground">AI Reasoning: {aiPlan.reasoning}</p>
+
+      <Textarea
+        value={editedPlan}
+        onChange={(e) => {
+          setEditedPlan(e.target.value);
+          setIsEdited(true);
+        }}
+        className="min-h-[180px]"
+      />
+
+      {isEdited && <Badge className="bg-yellow-400 text-black">Doctor Edited</Badge>}
+
+      <Button onClick={submitApprovedPlan} disabled={loading}>
+        {loading ? "Submitting..." : "Approve & Save"}
+      </Button>
+    </Card>
+  );
+}
+
+// ✅ Starting: SmartScheduler.tsx
+// - Visual grid from 7AM–7PM
+// - Provider columns
+// - Appointment color codes (Confirmed, Cancelled, No-show, Unconfirmed)
+// - Hover shows patient name, DOB, insurance, quick access to chart
+// - Drag to reschedule
+// - Add new, edit, block out
+// - AI-powered follow-ups & suggestions
+
+// ✅ Followed by: AIHub.tsx
+// - Treatment opportunities
+// - Risk scoring (perio, endo, caries, systemic risk)
+// - Insurance/lab/finance prediction support
+// - AI feedback & override logging
+// - Patient-specific optimization panel
